@@ -31,20 +31,53 @@ class DBHandler:
             return {}
         return {item['ticker']: item for item in data}
 
-    def add_to_portfolio(self, ticker: str, amount: float, price: float, sector: str = "Unknown"):
-        """Add or update a holding."""
+    def add_to_portfolio(self, ticker: str, amount: float, price: float, sector: str = "Unknown", is_confirmed: bool = True, chat_id: int = None):
+        """Add or update a holding. Supports 'Draft' mode via is_confirmed=False."""
         try:
             data = {
                 "ticker": ticker,
                 "quantity": amount,
                 "avg_price": price,
-                "sector": sector
+                "sector": sector,
+                "is_confirmed": is_confirmed
             }
+            if chat_id:
+                data["chat_id"] = chat_id
+
             # upsert=True is default behavior if ID matches, but for ticker we rely on unique constraint
+            # Note: unique constraint on 'ticker' might be an issue if multiple users draft the same ticker.
+            # For a single-user bot, it's fine. For multi-user, unique should be (ticker, chat_id).
+            # We'll assume single user for now or that 'ticker' is unique globally in this table.
             self.supabase.table("portfolio").upsert(data, on_conflict="ticker").execute()
-            logger.info(f"Updated portfolio: {ticker}")
+            logger.info(f"Updated portfolio: {ticker} (Confirmed: {is_confirmed})")
         except Exception as e:
             logger.error(f"Error updating portfolio for {ticker}: {e}")
+
+    def confirm_portfolio(self, chat_id: int):
+        """Mark all drafts for a user as confirmed."""
+        try:
+            self.supabase.table("portfolio") \
+                .update({"is_confirmed": True}) \
+                .eq("chat_id", chat_id) \
+                .eq("is_confirmed", False) \
+                .execute()
+            logger.info(f"Confirmed portfolio for chat_id {chat_id}")
+        except Exception as e:
+            logger.error(f"Error confirming portfolio: {e}")
+            raise e
+
+    def delete_drafts(self, chat_id: int):
+        """Delete unconfirmed drafts."""
+        try:
+            self.supabase.table("portfolio") \
+                .delete() \
+                .eq("chat_id", chat_id) \
+                .eq("is_confirmed", False) \
+                .execute()
+            logger.info(f"Deleted drafts for chat_id {chat_id}")
+        except Exception as e:
+            logger.error(f"Error deleting drafts: {e}")
+            raise e
 
     def log_prediction(self, ticker: str, sentiment: str, reasoning: str, prediction_sentence: str, confidence_score: float, source_url: str):
         """Save AI analysis to predictions table."""
