@@ -3,6 +3,7 @@ from google.genai import types
 import os
 import logging
 import json
+from market_data import MarketData
 import time
 
 # Configure logging
