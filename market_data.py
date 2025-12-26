@@ -1,6 +1,7 @@
 import yfinance as yf
 import pandas as pd
-import pandas_ta as ta
+from ta.momentum import RSIIndicator
+from ta.trend import SMAIndicator
 import logging
 
 # Configure logging
@@ -25,12 +26,17 @@ class MarketData:
                 logger.warning(f"No data found for {ticker}")
                 return "No Market Data Available"
 
-            # 2. Calculate Indicators
+            # 2. Calculate Indicators using 'ta' library
             # RSI 14
-            df['RSI'] = ta.rsi(df['Close'], length=14)
+            rsi_ind = RSIIndicator(close=df['Close'], window=14)
+            df['RSI'] = rsi_ind.rsi()
+            
             # SMA 50 & 200
-            df['SMA_50'] = ta.sma(df['Close'], length=50)
-            df['SMA_200'] = ta.sma(df['Close'], length=200)
+            sma50_ind = SMAIndicator(close=df['Close'], window=50)
+            df['SMA_50'] = sma50_ind.sma_indicator()
+            
+            sma200_ind = SMAIndicator(close=df['Close'], window=200)
+            df['SMA_200'] = sma200_ind.sma_indicator()
 
             # Get latest values (last row)
             latest = df.iloc[-1]
