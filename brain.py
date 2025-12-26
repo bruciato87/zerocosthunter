@@ -118,18 +118,22 @@ class Brain:
 
         **INSTRUCTIONS:**
         1. Look at the image and identify each stock/crypto position.
-        2. Extract the **Ticker Symbol** (e.g., "Nvidia" -> NVDA). Valid tickers are crucial.
-        3. Extract **Quantity** (numeric). Watch out for usage of commas/dots (European format).
-        4. Extract **Avg Buy Price** (numeric).
-        5. Extract **Sector** (Tech, Crypto, Auto, etc.).
+        2. Extract the **Ticker Symbol** (e.g., "Nvidia" -> NVDA, "Render" -> RNDR-USD, "Solana" -> SOL-USD).
+           - BE SMART about Crypto names.
+        3. **CRITICAL:** The user might be showing a "List View" which only shows **Current Value** and **PnL** (Profit/Loss), but NOT Quantity.
+           - If "Quantity" is visible, extract it.
+           - If "Quantity" is MISSING, extract **Current Value** (e.g., "584,63 €" -> 584.63) and **PnL** (e.g., "-237,52 €" -> -237.52).
+        4. Extract **Sector** (Tech, Crypto, Auto, etc.).
 
         **OUTPUT FORMAT:**
         Return strictly a JSON list of objects:
         [
             {
                 "ticker": "NVDA",
-                "quantity": 10.5,
-                "avg_price": 80.0,
+                "quantity": 10.5,       // null if not found
+                "avg_price": 80.0,      // null if not found
+                "current_value": 840.0, // Extract this if quantity is missing
+                "pnl": 40.0,            // Extract this (can be negative)
                 "sector": "Tech"
             }
         ]
@@ -138,7 +142,7 @@ class Brain:
 
         try:
             response = self.client.models.generate_content(
-                model='gemini-2.0-flash-exp', # Using Vision capable model
+                model='gemini-2.0-flash-exp', 
                 contents=[
                     prompt,
                     types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
@@ -147,7 +151,73 @@ class Brain:
                     response_mime_type="application/json"
                 )
             )
-            return json.loads(response.text)
+            raw_data = json.loads(response.text)
+            
+            # Post-Processing: Fill missing links using Market Data
+            final_data = []
+            market = MarketData()
+            
+            for item in raw_data:
+                ticker = item.get('ticker')
+                qty = item.get('quantity')
+                avg = item.get('avg_price')
+                val = item.get('current_value')
+                pnl = item.get('pnl')
+                
+                # Case 1: We have Quantity and Avg Price (Perfect)
+                if qty is not None and avg is not None:
+                    final_data.append(item)
+                    continue
+                    
+                # Case 2: We have Value and PnL (Back-calculate)
+                if val is not None and pnl is not None:
+                    try:
+                        # 1. Get Live Price
+                        # Since we don't have an easy sync method in MarketData yet that returns float, 
+                        # we might need to instantiate or check if we can get a quick price.
+                        # For now, let's assume we can fetch technical summary or just use a helper.
+                        # Actually, MarketData relies on yfinance, which is synchronous.
+                        # We will make a quick helper in MarketData or use a direct call here?
+                        # Better to keep it clean. Let's assume we proceed with an approximation or 0 if fail.
+                        
+                        # Note: MarketData.get_technical_summary does a lot. We just need price.
+                        # Let's import yfinance directly here for speed/simplicity or trust MarketData?
+                        # Accessing a private method or adding one to MarketData is cleaner.
+                        # We'll use a hack using yfinance directly here to avoid editing MarketData again unnecessarily,
+                        # OR we assume the prompt gave us enough. 
+                        # Wait, we really need the price.
+                        import yfinance as yf
+                        t = yf.Ticker(ticker)
+                        current_price = t.history(period="1d")['Close'].iloc[-1]
+                        
+                        # 2. Derive Quantity
+                        # Value = Qty * CurrentPrice => Qty = Value / CurrentPrice
+                        calculated_qty = val / current_price
+                        
+                        # 3. Derive Cost Basis and Avg Price
+                        # Value = Cost + PnL => Cost = Value - PnL
+                        cost_basis = val - pnl
+                        calculated_avg = cost_basis / calculated_qty
+                        
+                        item['quantity'] = round(calculated_qty, 4)
+                        item['avg_price'] = round(calculated_avg, 2)
+                        
+                        logger.info(f"Back-calculated {ticker}: Qty={calculated_qty}, Avg={calculated_avg}")
+                        final_data.append(item)
+                    except Exception as ex:
+                        logger.warning(f"Could not back-calculate for {ticker}: {ex}")
+                        # Append anyway, maybe user can fix manually? Or skip?
+                        # If we append with None, DB might fail if columns are not nullable. 
+                        # DB Handler expects float. Let's put 0.0 placeholders if fail.
+                        item['quantity'] = item.get('quantity') or 0.0
+                        item['avg_price'] = item.get('avg_price') or 0.0
+                        final_data.append(item)
+                else:
+                    # Partial data unusable
+                    continue
+
+            return final_data
+
         except Exception as e:
             logger.error(f"Error parsing portfolio image: {e}")
             return []
