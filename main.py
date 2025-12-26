@@ -9,6 +9,8 @@ load_dotenv()
 from db_handler import DBHandler
 from hunter import NewsHunter
 from market_data import MarketData
+from brain import Brain
+from telegram_bot import TelegramNotifier
 import re
 import asyncio
 
