@@ -10,6 +10,7 @@ from db_handler import DBHandler
 from hunter import NewsHunter
 from market_data import MarketData
 import re
+import asyncio
 
 def run_pipeline():
     asyncio.run(run_async_pipeline())
