@@ -141,10 +141,10 @@ class Brain:
         """
 
         try:
-            # Reverting to gemini-1.5-pro (Quota-safe, High Power)
-            # gemini-2.5-pro free tier limit is 0 on this key.
+            # Using gemini-2.5-flash (Newest Stable, High Free Quota)
+            # 1.5-pro 404'd, 2.5-pro 429'd. 2.5-flash is the best balance.
             response = self.client.models.generate_content(
-                model='gemini-1.5-pro', 
+                model='gemini-2.5-flash', 
                 contents=[
                     prompt,
                     types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
