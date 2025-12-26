@@ -12,6 +12,14 @@ from market_data import MarketData
 import re
 import asyncio
 
+# Configure Logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
+logger = logging.getLogger("MainController")
+
 def run_pipeline():
     asyncio.run(run_async_pipeline())
 
