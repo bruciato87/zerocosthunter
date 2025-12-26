@@ -8,18 +8,8 @@ load_dotenv()
 
 from db_handler import DBHandler
 from hunter import NewsHunter
-from brain import Brain
-from telegram_bot import TelegramNotifier
-
-# Configure Logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[logging.StreamHandler(sys.stdout)]
-)
-logger = logging.getLogger("MainController")
-
-import asyncio
+from market_data import MarketData
+import re
 
 def run_pipeline():
     asyncio.run(run_async_pipeline())
@@ -33,6 +23,7 @@ async def run_async_pipeline():
         hunter = NewsHunter()
         brain = Brain()
         notifier = TelegramNotifier()
+        market = MarketData()
     except Exception as e:
         logger.critical(f"Initialization failed: {e}")
         return
@@ -42,6 +33,41 @@ async def run_async_pipeline():
     if not news_items:
         logger.info("No news found. Exiting.")
         return
+
+    # 2.5 Enrich News with Technical Data
+    logger.info("Enriching news with Technical Data...")
+    
+    # Simple whitelist for Zero-Cost extraction (expandable)
+    MONITORED_TICKERS = {
+        "BTC": "BTC-USD", "BITCOIN": "BTC-USD",
+        "ETH": "ETH-USD", "ETHEREUM": "ETH-USD",
+        "SOL": "SOL-USD", "SOLANA": "SOL-USD",
+        "NVDA": "NVDA", "NVIDIA": "NVDA",
+        "TSLA": "TSLA", "TESLA": "TSLA",
+        "AAPL": "AAPL", "APPLE": "AAPL",
+        "MSFT": "MSFT", "MICROSOFT": "MSFT",
+        "AMZN": "AMZN", "AMAZON": "AMZN",
+        "GOOG": "GOOGL", "GOOGLE": "GOOGL",
+        "META": "META",
+        "AMD": "AMD",
+        "SPY": "SPY", "S&P 500": "SPY"
+    }
+
+    for item in news_items:
+        text_content = (item.get('title', '') + " " + item.get('summary', '')).upper()
+        
+        # Find first matching ticker
+        detected_ticker = None
+        for key, symbol in MONITORED_TICKERS.items():
+            # word boundary check to avoid matching "BETTER" as "ETH"
+            if re.search(r'\b' + re.escape(key) + r'\b', text_content):
+                detected_ticker = symbol
+                break
+        
+        if detected_ticker:
+            tech_summary = market.get_technical_summary(detected_ticker)
+            item['summary'] += f"\n\n[Technical Context for {detected_ticker}: {tech_summary}]"
+            logger.info(f"Enriched {detected_ticker} news with: {tech_summary}")
 
     # 3. Analyze with AI
     logger.info("Analyzing news with Gemini...")

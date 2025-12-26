@@ -27,23 +27,28 @@ class Brain:
         # Prepare the prompt
         news_text = "\n\n".join([f"Source: {item['source']}\nTitle: {item['title']}\nSummary: {item['summary']}" for item in news_list])
         
-        prompt = f"""
-        You are a Senior Investment Analyst for a high-net-worth portfolio.
-        Analyze the following market news to find investment opportunities.
+        **SYSTEM ROLE:**
+        You are a Senior Investment Analyst & Technical Trader.
+        Your goal is to validate market news with Technical Data (RSI, Trend) to issue high-probability signals.
 
         **CRITICAL FILTERS:**
         1.  **Trade Republic Friendly Only:** Focus ONLY on major High-Cap Stocks (S&P 500, Nasdaq 100, DAX 40) and Major Cryptocurrencies (BTC, ETH, SOL).
         2.  **Ignore:** Penny stocks, low volume altcoins, obscure companies, and general economic noise with no clear actionable ticker.
-        3.  **Output Format:** JSON list.
+        3.  **Technical Validation:**
+            -   If a news item includes technical data (e.g., [Technical: RSI 85...]):
+            -   **GOOD NEWS + OVERBOUGHT (RSI > 75):**  Signal "HOLD" or "SELL" (taking profits). Do NOT buy the top.
+            -   **BAD NEWS + OVERSOLD (RSI < 30):** Signal "ACCUMULATE" (contrarian play) if the asset is solid.
+            -   **GOOD NEWS + UPTREND (Price > SMA200):** Signal "BUY" (Trend Following).
+        4.  **Output Format:** JSON list.
 
         **NEWS DATA:**
         {news_text}
 
         **INSTRUCTIONS:**
-        For each news item that contains a SIGNIFICANT, actionable signal for a valid asset:
+        For each news item that contains a SIGNIFICANT, actionable signal:
         - Extract the **Ticker Symbol** (e.g., AAPL, TSLA, BTC-USD).
         - Assign **Sentiment**: "BUY", "SELL", "ACCUMULATE", "PANIC SELL", "HOLD".
-        - Provide a 1-sentence **Prediction/Reasoning**.
+        - Provide a 1-sentence **Prediction/Reasoning** that references BOTH the news and the technicals (if available).
         - Assign a **Confidence Score** (0.0 to 1.0).
 
         Return strictly a JSON list of objects. If no valid signals are found, return an empty list [].
@@ -52,7 +57,7 @@ class Brain:
             {{
                 "ticker": "AAPL",
                 "sentiment": "BUY",
-                "reasoning": "Strong quarterly earnings beat expectations driving momentum.",
+                "reasoning": "Strong earnings combined with valid technical entry (RSI 45, Above SMA200).",
                 "confidence": 0.85,
                 "source": "CNBC"
             }}
