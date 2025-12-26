@@ -95,6 +95,54 @@ class Brain:
             logger.error(f"Error during Gemini analysis: {e}")
             return []
 
+    def parse_portfolio_data(self, raw_text):
+        """
+        Uses Gemini to extract structured portfolio data from messy text (PDF copy-paste, website text).
+        """
+        logger.info("Parsing portfolio text with Gemini...")
+        
+        prompt = f"""
+        **SYSTEM ROLE:**
+        You are a Data Extraction Assistant.
+        Your goal is to extract financial holdings from the provided UNSTRUCTURED text (e.g., copy-paste from Trade Republic or simple lists).
+
+        **INPUT TEXT:**
+        {raw_text}
+
+        **INSTRUCTIONS:**
+        1. Identify each asset/stock/crypto position.
+        2. Extract the **Ticker Symbol** (Guess it if only company name is present, e.g., "Adidas" -> ADS.DE, "Nvidia" -> NVDA).
+           - PREFER US Tickers (NVDA, AAPL) or Major Crypto (BTC-USD, ETH-USD).
+        3. Extract **Quantity** (numeric). Handle European formats (e.g., "10,5" -> 10.5).
+        4. Extract **Avg Buy Price** (numeric). Handle currency symbols and formats.
+        5. Extract **Sector** (Tech, Crypto, Auto, etc.) based on your knowledge.
+
+        **OUTPUT FORMAT:**
+        Return strictly a JSON list of objects:
+        [
+            {{
+                "ticker": "NVDA",
+                "quantity": 10.5,
+                "avg_price": 80.0,
+                "sector": "Tech"
+            }}
+        ]
+        If no data found, return [].
+        """
+
+        try:
+            response = self.client.models.generate_content(
+                model='gemini-3-flash-preview',
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json"
+                )
+            )
+            return json.loads(response.text)
+        except Exception as e:
+            logger.error(f"Error parsing portfolio: {e}")
+            return []
+            
     def evaluate_portfolio(self, portfolio, market_news):
         """
         Cross-reference news with existing holdings to suggest actions.
