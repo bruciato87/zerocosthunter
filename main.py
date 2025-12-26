@@ -45,8 +45,14 @@ async def run_async_pipeline():
         logger.info("No news found. Exiting.")
         return
 
-    # 2.5 Enrich News with Technical Data
-    logger.info("Enriching news with Technical Data...")
+    # 2.2 Load Portfolio
+    logger.info("Loading Portfolio...")
+    portfolio_map = db.get_portfolio_map()
+    if portfolio_map:
+        logger.info(f"Loaded {len(portfolio_map)} holdings.")
+
+    # 2.5 Enrich News with Technical Data & Portfolio Context
+    logger.info("Enriching news with Technical Data & Portfolio Context...")
     
     # Simple whitelist for Zero-Cost extraction (expandable)
     MONITORED_TICKERS = {
@@ -64,6 +70,10 @@ async def run_async_pipeline():
         "SPY": "SPY", "S&P 500": "SPY"
     }
 
+    # Add Portfolio Tickers to Monitored list dynamically
+    for p_ticker in portfolio_map.keys():
+        MONITORED_TICKERS[p_ticker] = p_ticker
+
     for item in news_items:
         text_content = (item.get('title', '') + " " + item.get('summary', '')).upper()
         
@@ -76,9 +86,21 @@ async def run_async_pipeline():
                 break
         
         if detected_ticker:
+            extras = []
+            
+            # 1. Technicals
             tech_summary = market.get_technical_summary(detected_ticker)
-            item['summary'] += f"\n\n[Technical Context for {detected_ticker}: {tech_summary}]"
-            logger.info(f"Enriched {detected_ticker} news with: {tech_summary}")
+            extras.append(f"Technical: {tech_summary}")
+            
+            # 2. Portfolio
+            if detected_ticker in portfolio_map:
+                holding = portfolio_map[detected_ticker]
+                p_summary = f"OWNED {holding['quantity']} @ ${holding['avg_price']}"
+                extras.append(f"Portfolio: {p_summary}")
+                logger.info(f"Enriched {detected_ticker} with Portfolio data: {p_summary}")
+
+            item['summary'] += "\n\n[" + " | ".join(extras) + "]"
+            logger.info(f"Enriched {detected_ticker} news.")
 
     # 3. Analyze with AI
     logger.info("Analyzing news with Gemini...")

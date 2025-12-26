@@ -24,6 +24,28 @@ class DBHandler:
             logger.error(f"Error fetching portfolio: {e}")
             return []
 
+    def get_portfolio_map(self):
+        """Returns portfolio as a dictionary {ticker: {qty, avg_price, sector}} for fast lookup."""
+        data = self.get_portfolio()
+        if not data:
+            return {}
+        return {item['ticker']: item for item in data}
+
+    def add_to_portfolio(self, ticker: str, amount: float, price: float, sector: str = "Unknown"):
+        """Add or update a holding."""
+        try:
+            data = {
+                "ticker": ticker,
+                "quantity": amount,
+                "avg_price": price,
+                "sector": sector
+            }
+            # upsert=True is default behavior if ID matches, but for ticker we rely on unique constraint
+            self.supabase.table("portfolio").upsert(data, on_conflict="ticker").execute()
+            logger.info(f"Updated portfolio: {ticker}")
+        except Exception as e:
+            logger.error(f"Error updating portfolio for {ticker}: {e}")
+
     def log_prediction(self, ticker: str, sentiment: str, reasoning: str, prediction_sentence: str, confidence_score: float, source_url: str):
         """Save AI analysis to predictions table."""
         try:
