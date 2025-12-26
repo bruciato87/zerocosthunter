@@ -13,31 +13,27 @@ class TelegramNotifier:
         
         if not self.token or not self.chat_id:
             logger.warning("Telegram credentials missing. Notifications disabled.")
-            self.bot = None
-        else:
-            self.bot = Bot(token=self.token)
 
     async def send_alert(self, message):
         """Send a formatted message to the user."""
-        if not self.bot:
+        if not self.token or not self.chat_id:
             logger.info(f"Mock Alert (No Bot Configured): {message}")
             return
 
         try:
-            await self.bot.send_message(chat_id=self.chat_id, text=message, parse_mode='Markdown')
-            logger.info("Telegram alert sent.")
+            # Create a fresh Bot instance for each request to avoid event loop conflicts
+            async with Bot(token=self.token) as bot:
+                await bot.send_message(chat_id=self.chat_id, text=message, parse_mode='Markdown')
+                logger.info("Telegram alert sent.")
         except Exception as e:
             logger.error(f"Failed to send Telegram alert: {e}")
 
     def send_sync(self, message):
         """Synchronous wrapper for async send."""
-        if self.bot:
-            try:
-                asyncio.run(self.send_alert(message))
-            except Exception as e:
-                 logger.error(f"Async loop error in Telegram sender: {e}")
-        else:
-             logger.info(f"Mock Alert: {message}")
+        try:
+            asyncio.run(self.send_alert(message))
+        except Exception as e:
+                logger.error(f"Async loop error in Telegram sender: {e}")
 
 if __name__ == "__main__":
     t = TelegramNotifier()
