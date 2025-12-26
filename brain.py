@@ -141,9 +141,10 @@ class Brain:
         """
 
         try:
-            # Using user-requested pro model
+            # Reverting to gemini-1.5-pro (Quota-safe, High Power)
+            # gemini-2.5-pro free tier limit is 0 on this key.
             response = self.client.models.generate_content(
-                model='gemini-2.5-pro', 
+                model='gemini-1.5-pro', 
                 contents=[
                     prompt,
                     types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
