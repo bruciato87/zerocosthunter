@@ -3,6 +3,13 @@ import pandas as pd
 from ta.momentum import RSIIndicator
 from ta.trend import SMAIndicator
 import logging
+import os
+
+# Set YFinance cache to /tmp for read-only filesystems (Vercel)
+try:
+    yf.set_tz_cache_location("/tmp/py-yfinance")
+except Exception:
+    pass
 
 # Configure logging
 logger = logging.getLogger(__name__)
