@@ -33,9 +33,7 @@ class TelegramNotifier:
         """Synchronous wrapper for async send."""
         if self.bot:
             try:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                loop.run_until_complete(self.send_alert(message))
+                asyncio.run(self.send_alert(message))
             except Exception as e:
                  logger.error(f"Async loop error in Telegram sender: {e}")
         else:
