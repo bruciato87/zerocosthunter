@@ -141,8 +141,9 @@ class Brain:
         """
 
         try:
+            # Using gemini-1.5-flash which has higher rate limits for free tier
             response = self.client.models.generate_content(
-                model='gemini-2.0-flash-exp', 
+                model='gemini-1.5-flash', 
                 contents=[
                     prompt,
                     types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
