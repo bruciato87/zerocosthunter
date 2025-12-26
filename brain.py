@@ -27,6 +27,7 @@ class Brain:
         # Prepare the prompt
         news_text = "\n\n".join([f"Source: {item['source']}\nTitle: {item['title']}\nSummary: {item['summary']}" for item in news_list])
         
+        prompt = f"""
         **SYSTEM ROLE:**
         You are a Senior Investment Analyst & Technical Trader.
         Your goal is to validate market news with Technical Data (RSI, Trend) to issue high-probability signals.
