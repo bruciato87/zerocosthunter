@@ -137,7 +137,7 @@ To make this run automatically every few hours for free:
         git branch -M main
         
         # Link to your new repo (Replace URL with YOUR repository URL)
-        git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
+        git remote add origin https://github.com/bruciato87/zerocosthunter.git
         
         # Push the code
         git push -u origin main
@@ -159,6 +159,21 @@ To make this run automatically every few hours for free:
 -   **`Error: Module not found`**: Make sure you activated your virtual environment and ran `pip install -r requirements.txt`.
 -   **Telegram messages not sending**: Verify your `TELEGRAM_CHAT_ID`. It must be an integer (e.g., `123456789`). Also, ensure you have clicked "Start" on your new bot in Telegram.
 -   **Supabase connection error**: Ensure you used the `service_role` key, not the `anon` key, if you have Row Level Security (RLS) enabled (or disable RLS for testing).
+-   **GitHub "Password authentication is not supported"**:
+    -   GitHub does not accept your account password in the terminal.
+    -   You must use a **Personal Access Token (PAT)**.
+    -   **Quick Link:** [Generate Token (Classic)](https://github.com/settings/tokens/new)
+    -   **Manual Path:** Settings -> Scroll to the very bottom left -> **Developer settings** -> Personal access tokens -> Tokens (classic).
+    -   Generate a new token.
+    -   **CRITICAL:** You MUST check the box for **`repo`** AND the box for **`workflow`**.
+    -   When the terminal asks for "Password", paste this long token instead.
+-   **Old Token Cached (Mac)**:
+    -   If Git doesn't ask for a password and fails with 403/Authentication failed, your Mac remembered the old wrong token.
+    -   Run this command to clear it:
+        ```bash
+        printf "protocol=https\nhost=github.com\n" | git credential-osxkeychain erase
+        ```
+    -   Then try `git push` again.
 
 ## 🛡️ Disclaimer
 
