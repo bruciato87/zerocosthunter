@@ -141,9 +141,10 @@ class Brain:
         """
 
         try:
-            # Using user-requested pro model
+            # Reverting to gemini-1.5-flash (Stable, Production Ready)
+            # gemini-3-flash is currently only available as 'preview'.
             response = self.client.models.generate_content(
-                model='gemini-3-flash-preview', 
+                model='gemini-1.5-flash', 
                 contents=[
                     prompt,
                     types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
