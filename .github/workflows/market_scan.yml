@@ -27,12 +27,20 @@ jobs:
       - name: Debug Secrets Presence
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          if [ -z "$SUPABASE_URL" ]; then
-            echo "::error::SUPABASE_URL is missing or empty!"
+          missing=0
+          if [ -z "$SUPABASE_URL" ]; then echo "::error::SUPABASE_URL is missing"; missing=1; else echo "SUPABASE_URL ok"; fi
+          if [ -z "$SUPABASE_KEY" ]; then echo "::error::SUPABASE_KEY is missing"; missing=1; else echo "SUPABASE_KEY ok"; fi
+          if [ -z "$GEMINI_API_KEY" ]; then echo "::error::GEMINI_API_KEY is missing"; missing=1; else echo "GEMINI_API_KEY ok"; fi
+          if [ -z "$TELEGRAM_BOT_TOKEN" ]; then echo "::error::TELEGRAM_BOT_TOKEN is missing"; missing=1; else echo "TELEGRAM_BOT_TOKEN ok"; fi
+          if [ -z "$TELEGRAM_CHAT_ID" ]; then echo "::error::TELEGRAM_CHAT_ID is missing"; missing=1; else echo "TELEGRAM_CHAT_ID ok"; fi
+          
+          if [ $missing -eq 1 ]; then
             exit 1
-          else
-            echo "SUPABASE_URL is present (length: ${#SUPABASE_URL})"
           fi
 
       - name: Run Hunter Bot
