@@ -166,18 +166,42 @@ class Brain:
                 raw_data = raw_response.get("holdings", [])
                 currency = raw_response.get("currency", "USD")
 
+            # Post-Processing: Fill missing links using Market Data
             final_data = []
             market = MarketData()
             
             import yfinance as yf
 
+            # 1. Get FX Rate (EUR -> USD)
+            # We need to know how much 1 EUR is in USD to convert the User's Value(EUR) to Value(USD)
+            # Ticker: EURUSD=X (Returns USD per 1 EUR)
+            eur_usd_rate = 1.1 # Default fallback
+            try:
+                fx = yf.Ticker("EURUSD=X")
+                hist_fx = fx.history(period="1d")
+                if not hist_fx.empty:
+                    eur_usd_rate = hist_fx['Close'].iloc[-1]
+            except:
+                logger.warning("Could not fetch EURUSD rate, using 1.1 fallback")
+
             for item in raw_data:
                 ticker = item.get('ticker')
-                # Clean numbers just in case
+                
+                # Helper to clean "1.000,00" to float
                 def clean_float(val):
                     if isinstance(val, str):
-                        val = val.replace('.', '').replace(',', '.') # Assume EU format input if string remnants exist
-                    return float(val) if val is not None else None
+                        # Remove dots (thousands), replace comma with dot
+                        if ',' in val and '.' in val:
+                             # mixed usage
+                             val = val.replace('.', '').replace(',', '.')
+                        elif ',' in val:
+                             # simple comma decimal
+                             val = val.replace(',', '.')
+                    
+                    try:
+                        return float(val) if val is not None else None
+                    except:
+                        return None
 
                 qty = clean_float(item.get('quantity'))
                 avg = clean_float(item.get('avg_price'))
@@ -188,13 +212,6 @@ class Brain:
                 item['quantity'] = qty
                 item['avg_price'] = avg
                 
-                # Logic to fix Ticker Currency if needed
-                # If portfolio is EUR and Ticker is USD pair, we should try to fetch EUR price for math
-                fetch_ticker = ticker
-                if currency == "EUR" and "USD" in ticker:
-                    # Try switching -USD to -EUR
-                    fetch_ticker = ticker.replace("USD", "EUR")
-                
                 # Case 1: We have Quantity and Avg Price (Perfect)
                 if qty is not None and avg is not None:
                     final_data.append(item)
@@ -203,50 +220,48 @@ class Brain:
                 # Case 2: We have Value and PnL (Back-calculate)
                 if val is not None and pnl is not None:
                     try:
-                        # 1. Get Live Price
-                        # Use yfinance correctly
+                        # Strategy:
+                        # 1. We assume Ticker is USD based (e.g. RNDR-USD, NVDA).
+                        # 2. We have Value in EUR.
+                        # 3. Increase Robustness: specific fix for Render
+                        fetch_ticker = ticker
+                        if "RNDR" in ticker:
+                             fetch_ticker = "RENDER-USD"
+                        
                         t = yf.Ticker(fetch_ticker)
                         hist = t.history(period="1d")
                         
                         if hist.empty:
-                            # Fallback: maybe the EUR ticker doesn't exist? Try original USD ticker and convert?
-                            # For simplicity, if RNDR-EUR fails, warn.
-                            logger.warning(f"Could not fetch data for {fetch_ticker}")
-                            item['ticker'] = ticker # Keep original
+                             # Try fallback
+                             t = yf.Ticker(ticker)
+                             hist = t.history(period="1d")
+                             
+                        if hist.empty:
+                            logger.warning(f"Could not fetch data for {ticker}")
                             item['quantity'] = 0.0
                             item['avg_price'] = 0.0
                             final_data.append(item)
                             continue
                             
-                        current_price = hist['Close'].iloc[-1]
+                        current_price_usd = hist['Close'].iloc[-1]
                         
-                        # 2. Derive Quantity
-                        # Value (EUR) / Price (EUR) = Qty
-                        calculated_qty = val / current_price
+                        # Calculate Value in USD
+                        # If currency is EUR: Value_USD = Value(EUR) * Rate(USD/EUR)
+                        value_usd = val
+                        if currency == "EUR":
+                            value_usd = val * eur_usd_rate
+                            
+                        # Derive Quantity = Value(USD) / Price(USD)
+                        calculated_qty = value_usd / current_price_usd
                         
-                        # 3. Derive Cost Basis and Avg Price
-                        # Value = Cost + PnL => Cost = Value - PnL
-                        cost_basis = val - pnl
-                        calculated_avg = cost_basis / calculated_qty
-                        
-                        item['ticker'] = ticker # Store the canonical ticker (e.g. RNDR-USD) for global monitoring? 
-                        # Actually if user tracks in EUR, we might want to store EUR ticker?
-                        # But system is USD based. 
-                        # Let's keep the Ticker as the 'System' ticker (USD) but calc qty correctly.
-                        
-                        # Wait, if we calculated Qty using EUR price, Qty is correct.
-                        # Avg Price (in EUR) is correct.
-                        # But if we store RNDR-USD, subsequent lookups will be USD.
-                        # Mixed currency portfolios are tricky. 
-                        # For now, let's just make the Numbers Correct (Quantity is absolute). 
-                        # We will store the Avg Price in the CURRENCY DETECTED?
-                        # The DB schema has no currency column. 
-                        # Let's assume we store everything as is, and the user understands the price is in their currency.
+                        # Derive Cost Basis and Avg Price (keep in EUR)
+                        cost_basis_eur = val - pnl
+                        calculated_avg_eur = cost_basis_eur / calculated_qty
                         
                         item['quantity'] = round(calculated_qty, 4)
-                        item['avg_price'] = round(calculated_avg, 2)
+                        item['avg_price'] = round(calculated_avg_eur, 2)
                         
-                        logger.info(f"Back-calculated {ticker} ({currency}): Qty={calculated_qty}, Avg={calculated_avg}")
+                        logger.info(f"Back-calculated {ticker}: Qty={calculated_qty}, Avg={calculated_avg_eur}€")
                         final_data.append(item)
                     except Exception as ex:
                         logger.warning(f"Could not back-calculate for {ticker}: {ex}")
