@@ -12,30 +12,32 @@ logger = logging.getLogger("Importer")
 def import_portfolio():
     load_dotenv()
     
-    # 1. Read Input File
-    file_path = "portfolio_input.txt"
-    if not os.path.exists(file_path):
-        logger.error(f"File {file_path} not found!")
+    # 1. Find Image File
+    valid_extensions = [".jpg", ".jpeg", ".png"]
+    image_path = None
+    
+    for ext in valid_extensions:
+        temp_path = f"portfolio{ext}"
+        if os.path.exists(temp_path):
+            image_path = temp_path
+            break
+            
+    if not image_path:
+        logger.error("No 'portfolio.jpg', 'portfolio.jpeg', or 'portfolio.png' found in current directory.")
+        logger.info("Please take a screenshot of your Trade Republic portfolio and save it here.")
         return
 
-    with open(file_path, "r", encoding="utf-8") as f:
-        content = f.read()
-
-    if len(content) < 50:
-        logger.error("File seems empty or too short. Please paste your portfolio text.")
-        return
-
-    # 2. Parse with AI
-    logger.info("Asking Gemini to interpret your portfolio...")
+    # 2. Parse with AI (Vision)
+    logger.info(f"Asking Gemini to look at {image_path}...")
     try:
         brain = Brain()
-        holdings = brain.parse_portfolio_data(content)
+        holdings = brain.parse_portfolio_from_image(image_path)
     except Exception as e:
         logger.error(f"AI Parsing failed: {e}")
         return
 
     if not holdings:
-        logger.warning("No holdings found. Try copy-pasting differently.")
+        logger.warning("No holdings found in the image. Try a clearer screenshot.")
         return
 
     # 3. Confirm and Save

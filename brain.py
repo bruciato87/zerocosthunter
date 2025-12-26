@@ -95,52 +95,61 @@ class Brain:
             logger.error(f"Error during Gemini analysis: {e}")
             return []
 
-    def parse_portfolio_data(self, raw_text):
+    def parse_portfolio_from_image(self, image_path):
         """
-        Uses Gemini to extract structured portfolio data from messy text (PDF copy-paste, website text).
+        Uses Gemini Vision to extract structured portfolio data from a screenshot.
         """
-        logger.info("Parsing portfolio text with Gemini...")
+        logger.info(f"Parsing portfolio image: {image_path}...")
         
-        prompt = f"""
-        **SYSTEM ROLE:**
-        You are a Data Extraction Assistant.
-        Your goal is to extract financial holdings from the provided UNSTRUCTURED text (e.g., copy-paste from Trade Republic or simple lists).
+        if not os.path.exists(image_path):
+            raise FileNotFoundError(f"Image not found: {image_path}")
 
-        **INPUT TEXT:**
-        {raw_text}
+        # Determine mime type
+        ext = os.path.splitext(image_path)[1].lower()
+        mime_type = "image/png" if ext == ".png" else "image/jpeg"
+
+        with open(image_path, "rb") as f:
+            image_bytes = f.read()
+
+        prompt = """
+        **SYSTEM ROLE:**
+        You are a Financial Data Extraction Assistant.
+        Your goal is to extract financial holdings from the provided SCREENSHOT of a portfolio app (e.g., Trade Republic).
 
         **INSTRUCTIONS:**
-        1. Identify each asset/stock/crypto position.
-        2. Extract the **Ticker Symbol** (Guess it if only company name is present, e.g., "Adidas" -> ADS.DE, "Nvidia" -> NVDA).
-           - PREFER US Tickers (NVDA, AAPL) or Major Crypto (BTC-USD, ETH-USD).
-        3. Extract **Quantity** (numeric). Handle European formats (e.g., "10,5" -> 10.5).
-        4. Extract **Avg Buy Price** (numeric). Handle currency symbols and formats.
-        5. Extract **Sector** (Tech, Crypto, Auto, etc.) based on your knowledge.
+        1. Look at the image and identify each stock/crypto position.
+        2. Extract the **Ticker Symbol** (e.g., "Nvidia" -> NVDA). Valid tickers are crucial.
+        3. Extract **Quantity** (numeric). Watch out for usage of commas/dots (European format).
+        4. Extract **Avg Buy Price** (numeric).
+        5. Extract **Sector** (Tech, Crypto, Auto, etc.).
 
         **OUTPUT FORMAT:**
         Return strictly a JSON list of objects:
         [
-            {{
+            {
                 "ticker": "NVDA",
                 "quantity": 10.5,
                 "avg_price": 80.0,
                 "sector": "Tech"
-            }}
+            }
         ]
         If no data found, return [].
         """
 
         try:
             response = self.client.models.generate_content(
-                model='gemini-3-flash-preview',
-                contents=prompt,
+                model='gemini-2.0-flash-exp', # Using Vision capable model
+                contents=[
+                    prompt,
+                    types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
+                ],
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json"
                 )
             )
             return json.loads(response.text)
         except Exception as e:
-            logger.error(f"Error parsing portfolio: {e}")
+            logger.error(f"Error parsing portfolio image: {e}")
             return []
             
     def evaluate_portfolio(self, portfolio, market_news):
