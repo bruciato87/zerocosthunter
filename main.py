@@ -19,7 +19,12 @@ logging.basicConfig(
 )
 logger = logging.getLogger("MainController")
 
+import asyncio
+
 def run_pipeline():
+    asyncio.run(run_async_pipeline())
+
+async def run_async_pipeline():
     logger.info("Starting Zero-Cost Investment Hunter Pipeline...")
 
     # 1. Initialize Modules
@@ -72,7 +77,7 @@ def run_pipeline():
             f"**Source:** {source}"
         )
         
-        notifier.send_sync(alert_msg)
+        await notifier.send_alert(alert_msg)
         processed_count += 1
 
     logger.info(f"Pipeline finished. Processed {processed_count} actionable signals.")

@@ -28,12 +28,7 @@ class TelegramNotifier:
         except Exception as e:
             logger.error(f"Failed to send Telegram alert: {e}")
 
-    def send_sync(self, message):
-        """Synchronous wrapper for async send."""
-        try:
-            asyncio.run(self.send_alert(message))
-        except Exception as e:
-                logger.error(f"Async loop error in Telegram sender: {e}")
+
 
 if __name__ == "__main__":
     t = TelegramNotifier()
