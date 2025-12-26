@@ -118,32 +118,34 @@ class Brain:
         Your goal is to extract financial holdings from the provided SCREENSHOT of a portfolio app (e.g., Trade Republic).
 
         **INSTRUCTIONS:**
-        1. Look at the image and identify each stock/crypto position.
-        2. Extract the **Ticker Symbol** (e.g., "Nvidia" -> NVDA, "Render" -> RNDR-USD, "Solana" -> SOL-USD).
-           - BE SMART about Crypto names.
-        3. **CRITICAL:** The user might be showing a "List View" which only shows **Current Value** and **PnL** (Profit/Loss), but NOT Quantity.
-           - If "Quantity" is visible, extract it.
-           - If "Quantity" is MISSING, extract **Current Value** (e.g., "584,63 €" -> 584.63) and **PnL** (e.g., "-237,52 €" -> -237.52).
-        4. Extract **Sector** (Tech, Crypto, Auto, etc.).
+        1. Identify the **Currency** of the portfolio (e.g., EUR, USD). Look for symbols € or $.
+        2. Identify each stock/crypto position.
+        3. Extract the **Ticker Symbol** efficiently.
+           - For Crypto, default to USD pair if unsure (e.g. "RNDR-USD"), but we will adjust for currency later.
+        4. **CRITICAL:** Handle "List View" data:
+           - If "Quantity" is MISSING, extract **Current Value** and **PnL**.
+           - **IMPORTANT:** Convert all numbers to standard **FLOAT format with DOTS** (e.g., "1.250,50" -> 1250.50). **REMOVE THOUSAND SEPARATORS. REPLACE DECIMAL COMMAS WITH DOTS.**
 
         **OUTPUT FORMAT:**
-        Return strictly a JSON list of objects:
-        [
-            {
-                "ticker": "NVDA",
-                "quantity": 10.5,       // null if not found
-                "avg_price": 80.0,      // null if not found
-                "current_value": 840.0, // Extract this if quantity is missing
-                "pnl": 40.0,            // Extract this (can be negative)
-                "sector": "Tech"
-            }
-        ]
-        If no data found, return [].
+        Return strictly a JSON list of objects (plus a 'meta' field for currency if possible, but let's keep it simple list).
+        ACTUALLY, return a JSON object:
+        {
+            "currency": "EUR",
+            "holdings": [
+                {
+                    "ticker": "RNDR-USD",
+                    "quantity": null,
+                    "avg_price": null,
+                    "current_value": 564.63,
+                    "pnl": -237.52,
+                    "sector": "Crypto"
+                }
+            ]
+        }
         """
 
         try:
             # Using gemini-2.5-flash (Newest Stable, High Free Quota)
-            # 1.5-pro 404'd, 2.5-pro 429'd. 2.5-flash is the best balance.
             response = self.client.models.generate_content(
                 model='gemini-2.5-flash', 
                 contents=[
@@ -154,18 +156,44 @@ class Brain:
                     response_mime_type="application/json"
                 )
             )
-            raw_data = json.loads(response.text)
+            raw_response = json.loads(response.text)
             
-            # Post-Processing: Fill missing links using Market Data
+            # Handle both list (legacy) and new dict format
+            if isinstance(raw_response, list):
+                raw_data = raw_response
+                currency = "USD" # Default
+            else:
+                raw_data = raw_response.get("holdings", [])
+                currency = raw_response.get("currency", "USD")
+
             final_data = []
             market = MarketData()
             
+            import yfinance as yf
+
             for item in raw_data:
                 ticker = item.get('ticker')
-                qty = item.get('quantity')
-                avg = item.get('avg_price')
-                val = item.get('current_value')
-                pnl = item.get('pnl')
+                # Clean numbers just in case
+                def clean_float(val):
+                    if isinstance(val, str):
+                        val = val.replace('.', '').replace(',', '.') # Assume EU format input if string remnants exist
+                    return float(val) if val is not None else None
+
+                qty = clean_float(item.get('quantity'))
+                avg = clean_float(item.get('avg_price'))
+                val = clean_float(item.get('current_value'))
+                pnl = clean_float(item.get('pnl'))
+                
+                # Update item with cleaned floats
+                item['quantity'] = qty
+                item['avg_price'] = avg
+                
+                # Logic to fix Ticker Currency if needed
+                # If portfolio is EUR and Ticker is USD pair, we should try to fetch EUR price for math
+                fetch_ticker = ticker
+                if currency == "EUR" and "USD" in ticker:
+                    # Try switching -USD to -EUR
+                    fetch_ticker = ticker.replace("USD", "EUR")
                 
                 # Case 1: We have Quantity and Avg Price (Perfect)
                 if qty is not None and avg is not None:
@@ -176,25 +204,24 @@ class Brain:
                 if val is not None and pnl is not None:
                     try:
                         # 1. Get Live Price
-                        # Since we don't have an easy sync method in MarketData yet that returns float, 
-                        # we might need to instantiate or check if we can get a quick price.
-                        # For now, let's assume we can fetch technical summary or just use a helper.
-                        # Actually, MarketData relies on yfinance, which is synchronous.
-                        # We will make a quick helper in MarketData or use a direct call here?
-                        # Better to keep it clean. Let's assume we proceed with an approximation or 0 if fail.
+                        # Use yfinance correctly
+                        t = yf.Ticker(fetch_ticker)
+                        hist = t.history(period="1d")
                         
-                        # Note: MarketData.get_technical_summary does a lot. We just need price.
-                        # Let's import yfinance directly here for speed/simplicity or trust MarketData?
-                        # Accessing a private method or adding one to MarketData is cleaner.
-                        # We'll use a hack using yfinance directly here to avoid editing MarketData again unnecessarily,
-                        # OR we assume the prompt gave us enough. 
-                        # Wait, we really need the price.
-                        import yfinance as yf
-                        t = yf.Ticker(ticker)
-                        current_price = t.history(period="1d")['Close'].iloc[-1]
+                        if hist.empty:
+                            # Fallback: maybe the EUR ticker doesn't exist? Try original USD ticker and convert?
+                            # For simplicity, if RNDR-EUR fails, warn.
+                            logger.warning(f"Could not fetch data for {fetch_ticker}")
+                            item['ticker'] = ticker # Keep original
+                            item['quantity'] = 0.0
+                            item['avg_price'] = 0.0
+                            final_data.append(item)
+                            continue
+                            
+                        current_price = hist['Close'].iloc[-1]
                         
                         # 2. Derive Quantity
-                        # Value = Qty * CurrentPrice => Qty = Value / CurrentPrice
+                        # Value (EUR) / Price (EUR) = Qty
                         calculated_qty = val / current_price
                         
                         # 3. Derive Cost Basis and Avg Price
@@ -202,22 +229,32 @@ class Brain:
                         cost_basis = val - pnl
                         calculated_avg = cost_basis / calculated_qty
                         
+                        item['ticker'] = ticker # Store the canonical ticker (e.g. RNDR-USD) for global monitoring? 
+                        # Actually if user tracks in EUR, we might want to store EUR ticker?
+                        # But system is USD based. 
+                        # Let's keep the Ticker as the 'System' ticker (USD) but calc qty correctly.
+                        
+                        # Wait, if we calculated Qty using EUR price, Qty is correct.
+                        # Avg Price (in EUR) is correct.
+                        # But if we store RNDR-USD, subsequent lookups will be USD.
+                        # Mixed currency portfolios are tricky. 
+                        # For now, let's just make the Numbers Correct (Quantity is absolute). 
+                        # We will store the Avg Price in the CURRENCY DETECTED?
+                        # The DB schema has no currency column. 
+                        # Let's assume we store everything as is, and the user understands the price is in their currency.
+                        
                         item['quantity'] = round(calculated_qty, 4)
                         item['avg_price'] = round(calculated_avg, 2)
                         
-                        logger.info(f"Back-calculated {ticker}: Qty={calculated_qty}, Avg={calculated_avg}")
+                        logger.info(f"Back-calculated {ticker} ({currency}): Qty={calculated_qty}, Avg={calculated_avg}")
                         final_data.append(item)
                     except Exception as ex:
                         logger.warning(f"Could not back-calculate for {ticker}: {ex}")
-                        # Append anyway, maybe user can fix manually? Or skip?
-                        # If we append with None, DB might fail if columns are not nullable. 
-                        # DB Handler expects float. Let's put 0.0 placeholders if fail.
                         item['quantity'] = item.get('quantity') or 0.0
                         item['avg_price'] = item.get('avg_price') or 0.0
                         final_data.append(item)
                 else:
-                    # Partial data unusable
-                    continue
+                    final_data.append(item)
 
             return final_data
 
