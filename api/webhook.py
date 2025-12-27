@@ -57,24 +57,7 @@ def logout():
 def index():
     return redirect(url_for('dashboard'))
 
-@app.route('/favicon.ico')
-def favicon():
-    return "", 204
 
-@app.route('/favicon.png')
-def favicon_png():
-    return "", 204
-
-# NEW: Dashboard Route
-@app.route('/dashboard')
-def dashboard():
-    # Security Check
-    if not session.get('logged_in'):
-        return redirect(url_for('login'))
-
-    db = DBHandler()
-    
-    # ... (Rest of dashboard logic unchanged) ...
 # In serverless, we rebuild the app on requests, or cache it if the container stays warm.
 bot_app = ApplicationBuilder().token(TOKEN).build()
 logger.info("Bot Application Initialized (v2.0 - Menu)")
@@ -541,6 +524,10 @@ def favicon_png():
 # NEW: Dashboard Route
 @app.route('/dashboard')
 def dashboard():
+    # Security Check
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+
     db = DBHandler()
     
     # 1. Fetch recent signals (last 50)
