@@ -21,15 +21,60 @@ from dotenv import load_dotenv
 # Load env vars
 load_dotenv()
 
-app = Flask(__name__, template_folder='../templates') # Point to templates dir
+app = Flask(__name__, template_folder='../templates')
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "fallback_secret_key_change_in_prod") # Required for sessions
 
 # Configure Logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("VercelWebhook")
 
 TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
+DASHBOARD_PASSWORD = os.environ.get("DASHBOARD_PASSWORD", "hunter") # Default password
 
-# Initialize Bot Application (Global)
+# ... (Bot Initialization Code unchanged) ...
+
+# ... (Routes) ...
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        password = request.form.get('password')
+        if password == DASHBOARD_PASSWORD:
+            session['logged_in'] = True
+            return redirect(url_for('dashboard'))
+        else:
+            flash('❌ Password non valida.')
+            return redirect(url_for('login'))
+    
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    session.pop('logged_in', None)
+    return redirect(url_for('login'))
+
+@app.route('/')
+def index():
+    return redirect(url_for('dashboard'))
+
+@app.route('/favicon.ico')
+def favicon():
+    return "", 204
+
+@app.route('/favicon.png')
+def favicon_png():
+    return "", 204
+
+# NEW: Dashboard Route
+@app.route('/dashboard')
+def dashboard():
+    # Security Check
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+
+    db = DBHandler()
+    
+    # ... (Rest of dashboard logic unchanged) ...
 # In serverless, we rebuild the app on requests, or cache it if the container stays warm.
 bot_app = ApplicationBuilder().token(TOKEN).build()
 logger.info("Bot Application Initialized (v2.0 - Menu)")
