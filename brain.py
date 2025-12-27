@@ -240,7 +240,24 @@ class Brain:
                     final_data.append(item)
                     continue
                     
-                # Case 2: We have Value and PnL (Back-calculate)
+                # Case 2: We have Value, PnL AND (Crucially) Avg Price from OCR
+                # This is the most precise way to get Quantity without external API
+                if val is not None and pnl is not None and avg is not None and avg > 0:
+                    try:
+                         # Logic:
+                         # Cost Basis = Value - PnL
+                         # Quantity = Cost Basis / Avg Price
+                         cost_basis = val - pnl
+                         calculated_qty = cost_basis / avg
+                         
+                         item['quantity'] = round(calculated_qty, 4)
+                         logger.info(f"Deriving Qty from OCR AvgPrice for {ticker}: Cost={cost_basis}, Avg={avg} -> Qty={calculated_qty}")
+                         final_data.append(item)
+                         continue
+                    except Exception as e:
+                         logger.warning(f"Math error using OCR AvgPrice: {e}")
+                
+                # Case 3: We have Value and PnL but NO Avg Price (Back-calculate using Live Price)
                 if val is not None and pnl is not None:
                     try:
                         # Strategy:
@@ -284,7 +301,7 @@ class Brain:
                         item['quantity'] = round(calculated_qty, 4)
                         item['avg_price'] = round(calculated_avg_eur, 2)
                         
-                        logger.info(f"Back-calculated {ticker}: Qty={calculated_qty}, Avg={calculated_avg_eur}€")
+                        logger.info(f"Back-calculated {ticker}: Qty={calculated_qty}, Avg={calculated_avg_eur}€ (Live Price Used)")
                         final_data.append(item)
                     except Exception as ex:
                         logger.warning(f"Could not back-calculate for {ticker}: {ex}")
