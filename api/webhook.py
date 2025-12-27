@@ -59,6 +59,17 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("❌ Non ho trovato dati validi.")
             return
 
+        # 2.1 MANUAL OVERRIDE (Caption)
+        # If user provided a caption (e.g. "ICGA.F"), use it as the ticker for the first asset.
+        caption = update.message.caption
+        if caption and len(holdings) > 0:
+            manual_ticker = caption.strip().upper()
+            holdings[0]['ticker'] = manual_ticker
+            # Also reset any "N/A" price if we have a valid ticker now, 
+            # though live price is fetched later in /portfolio, so this is fine.
+            logger.info(f"Manual Override: Set ticker to {manual_ticker} from caption.")
+            await update.message.reply_text(f"✍️ **Override:** Uso il ticker manuale `{manual_ticker}`.")
+
         # 3. Save as DRAFT (including MERGE LOGIC)
         # Strategy:
         # A. Get existing drafts for this user.
