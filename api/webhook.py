@@ -247,16 +247,26 @@ async def show_portfolio(update: Update, context: ContextTypes.DEFAULT_TYPE):
         current_val_eur = 0.0
         current_price_label = "N/A"
         
-        if ticker and ticker != "UNKNOWN":
+        # Runtime Ticker Fixes for Yahoo Finance
+        # Some tickers from TR (Xetra) don't match Yahoo or have migrated.
+        TICKER_FIX_MAP = {
+            "RNDR-USD": "RENDER-USD",  # Token migration
+            "3DJ.DE": "3CP.F",         # Xiaomi: Xetra (.DE) often missing on Yahoo, use Frankfurt (.F) substitute
+            "BYD": "BY6.F"             # BYD: Force Frankfurt if generic
+        }
+        
+        search_ticker = TICKER_FIX_MAP.get(ticker, ticker)
+        
+        if search_ticker and search_ticker != "UNKNOWN":
             try:
-                t = yf.Ticker(ticker)
+                t = yf.Ticker(search_ticker)
                 hist = t.history(period="1d")
                 if not hist.empty:
                     live_price = hist['Close'].iloc[-1]
                     
                     # Normalize Currency
-                    # Logic: If ticker ends in .DE/.MI/.PA -> EUR. Else -> USD (convert to EUR).
-                    is_eur_market = ticker.endswith('.DE') or ticker.endswith('.MI') or ticker.endswith('.PA')
+                    # Logic: If ticker ends in .DE/.MI/.PA/.F -> EUR. Else -> USD (convert to EUR).
+                    is_eur_market = search_ticker.endswith('.DE') or search_ticker.endswith('.MI') or search_ticker.endswith('.PA') or search_ticker.endswith('.F')
                     
                     if is_eur_market:
                         current_val_eur = qty * live_price
@@ -269,7 +279,7 @@ async def show_portfolio(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 current_price_label = f"€{current_val_eur:,.2f}"
                 total_value_eur += current_val_eur
             except Exception as e:
-                logger.error(f"Price error for {ticker}: {e}")
+                logger.error(f"Price error for {search_ticker} (orig: {ticker}): {e}")
         
         # Build Message
         msg += f"🔹 **{name}**{type_str}\n"
