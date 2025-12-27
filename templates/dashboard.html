@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en" class="dark">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -22,9 +23,14 @@
         }
     </script>
     <style>
-        body { background-color: #0f172a; color: #e2e8f0; font-family: 'Inter', sans-serif; }
+        body {
+            background-color: #0f172a;
+            color: #e2e8f0;
+            font-family: 'Inter', sans-serif;
+        }
     </style>
 </head>
+
 <body class="min-h-screen p-6">
 
     <!-- Navbar -->
@@ -35,21 +41,29 @@
                 Zero-Cost Hunter
             </h1>
         </div>
-        <div class="text-sm text-gray-400">
-            Updated: <span id="last-update">{{ now }}</span>
+        <div class="text-sm text-gray-400 text-right">
+            <div>Last Hunt: <span class="text-white font-mono">{{ last_run }}</span></div>
+            <div class="text-xs">Updated: <span id="last-update">{{ now }}</span></div>
         </div>
     </nav>
 
     <main class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
+
         <!-- RIGHT COL: Portfolio (Mobile Priority: Top) -->
         <section class="lg:col-span-1 lg:order-last space-y-6">
             <div class="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-lg">
-                <h2 class="text-xl font-semibold mb-4 flex items-center">
-                    <span>🎒 Portfolio</span>
-                    <span class="ml-auto text-xs font-mono bg-blue-900 text-blue-200 px-2 py-1 rounded">{{ portfolio|length }} Assets</span>
+                <h2 class="text-xl font-semibold mb-4 flex items-center justify-between">
+                    <div class="flex items-center space-x-2">
+                        <span>🎒 Portfolio</span>
+                        <span class="text-xs font-mono bg-blue-900 text-blue-200 px-2 py-1 rounded">{{ portfolio|length
+                            }} Assets</span>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-xs text-gray-400">Total Value</div>
+                        <div class="text-2xl font-bold text-green-400">€{{ "{:,.2f}".format(total_value_eur) }}</div>
+                    </div>
                 </h2>
-                
+
                 {% if portfolio %}
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm text-left">
@@ -57,7 +71,7 @@
                             <tr>
                                 <th class="px-4 py-2">Asset</th>
                                 <th class="px-4 py-2 text-right">Qty</th>
-                                <th class="px-4 py-2 text-right">Avg €</th>
+                                <th class="px-4 py-2 text-right">Value</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-700">
@@ -65,10 +79,16 @@
                             <tr class="hover:bg-gray-700/30 transition">
                                 <td class="px-4 py-3 font-medium">
                                     <div class="text-white">{{ item.ticker }}</div>
-                                    <div class="text-xs text-gray-500 truncate max-w-[100px]">{{ item.asset_name or 'Unknown' }}</div>
+                                    <div class="text-xs text-gray-500 truncate max-w-[100px]">{{ item.asset_name or
+                                        'Unknown' }}</div>
                                 </td>
-                                <td class="px-4 py-3 text-right text-gray-300 font-mono">{{ item.quantity }}</td>
-                                <td class="px-4 py-3 text-right text-gray-300 font-mono">€{{ item.avg_price }}</td>
+                                <td class="px-4 py-3 text-right text-gray-300 font-mono">
+                                    {{ item.quantity }}<br>
+                                    <span class="text-[10px] text-gray-500">Avg: €{{ item.avg_price }}</span>
+                                </td>
+                                <td class="px-4 py-3 text-right text-white font-mono font-bold">
+                                    €{{ "{:,.2f}".format(item.live_value_eur|default(0)) }}
+                                </td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -92,7 +112,8 @@
             {% if signals %}
             <div class="grid gap-4">
                 {% for sig in signals %}
-                <div class="bg-gray-800 rounded-xl p-5 border border-gray-700 shadow-md hover:border-gray-600 transition group relative overflow-hidden">
+                <div
+                    class="bg-gray-800 rounded-xl p-5 border border-gray-700 shadow-md hover:border-gray-600 transition group relative overflow-hidden">
                     <!-- Sentiment Stripe -->
                     <div class="absolute left-0 top-0 bottom-0 w-1.5 
                         {% if sig.sentiment in ['BUY', 'ACCUMULATE'] %}bg-green-500
@@ -119,7 +140,7 @@
                                     <span>{{ sig.source_news_url[:25] }}...</span>
                                 </div>
                             </div>
-                            
+
                             <!-- Confidence Score -->
                             <div class="text-right">
                                 <div class="text-2xl font-bold font-mono">{{ (sig.confidence_score * 100)|int }}%</div>
@@ -149,4 +170,5 @@
     </footer>
 
 </body>
+
 </html>
