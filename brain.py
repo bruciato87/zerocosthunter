@@ -118,17 +118,20 @@ class Brain:
         Your goal is to extract financial holdings from the provided SCREENSHOT of a portfolio app (e.g., Trade Republic).
 
         **INSTRUCTIONS:**
-        1. Identify the **Currency** of the portfolio (e.g., EUR, USD). Look for symbols € or $.
-        2. Identify each stock/crypto position.
-        3. Extract the **Ticker Symbol** efficiently.
-           - For Crypto, default to USD pair if unsure (e.g. "RNDR-USD"), but we will adjust for currency later.
-        4. **CRITICAL:** Handle "List View" data:
+        1. **Identify the View Type:**
+           - **List View:** Multiple assets shown.
+           - **Detail View:** A single asset is shown with a chart and "La tua posizione" (Your Position).
+        2. **Identify the Currency:** (e.g., EUR, USD). Look for symbols € or $.
+        3. **Extract Ticker Symbol:**
+           - **List View:** Found next to the asset logo.
+           - **Detail View:** Found at the VERY TOP LEFT (Name/Ticker) or below the Price. If Name is shown (e.g. "NVIDIA"), infer Ticker (NVDA).
+           - **CRITICAL:** DO NOT RETURN NULL FOR TICKER. If you see "La tua posizione" and a Value, look at the top/header for the Asset Name.
+        4. **Data Extraction:**
            - If "Quantity" is MISSING, extract **Current Value** and **PnL**.
            - **IMPORTANT:** Convert all numbers to standard **FLOAT format with DOTS** (e.g., "1.250,50" -> 1250.50). **REMOVE THOUSAND SEPARATORS. REPLACE DECIMAL COMMAS WITH DOTS.**
 
         **OUTPUT FORMAT:**
-        Return strictly a JSON list of objects (plus a 'meta' field for currency if possible, but let's keep it simple list).
-        ACTUALLY, return a JSON object:
+        Return strictly a JSON object:
         {
             "currency": "EUR",
             "holdings": [
