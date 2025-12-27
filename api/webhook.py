@@ -61,6 +61,21 @@ async def hunt_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.error(f"Manual hunt error: {e}")
         await update.message.reply_text(f"❌ Errore durante la caccia: {e}")
 
+async def dashboard_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle /dashboard command."""
+    # Default to the known URL if env var not set
+    app_url = os.environ.get("APP_URL", "https://zerocosthunter.vercel.app")
+    dashboard_url = f"{app_url}/dashboard"
+    
+    keyboard = [[InlineKeyboardButton("🖥️ Apri Dashboard Web", url=dashboard_url)]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    await update.message.reply_text(
+        "📊 **Zero-Cost Hunter Dashboard**\n\n"
+        "Clicca qui sotto per vedere i grafici e i segnali completi:",
+        reply_markup=reply_markup
+    )
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle /start command."""
     await setup_bot_commands(context.bot)
