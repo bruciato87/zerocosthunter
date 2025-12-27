@@ -583,17 +583,4 @@ def dashboard():
 
     return render_template('dashboard.html', signals=signals, portfolio=portfolio, total_value_eur=total_value_eur, last_run=last_run, now=datetime.now().strftime("%Y-%m-%d %H:%M"))
 
-async def dashboard_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle /dashboard command."""
-    # Default to the known URL if env var not set
-    app_url = os.environ.get("APP_URL", "https://zerocosthunter.vercel.app")
-    dashboard_url = f"{app_url}/dashboard"
-    
-    keyboard = [[InlineKeyboardButton("🖥️ Apri Dashboard Web", url=dashboard_url)]]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    
-    await update.message.reply_text(
-        "📊 **Zero-Cost Hunter Dashboard**\n\n"
-        "Clicca qui sotto per vedere i grafici e i segnali completi:",
-        reply_markup=reply_markup
-    )
+
