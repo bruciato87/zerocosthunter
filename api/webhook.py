@@ -268,7 +268,9 @@ async def show_portfolio(update: Update, context: ContextTypes.DEFAULT_TYPE):
         TICKER_FIX_MAP = {
             "RNDR-USD": "RENDER-USD",  # Token migration
             "3DJ.DE": "3CP.F",         # Xiaomi: Xetra (.DE) often missing on Yahoo, use Frankfurt (.F) substitute
-            "BYD": "BY6.F"             # BYD: Force Frankfurt if generic
+            "BYD": "BY6.F",            # BYD: Force Frankfurt if generic
+            "ICGA.FRA": "ICGA.F",      # Fix for user manual input (Yahoo uses .F)
+            "ICGA.DE": "ICGA.F"        # Fallback for Xetra too
         }
         
         search_ticker = TICKER_FIX_MAP.get(ticker, ticker)
