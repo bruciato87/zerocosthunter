@@ -120,11 +120,14 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     db.update_draft_quantity(draft['id'], new_qty)
                     msg_text = "🧩 **Dati Integrati (Multimodale):**\n"
                     msg_text += f"• {draft['ticker']}: Quantità corretta a **{new_qty}** (da dettaglio)\n"
+                    msg_text += "\n_(Usa il tasto 'Conferma' del messaggio precedente)_"
                 elif action == "update_ticker":
                     db.update_draft_ticker(draft['id'], new_ticker, new_price)
                     msg_text = "🧩 **Dati Integrati (Multimodale):**\n"
                     msg_text += f"• {new_ticker}: Associato a Quantità **{draft['quantity']}**\n"
+                    msg_text += "\n_(Usa il tasto 'Conferma' del messaggio precedente)_"
                 merged = True
+                show_confirm_button = False # Disable new buttons, rely on previous ones.
 
             # 2. If not merged, try merging into RECENT CONFIRMED (Late Merge)
             if not merged:
