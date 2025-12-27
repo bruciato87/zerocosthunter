@@ -79,6 +79,45 @@ class DBHandler:
             logger.error(f"Error deleting drafts: {e}")
             raise e
 
+    def get_drafts(self, chat_id: int):
+        """Fetch unconfirmed drafts for a user."""
+        try:
+            response = self.supabase.table("portfolio") \
+                .select("*") \
+                .eq("chat_id", chat_id) \
+                .eq("is_confirmed", False) \
+                .execute()
+            return response.data
+        except Exception as e:
+            logger.error(f"Error fetching drafts: {e}")
+            return []
+
+    def update_draft_quantity(self, record_id: str, quantity: float):
+        """Update quantity of a specific draft record."""
+        try:
+            self.supabase.table("portfolio") \
+                .update({"quantity": quantity}) \
+                .eq("id", record_id) \
+                .execute()
+            logger.info(f"Updated quantity for draft {record_id} to {quantity}")
+        except Exception as e:
+            logger.error(f"Error updating draft quantity: {e}")
+
+    def update_draft_ticker(self, record_id: str, ticker: str, price: float):
+        """Update ticker and price of a specific draft record."""
+        try:
+            data = {"ticker": ticker}
+            if price:
+                data["avg_price"] = price
+            
+            self.supabase.table("portfolio") \
+                .update(data) \
+                .eq("id", record_id) \
+                .execute()
+            logger.info(f"Updated ticker for draft {record_id} to {ticker}")
+        except Exception as e:
+            logger.error(f"Error updating draft ticker: {e}")
+
     def log_prediction(self, ticker: str, sentiment: str, reasoning: str, prediction_sentence: str, confidence_score: float, source_url: str):
         """Save AI analysis to predictions table."""
         try:

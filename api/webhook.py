@@ -58,32 +58,59 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("❌ Non ho trovato dati validi.")
             return
 
-        # 3. Save as DRAFT (is_confirmed=False)
+        # 3. Save as DRAFT (including MERGE LOGIC)
+        # Strategy:
+        # A. Get existing drafts for this user.
+        # B. If new item is Partial (missing ticker OR missing qty), look for complementary draft.
+        # C. If found, UPDATE draft. If not, INSERT new draft.
+        
         db = DBHandler()
-        msg_text = "✅ **Dati Estratti:**\n"
+        existing_drafts = db.get_drafts(chat_id)
+        msg_text = "✅ **Dati Estratti (Bozza):**\n"
         
         for item in holdings:
-            # We assume DBHandler updated to support is_confirmed
-            # For now, we manually overwrite the method signature in our head or update DBHandler
-            # To keep it simple without changing DBHandler signature excessively, 
-            # we will insert directly or use add_to_portfolio with a tweak.
-            # actually, let's update db_handler.py to support the kwarg 'is_confirmed'
-            # IF that is too much work, we save as Confirmed immediately and offer DELETE.
-            # Let's stick to the "Confirm" plan: Save with is_confirmed=False.
+            merged = False
+            new_ticker = item.get('ticker')
+            new_qty = item.get('quantity')
+            new_price = item.get('avg_price')
             
-            # Since I haven't updated DBHandler python code yet, I will do a direct Upsert here 
-            # OR better, I update DBHandler in the next tool call properly.
-            # For this file writing, I assume DBHandler has `add_to_portfolio(..., is_confirmed=False)`
+            # Case 1: Partial - Quantity Found, Ticker UNKNOWN (Detail View)
+            if (not new_ticker or new_ticker == "UNKNOWN") and new_qty and new_qty > 0:
+                 # Find draft with Valid Ticker but Missing/Bad Qty
+                 for draft in existing_drafts:
+                      # Check if draft has valid ticker AND (qty is missing or suspect calc)
+                      # We assume user uploads Ticker view then Detail view.
+                      if draft['ticker'] != 'UNKNOWN':
+                           # Merge! Update the draft with the precise quantity
+                           db.update_draft_quantity(draft['id'], new_qty)
+                           merged = True
+                           msg_text += f"• {draft['ticker']}: Aggiornata Qty a {new_qty} (da OCR)\n"
+                           break
             
-            db.add_to_portfolio(
-                ticker=item['ticker'], 
-                amount=item['quantity'], 
-                price=item['avg_price'], 
-                sector=item['sector'],
-                is_confirmed=False, # New flag
-                chat_id=chat_id
-            )
-            msg_text += f"• {item['ticker']}: {item['quantity']} @ ${item['avg_price']}\n"
+            # Case 2: Partial - Ticker Found, Quantity Missing (Header View)
+            elif new_ticker and new_ticker != "UNKNOWN" and (not new_qty or new_qty == 0):
+                 # Find draft with UNKNOWN Ticker but Valid Qty
+                 for draft in existing_drafts:
+                      if draft['ticker'] == 'UNKNOWN' and draft['quantity'] and draft['quantity'] > 0:
+                           # Merge! Set ticker for this quantity
+                           db.update_draft_ticker(draft['id'], new_ticker, new_price)
+                           merged = True
+                           msg_text += f"• {new_ticker}: Associato a Qty {draft['quantity']}\n"
+                           break
+
+            if not merged:
+                # Standard Insert (Upsert)
+                # If ticker is UNKNOWN, we still insert it if it has useful data (Qty), hoping for future merge.
+                db.add_to_portfolio(
+                    ticker=new_ticker if new_ticker else "UNKNOWN", 
+                    amount=new_qty, 
+                    price=new_price, 
+                    sector=item.get('sector', 'Unknown'),
+                    is_confirmed=False, 
+                    chat_id=chat_id
+                )
+                display_ticker = new_ticker if new_ticker else "⚠️ Sconosciuto"
+                msg_text += f"• {display_ticker}: {new_qty} @ ${new_price}\n"
 
         # 4. Ask Confirmation
         keyboard = [
