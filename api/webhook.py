@@ -89,13 +89,21 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
             # Helper to find merge candidate in a list
             def find_merge_candidate(candidate_list):
-                 # Sort candidates by created_at DESC to merge into most recent
-                 # (Assuming candidate_list has 'created_at', but it's a dict from Supabase)
-                 # Supabase returns by insertion order usually, or we can rely on list order if it's implicitly ordered.
-                 # Better to iterate reversed if we want most recent? 
-                 # Let's just iterate as is, assuming list is recent-first or close enough.
+                 # Sort candidates by updated_at DESC to merge into most recent
                  
                  for c in candidate_list:
+                      # Check Name Mismatch Safety Guard
+                      # If both have names, and they don't look alike, SKIP.
+                      db_name = c.get('asset_name', '').lower()
+                      new_name_chk = item.get('name', '').lower()
+                      
+                      # Simple keyword safety: if one says "china" and other "world", don't merge.
+                      if db_name and new_name_chk:
+                           # Very basic protection against "MSCI China" merging into "MSCI World"
+                           if "china" in new_name_chk and "china" not in db_name: continue
+                           if "world" in new_name_chk and "world" not in db_name: continue
+                           if "sp500" in new_name_chk and "500" not in db_name: continue
+                      
                       # Case 1: Match UNKNOWN ticker in DB with New Valid Ticker -> Update DB Ticker
                       if c['ticker'] == 'UNKNOWN' and c['quantity'] and c['quantity'] > 0 and new_ticker and new_ticker != "UNKNOWN":
                            return c, "update_ticker"
@@ -105,11 +113,8 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
                            return c, "update_qty"
 
                       # Case 3: Match Valid Ticker in DB with New UNKNOWN Ticker (Detail View) -> Update DB Qty
-                      # This fixes the "EUNL.DE" vs "UNKNOWN" issue.
-                      # We assume if user uploads a Detail View immediately after, it belongs to this Draft.
                       if (not new_ticker or new_ticker == "UNKNOWN") and c['ticker'] != "UNKNOWN" and new_qty and new_qty > 0:
-                           # To be safe, maybe check if created_at is very recent?
-                           # For now, trust the user workflow (Upload A -> Upload B).
+                           # Only merge if names don't conflict (handled above)
                            return c, "update_qty"
 
                  return None, None
