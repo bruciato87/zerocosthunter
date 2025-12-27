@@ -437,7 +437,8 @@ async def setticker_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # Register Handlers
 bot_app.add_handler(CommandHandler("start", start))
-bot_app.add_handler(CommandHandler("help", help_command)) # NEW
+bot_app.add_handler(CommandHandler("help", help_command))
+bot_app.add_handler(CommandHandler("hunt", hunt_command)) # NEW - Registering manually
 bot_app.add_handler(CommandHandler("portfolio", show_portfolio))
 bot_app.add_handler(CommandHandler("delete", delete_command))
 bot_app.add_handler(CommandHandler("reset", reset_command))
