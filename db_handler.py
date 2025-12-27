@@ -214,7 +214,7 @@ class DBHandler:
                 "prediction_sentence": prediction_sentence,
                 "confidence_score": confidence_score,
                 "source_news_url": source_url,
-                "updated_at": datetime.utcnow().isoformat()
+                "created_at": datetime.utcnow().isoformat()
             }
             self.supabase.table("predictions").insert(data).execute()
             logger.info(f"Logged prediction for {ticker}: {sentiment}")
@@ -237,8 +237,8 @@ class DBHandler:
             response = self.supabase.table("predictions") \
                 .select("sentiment") \
                 .eq("ticker", ticker) \
-                .gte("updated_at", time_threshold) \
-                .order("updated_at", desc=True) \
+                .gte("created_at", time_threshold) \
+                .order("created_at", desc=True) \
                 .limit(1) \
                 .execute()
             
