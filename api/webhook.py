@@ -703,15 +703,6 @@ def dashboard():
                            total_pl_percent=total_pl_percent,
                            chart_labels=json.dumps(chart_labels),
                            chart_data=json.dumps(chart_data),
-    return render_template('dashboard.html', 
-                           signals=signals, 
-                           portfolio=portfolio, 
-                           total_value_eur=total_value_eur, 
-                           total_invested_eur=total_invested_eur,
-                           total_pl_eur=total_pl_eur,
-                           total_pl_percent=total_pl_percent,
-                           chart_labels=json.dumps(chart_labels),
-                           chart_data=json.dumps(chart_data),
                            last_run=last_run, # Keep for fallback
                            last_run_iso=last_run_iso, # New: Pass ISO for JS
                            now_iso=datetime.utcnow().isoformat()) # New: Pass ISO for JS
