@@ -270,7 +270,8 @@ async def show_portfolio(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "3DJ.DE": "3CP.F",         # Xiaomi: Xetra (.DE) often missing on Yahoo, use Frankfurt (.F) substitute
             "BYD": "BY6.F",            # BYD: Force Frankfurt if generic
             "ICGA.FRA": "ICGA.F",      # Fix for user manual input (Yahoo uses .F)
-            "ICGA.DE": "ICGA.F"        # Fallback for Xetra too
+            "ICGA.DE": "ICGA.F",       # Fallback for Xetra too
+            "3CP": "3CP.F"             # Fix for manual input without suffix
         }
         
         search_ticker = TICKER_FIX_MAP.get(ticker, ticker)
