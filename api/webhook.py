@@ -593,8 +593,7 @@ def dashboard():
         "3CP": "3CP.F"
     }
     
-    import pandas as pd # Ensure pandas is imported if not already, though likely is. 
-    # Actually, let's strictly use what we have. yfinance returns pandas DF.
+
 
     for item in portfolio:
         try:
