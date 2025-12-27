@@ -136,7 +136,9 @@ class Brain:
                - "Core DAX" -> "DAXEX.DE"
            - **Look Everywhere:** If the ticker isn't explicit, infer it from the Asset Name.
            - **CRITICAL:** DO NOT RETURN NULL. If you absolutely cannot match it, return "UNKNOWN".
-        4. **Data Extraction:**
+           - **Extract NAME:** The full name of the asset (e.g. "NVIDIA Corp").
+           - **Extract TYPE:** "Crypto", "Stock", "ETF", or "Unknown".
+         4. **Data Extraction:**
            - If "Quantity" is MISSING, extract **Current Value** and **PnL**.
            - **Detail View Specific:**
              - "Totale" or big number at top = **Current Value**.
@@ -153,6 +155,8 @@ class Brain:
             "holdings": [
                 {
                     "ticker": "EUNL.DE",
+                    "name": "Core MSCI World",
+                    "asset_type": "ETF",
                     "quantity": null,
                     "avg_price": null,
                     "current_value": 3384.23,

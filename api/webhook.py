@@ -153,11 +153,17 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     amount=new_qty, 
                     price=new_price, 
                     sector=item.get('sector', 'Unknown'),
+                    asset_name=item.get('name'),
+                    asset_type=item.get('asset_type', 'Unknown'),
                     is_confirmed=False, 
                     chat_id=chat_id
                 )
-                display_ticker = new_ticker if new_ticker else "⚠️ Sconosciuto (Carica dettaglio esteso)"
-                msg_text += f"• {display_ticker}: {new_qty} @ ${new_price}\n"
+                display_name = item.get('name') or display_ticker
+                display_type = item.get('asset_type', '')
+                
+                # Format: "• NVIDIA (Stock): ..."
+                type_badge = f" ({display_type})" if display_type and display_type != "Unknown" else ""
+                msg_text += f"• {display_name}{type_badge}: {new_qty} @ €{new_price}\n"
 
         # 4. Ask Confirmation (Only if needed)
         if show_confirm_button:
@@ -215,13 +221,22 @@ async def show_portfolio(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     for item in portfolio:
         ticker = item.get('ticker', 'N/A')
+        name = item.get('asset_name') or ticker
+        asset_type = item.get('asset_type', 'Unknown')
         qty = item.get('quantity', 0)
         avg_price = item.get('avg_price', 0)
         
         # Simple formatting
-        msg += f"🔹 **{ticker}**\n"
+        # 🔹 Bitcoin (Crypto)
+        #    Qty: 0.1234
+        #    Avg: €45,000.00
+        
+        type_str = f" ({asset_type})" if asset_type and asset_type != "Unknown" else ""
+        
+        msg += f"🔹 **{name}**{type_str}\n"
+        msg += f"   `{ticker}`\n"
         msg += f"   Qty: `{qty}`\n"
-        msg += f"   Avg: `${avg_price}`\n\n"
+        msg += f"   Avg: `€{avg_price}`\n\n"
         total_assets += 1
 
     msg += f"Totale Asset: {total_assets}"

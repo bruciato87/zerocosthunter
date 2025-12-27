@@ -39,7 +39,7 @@ class DBHandler:
             return {}
         return {item['ticker']: item for item in data}
 
-    def add_to_portfolio(self, ticker: str, amount: float, price: float, sector: str = "Unknown", is_confirmed: bool = True, chat_id: int = None):
+    def add_to_portfolio(self, ticker: str, amount: float, price: float, sector: str = "Unknown", asset_name: str = None, asset_type: str = "Unknown", is_confirmed: bool = True, chat_id: int = None):
         """Add or update a holding. Supports 'Draft' mode via is_confirmed=False."""
         try:
             data = {
@@ -47,6 +47,8 @@ class DBHandler:
                 "quantity": amount,
                 "avg_price": price,
                 "sector": sector,
+                "asset_name": asset_name,
+                "asset_type": asset_type,
                 "is_confirmed": is_confirmed
             }
             if chat_id:
