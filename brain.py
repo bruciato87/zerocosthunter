@@ -313,26 +313,39 @@ class Brain:
                             final_data.append(item)
                             continue
                             
-                        current_price_usd = hist['Close'].iloc[-1]
+                        current_price = hist['Close'].iloc[-1]
                         
-                        # Calculate Value in USD
-                        # If currency is EUR: Value_USD = Value(EUR) * Rate(USD/EUR)
-                        value_usd = val
-                        if currency == "EUR":
-                            value_usd = val * eur_usd_rate
-                            
-                        # Derive Quantity = Value(USD) / Price(USD)
-                        calculated_qty = value_usd / current_price_usd
+                        # Determine if we need to convert the fetched price from USD to EUR logic
+                        # If ticker is EUNL.DE, the price is in EUR.
+                        price_is_eur = ticker.endswith('.DE') or ticker.endswith('.MI') or ticker.endswith('.PA')
                         
-                        # Derive Cost Basis and Avg Price (keep in EUR)
-                        cost_basis_eur = val - pnl
-                        calculated_avg_eur = cost_basis_eur / calculated_qty
+                        calculated_qty = 0.0
+                        
+                        if price_is_eur:
+                             # Direct calculation: Value (EUR) / Price (EUR)
+                             calculated_qty = val / current_price
+                             # Cost Basis (EUR)
+                             cost_basis_eur = val - pnl
+                             calculated_avg_eur = cost_basis_eur / calculated_qty
+                        else:
+                             # USD Logic (Original)
+                             # Calculate Value in USD first
+                             value_usd = val
+                             if currency == "EUR":
+                                value_usd = val * eur_usd_rate
+                                
+                             calculated_qty = value_usd / current_price
+                             
+                             # Derive Cost Basis and Avg Price (keep in EUR)
+                             cost_basis_eur = val - pnl
+                             calculated_avg_eur = cost_basis_eur / calculated_qty
                         
                         item['quantity'] = round(calculated_qty, 4)
                         item['avg_price'] = round(calculated_avg_eur, 2)
                         
-                        logger.info(f"Back-calculated {ticker}: Qty={calculated_qty}, Avg={calculated_avg_eur}€ (Live Price Used)")
+                        logger.info(f"Back-calculated {ticker}: Qty={calculated_qty}, Avg={calculated_avg_eur}€ (Live Price Used, Is_Eur={price_is_eur})")
                         final_data.append(item)
+                        continue # Skip to next item to avoid appending twice
                     except Exception as ex:
                         logger.warning(f"Could not back-calculate for {ticker}: {ex}")
                         item['quantity'] = item.get('quantity') or 0.0

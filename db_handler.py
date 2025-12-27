@@ -137,7 +137,7 @@ class DBHandler:
             response = self.supabase.table("portfolio") \
                 .select("*") \
                 .eq("chat_id", chat_id) \
-                .eq("is_confirmed", is_confirmed) \
+                .eq("is_confirmed", True) \
                 .gte("updated_at", time_threshold) \
                 .execute()
             return response.data
