@@ -139,6 +139,7 @@ async def run_async_pipeline():
         await notifier.send_alert(alert_msg)
         processed_count += 1
 
+    db.log_system_event("INFO", "Hunter", "Pipeline Finished")
     logger.info(f"Pipeline finished. Processed {processed_count} actionable signals.")
 
 if __name__ == "__main__":

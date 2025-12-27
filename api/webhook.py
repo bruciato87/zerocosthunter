@@ -560,15 +560,31 @@ def dashboard():
     # format: { "YYYY-MM-DD": 0.0 }
     daily_trend = {} 
 
-    # A. Last Run
-    if signals:
-        last_run_iso = signals[0].get('created_at', '')
-        if last_run_iso:
-            try:
+    # A. Last Run (From Logs)
+    # Default to signals if logs empty, or "Never"
+    try:
+        logs_response = db.supabase.table("logs") \
+            .select("updated_at") \
+            .eq("module", "Hunter") \
+            .eq("message", "Pipeline Finished") \
+            .order("updated_at", desc=True) \
+            .limit(1) \
+            .execute()
+        
+        if logs_response.data and len(logs_response.data) > 0:
+            last_run_iso = logs_response.data[0]['updated_at']
+            if last_run_iso:
+                 dt = datetime.fromisoformat(last_run_iso.replace('Z', '+00:00'))
+                 last_run = dt.strftime("%d/%m/%Y %H:%M")
+        elif signals:
+             # Fallback to last signal if no logs found yet
+             last_run_iso = signals[0].get('created_at', '')
+             if last_run_iso:
                 dt = datetime.fromisoformat(last_run_iso.replace('Z', '+00:00'))
                 last_run = dt.strftime("%d/%m/%Y %H:%M")
-            except:
-                pass
+    except Exception as e:
+        logger.error(f"Error fetching last run: {e}")
+        pass
 
     # B. Live Data & History
     eur_usd_rate = 1.1
