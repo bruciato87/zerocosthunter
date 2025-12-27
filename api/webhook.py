@@ -201,8 +201,35 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception as e:
             await query.edit_message_text(text=f"❌ Errore: {e}")
 
+async def show_portfolio(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = update.effective_chat.id
+    db = DBHandler()
+    portfolio = db.get_portfolio(chat_id=chat_id)
+    
+    if not portfolio:
+        await update.message.reply_text("📂 Il tuo portafoglio è vuoto.")
+        return
+
+    msg = "📊 **Il tuo Portafoglio:**\n\n"
+    total_assets = 0
+    
+    for item in portfolio:
+        ticker = item.get('ticker', 'N/A')
+        qty = item.get('quantity', 0)
+        avg_price = item.get('avg_price', 0)
+        
+        # Simple formatting
+        msg += f"🔹 **{ticker}**\n"
+        msg += f"   Qty: `{qty}`\n"
+        msg += f"   Avg: `${avg_price}`\n\n"
+        total_assets += 1
+
+    msg += f"Totale Asset: {total_assets}"
+    await update.message.reply_text(msg)
+
 # Register Handlers
 bot_app.add_handler(CommandHandler("start", start))
+bot_app.add_handler(CommandHandler("portfolio", show_portfolio))
 bot_app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
 bot_app.add_handler(CallbackQueryHandler(handle_callback))
 

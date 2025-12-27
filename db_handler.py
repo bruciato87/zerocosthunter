@@ -15,10 +15,18 @@ class DBHandler:
             raise ValueError("SUPABASE_URL and SUPABASE_KEY must be set in environment variables.")
         self.supabase: Client = create_client(url, key)
 
-    def get_portfolio(self):
-        """Fetch current holdings from the portfolio table."""
+    def get_portfolio(self, chat_id: int = None):
+        """Fetch current holdings from the portfolio table. Optionally filter by chat_id."""
         try:
-            response = self.supabase.table("portfolio").select("*").execute()
+            query = self.supabase.table("portfolio").select("*")
+            if chat_id:
+                # Also filter for confirmed only if we are showing the portfolio view?
+                # Usually "Show Portfolio" implies confirmed items. 
+                # Let's filter for is_confirmed=True if chat_id is provided, 
+                # assuming the user wants to see their active portfolio.
+                query = query.eq("chat_id", chat_id).eq("is_confirmed", True)
+            
+            response = query.execute()
             return response.data
         except Exception as e:
             logger.error(f"Error fetching portfolio: {e}")
