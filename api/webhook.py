@@ -81,10 +81,11 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
                       # Check if draft has valid ticker AND (qty is missing or suspect calc)
                       # We assume user uploads Ticker view then Detail view.
                       if draft['ticker'] != 'UNKNOWN':
-                           # Merge! Update the draft with the precise quantity
+                       # Merge! Update the draft with the precise quantity
                            db.update_draft_quantity(draft['id'], new_qty)
                            merged = True
-                           msg_text += f"• {draft['ticker']}: Aggiornata Qty a {new_qty} (da OCR)\n"
+                           msg_text = "🧩 **Dati Integrati (Multimodale):**\n"
+                           msg_text += f"• {draft['ticker']}: Quantità corretta a **{new_qty}** (da dettaglio)\n"
                            break
             
             # Case 2: Partial - Ticker Found, Quantity Missing (Header View)
@@ -95,7 +96,8 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
                            # Merge! Set ticker for this quantity
                            db.update_draft_ticker(draft['id'], new_ticker, new_price)
                            merged = True
-                           msg_text += f"• {new_ticker}: Associato a Qty {draft['quantity']}\n"
+                           msg_text = "🧩 **Dati Integrati (Multimodale):**\n"
+                           msg_text += f"• {new_ticker}: Associato a Quantità **{draft['quantity']}**\n"
                            break
 
             if not merged:
@@ -109,7 +111,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     is_confirmed=False, 
                     chat_id=chat_id
                 )
-                display_ticker = new_ticker if new_ticker else "⚠️ Sconosciuto"
+                display_ticker = new_ticker if new_ticker else "⚠️ Sconosciuto (Carica dettaglio esteso)"
                 msg_text += f"• {display_ticker}: {new_qty} @ ${new_price}\n"
 
         # 4. Ask Confirmation
