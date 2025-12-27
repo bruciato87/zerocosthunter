@@ -210,9 +210,6 @@ class Brain:
             
             # Rate for USD to EUR conversion (Inverse)
             usd_eur_rate = 1 / eur_usd_rate if eur_usd_rate else 0.91
-                    eur_usd_rate = hist_fx['Close'].iloc[-1]
-            except:
-                logger.warning("Could not fetch EURUSD rate, using 1.1 fallback")
 
             for item in raw_data:
                 ticker = item.get('ticker')
