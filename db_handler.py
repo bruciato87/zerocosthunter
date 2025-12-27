@@ -265,7 +265,7 @@ class DBHandler:
                 "level": level,
                 "module": module,
                 "message": message,
-                "updated_at": datetime.utcnow().isoformat()
+                "created_at": datetime.utcnow().isoformat()
             }
             self.supabase.table("logs").insert(data).execute()
         except Exception as e:

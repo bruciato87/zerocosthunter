@@ -565,15 +565,17 @@ def dashboard():
     # Fetch ANY Hunter event (Started or Finished) to show the latest attempt
     try:
         logs_response = db.supabase.table("logs") \
-            .select("updated_at") \
+            .select("created_at") \
             .eq("module", "Hunter") \
-            .order("updated_at", desc=True) \
+            .order("created_at", desc=True) \
             .limit(1) \
             .execute()
         
         if logs_response.data and len(logs_response.data) > 0:
-            last_run_iso = logs_response.data[0]['updated_at']
+            last_run_iso = logs_response.data[0]['created_at']
             if last_run_iso:
+                 # Clean up ISO string if needed (sometimes fractional seconds confuse JS or format)
+                 # But usually passing raw is fine. format fallback:
                  dt = datetime.fromisoformat(last_run_iso.replace('Z', '+00:00'))
                  last_run = dt.strftime("%d/%m/%Y %H:%M")
         elif signals:
