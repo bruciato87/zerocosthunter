@@ -473,10 +473,6 @@ def dashboard():
     db = DBHandler()
     
     # 1. Fetch recent signals (last 50)
-    # Fetch from predictions table
-    # This requires a new method in db_handler or direct query here.
-    # Let's do direct query for simplicity if DBHandler is strict, or add method.
-    # DBHandler has supabase.
     try:
         signals_response = db.supabase.table("predictions") \
             .select("*") \
@@ -487,9 +483,7 @@ def dashboard():
     except:
         signals = []
 
-    # 2. Fetch full portfolio (for all users? or maybe just one if single user)
-    # Dashboard is public in this version, or we can assume just one main user.
-    # Let's fetch all confirmed assets.
+    # 2. Fetch full confirmed portfolio
     try:
         portfolio_response = db.supabase.table("portfolio") \
             .select("*") \
@@ -500,3 +494,18 @@ def dashboard():
         portfolio = []
 
     return render_template('dashboard.html', signals=signals, portfolio=portfolio, now=datetime.now().strftime("%Y-%m-%d %H:%M"))
+
+async def dashboard_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle /dashboard command."""
+    # Default to the known URL if env var not set
+    app_url = os.environ.get("APP_URL", "https://zerocosthunter.vercel.app")
+    dashboard_url = f"{app_url}/dashboard"
+    
+    keyboard = [[InlineKeyboardButton("🖥️ Apri Dashboard Web", url=dashboard_url)]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    await update.message.reply_text(
+        "📊 **Zero-Cost Hunter Dashboard**\n\n"
+        "Clicca qui sotto per vedere i grafici e i segnali completi:",
+        reply_markup=reply_markup
+    )
