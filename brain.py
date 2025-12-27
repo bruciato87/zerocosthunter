@@ -123,7 +123,17 @@ class Brain:
            - **Detail View:** A single asset is shown. **CRITICAL:** The Asset Name is usually at the very top (e.g. "Bitcoin", "NVIDIA", "S&P 500").
         2. **Identify the Currency:** (e.g., EUR, USD). Look for symbols € or $.
         3. **Extract Ticker Symbol:**
-           - **Map Names to Tickers:** If you see "Bitcoin", return "BTC-USD". "Ethereum" -> "ETH-USD". "Solana" -> "SOL-USD". "NVIDIA" -> "NVDA". "Apple" -> "AAPL".
+           - **Map Names to Tickers:**
+             - "Bitcoin" -> "BTC-USD"
+             - "Ethereum" -> "ETH-USD"
+             - "NVIDIA" -> "NVDA"
+             - "Apple" -> "AAPL"
+             - **ETFs (CRITICAL for Trade Republic):**
+               - "Core MSCI World" / "iShares Core MSCI World" -> "EUNL.DE"
+               - "S&P 500" / "iShares Core S&P 500" -> "SXR8.DE"
+               - "Nasdaq 100" -> "SXRV.DE"
+               - "Global Clean Energy" -> "INRG.DE"
+               - "Core DAX" -> "DAXEX.DE"
            - **Look Everywhere:** If the ticker isn't explicit, infer it from the Asset Name.
            - **CRITICAL:** DO NOT RETURN NULL. If you absolutely cannot match it, return "UNKNOWN".
         4. **Data Extraction:**
@@ -141,12 +151,12 @@ class Brain:
             "currency": "EUR",
             "holdings": [
                 {
-                    "ticker": "BTC-USD",
+                    "ticker": "EUNL.DE",
                     "quantity": null,
                     "avg_price": null,
                     "current_value": 3384.23,
                     "pnl": 111.34,
-                    "sector": "Crypto"
+                    "sector": "ETF"
                 }
             ]
         }
