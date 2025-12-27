@@ -5,6 +5,7 @@ import json
 from flask import Flask, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
+import yfinance as yf
 
 # Add parent directory to sys.path to import modules
 import sys
@@ -216,9 +217,22 @@ async def show_portfolio(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("📂 Il tuo portafoglio è vuoto.")
         return
 
-    msg = "📊 **Il tuo Portafoglio:**\n\n"
+    await update.message.reply_text("⏳ **Recupero prezzi live...**")
+
+    msg = "📊 **Il tuo Portafoglio Aggiornato:**\n\n"
     total_assets = 0
+    total_value_eur = 0.0
     
+    # 1. Get FX Rate (EUR/USD) once
+    eur_usd_rate = 1.1 # Safe default
+    try:
+        fx = yf.Ticker("EURUSD=X")
+        hist = fx.history(period="1d")
+        if not hist.empty:
+            eur_usd_rate = hist['Close'].iloc[-1]
+    except:
+        pass
+        
     for item in portfolio:
         ticker = item.get('ticker', 'N/A')
         name = item.get('asset_name') or ticker
@@ -226,20 +240,53 @@ async def show_portfolio(update: Update, context: ContextTypes.DEFAULT_TYPE):
         qty = item.get('quantity', 0)
         avg_price = item.get('avg_price', 0)
         
-        # Simple formatting
-        # 🔹 Bitcoin (Crypto)
-        #    Qty: 0.1234
-        #    Avg: €45,000.00
-        
+        # Format strings
         type_str = f" ({asset_type})" if asset_type and asset_type != "Unknown" else ""
         
+        # FETCH LIVE PRICE
+        current_val_eur = 0.0
+        current_price_label = "N/A"
+        
+        if ticker and ticker != "UNKNOWN":
+            try:
+                t = yf.Ticker(ticker)
+                hist = t.history(period="1d")
+                if not hist.empty:
+                    live_price = hist['Close'].iloc[-1]
+                    
+                    # Normalize Currency
+                    # Logic: If ticker ends in .DE/.MI/.PA -> EUR. Else -> USD (convert to EUR).
+                    is_eur_market = ticker.endswith('.DE') or ticker.endswith('.MI') or ticker.endswith('.PA')
+                    
+                    if is_eur_market:
+                        current_val_eur = qty * live_price
+                    else:
+                        # Convert USD price to EUR (Price / Rate)
+                        # e.g. Price $110 / 1.1 = €100
+                        live_price_eur = live_price / eur_usd_rate
+                        current_val_eur = qty * live_price_eur
+                        
+                current_price_label = f"€{current_val_eur:,.2f}"
+                total_value_eur += current_val_eur
+            except Exception as e:
+                logger.error(f"Price error for {ticker}: {e}")
+        
+        # Build Message
         msg += f"🔹 **{name}**{type_str}\n"
         msg += f"   `{ticker}`\n"
         msg += f"   Qty: `{qty}`\n"
-        msg += f"   Avg: `€{avg_price}`\n\n"
+        msg += f"   Avg: `€{avg_price}`\n"
+        if current_val_eur > 0:
+             msg += f"   Val: `{current_price_label}`\n\n"
+        else:
+             msg += f"   Val: `N/A`\n\n"
+
         total_assets += 1
 
-    msg += f"Totale Asset: {total_assets}"
+    msg += f"-----------------------------\n"
+    msg += f"💰 **Totale:** `€{total_value_eur:,.2f}`\n"
+    msg += f"🔢 **Asset:** {total_assets}\n"
+    
     await update.message.reply_text(msg)
 
 async def delete_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
