@@ -55,7 +55,8 @@ class Brain:
         For each news item that contains a SIGNIFICANT, actionable signal:
         - Extract the **Ticker Symbol** (e.g., AAPL, TSLA, BTC-USD).
         - Assign **Sentiment**: "BUY", "SELL", "ACCUMULATE", "PANIC SELL", "HOLD".
-        - Provide a 1-sentence **Prediction/Reasoning** that references News, Technicals AND Portfolio (if applicable).
+        - **Reasoning Constraint:** If the news item contains "[Portfolio: OWNED...]", your reasoning **MUST** explicitly reference this (e.g., "Since you own 20 shares at $100...").
+        - Provide a 1-sentence **Prediction/Reasoning** that combines News, Technicals AND Portfolio.
         - Assign a **Confidence Score** (0.0 to 1.0).
 
         Return strictly a JSON list of objects. If no valid signals are found, return an empty list [].
