@@ -122,10 +122,10 @@ class Brain:
            - **List View:** Multiple assets shown.
            - **Detail View:** A single asset is shown. **CRITICAL:** The Asset Name is usually at the very top (e.g. "Bitcoin", "NVIDIA", "S&P 500").
         2. **Identify the Currency:**
-           - Look for symbols `€` (EUR) or `$` (USD).
-           - Look for decimal format: `1.000,00` implies EUR (usually), `1,000.00` implies USD.
-           - Check the Ticker: If numbers match the USD price of the asset (e.g. SOL ~114), assume USD.
-           - **Default to EUR** only if absolutely unsure.
+           - **RULE #1:** Look at the symbol next to the **Value** or **Price** (e.g. `100 €` vs `$100`).
+           - **RULE #2:** IGNORE text in the Asset Name. "Core MSCI World USD" is just a name; if the price is `100 €`, the currency is **EUR**.
+           - **RULE #3:** Look for decimal format: `1.000,00` -> **EUR**. `1,000.00` -> **USD**.
+           - **Default to EUR** if you see `€` anywhere. Only return "USD" if you see `$`.
         3. **Extract Ticker Symbol:**
            - **Map Names to Tickers:**
              - "Bitcoin" -> "BTC-USD"
