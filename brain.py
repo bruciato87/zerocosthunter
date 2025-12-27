@@ -38,7 +38,10 @@ class Brain:
         2.  **Ignore:** Penny stocks, low volume altcoins, obscure companies, and general economic noise with no clear actionable ticker.
         3.  **OWNERSHIP RULE (CRITICAL):**
             -   **IF [Portfolio] tag is present:** You may issue ANY signal (BUY, SELL, HOLD, ACCUMULATE, PANIC SELL).
-            -   **IF [Portfolio] tag is MISSING:** You MUST NOT issue "HOLD", "SELL", or "PANIC SELL" signals. Use only "BUY" or "ACCUMULATE" if the opportunity is strong. If the outlook is neutral/negative for a non-owned asset, **SKIP IT** (return nothing).
+            -   **IF [Portfolio] tag is MISSING:**
+                -   **MUST** use "**BUY**" if the opportunity is good (meaning "Start a Position").
+                -   **MUST NOT** use "ACCUMULATE" (confusing for non-owners), "HOLD", "SELL", or "PANIC SELL".
+                -   If the outlook is neutral/negative, **SKIP IT**.
         4.  **Technical Validation:**
             -   **GOOD NEWS + OVERBOUGHT (RSI > 75):** 
                 - If Owned: "SELL" (Takeprofit). 
