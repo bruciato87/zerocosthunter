@@ -129,14 +129,18 @@ class DBHandler:
             logger.error(f"Error deleting portfolio for {chat_id}: {e}")
             return False
 
-    def update_draft_quantity(self, record_id: str, quantity: float):
-        """Update quantity of a specific draft record."""
+    def update_draft_quantity(self, record_id: str, quantity: float, avg_price: float = None):
+        """Update quantity (and optionally avg_price) of a specific draft record."""
         try:
+            data = {"quantity": quantity}
+            if avg_price is not None and avg_price > 0:
+                data["avg_price"] = avg_price
+                
             self.supabase.table("portfolio") \
-                .update({"quantity": quantity}) \
+                .update(data) \
                 .eq("id", record_id) \
                 .execute()
-            logger.info(f"Updated quantity for draft {record_id} to {quantity}")
+            logger.info(f"Updated quantity={quantity}, avg_price={avg_price} for draft {record_id}")
         except Exception as e:
             logger.error(f"Error updating draft quantity: {e}")
 

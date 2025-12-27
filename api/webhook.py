@@ -118,9 +118,9 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             draft, action = find_merge_candidate(existing_drafts)
             if draft:
                 if action == "update_qty":
-                    db.update_draft_quantity(draft['id'], new_qty)
+                    db.update_draft_quantity(draft['id'], new_qty, new_price)
                     msg_text = "🧩 **Dati Integrati (Multimodale):**\n"
-                    msg_text += f"• {draft['ticker']}: Quantità corretta a **{new_qty}** (da dettaglio)\n"
+                    msg_text += f"• {draft['ticker']}: Quantità: **{new_qty}** | Prezzo: **€{new_price or 'N/A'}**\n"
                     msg_text += "\n_(Usa il tasto 'Conferma' del messaggio precedente)_"
                 elif action == "update_ticker":
                     db.update_draft_ticker(draft['id'], new_ticker, new_price)
@@ -135,9 +135,9 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 conf_item, action = find_merge_candidate(recent_confirmed)
                 if conf_item:
                     if action == "update_qty":
-                        db.update_draft_quantity(conf_item['id'], new_qty)
+                        db.update_draft_quantity(conf_item['id'], new_qty, new_price)
                         msg_text = "♻️ **Dati Aggiornati (Già Confermato):**\n"
-                        msg_text += f"• {conf_item['ticker']}: Quantità corretta a **{new_qty}**\n"
+                        msg_text += f"• {conf_item['ticker']}: Quantità: **{new_qty}** | Prezzo: **€{new_price or 'N/A'}**\n"
                     elif action == "update_ticker":
                         # This implies we saved a Confirmed UNKNOWN item? Rare but possible.
                         db.update_draft_ticker(conf_item['id'], new_ticker, new_price)
