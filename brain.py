@@ -147,12 +147,14 @@ class Brain:
             - **Detail View Specific:**
               - "Totale" or big number at top = **Current Value**.
               - "Guadagno" or "+/-" number = **PnL**.
-              - **Avg Price**: Look for **"Prezzo d'acquisto >"** or "Prezzo d'acq". The number AFTER this is the Buy Price.
-              - **Quantity**: Look for **"Azioni"** or "Shares" or "Quote". The number to the right is Quantity.
+              - **Avg Price**: Look for **"Prezzo d'acquisto >"** or "Prezzo d'acq". The number is usually **BELOW** or to the right.
+              - **Quantity**: Look for **"Azioni"** or "Shares" or "Quote". The number is usually **BELOW** or to the right.
               - "La tua posizione" block contains the data.
-              - **EXAMPLE:**
-                 "Azioni          30,395484"  -> Quantity = 30.395484
-                 "Prezzo d'acquisto > 107,68 €" -> Avg Price = 107.68
+              - **EXAMPLE (Layout with newlines):**
+                 "Azioni
+                  30,395484"      -> Quantity = 30.395484
+                 "Prezzo d'acquisto >
+                  107,68 €"       -> Avg Price = 107.68
             - **IMPORTANT:** Convert all numbers to standard **FLOAT format with DOTS** (e.g., "1.250,50" -> 1250.50).
 
         **OUTPUT FORMAT:**
@@ -282,6 +284,19 @@ class Brain:
                          continue
                     except Exception as e:
                          logger.warning(f"Math error using OCR AvgPrice: {e}")
+
+                # Case 2.5 (New): We have Quantity, Value, PnL but MISSING Avg Price
+                # We can calculate Avg Price directly: (Value - PnL) / Quantity
+                if qty is not None and qty > 0 and val is not None and pnl is not None and avg is None:
+                    try:
+                        cost_basis = val - pnl
+                        calculated_avg = cost_basis / qty
+                        item['avg_price'] = round(calculated_avg, 2)
+                        logger.info(f"Deriving AvgPrice from Qty/Val/PnL for {ticker}: {calculated_avg}")
+                        final_data.append(item)
+                        continue
+                    except Exception as e:
+                         logger.warning(f"Math error deriving AvgPrice: {e}")
                 
                 # Case 3: We have Value and PnL but NO Avg Price (Back-calculate using Live Price)
                 if val is not None and pnl is not None:
