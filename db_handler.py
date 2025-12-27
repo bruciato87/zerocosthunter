@@ -102,6 +102,33 @@ class DBHandler:
             logger.error(f"Error fetching drafts: {e}")
             return []
 
+    def delete_asset(self, chat_id: int, ticker: str):
+        """Delete a specific asset from the portfolio."""
+        try:
+            self.supabase.table("portfolio") \
+                .delete() \
+                .eq("chat_id", chat_id) \
+                .eq("ticker", ticker) \
+                .execute()
+            logger.info(f"Deleted asset {ticker} for chat_id {chat_id}")
+            return True
+        except Exception as e:
+            logger.error(f"Error deleting asset {ticker}: {e}")
+            return False
+
+    def delete_portfolio(self, chat_id: int):
+        """Delete ALL assets for a user (Reset)."""
+        try:
+            self.supabase.table("portfolio") \
+                .delete() \
+                .eq("chat_id", chat_id) \
+                .execute()
+            logger.info(f"Deleted entire portfolio for chat_id {chat_id}")
+            return True
+        except Exception as e:
+            logger.error(f"Error deleting portfolio for {chat_id}: {e}")
+            return False
+
     def update_draft_quantity(self, record_id: str, quantity: float):
         """Update quantity of a specific draft record."""
         try:

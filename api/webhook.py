@@ -242,9 +242,40 @@ async def show_portfolio(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg += f"Totale Asset: {total_assets}"
     await update.message.reply_text(msg)
 
+async def delete_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle /delete <ticker> command."""
+    chat_id = update.effective_chat.id
+    try:
+        if not context.args:
+            await update.message.reply_text("⚠️ Uso: `/delete <TICKER>` (es. `/delete AAPL`)")
+            return
+
+        ticker = context.args[0].upper()
+        db = DBHandler()
+        success = db.delete_asset(chat_id, ticker)
+        
+        if success:
+            await update.message.reply_text(f"🗑️ Asset `{ticker}` eliminato dal portafoglio.")
+        else:
+            await update.message.reply_text(f"❌ Errore durante l'eliminazione di `{ticker}`. Forse non esiste?")
+    except Exception as e:
+        logger.error(f"Delete command error: {e}")
+        await update.message.reply_text("❌ Errore nel comando.")
+
+async def reset_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle /reset command to clear entire portfolio."""
+    chat_id = update.effective_chat.id
+    db = DBHandler()
+    if db.delete_portfolio(chat_id):
+        await update.message.reply_text("☢️ **Portafoglio Azzerato.**\nTutti i dati sono stati cancellati.")
+    else:
+        await update.message.reply_text("❌ Errore durante il reset.")
+
 # Register Handlers
 bot_app.add_handler(CommandHandler("start", start))
 bot_app.add_handler(CommandHandler("portfolio", show_portfolio))
+bot_app.add_handler(CommandHandler("delete", delete_command))
+bot_app.add_handler(CommandHandler("reset", reset_command))
 bot_app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
 bot_app.add_handler(CallbackQueryHandler(handle_callback))
 
