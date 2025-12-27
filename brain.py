@@ -182,12 +182,13 @@ class Brain:
             raw_response = json.loads(response.text)
             
             # Handle both list (legacy) and new dict format
+            # Handle both list (legacy) and new dict format
             if isinstance(raw_response, list):
                 raw_data = raw_response
-                currency = "USD" # Default
+                currency = "EUR" # Default changed to EUR (User Preference)
             else:
                 raw_data = raw_response.get("holdings", [])
-                currency = raw_response.get("currency", "USD")
+                currency = raw_response.get("currency", "EUR")
 
             # Post-Processing: Fill missing links using Market Data
             final_data = []
@@ -203,6 +204,12 @@ class Brain:
                 fx = yf.Ticker("EURUSD=X")
                 hist_fx = fx.history(period="1d")
                 if not hist_fx.empty:
+                    eur_usd_rate = hist_fx['Close'].iloc[-1]
+            except:
+                logger.warning("Could not fetch EURUSD rate, using 1.1 fallback")
+            
+            # Rate for USD to EUR conversion (Inverse)
+            usd_eur_rate = 1 / eur_usd_rate if eur_usd_rate else 0.91
                     eur_usd_rate = hist_fx['Close'].iloc[-1]
             except:
                 logger.warning("Could not fetch EURUSD rate, using 1.1 fallback")
@@ -324,6 +331,23 @@ class Brain:
                 else:
                     final_data.append(item)
 
+                else:
+                    final_data.append(item)
+
+            # FINAL STEP: Normalize to EUR if source was USD
+            # This ensures DB always stores EUR
+            if currency == "USD":
+                logger.info("Converting USD portfolio data to EUR...")
+                for item in final_data:
+                    # Quantity does not change
+                    # Avg Price, Current Value, PnL MUST convert
+                    if item.get('avg_price'):
+                        item['avg_price'] = round(item['avg_price'] * usd_eur_rate, 2)
+                    if item.get('current_value'):
+                        item['current_value'] = round(item['current_value'] * usd_eur_rate, 2)
+                    if item.get('pnl'):
+                        item['pnl'] = round(item['pnl'] * usd_eur_rate, 2)
+            
             return final_data
 
         except Exception as e:
