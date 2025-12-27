@@ -159,6 +159,34 @@ class DBHandler:
         except Exception as e:
             logger.error(f"Error updating draft ticker: {e}")
 
+    def update_asset_price(self, chat_id: int, ticker: str, new_price: float):
+        """Manually update the average buy price of a confirmed asset."""
+        try:
+            self.supabase.table("portfolio") \
+                .update({"avg_price": new_price}) \
+                .eq("chat_id", chat_id) \
+                .eq("ticker", ticker) \
+                .execute()
+            logger.info(f"Manual price update: {ticker} -> {new_price} for {chat_id}")
+            return True
+        except Exception as e:
+            logger.error(f"Error updating asset price: {e}")
+            return False
+
+    def update_asset_ticker(self, chat_id: int, old_ticker: str, new_ticker: str):
+        """Manually update the ticker of a confirmed asset."""
+        try:
+            self.supabase.table("portfolio") \
+                .update({"ticker": new_ticker}) \
+                .eq("chat_id", chat_id) \
+                .eq("ticker", old_ticker) \
+                .execute()
+            logger.info(f"Manual ticker update: {old_ticker} -> {new_ticker} for {chat_id}")
+            return True
+        except Exception as e:
+            logger.error(f"Error updating asset ticker: {e}")
+            return False
+
     def get_recent_confirmed_portfolio(self, chat_id: int, minutes: int = 5):
         """Fetch portfolio items confirmed in the last N minutes."""
         try:

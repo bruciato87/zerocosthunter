@@ -346,11 +346,49 @@ async def reset_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("❌ Errore durante il reset.")
 
+async def setprice_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle /setprice <ticker> <price>."""
+    chat_id = update.effective_chat.id
+    args = context.args
+    if not args or len(args) < 2:
+        await update.message.reply_text("⚠️ Uso: `/setprice <TICKER> <PREZZO>`\nEs: `/setprice AAPL 150.50`")
+        return
+
+    ticker = args[0].upper()
+    try:
+        new_price = float(args[1].replace(',', '.'))
+        db = DBHandler()
+        if db.update_asset_price(chat_id, ticker, new_price):
+            await update.message.reply_text(f"✅ Prezzo di `{ticker}` aggiornato a **€{new_price}**.")
+        else:
+            await update.message.reply_text(f"❌ Asset `{ticker}` non trovato.")
+    except ValueError:
+        await update.message.reply_text("⚠️ Prezzo non valido.")
+
+async def setticker_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle /setticker <old> <new>."""
+    chat_id = update.effective_chat.id
+    args = context.args
+    if not args or len(args) < 2:
+        await update.message.reply_text("⚠️ Uso: `/setticker <VECCHIO> <NUOVO>`\nEs: `/setticker 3DJ.DE 3CP.F`")
+        return
+
+    old_ticker = args[0].upper()
+    new_ticker = args[1].upper()
+    
+    db = DBHandler()
+    if db.update_asset_ticker(chat_id, old_ticker, new_ticker):
+        await update.message.reply_text(f"✅ Ticker aggiornato: `{old_ticker}` ➡️ `{new_ticker}`.")
+    else:
+        await update.message.reply_text(f"❌ Asset `{old_ticker}` non trovato.")
+
 # Register Handlers
 bot_app.add_handler(CommandHandler("start", start))
 bot_app.add_handler(CommandHandler("portfolio", show_portfolio))
 bot_app.add_handler(CommandHandler("delete", delete_command))
 bot_app.add_handler(CommandHandler("reset", reset_command))
+bot_app.add_handler(CommandHandler("setprice", setprice_command))
+bot_app.add_handler(CommandHandler("setticker", setticker_command))
 bot_app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
 bot_app.add_handler(CallbackQueryHandler(handle_callback))
 
