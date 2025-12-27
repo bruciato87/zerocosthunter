@@ -172,9 +172,9 @@ class Brain:
         """
 
         try:
-            # Using gemini-2.5-flash (Newest Stable, High Free Quota)
+            # Using gemini-1.5-flash (Standard, High Quota)
             response = self.client.models.generate_content(
-                model='gemini-2.5-flash', 
+                model='gemini-1.5-flash', 
                 contents=[
                     prompt,
                     types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
