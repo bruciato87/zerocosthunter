@@ -328,9 +328,6 @@ class Brain:
                 else:
                     final_data.append(item)
 
-                else:
-                    final_data.append(item)
-
             # FINAL STEP: Normalize to EUR if source was USD
             # This ensures DB always stores EUR
             if currency == "USD":
