@@ -28,7 +28,9 @@ TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 
 # Initialize Bot Application (Global)
 # In serverless, we rebuild the app on requests, or cache it if the container stays warm.
+# In serverless, we rebuild the app on requests, or cache it if the container stays warm.
 bot_app = ApplicationBuilder().token(TOKEN).build()
+logger.info("Bot Application Initialized (v2.0 - Menu)")
 
 async def setup_bot_commands(bot):
     """Configures the menu button in Telegram UI."""
