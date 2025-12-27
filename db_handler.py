@@ -221,20 +221,39 @@ class DBHandler:
         except Exception as e:
             logger.error(f"Error logging prediction for {ticker}: {e}")
 
-    def check_if_analyzed_recently(self, ticker: str, hours: int = 24) -> bool:
-        """Check if a ticker has been analyzed in the last N hours to avoid spam."""
+    def check_if_analyzed_recently(self, ticker: str, new_sentiment: str, hours: int = 24) -> bool:
+        """
+        Check if we should SKIP this alert.
+        Returns TRUE (skip) if:
+        - Ticker analyzed in last N hours AND Sentiment is SAME.
+        Returns FALSE (allow) if:
+        - Ticker not analyzed recently.
+        - OR Sentiment has CHANGED (e.g. was HOLD, now BUY).
+        """
         try:
             time_threshold = (datetime.utcnow() - timedelta(hours=hours)).isoformat()
+            
+            # Fetch most recent prediction for this ticker
             response = self.supabase.table("predictions") \
-                .select("id") \
+                .select("sentiment") \
                 .eq("ticker", ticker) \
-                .gte("created_at", time_threshold) \
+                .gte("updated_at", time_threshold) \
+                .order("updated_at", desc=True) \
+                .limit(1) \
                 .execute()
             
-            analyzed = len(response.data) > 0
-            if analyzed:
-                logger.info(f"Ticker {ticker} analyzed recently. Skipping.")
-            return analyzed
+            if not response.data:
+                return False # No recent analysis, allow it.
+
+            last_sentiment = response.data[0]['sentiment']
+            
+            if last_sentiment == new_sentiment:
+                logger.info(f"Duplicate Signal: {ticker} was already {last_sentiment} recently. Skipping.")
+                return True # SKIP (Duplicate)
+            else:
+                logger.info(f"Sentiment Shift: {ticker} changed from {last_sentiment} to {new_sentiment}. Allowing.")
+                return False # ALLOW (Change)
+
         except Exception as e:
             logger.error(f"Error checking recent analysis for {ticker}: {e}")
             return False

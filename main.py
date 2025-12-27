@@ -119,8 +119,8 @@ async def run_async_pipeline():
         if not ticker or confidence < 0.7:  # Filter low confidence
             continue
 
-        # Check if recently analyzed to avoid spam
-        if db.check_if_analyzed_recently(ticker):
+        # Check if recently analyzed (Same Ticker + Same Sentiment = SPAM)
+        if db.check_if_analyzed_recently(ticker, sentiment):
             continue
 
         # 5. Log to DB and Notify
