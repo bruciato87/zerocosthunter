@@ -144,13 +144,16 @@ class Brain:
            - **Extract TYPE:** "Crypto", "Stock", "ETF", or "Unknown".
          4. **Data Extraction:**
            - If "Quantity" is MISSING, extract **Current Value** and **PnL**.
-           - **Detail View Specific:**
-             - "Totale" or big number at top = **Current Value**.
-             - "Guadagno" or "+/-" number = **PnL**.
-             - "Prezzo d'acq" = **Avg Price** (use this if possible!).
-             - "Azioni" or "Shares" or "Quote" = **Quantity**. **EXTRACT THIS EXACTLY.**
-             - "La tua posizione" block contains the data.
-           - **IMPORTANT:** Convert all numbers to standard **FLOAT format with DOTS** (e.g., "1.250,50" -> 1250.50).
+            - **Detail View Specific:**
+              - "Totale" or big number at top = **Current Value**.
+              - "Guadagno" or "+/-" number = **PnL**.
+              - **Avg Price**: Look for **"Prezzo d'acquisto >"** or "Prezzo d'acq". The number AFTER this is the Buy Price.
+              - **Quantity**: Look for **"Azioni"** or "Shares" or "Quote". The number to the right is Quantity.
+              - "La tua posizione" block contains the data.
+              - **EXAMPLE:**
+                 "Azioni          30,395484"  -> Quantity = 30.395484
+                 "Prezzo d'acquisto > 107,68 €" -> Avg Price = 107.68
+            - **IMPORTANT:** Convert all numbers to standard **FLOAT format with DOTS** (e.g., "1.250,50" -> 1250.50).
 
         **OUTPUT FORMAT:**
         Return strictly a JSON object:

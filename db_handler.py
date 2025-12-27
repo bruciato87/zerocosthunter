@@ -131,14 +131,14 @@ class DBHandler:
     def get_recent_confirmed_portfolio(self, chat_id: int, minutes: int = 5):
         """Fetch portfolio items confirmed in the last N minutes."""
         try:
-            # Note: 'created_at' in portfolio is usually initialized on insert.
-            # Using created_at is a good proxy for 'recently added'.
+            # Note: 'updated_at' is used as proxy for 'recently added' since created_at is missing
+            # Using updated_at is a good proxy for 'recently added'.
             time_threshold = (datetime.utcnow() - timedelta(minutes=minutes)).isoformat()
             response = self.supabase.table("portfolio") \
                 .select("*") \
                 .eq("chat_id", chat_id) \
-                .eq("is_confirmed", True) \
-                .gte("created_at", time_threshold) \
+                .eq("is_confirmed", is_confirmed) \
+                .gte("updated_at", time_threshold) \
                 .execute()
             return response.data
         except Exception as e:
@@ -155,7 +155,7 @@ class DBHandler:
                 "prediction_sentence": prediction_sentence,
                 "confidence_score": confidence_score,
                 "source_news_url": source_url,
-                "created_at": datetime.utcnow().isoformat()
+                "updated_at": datetime.utcnow().isoformat()
             }
             self.supabase.table("predictions").insert(data).execute()
             logger.info(f"Logged prediction for {ticker}: {sentiment}")
@@ -187,7 +187,7 @@ class DBHandler:
                 "level": level,
                 "module": module,
                 "message": message,
-                "created_at": datetime.utcnow().isoformat()
+                "updated_at": datetime.utcnow().isoformat()
             }
             self.supabase.table("logs").insert(data).execute()
         except Exception as e:
