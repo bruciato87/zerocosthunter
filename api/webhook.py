@@ -495,7 +495,70 @@ def dashboard():
     except:
         portfolio = []
 
-    return render_template('dashboard.html', signals=signals, portfolio=portfolio, now=datetime.now().strftime("%Y-%m-%d %H:%M"))
+    # 3. Calculate Total Live Value & Last Run
+    total_value_eur = 0.0
+    last_run = "Mai"
+
+    # A. Last Run (Latest Prediction Timestamp)
+    if signals:
+        last_run_iso = signals[0].get('created_at', '')
+        if last_run_iso:
+            try:
+                dt = datetime.fromisoformat(last_run_iso.replace('Z', '+00:00'))
+                last_run = dt.strftime("%d/%m/%Y %H:%M")
+            except:
+                pass
+
+    # B. Live Value Calculation (Same logic as show_portfolio)
+    eur_usd_rate = 1.1 # Default fallback
+    try:
+        fx = yf.Ticker("EURUSD=X")
+        hist = fx.history(period="1d")
+        if not hist.empty:
+            eur_usd_rate = hist['Close'].iloc[-1]
+    except:
+        pass
+
+    # Ticker Mapping Fixes (Reuse map)
+    TICKER_FIX_MAP = {
+        "RNDR-USD": "RENDER-USD",
+        "3DJ.DE": "3CP.F",
+        "BYD": "BY6.F",
+        "ICGA.FRA": "ICGA.F",
+        "ICGA.DE": "ICGA.F",
+        "3CP": "3CP.F"
+    }
+
+    for item in portfolio:
+        try:
+            qty = item.get('quantity', 0)
+            ticker = item.get('ticker', 'UNKNOWN')
+            search_ticker = TICKER_FIX_MAP.get(ticker, ticker)
+            
+            current_val_eur = 0.0
+            
+            if search_ticker and search_ticker != "UNKNOWN":
+                t = yf.Ticker(search_ticker)
+                hist = t.history(period="1d")
+                if not hist.empty:
+                    live_price = hist['Close'].iloc[-1]
+                    
+                    # Normalize Currency
+                    is_eur_market = search_ticker.endswith('.DE') or search_ticker.endswith('.MI') or search_ticker.endswith('.PA') or search_ticker.endswith('.F')
+                    
+                    if is_eur_market:
+                        current_val_eur = qty * live_price
+                    else:
+                        current_val_eur = qty * (live_price / eur_usd_rate)
+            
+            # Update item for display (optional, but good for table)
+            item['live_value_eur'] = round(current_val_eur, 2)
+            total_value_eur += current_val_eur
+            
+        except Exception as e:
+            logger.error(f"Dashboard price error for {ticker}: {e}")
+
+    return render_template('dashboard.html', signals=signals, portfolio=portfolio, total_value_eur=total_value_eur, last_run=last_run, now=datetime.now().strftime("%Y-%m-%d %H:%M"))
 
 async def dashboard_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle /dashboard command."""
