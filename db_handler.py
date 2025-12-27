@@ -118,6 +118,23 @@ class DBHandler:
         except Exception as e:
             logger.error(f"Error updating draft ticker: {e}")
 
+    def get_recent_confirmed_portfolio(self, chat_id: int, minutes: int = 5):
+        """Fetch portfolio items confirmed in the last N minutes."""
+        try:
+            # Note: 'created_at' in portfolio is usually initialized on insert.
+            # Using created_at is a good proxy for 'recently added'.
+            time_threshold = (datetime.utcnow() - timedelta(minutes=minutes)).isoformat()
+            response = self.supabase.table("portfolio") \
+                .select("*") \
+                .eq("chat_id", chat_id) \
+                .eq("is_confirmed", True) \
+                .gte("created_at", time_threshold) \
+                .execute()
+            return response.data
+        except Exception as e:
+            logger.error(f"Error fetching recent confirmed items: {e}")
+            return []
+
     def log_prediction(self, ticker: str, sentiment: str, reasoning: str, prediction_sentence: str, confidence_score: float, source_url: str):
         """Save AI analysis to predictions table."""
         try:

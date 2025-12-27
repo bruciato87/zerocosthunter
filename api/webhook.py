@@ -65,44 +65,72 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # C. If found, UPDATE draft. If not, INSERT new draft.
         
         db = DBHandler()
+        # 3. Save as DRAFT (including MERGE LOGIC)
+        # Strategy:
+        # A. Look for incomplete DRAFTS.
+        # B. Look for incomplete RECENT CONFIRMED items (Late Merge).
+        # C. Merge if possible.
+        
+        db = DBHandler()
         existing_drafts = db.get_drafts(chat_id)
+        # Fetch confirmed items from last 5 minutes to handle "User confirmed too early" case
+        recent_confirmed = db.get_recent_confirmed_portfolio(chat_id, minutes=5)
+        
         msg_text = "✅ **Dati Estratti (Bozza):**\n"
+        show_confirm_button = True
         
         for item in holdings:
             merged = False
+            already_confirmed_merge = False
             new_ticker = item.get('ticker')
             new_qty = item.get('quantity')
             new_price = item.get('avg_price')
             
-            # Case 1: Partial - Quantity Found, Ticker UNKNOWN (Detail View)
-            if (not new_ticker or new_ticker == "UNKNOWN") and new_qty and new_qty > 0:
-                 # Find draft with Valid Ticker but Missing/Bad Qty
-                 for draft in existing_drafts:
-                      # Check if draft has valid ticker AND (qty is missing or suspect calc)
-                      # We assume user uploads Ticker view then Detail view.
-                      if draft['ticker'] != 'UNKNOWN':
-                       # Merge! Update the draft with the precise quantity
-                           db.update_draft_quantity(draft['id'], new_qty)
-                           merged = True
-                           msg_text = "🧩 **Dati Integrati (Multimodale):**\n"
-                           msg_text += f"• {draft['ticker']}: Quantità corretta a **{new_qty}** (da dettaglio)\n"
-                           break
-            
-            # Case 2: Partial - Ticker Found, Quantity Missing (Header View)
-            elif new_ticker and new_ticker != "UNKNOWN" and (not new_qty or new_qty == 0):
-                 # Find draft with UNKNOWN Ticker but Valid Qty
-                 for draft in existing_drafts:
-                      if draft['ticker'] == 'UNKNOWN' and draft['quantity'] and draft['quantity'] > 0:
-                           # Merge! Set ticker for this quantity
-                           db.update_draft_ticker(draft['id'], new_ticker, new_price)
-                           merged = True
-                           msg_text = "🧩 **Dati Integrati (Multimodale):**\n"
-                           msg_text += f"• {new_ticker}: Associato a Quantità **{draft['quantity']}**\n"
-                           break
+            # Helper to find merge candidate in a list
+            def find_merge_candidate(candidate_list):
+                 for c in candidate_list:
+                      # Case 1: Match UNKNOWN ticker with Valid Qty -> Update Ticker
+                      if c['ticker'] == 'UNKNOWN' and c['quantity'] and c['quantity'] > 0 and new_ticker and new_ticker != "UNKNOWN":
+                           return c, "update_ticker"
+                      # Case 2: Match Valid Ticker with Missing Qty -> Update Qty
+                      if new_ticker and c['ticker'] == new_ticker and new_qty and new_qty > 0:
+                           return c, "update_qty"
+                      # Case 3: Match Valid Ticker (UNKNOWN in DB) only by ID?? No, too risky.
+                      # We assume UNKNOWN ticker in DB means partial upload.
+                 return None, None
+
+            # 1. Try merging into DRAFTS first
+            draft, action = find_merge_candidate(existing_drafts)
+            if draft:
+                if action == "update_qty":
+                    db.update_draft_quantity(draft['id'], new_qty)
+                    msg_text = "🧩 **Dati Integrati (Multimodale):**\n"
+                    msg_text += f"• {draft['ticker']}: Quantità corretta a **{new_qty}** (da dettaglio)\n"
+                elif action == "update_ticker":
+                    db.update_draft_ticker(draft['id'], new_ticker, new_price)
+                    msg_text = "🧩 **Dati Integrati (Multimodale):**\n"
+                    msg_text += f"• {new_ticker}: Associato a Quantità **{draft['quantity']}**\n"
+                merged = True
+
+            # 2. If not merged, try merging into RECENT CONFIRMED (Late Merge)
+            if not merged:
+                conf_item, action = find_merge_candidate(recent_confirmed)
+                if conf_item:
+                    if action == "update_qty":
+                        db.update_draft_quantity(conf_item['id'], new_qty)
+                        msg_text = "♻️ **Dati Aggiornati (Già Confermato):**\n"
+                        msg_text += f"• {conf_item['ticker']}: Quantità corretta a **{new_qty}**\n"
+                    elif action == "update_ticker":
+                        # This implies we saved a Confirmed UNKNOWN item? Rare but possible.
+                        db.update_draft_ticker(conf_item['id'], new_ticker, new_price)
+                        msg_text = "♻️ **Dati Aggiornati (Già Confermato):**\n"
+                        msg_text += f"• {new_ticker}: Identificato asset salvato come sconosciuto.\n"
+                    merged = True
+                    already_confirmed_merge = True
+                    show_confirm_button = False # Don't ask to confirm again
 
             if not merged:
                 # Standard Insert (Upsert)
-                # If ticker is UNKNOWN, we still insert it if it has useful data (Qty), hoping for future merge.
                 db.add_to_portfolio(
                     ticker=new_ticker if new_ticker else "UNKNOWN", 
                     amount=new_qty, 
@@ -114,15 +142,19 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 display_ticker = new_ticker if new_ticker else "⚠️ Sconosciuto (Carica dettaglio esteso)"
                 msg_text += f"• {display_ticker}: {new_qty} @ ${new_price}\n"
 
-        # 4. Ask Confirmation
-        keyboard = [
-            [
-                InlineKeyboardButton("✅ Conferma e Salva", callback_data="confirm_save"),
-                InlineKeyboardButton("❌ Annulla", callback_data="cancel_save")
+        # 4. Ask Confirmation (Only if needed)
+        if show_confirm_button:
+            keyboard = [
+                [
+                    InlineKeyboardButton("✅ Conferma e Salva", callback_data="confirm_save"),
+                    InlineKeyboardButton("❌ Annulla", callback_data="cancel_save")
+                ]
             ]
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        await update.message.reply_text(msg_text, reply_markup=reply_markup)
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            await update.message.reply_text(msg_text, reply_markup=reply_markup)
+        else:
+            # Likely merged into confirmed, just notify
+            await update.message.reply_text(msg_text)
 
     except Exception as e:
         logger.error(f"Error: {e}")
