@@ -10,11 +10,5 @@
             "src": "/(.*)",
             "dest": "api/webhook.py"
         }
-    ],
-    "crons": [
-        {
-            "path": "/api/cron",
-            "schedule": "0 5-23,0 * * *"
-        }
     ]
 }

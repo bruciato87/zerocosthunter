@@ -716,22 +716,6 @@ def dashboard():
                            last_run_iso=last_run_iso, # New: Pass ISO for JS
                            now_iso=datetime.utcnow().isoformat()) # New: Pass ISO for JS
 
-@app.route('/api/cron', methods=['GET'])
-def cron_trigger():
-    """Triggered by Vercel Cron."""
-    # Optional: Verify Vercel Signature if strict security is needed.
-    # For now, open trigger as per Zero-Cost nature (obscure URL).
-    
-    logger.info("Cron Triggered: Starting Pipeline...")
-    try:
-        # Create a new event loop for this thread to run the async pipeline
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(run_async_pipeline())
-        loop.close()
-        return "Cron Executed Successfully", 200
-    except Exception as e:
-        logger.error(f"Cron Error: {e}")
-        return f"Cron Failed: {e}", 500
+
 
 

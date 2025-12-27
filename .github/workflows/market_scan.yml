@@ -1,34 +1,37 @@
-name: Zero-Cost Investment Hunter
+name: Market Scan & Hunter 🏹
 
 on:
   schedule:
-    # Run hourly from 5 AM to Midnight (approx CET time: 04:00 - 22:00 UTC)
-    - cron: '0 4-22 * * *'
-  workflow_dispatch: # Allow manual trigger
+    # Run every hour from 6:00 UTC to 23:00 UTC (Approx 7AM - Midnight CET)
+    - cron: '0 6-23 * * *'
+  # Allow manual trigger from GitHub UI
+  workflow_dispatch:
 
 jobs:
-  hunt_and_analyze:
+  hunt:
     runs-on: ubuntu-latest
-
+    
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
+    - name: Check out code
+      uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        cache: 'pip'
 
-      - name: Install Dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-      
-      - name: Run Hunter Bot
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: python main.py
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+    - name: Run Hunter Pipeline
+      env:
+        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        # Optional: Add DASHBOARD_PASSWORD/FLASK_SECRET_KEY if utilized in main.py (unlikely for pure pipeline)
+      run: |
+        python main.py
