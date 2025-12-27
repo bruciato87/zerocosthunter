@@ -141,7 +141,8 @@ class Brain:
            - **Detail View Specific:**
              - "Totale" or big number at top = **Current Value**.
              - "Guadagno" or "+/-" number = **PnL**.
-             - "Prezzo d'acq" = **Cost Basis** (derived).
+             - "Prezzo d'acq" = **Avg Price** (use this if possible!).
+             - "Azioni" or "Shares" or "Quote" = **Quantity**. **EXTRACT THIS EXACTLY.**
              - "La tua posizione" block contains the data.
            - **IMPORTANT:** Convert all numbers to standard **FLOAT format with DOTS** (e.g., "1.250,50" -> 1250.50).
 
@@ -267,6 +268,10 @@ class Brain:
                         fetch_ticker = ticker
                         if "RNDR" in ticker:
                              fetch_ticker = "RENDER-USD"
+                        elif "MSCIWORLD" in ticker or "CORE MSCI" in ticker.upper():
+                             # Fallback if Vision returned generic name
+                             fetch_ticker = "EUNL.DE" 
+                             ticker = "EUNL.DE" # Update saved ticker too
                         
                         t = yf.Ticker(fetch_ticker)
                         hist = t.history(period="1d")
