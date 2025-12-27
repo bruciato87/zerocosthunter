@@ -38,6 +38,7 @@ async def setup_bot_commands(bot):
     commands = [
         BotCommand("hunt", "🏹 Caccia Manuale (Analisi News)"),
         BotCommand("portfolio", "📊 Vedi Portafoglio & Valore Live"),
+        BotCommand("dashboard", "🖥️ Web Dashboard"),
         BotCommand("help", "❓ Lista Comandi"),
         BotCommand("setprice", "💶 Correggi Prezzo (es. /setprice AAPL 150)"),
         BotCommand("setticker", "🏷 Correggi Ticker (es. /setticker OLD NEW)"),
@@ -433,6 +434,7 @@ bot_app.add_handler(CommandHandler("start", start))
 bot_app.add_handler(CommandHandler("help", help_command))
 bot_app.add_handler(CommandHandler("hunt", hunt_command)) # NEW - Registering manually
 bot_app.add_handler(CommandHandler("portfolio", show_portfolio))
+bot_app.add_handler(CommandHandler("dashboard", dashboard_command)) # NEW - Registering manually
 bot_app.add_handler(CommandHandler("delete", delete_command))
 bot_app.add_handler(CommandHandler("reset", reset_command))
 bot_app.add_handler(CommandHandler("setprice", setprice_command))
