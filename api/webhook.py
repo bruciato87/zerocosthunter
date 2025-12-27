@@ -484,6 +484,10 @@ def webhook():
         return "OK", 200
     return "OK", 200
 
+@app.route('/favicon.ico')
+def favicon():
+    return "", 204
+
 # NEW: Dashboard Route
 @app.route('/dashboard')
 def dashboard():
