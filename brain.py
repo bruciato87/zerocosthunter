@@ -120,15 +120,20 @@ class Brain:
         **INSTRUCTIONS:**
         1. **Identify the View Type:**
            - **List View:** Multiple assets shown.
-           - **Detail View:** A single asset is shown with a chart and "La tua posizione" (Your Position).
+           - **Detail View:** A single asset is shown. **CRITICAL:** The Asset Name is usually at the very top (e.g. "Bitcoin", "NVIDIA", "S&P 500").
         2. **Identify the Currency:** (e.g., EUR, USD). Look for symbols € or $.
         3. **Extract Ticker Symbol:**
-           - **List View:** Found next to the asset logo.
-           - **Detail View:** Found at the VERY TOP LEFT (Name/Ticker) or below the Price. If Name is shown (e.g. "NVIDIA"), infer Ticker (NVDA).
-           - **CRITICAL:** DO NOT RETURN NULL FOR TICKER. If you see "La tua posizione" and a Value, look at the top/header for the Asset Name.
+           - **Map Names to Tickers:** If you see "Bitcoin", return "BTC-USD". "Ethereum" -> "ETH-USD". "Solana" -> "SOL-USD". "NVIDIA" -> "NVDA". "Apple" -> "AAPL".
+           - **Look Everywhere:** If the ticker isn't explicit, infer it from the Asset Name.
+           - **CRITICAL:** DO NOT RETURN NULL. If you absolutely cannot match it, return "UNKNOWN".
         4. **Data Extraction:**
            - If "Quantity" is MISSING, extract **Current Value** and **PnL**.
-           - **IMPORTANT:** Convert all numbers to standard **FLOAT format with DOTS** (e.g., "1.250,50" -> 1250.50). **REMOVE THOUSAND SEPARATORS. REPLACE DECIMAL COMMAS WITH DOTS.**
+           - **Detail View Specific:**
+             - "Totale" or big number at top = **Current Value**.
+             - "Guadagno" or "+/-" number = **PnL**.
+             - "Prezzo d'acq" = **Cost Basis** (derived).
+             - "La tua posizione" block contains the data.
+           - **IMPORTANT:** Convert all numbers to standard **FLOAT format with DOTS** (e.g., "1.250,50" -> 1250.50).
 
         **OUTPUT FORMAT:**
         Return strictly a JSON object:
@@ -136,11 +141,11 @@ class Brain:
             "currency": "EUR",
             "holdings": [
                 {
-                    "ticker": "RNDR-USD",
+                    "ticker": "BTC-USD",
                     "quantity": null,
                     "avg_price": null,
-                    "current_value": 564.63,
-                    "pnl": -237.52,
+                    "current_value": 3384.23,
+                    "pnl": 111.34,
                     "sector": "Crypto"
                 }
             ]
@@ -190,6 +195,11 @@ class Brain:
             for item in raw_data:
                 ticker = item.get('ticker')
                 
+                # SAFETY CHECK: If Ticker is None or UNKNOWN, skip or warn
+                if not ticker or ticker == "UNKNOWN":
+                    logger.warning(f"Skipping item with invalid ticker: {item}")
+                    continue
+
                 # Helper to clean "1.000,00" to float
                 def clean_float(val):
                     if isinstance(val, str):
