@@ -2,10 +2,11 @@ import os
 import logging
 import asyncio
 import json
-from flask import Flask, request
+from flask import Flask, request, render_template # Added render_template
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, BotCommand
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
 import yfinance as yf
+from datetime import datetime
 
 # Add parent directory to sys.path to import modules
 import sys
@@ -19,7 +20,7 @@ from dotenv import load_dotenv
 # Load env vars
 load_dotenv()
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder='../templates') # Point to templates dir
 
 # Configure Logging
 logging.basicConfig(level=logging.INFO)
@@ -28,7 +29,6 @@ logger = logging.getLogger("VercelWebhook")
 TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 
 # Initialize Bot Application (Global)
-# In serverless, we rebuild the app on requests, or cache it if the container stays warm.
 # In serverless, we rebuild the app on requests, or cache it if the container stays warm.
 bot_app = ApplicationBuilder().token(TOKEN).build()
 logger.info("Bot Application Initialized (v2.0 - Menu)")
@@ -122,13 +122,6 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             logger.info(f"Manual Override: Set ticker to {manual_ticker} from caption.")
             await update.message.reply_text(f"✍️ **Override:** Uso il ticker manuale `{manual_ticker}`.")
 
-        # 3. Save as DRAFT (including MERGE LOGIC)
-        # Strategy:
-        # A. Get existing drafts for this user.
-        # B. If new item is Partial (missing ticker OR missing qty), look for complementary draft.
-        # C. If found, UPDATE draft. If not, INSERT new draft.
-        
-        db = DBHandler()
         # 3. Save as DRAFT (including MERGE LOGIC)
         # Strategy:
         # A. Look for incomplete DRAFTS.
@@ -473,3 +466,37 @@ def webhook():
                 
         return "OK", 200
     return "OK", 200
+
+# NEW: Dashboard Route
+@app.route('/dashboard')
+def dashboard():
+    db = DBHandler()
+    
+    # 1. Fetch recent signals (last 50)
+    # Fetch from predictions table
+    # This requires a new method in db_handler or direct query here.
+    # Let's do direct query for simplicity if DBHandler is strict, or add method.
+    # DBHandler has supabase.
+    try:
+        signals_response = db.supabase.table("predictions") \
+            .select("*") \
+            .order("created_at", desc=True) \
+            .limit(50) \
+            .execute()
+        signals = signals_response.data
+    except:
+        signals = []
+
+    # 2. Fetch full portfolio (for all users? or maybe just one if single user)
+    # Dashboard is public in this version, or we can assume just one main user.
+    # Let's fetch all confirmed assets.
+    try:
+        portfolio_response = db.supabase.table("portfolio") \
+            .select("*") \
+            .eq("is_confirmed", True) \
+            .execute()
+        portfolio = portfolio_response.data
+    except:
+        portfolio = []
+
+    return render_template('dashboard.html', signals=signals, portfolio=portfolio, now=datetime.now().strftime("%Y-%m-%d %H:%M"))
