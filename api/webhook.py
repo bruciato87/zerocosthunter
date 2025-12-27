@@ -30,11 +30,46 @@ TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 # In serverless, we rebuild the app on requests, or cache it if the container stays warm.
 bot_app = ApplicationBuilder().token(TOKEN).build()
 
+async def setup_bot_commands(bot):
+    """Configures the menu button in Telegram UI."""
+    commands = [
+        BotCommand("portfolio", "📊 Vedi Portafoglio & Valore Live"),
+        BotCommand("help", "❓ Lista Comandi"),
+        BotCommand("setprice", "💶 Correggi Prezzo (es. /setprice AAPL 150)"),
+        BotCommand("setticker", "🏷 Correggi Ticker (es. /setticker OLD NEW)"),
+        BotCommand("delete", "🗑 Elimina un Asset"),
+        BotCommand("reset", "☢️ Reset Totale"),
+        BotCommand("start", "🚀 Avvia"),
+    ]
+    await bot.set_my_commands(commands)
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle /start command."""
+    await setup_bot_commands(context.bot)
     await update.message.reply_text(
-        "🤖 **Zero-Cost Hunter (Cloud Mode)**\n\n"
-        "Mandami uno screenshot del tuo portafoglio Trade Republic."
+        "👋 **Benvenuto nel ZeroCostHunter Bot!** 🏹\n\n"
+        "Carica lo screenshot del tuo portafoglio (Trade Republic/Fineco) per iniziare.\n"
+        "Se il ticker non viene riconosciuto, puoi scriverlo nella didascalia della foto (es. 'ICGA.F').\n\n"
+        "Usa /help per vedere la lista dei comandi."
     )
+
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle /help command."""
+    await setup_bot_commands(context.bot)
+    msg = (
+        "🛠 **Lista Comandi Disponibili:**\n\n"
+        "📊 `/portfolio`\n"
+        "Visualizza il valore attuale del tuo portafoglio in tempo reale (Yahoo Finance).\n\n"
+        "✍️ **Correzioni Manuali:**\n"
+        "• `/setprice <TICKER> <PREZZO>`: Imposta manualmente il prezzo medio.\n"
+        "• `/setticker <OLD> <NEW>`: Rinomina un ticker errato.\n\n"
+        "🗑 **Gestione:**\n"
+        "• `/delete <TICKER>`: Elimina un singolo asset.\n"
+        "• `/reset`: Cancella TUTTO il portafoglio.\n\n"
+        "📸 **Caricamento:**\n"
+        "Basta inviare una foto! Se vuoi forzare il ticker, scrivilo nella **didascalia**."
+    )
+    await update.message.reply_text(msg)
 
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
