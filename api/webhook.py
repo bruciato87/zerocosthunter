@@ -6,6 +6,7 @@ from flask import Flask, request, render_template # Added render_template
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, BotCommand
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
 import yfinance as yf
+import pandas as pd # Added pandas
 from datetime import datetime
 
 # Add parent directory to sys.path to import modules
@@ -518,11 +519,16 @@ def dashboard():
     except:
         portfolio = []
 
-    # 3. Calculate Total Live Value & Last Run
+    # 3. Analytics & Trend Calculation
     total_value_eur = 0.0
+    total_invested_eur = 0.0
     last_run = "Mai"
+    
+    # Data structures for Chart
+    # format: { "YYYY-MM-DD": 0.0 }
+    daily_trend = {} 
 
-    # A. Last Run (Latest Prediction Timestamp)
+    # A. Last Run
     if signals:
         last_run_iso = signals[0].get('created_at', '')
         if last_run_iso:
@@ -532,17 +538,20 @@ def dashboard():
             except:
                 pass
 
-    # B. Live Value Calculation (Same logic as show_portfolio)
-    eur_usd_rate = 1.1 # Default fallback
+    # B. Live Data & History
+    eur_usd_rate = 1.1
+    # Get Rate History for accurate historical conversion (Last 30 days)
+    # We'll use a simplified approach: fetch 1mo of EURUSD=X
+    fx_history = pd.Series()
     try:
         fx = yf.Ticker("EURUSD=X")
-        hist = fx.history(period="1d")
-        if not hist.empty:
-            eur_usd_rate = hist['Close'].iloc[-1]
+        app_hist = fx.history(period="1mo")
+        if not app_hist.empty:
+            eur_usd_rate = app_hist['Close'].iloc[-1]
+            fx_history = app_hist['Close']
     except:
         pass
 
-    # Ticker Mapping Fixes (Reuse map)
     TICKER_FIX_MAP = {
         "RNDR-USD": "RENDER-USD",
         "3DJ.DE": "3CP.F",
@@ -551,36 +560,102 @@ def dashboard():
         "ICGA.DE": "ICGA.F",
         "3CP": "3CP.F"
     }
+    
+    import pandas as pd # Ensure pandas is imported if not already, though likely is. 
+    # Actually, let's strictly use what we have. yfinance returns pandas DF.
 
     for item in portfolio:
         try:
             qty = item.get('quantity', 0)
+            avg_price = item.get('avg_price', 0)
             ticker = item.get('ticker', 'UNKNOWN')
             search_ticker = TICKER_FIX_MAP.get(ticker, ticker)
             
-            current_val_eur = 0.0
+            # 1. Cost Basis
+            cost_basis = qty * avg_price
+            total_invested_eur += cost_basis
             
+            current_val_eur = 0.0
+            price_history = None
+
             if search_ticker and search_ticker != "UNKNOWN":
                 t = yf.Ticker(search_ticker)
-                hist = t.history(period="1d")
+                # Fetch 1mo history for trend
+                hist = t.history(period="1mo")
+                
                 if not hist.empty:
                     live_price = hist['Close'].iloc[-1]
+                    price_history = hist['Close']
                     
-                    # Normalize Currency
-                    is_eur_market = search_ticker.endswith('.DE') or search_ticker.endswith('.MI') or search_ticker.endswith('.PA') or search_ticker.endswith('.F')
+                    # Currency Check
+                    is_eur_market = search_ticker.endswith(('.DE', '.MI', '.PA', '.F'))
                     
                     if is_eur_market:
                         current_val_eur = qty * live_price
                     else:
                         current_val_eur = qty * (live_price / eur_usd_rate)
-            
-            # Update item for display (optional, but good for table)
-            item['live_value_eur'] = round(current_val_eur, 2)
+
+            # 2. Add to Totals
             total_value_eur += current_val_eur
             
-        except Exception as e:
-            logger.error(f"Dashboard price error for {ticker}: {e}")
+            # 3. Add to Trend (Daily Aggregation)
+            if price_history is not None:
+                # Align dates? Simplification: Iterating the history index
+                for date_idx, price in price_history.items():
+                    date_str = date_idx.strftime("%Y-%m-%d")
+                    
+                    # Normalize Hist Value
+                    if is_eur_market:
+                        val = qty * price
+                    else:
+                        # Try to find matching FX rate, else use current
+                        # Approximate matching by date
+                        hist_fx = eur_usd_rate
+                        try:
+                            # fx_history index is timezone aware?
+                            # Let's try to lookup by date string if possible or nearest
+                            # For safety/speed, just use current rate or specific if easy
+                           if not fx_history.empty:
+                               # Robust lookup?
+                               # Let's just use current rate for simplicity in this MVP 
+                               # to avoid mismatch errors (different trading days US vs EU)
+                               pass
+                        except:
+                            pass
+                        val = qty * (price / eur_usd_rate)
+                    
+                    daily_trend[date_str] = daily_trend.get(date_str, 0.0) + val
 
-    return render_template('dashboard.html', signals=signals, portfolio=portfolio, total_value_eur=total_value_eur, last_run=last_run, now=datetime.now().strftime("%Y-%m-%d %H:%M"))
+            # 4. Item Analytics
+            item['live_value_eur'] = round(current_val_eur, 2)
+            item['pnl_eur'] = round(current_val_eur - cost_basis, 2)
+            if cost_basis > 0:
+                item['pnl_percent'] = round(((current_val_eur - cost_basis) / cost_basis) * 100, 2)
+            else:
+                item['pnl_percent'] = 0.0
+
+        except Exception as e:
+            logger.error(f"Dashboard analytics error for {ticker}: {e}")
+
+    # Final P/L
+    total_pl_eur = total_value_eur - total_invested_eur
+    total_pl_percent = (total_pl_eur / total_invested_eur * 100) if total_invested_eur > 0 else 0.0
+
+    # Sort Trend Dates
+    sorted_dates = sorted(daily_trend.keys())
+    chart_labels = sorted_dates
+    chart_data = [round(daily_trend[d], 2) for d in sorted_dates]
+
+    return render_template('dashboard.html', 
+                           signals=signals, 
+                           portfolio=portfolio, 
+                           total_value_eur=total_value_eur, 
+                           total_invested_eur=total_invested_eur,
+                           total_pl_eur=total_pl_eur,
+                           total_pl_percent=total_pl_percent,
+                           chart_labels=json.dumps(chart_labels),
+                           chart_data=json.dumps(chart_data),
+                           last_run=last_run, 
+                           now=datetime.now().strftime("%Y-%m-%d %H:%M"))
 
 
