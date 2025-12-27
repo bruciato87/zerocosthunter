@@ -218,6 +218,12 @@ class Brain:
             for item in raw_data:
                 ticker = item.get('ticker')
                 
+                # SAFETY FORCE: If ticker is from a European exchange (.DE, .MI), force currency to EUR
+                # This prevents "MSCI World USD" name from tricking the model into thinking it's USD
+                if ticker and (ticker.endswith('.DE') or ticker.endswith('.MI')):
+                    currency = "EUR"
+
+                
                 # SAFETY CHECK: If Ticker is None or UNKNOWN
                 # Update: Allow UNKNOWN if we have a valid Quantity (Split View Scenario)
                 if (not ticker or ticker == "UNKNOWN") and (not item.get('quantity') and not item.get('current_value')):
