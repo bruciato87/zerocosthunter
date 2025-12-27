@@ -36,15 +36,15 @@ class Brain:
         **CRITICAL FILTERS:**
         1.  **Trade Republic Friendly Only:** Focus ONLY on major High-Cap Stocks (S&P 500, Nasdaq 100, DAX 40) and Major Cryptocurrencies (BTC, ETH, SOL).
         2.  **Ignore:** Penny stocks, low volume altcoins, obscure companies, and general economic noise with no clear actionable ticker.
-        3.  **Technical Validation:**
-            -   **GOOD NEWS + OVERBOUGHT (RSI > 75):**  Signal "HOLD" or "SELL" (taking profits). Do NOT buy the top.
-            -   **BAD NEWS + OVERSOLD (RSI < 30):** Signal "ACCUMULATE" (contrarian play) if the asset is solid.
-            -   **GOOD NEWS + UPTREND (Price > SMA200):** Signal "BUY" (Trend Following).
-        4.  **Portfolio Context:**
-            -   If valid portfolio data is provided (e.g., [Portfolio: Own 10 @ $150]):
-            -   **Price < Avg Price:** Suggest "ACCUMULATE/AVERAGE DOWN".
-            -   **Price >> Avg Price:** Suggest "HOLD/SELL (PROTECT PROFITS)".
-            -   **Heavy Exposure:** If user owns a lot, be more conservative.
+        3.  **OWNERSHIP RULE (CRITICAL):**
+            -   **IF [Portfolio] tag is present:** You may issue ANY signal (BUY, SELL, HOLD, ACCUMULATE, PANIC SELL).
+            -   **IF [Portfolio] tag is MISSING:** You MUST NOT issue "HOLD", "SELL", or "PANIC SELL" signals. Use only "BUY" or "ACCUMULATE" if the opportunity is strong. If the outlook is neutral/negative for a non-owned asset, **SKIP IT** (return nothing).
+        4.  **Technical Validation:**
+            -   **GOOD NEWS + OVERBOUGHT (RSI > 75):** 
+                - If Owned: "SELL" (Takeprofit). 
+                - If Not Owned: IGNORE (Don't buy top).
+            -   **BAD NEWS + OVERSOLD (RSI < 30):** Signal "ACCUMULATE" (contrarian) if solid.
+            -   **GOOD NEWS + UPTREND (Price > SMA200):** Signal "BUY".
 
         **OUTPUT FORMAT:** JSON list.
 
