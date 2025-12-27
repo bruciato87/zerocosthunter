@@ -562,12 +562,11 @@ def dashboard():
     last_run_iso = None # Initialize default 
 
     # A. Last Run (From Logs)
-    # Default to signals if logs empty, or "Never"
+    # Fetch ANY Hunter event (Started or Finished) to show the latest attempt
     try:
         logs_response = db.supabase.table("logs") \
             .select("updated_at") \
             .eq("module", "Hunter") \
-            .eq("message", "Pipeline Finished") \
             .order("updated_at", desc=True) \
             .limit(1) \
             .execute()

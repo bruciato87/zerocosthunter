@@ -27,6 +27,13 @@ def run_pipeline():
 
 async def run_async_pipeline():
     logger.info("Starting Zero-Cost Investment Hunter Pipeline...")
+    
+    # 0. Log Start (for Dashboard visibility even if timeout occurs)
+    try:
+        tmp_db = DBHandler()
+        tmp_db.log_system_event("INFO", "Hunter", "Pipeline Started")
+    except:
+        pass
 
     # 1. Initialize Modules
     try:
