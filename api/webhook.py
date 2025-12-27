@@ -13,6 +13,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from brain import Brain
 from db_handler import DBHandler
+from main import run_async_pipeline # Import Hunter Pipeline
 from dotenv import load_dotenv
 
 # Load env vars
@@ -35,6 +36,7 @@ logger.info("Bot Application Initialized (v2.0 - Menu)")
 async def setup_bot_commands(bot):
     """Configures the menu button in Telegram UI."""
     commands = [
+        BotCommand("hunt", "🏹 Caccia Manuale (Analisi News)"),
         BotCommand("portfolio", "📊 Vedi Portafoglio & Valore Live"),
         BotCommand("help", "❓ Lista Comandi"),
         BotCommand("setprice", "💶 Correggi Prezzo (es. /setprice AAPL 150)"),
@@ -44,6 +46,19 @@ async def setup_bot_commands(bot):
         BotCommand("start", "🚀 Avvia"),
     ]
     await bot.set_my_commands(commands)
+
+async def hunt_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle /hunt command to manually trigger analysis."""
+    chat_id = update.effective_chat.id
+    await update.message.reply_text("🏹 **Caccia Iniziata!**\nAnalizzo le news... attendi qualche secondo.")
+    
+    try:
+        # Run the pipeline (this might take time!)
+        await run_async_pipeline()
+        await update.message.reply_text("✅ **Caccia Completata.**\nSe ho trovato segnali, te li ho inviati.")
+    except Exception as e:
+        logger.error(f"Manual hunt error: {e}")
+        await update.message.reply_text(f"❌ Errore durante la caccia: {e}")
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle /start command."""
