@@ -115,6 +115,62 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Usa /help per vedere la lista dei comandi."
     )
 
+async def settings_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Handle /settings command to view or update Smart Filters.
+    Usage:
+    /settings -> View current
+    /settings confidence=80 -> Set min confidence to 0.80
+    /settings portfolio=on -> Enable portfolio only mode
+    """
+    chat_id = update.effective_chat.id
+    args = context.args
+    db = DBHandler()
+    
+    # 1. View Current Settings
+    if not args:
+        settings = db.get_settings()
+        min_conf = settings.get("min_confidence", 0.70)
+        only_port = settings.get("only_portfolio", False)
+        
+        msg = (
+            "⚙️ **Smart Filters Config**\n\n"
+            f"🎯 **Min Confidence:** {int(min_conf * 100)}%\n"
+            f"💼 **Portfolio Mode:** {'✅ ON' if only_port else '❌ OFF'}\n\n"
+            "**Comandi per modificare:**\n"
+            "`/settings confidence=80` (Imposta al 80%)\n"
+            "`/settings portfolio=on` (Solo asset posseduti)\n"
+            "`/settings portfolio=off` (Tutti i segnali)"
+        )
+        await update.message.reply_text(msg, parse_mode="Markdown")
+        return
+
+    # 2. Update Settings
+    updated = False
+    for arg in args:
+        try:
+            if "confidence=" in arg:
+                val = int(arg.split("=")[1])
+                if 0 <= val <= 100:
+                    db.update_settings(min_confidence=val/100.0)
+                    updated = True
+            
+            elif "portfolio=" in arg:
+                val = arg.split("=")[1].lower()
+                if val in ["on", "true", "1"]:
+                    db.update_settings(only_portfolio=True)
+                    updated = True
+                elif val in ["off", "false", "0"]:
+                    db.update_settings(only_portfolio=False)
+                    updated = True
+        except Exception as e:
+            logger.error(f"Error parsing setting {arg}: {e}")
+
+    if updated:
+        await update.message.reply_text("✅ Impostazioni aggiornate!")
+    else:
+        await update.message.reply_text("❌ Errore/Nessuna modifica. Usa il formato: `/settings confidence=80`")
+
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle /help command."""
     await setup_bot_commands(context.bot)
