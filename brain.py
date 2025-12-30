@@ -60,6 +60,7 @@ class Brain:
 
         **INSTRUCTIONS:**
         For each news item that contains a SIGNIFICANT, actionable signal:
+        - **DEEP ANALYSIS**: If the item contains "[FULL TEXT EXTRACTED]", use the specific details (numbers, product specs, executive quotes) to validate the signal.
         - Extract the **Ticker Symbol** (e.g., AAPL, TSLA, BTC-USD).
         - Assign **Sentiment**: STRICTLY ["BUY", "SELL", "ACCUMULATE", "PANIC SELL", "HOLD"]. Do NOT translate this field.
         - **Reasoning Constraint:**

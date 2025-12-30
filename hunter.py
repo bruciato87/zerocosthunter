@@ -9,8 +9,13 @@ logger = logging.getLogger(__name__)
 if hasattr(ssl, '_create_unverified_context'):
     ssl._create_default_https_context = ssl._create_unverified_context
 
+import trafilatura # Added for Full-Text Scraping
+
+# ... imports ...
+
 class NewsHunter:
     def __init__(self):
+        # ... rss_feeds list ...
         self.rss_feeds = [
             # --- GENERAL FINANCE ---
             "https://finance.yahoo.com/news/rssindex",
@@ -35,6 +40,21 @@ class NewsHunter:
             "https://cleantechnica.com/feed/",
         ]
 
+    def _fetch_full_text(self, url):
+        """
+        Download and strict the main text from a news URL.
+        Returns a simplified string or None.
+        """
+        try:
+            downloaded = trafilatura.fetch_url(url)
+            if downloaded:
+                text = trafilatura.extract(downloaded)
+                return text
+            return None
+        except Exception as e:
+            logger.warning(f"Failed to scrape {url}: {e}")
+            return None
+
     def fetch_news(self):
         """Fetch and parse news from RSS feeds."""
         all_news = []
@@ -47,11 +67,30 @@ class NewsHunter:
                     logger.warning(f"Feed malformed or error for {url}: {feed.bozo_exception}")
                     continue
 
-                for entry in feed.entries[:5]: # Top 5 from each feed
+                # Limit to top 3 per feed to manage scraping time/limits
+                for entry in feed.entries[:3]: 
+                    link = entry.get("link", "#")
+                    
+                    # 🚀 INTELLIGENCE UPGRADE: Fetch Full Body
+                    full_text = None
+                    if link and link != "#":
+                         # Minimal delay to be polite? No, we need speed for serverless.
+                         # But we catch exceptions.
+                         full_text = self._fetch_full_text(link)
+                    
+                    summary = entry.get("summary", "") or entry.get("description", "")
+                    
+                    # Fallback: If scraping fails, use summary.
+                    # If scraping works, use scraped text (truncated to 2000 chars for context)
+                    final_content = summary
+                    if full_text:
+                        final_content = f"[FULL TEXT EXTRACTED]\n{full_text[:2500]}..." # 2500 char limit
+                        logger.info(f"Successfully scraped content for: {entry.get('title')}")
+
                     news_item = {
                         "title": entry.get("title", "No Title"),
-                        "summary": entry.get("summary", "") or entry.get("description", ""),
-                        "link": entry.get("link", "#"),
+                        "summary": final_content, # Now contains full text if available
+                        "link": link,
                         "published": entry.get("published", "Unknown Date"),
                         "source": feed.feed.get("title", "Unknown Source")
                     }
