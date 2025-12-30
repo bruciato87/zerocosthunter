@@ -221,6 +221,37 @@ class DBHandler:
         except Exception as e:
             logger.error(f"Error logging prediction for {ticker}: {e}")
 
+    def get_settings(self):
+        """Fetch user settings (single row). Returns dict with defaults if empty."""
+        try:
+            response = self.supabase.table("user_settings").select("*").limit(1).execute()
+            if response.data:
+                return response.data[0]
+            return {"min_confidence": 0.70, "only_portfolio": False} # Defaults
+        except Exception as e:
+            logger.error(f"Error fetching settings: {e}")
+            return {"min_confidence": 0.70, "only_portfolio": False}
+
+    def update_settings(self, min_confidence=None, only_portfolio=None):
+        """Update the single settings row."""
+        try:
+            # First get the ID
+            settings = self.get_settings()
+            updates = {}
+            if min_confidence is not None:
+                updates["min_confidence"] = min_confidence
+            if only_portfolio is not None:
+                updates["only_portfolio"] = only_portfolio
+            
+            if updates and "id" in settings:
+                self.supabase.table("user_settings").update(updates).eq("id", settings["id"]).execute()
+                logger.info(f"Settings updated: {updates}")
+                return True
+            return False
+        except Exception as e:
+            logger.error(f"Error updating settings: {e}")
+            return False
+
     def check_if_analyzed_recently(self, ticker: str, new_sentiment: str, hours: int = 24) -> bool:
         """
         Check if we should SKIP this alert.

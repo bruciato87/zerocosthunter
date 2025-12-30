@@ -115,15 +115,31 @@ async def run_async_pipeline():
 
     processed_count = 0
     
+    # 3.5 Fetch User Settings for Filtering
+    user_settings = db.get_settings()
+    min_conf = float(user_settings.get("min_confidence", 0.70))
+    only_portfolio = user_settings.get("only_portfolio", False)
+    logger.info(f"Smart Filters Active: Min Confidence={min_conf}, Only Portfolio={only_portfolio}")
+
     # 4. Process Predictions
     for pred in predictions:
         ticker = pred.get("ticker")
         sentiment = pred.get("sentiment")
         reasoning = pred.get("reasoning")
-        confidence = pred.get("confidence", 0.0)
+        confidence = float(pred.get("confidence", 0.0))
         source = pred.get("source", "Unknown")
 
-        if not ticker or confidence < 0.7:  # Filter low confidence
+        if not ticker: 
+            continue
+
+        # FILTER 1: Confidence Score
+        if confidence < min_conf:
+            logger.info(f"Skipped {ticker}: Confidence {confidence:.2f} < Threshold {min_conf}")
+            continue
+
+        # FILTER 2: Portfolio Only Mode
+        if only_portfolio and ticker not in portfolio_map:
+            logger.info(f"Skipped {ticker}: Portfolio Mode ON and asset not owned.")
             continue
 
         # Check if recently analyzed (Same Ticker + Same Sentiment = SPAM)
