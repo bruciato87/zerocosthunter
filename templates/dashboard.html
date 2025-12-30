@@ -108,6 +108,7 @@
                         </div>
                     </div>
                 </div>
+
                 <div class="relative h-64 w-full">
                     <div id="portfolioChart" class="w-full h-full"></div>
                 </div>
@@ -235,113 +236,133 @@
     </footer>
 
     <!-- Scripts: TradingView Charts + Timezone Fix -->
-    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+    <script src="https://unpkg.com/lightweight-charts@4.0.1/dist/lightweight-charts.standalone.production.js"></script>
     <script>
-        // 1. Timezone Fix
-        function updateLocalTimes() {
-            document.querySelectorAll('.local-time').forEach(el => {
-                const iso = el.getAttribute('data-iso');
-                if (iso && iso !== 'None') {
-                    const dateStr = iso.endsWith('Z') || iso.includes('+') ? iso : iso + 'Z';
-                    const date = new Date(dateStr);
-                    if (!isNaN(date)) {
-                        el.textContent = date.toLocaleString('it-IT', {
-                            day: '2-digit', month: '2-digit', year: 'numeric',
-                            hour: '2-digit', minute: '2-digit'
-                        });
-                    }
-                }
-            });
-        }
-        updateLocalTimes();
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log("DOM Ready. Initializing Dashboard...");
 
-        // 2. TradingView Lightweight Chart (Portfolio value)
-        const chartContainer = document.getElementById('portfolioChart');
+            // 1. Timezone Fix
+            function updateLocalTimes() {
+                try {
+                    document.querySelectorAll('.local-time').forEach(el => {
+                        const iso = el.getAttribute('data-iso');
+                        if (iso && iso !== 'None') {
+                            const dateStr = iso.endsWith('Z') || iso.includes('+') ? iso : iso + 'Z';
+                            const date = new Date(dateStr);
+                            if (!isNaN(date)) {
+                                el.textContent = date.toLocaleString('it-IT', {
+                                    day: '2-digit', month: '2-digit', year: 'numeric',
+                                    hour: '2-digit', minute: '2-digit'
+                                });
+                            }
+                        }
+                    });
+                } catch (e) { console.error("Timezone fix error:", e); }
+            }
+            updateLocalTimes();
 
-        // Ensure container has dimensions
-        const initialWidth = chartContainer.clientWidth || 300;
-        const initialHeight = chartContainer.clientHeight || 250;
+            // 2. TradingView Lightweight Chart (Portfolio value)
+            const charts = document.getElementsByClassName('tv-lightweight-charts');
+            // Cleanup existing if any (HMR safety)
+            for (let i = 0; i < charts.length; i++) {
+                charts[i].remove();
+            }
 
-        const chart = LightweightCharts.createChart(chartContainer, {
-            width: initialWidth,
-            height: initialHeight,
-            layout: {
-                background: { type: 'solid', color: 'transparent' },
-                textColor: '#9ca3af',
-            },
-            grid: {
-                vertLines: { color: 'rgba(55, 65, 81, 0.4)', visible: false },
-                horzLines: { color: 'rgba(55, 65, 81, 0.4)', visible: false },
-            },
-            rightPriceScale: {
-                borderVisible: false,
-            },
-            timeScale: {
-                borderVisible: false,
-                fixLeftEdge: true,
-                fixRightEdge: true,
-            },
-            crosshair: {
-                vertLine: {
-                    width: 1,
-                    color: 'rgba(34, 197, 94, 0.5)',
-                    style: 0,
-                    labelBackgroundColor: '#22c55e',
-                },
-                horzLine: {
-                    width: 1,
-                    color: 'rgba(34, 197, 94, 0.5)',
-                    style: 0,
-                    labelBackgroundColor: '#22c55e',
-                },
-            },
-        });
+            const chartContainer = document.getElementById('portfolioChart');
+            if (!chartContainer) {
+                console.error("Chart container not found!");
+                return;
+            }
 
-        const areaSeries = chart.addAreaSeries({
-            topColor: 'rgba(34, 197, 94, 0.56)',
-            bottomColor: 'rgba(34, 197, 94, 0.04)',
-            lineColor: 'rgba(34, 197, 94, 1)',
-            lineWidth: 2,
-        });
+            // Clear content just in case
+            chartContainer.innerHTML = '';
 
-        // Data Handling
-        // Use Backend data if available, otherwise simulate a trend ending at current value for visuals
-        let chartData = [];
-        const backendLabels = {{ chart_labels| safe }};
+            try {
+                // Ensure container has dimensions - Force a min width/height via JS fallback
+                let initialWidth = chartContainer.clientWidth;
+                let initialHeight = chartContainer.clientHeight;
+
+                // Fallback if hidden or 0
+                if (initialWidth === 0) initialWidth = chartContainer.parentElement.clientWidth || 600;
+                if (initialHeight === 0) initialHeight = 250;
+
+                console.log(`Chart Init: ${initialWidth}x${initialHeight}`);
+
+                const chart = LightweightCharts.createChart(chartContainer, {
+                    width: initialWidth,
+                    height: initialHeight,
+                    layout: {
+                        background: { type: 'solid', color: 'transparent' },
+                        textColor: '#9ca3af',
+                    },
+                    grid: {
+                        vertLines: { color: 'rgba(55, 65, 81, 0.4)', visible: false },
+                        horzLines: { color: 'rgba(55, 65, 81, 0.4)', visible: false },
+                    },
+                    rightPriceScale: {
+                        borderVisible: false,
+                        scaleMargins: {
+                            top: 0.1,
+                            bottom: 0.1,
+                        },
+                    },
+                    timeScale: {
+                        borderVisible: false,
+                        fixLeftEdge: true,
+                        fixRightEdge: true,
+                    },
+                    crosshair: {
+                        vertLine: {
+                            width: 1,
+                            color: 'rgba(34, 197, 94, 0.5)',
+                            style: 0,
+                            labelBackgroundColor: '#22c55e',
+                        },
+                        horzLine: {
+                            width: 1,
+                            color: 'rgba(34, 197, 94, 0.5)',
+                            style: 0,
+                            labelBackgroundColor: '#22c55e',
+                        },
+                    },
+                });
+
+                const areaSeries = chart.addAreaSeries({
+                    topColor: 'rgba(34, 197, 94, 0.56)',
+                    bottomColor: 'rgba(34, 197, 94, 0.04)',
+                    lineColor: 'rgba(34, 197, 94, 1)',
+                    lineWidth: 2,
+                });
+
+                // Data Handling
+                let chartData = [];
+                const backendLabels = {{ chart_labels| safe
+            }};
         const backendValues = {{ chart_data| safe }};
         const currentValue = {{ total_value_eur }};
 
-        if (backendLabels.length > 0 && backendValues.length > 0) {
-            // Map backend data
+        if (backendLabels && backendLabels.length > 0 && backendValues && backendValues.length > 0) {
             chartData = backendLabels.map((date, index) => ({
                 time: date,
                 value: backendValues[index]
             }));
         } else {
-            // Simulate 30 days of history leading to current value
-            // Start 30 days ago at 80% of value, add random noise
+            console.log("No backend data. Simulating...");
             const now = new Date();
-            let simValue = currentValue * 0.90; // Start lower
+            let simValue = currentValue > 0 ? currentValue * 0.90 : 1000;
             for (let i = 30; i >= 0; i--) {
                 const d = new Date();
                 d.setDate(now.getDate() - i);
                 const isoDate = d.toISOString().split('T')[0];
-
-                // Add noise
-                const change = (Math.random() - 0.4) * (currentValue * 0.05);
+                const change = (Math.random() - 0.45) * (simValue * 0.05);
                 simValue += change;
-
-                // Ensure last point matches EXACTLY current value
-                if (i === 0) simValue = currentValue;
-
-                chartData.push({ time: isoDate, value: simValue > 0 ? simValue : 0 });
+                if (i === 0 && currentValue > 0) simValue = currentValue;
+                chartData.push({ time: isoDate, value: Math.max(0, simValue) });
             }
         }
 
-        // Must be sorted by time (ascending)
+        // Sort & Unique
         chartData.sort((a, b) => (a.time > b.time) ? 1 : -1);
-
-        // Remove duplicates if any
         const uniqueData = [];
         const seenDates = new Set();
         for (const item of chartData) {
@@ -351,16 +372,26 @@
             }
         }
 
-        areaSeries.setData(uniqueData);
-        chart.timeScale().fitContent();
+        if (uniqueData.length > 0) {
+            areaSeries.setData(uniqueData);
+            chart.timeScale().fitContent();
+        }
 
         // Resize observer
         new ResizeObserver(entries => {
             if (entries.length === 0 || entries[0].target !== chartContainer) { return; }
             const newRect = entries[0].contentRect;
-            chart.applyOptions({ height: newRect.height, width: newRect.width });
+            if (newRect.width > 0 && newRect.height > 0) {
+                chart.applyOptions({ height: newRect.height, width: newRect.width });
+                chart.timeScale().fitContent();
+            }
         }).observe(chartContainer);
 
+            } catch (e) {
+            console.error("Chart Error:", e);
+            chartContainer.innerHTML = `<div class="text-red-500 text-xs p-4">Chart Error: ${e.message}</div>`;
+        }
+        });
     </script>
 </body>
 
