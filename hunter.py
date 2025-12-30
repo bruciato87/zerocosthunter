@@ -15,7 +15,30 @@ from curl_cffi import requests # 🚀 UPGRADE: TLS Fingerprint Spoofing
 # ... imports ...
 
 class NewsHunter:
-    # ... (init remains same)
+    def __init__(self):
+        self.rss_feeds = [
+            # --- GENERAL FINANCE ---
+            "https://finance.yahoo.com/news/rssindex",
+            "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000664", # CNBC Finance
+            "https://feeds.content.dowjones.io/public/rss/mw_topstories", # MarketWatch
+            "https://www.investing.com/rss/news.rss", # Investing.com General
+            "https://feeds.a.dj.com/rss/RSSMarketsMain.xml", # WSJ Markets
+            
+            # --- TECH & AI ---
+            "https://techcrunch.com/feed/",
+            "https://venturebeat.com/category/ai/feed/", # VentureBeat AI
+            "https://www.artificialintelligence-news.com/feed/", # AI News
+            "http://news.mit.edu/rss/topic/artificial-intelligence2", # MIT AI Research
+            
+            # --- CRYPTO ---
+            "https://cointelegraph.com/rss",
+            "https://www.coindesk.com/arc/outboundfeeds/rss/",
+            "https://decrypt.co/feed",
+            
+            # --- GREEN ENERGY ---
+            "https://www.renewableenergyworld.com/feed/",
+            "https://cleantechnica.com/feed/",
+        ]
 
     def _fetch_full_text(self, url):
         """
