@@ -302,7 +302,7 @@ async def show_portfolio(update: Update, context: ContextTypes.DEFAULT_TYPE):
         eur_usd = t.history(period="1d")['Close'].iloc[-1]
     except: pass
 
-    TICKER_FIX_MAP = {"RNDR-USD": "RENDER-USD", "3DJ.DE": "3CP.F", "BYD": "BY6.F", "ICGA.FRA": "ICGA.F", "ICGA.DE": "ICGA.F", "3CP": "3CP.F"}
+    TICKER_FIX_MAP = {"RNDR-USD": "RENDER-USD", "3DJ.DE": "3CP.F", "BYD": "BY6.F", "ICGA.FRA": "IAG.MC", "ICGA.DE": "IAG.MC", "ICGA.F": "IAG.MC", "3CP": "3CP.F"}
 
     for item in portfolio:
         ticker = item.get('ticker', 'N/A')
@@ -406,7 +406,7 @@ def dashboard():
         if not hist.empty: eur_usd = hist['Close'].iloc[-1]
     except: pass
     
-    TICKER_FIX = {"RNDR-USD": "RENDER-USD", "3DJ.DE": "3CP.F", "BYD": "BY6.F", "ICGA.FRA": "ICGA.F", "3CP": "3CP.F"}
+    TICKER_FIX = {"RNDR-USD": "RENDER-USD", "3DJ.DE": "3CP.F", "BYD": "BY6.F", "ICGA.FRA": "IAG.MC", "ICGA.F": "IAG.MC", "ICGA.DE": "IAG.MC", "3CP": "3CP.F"}
 
     for item in portfolio:
         try:
