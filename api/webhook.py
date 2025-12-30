@@ -376,7 +376,7 @@ def dashboard():
     
     # 1. Signals
     try:
-        signals = db.supabase.table("predictions").select("*").order("created_at", desc=True).limit(50).execute().data
+        signals = db.supabase.table("predictions").select("*").order("created_at", desc=True).limit(25).execute().data
     except: signals = []
 
     # 2. Portfolio
