@@ -257,20 +257,29 @@
 
         // 2. TradingView Lightweight Chart (Portfolio value)
         const chartContainer = document.getElementById('portfolioChart');
+
+        // Ensure container has dimensions
+        const initialWidth = chartContainer.clientWidth || 300;
+        const initialHeight = chartContainer.clientHeight || 250;
+
         const chart = LightweightCharts.createChart(chartContainer, {
+            width: initialWidth,
+            height: initialHeight,
             layout: {
                 background: { type: 'solid', color: 'transparent' },
                 textColor: '#9ca3af',
             },
             grid: {
-                vertLines: { color: 'rgba(55, 65, 81, 0.4)' },
-                horzLines: { color: 'rgba(55, 65, 81, 0.4)' },
+                vertLines: { color: 'rgba(55, 65, 81, 0.4)', visible: false },
+                horzLines: { color: 'rgba(55, 65, 81, 0.4)', visible: false },
             },
             rightPriceScale: {
                 borderVisible: false,
             },
             timeScale: {
                 borderVisible: false,
+                fixLeftEdge: true,
+                fixRightEdge: true,
             },
             crosshair: {
                 vertLine: {
