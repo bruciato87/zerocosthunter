@@ -406,7 +406,7 @@ def dashboard():
         if not hist.empty: eur_usd = hist['Close'].iloc[-1]
     except: pass
     
-    TICKER_FIX = {"RNDR-USD": "RENDER-USD", "3DJ.DE": "3CP.F", "BYD": "BY6.F", "ICGA.FRA": "ICGA.F"}
+    TICKER_FIX = {"RNDR-USD": "RENDER-USD", "3DJ.DE": "3CP.F", "BYD": "BY6.F", "ICGA.FRA": "ICGA.F", "3CP": "3CP.F"}
 
     for item in portfolio:
         try:
