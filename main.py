@@ -134,9 +134,10 @@ async def run_async_pipeline():
         db.log_prediction(ticker, sentiment, reasoning, reasoning, confidence, source)
         
         # Format Alert
+        asset_type = pred.get("asset_type", "Asset")
         icon = "🟢" if sentiment in ["BUY", "ACCUMULATE"] else "🔴" if sentiment in ["SELL", "PANIC SELL"] else "⚪"
         alert_msg = (
-            f"{icon} **Signal Detected: {ticker}**\n"
+            f"{icon} **Signal Detected: {ticker} ({asset_type})**\n"
             f"**Action:** {sentiment}\n"
             f"**Confidence:** {int(confidence * 100)}%\n"
             f"**Reasoning:** {reasoning}\n"

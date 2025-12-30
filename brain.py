@@ -62,12 +62,16 @@ class Brain:
         For each news item that contains a SIGNIFICANT, actionable signal:
         - **DEEP ANALYSIS**: If the item contains "[FULL TEXT EXTRACTED]", use the specific details (numbers, product specs, executive quotes) to validate the signal.
         - Extract the **Ticker Symbol** (e.g., AAPL, TSLA, BTC-USD).
+        - Determine **Asset Type**: "Stock", "Crypto", "ETF".
         - Assign **Sentiment**: STRICTLY ["BUY", "SELL", "ACCUMULATE", "PANIC SELL", "HOLD"]. Do NOT translate this field.
         - **Reasoning Constraint:**
             - If the news item contains "[Portfolio: OWNED...]", your reasoning **MUST** explicitly reference this (e.g., "Visto che possiedi 20 azioni a $100...").
             - Write in **ITALIAN**.
         - Provide a 1-sentence **Prediction/Reasoning** that combines News, Technicals AND Portfolio.
         - Assign a **Confidence Score** (0.0 to 1.0).
+        
+        **JSON FIELDS:** ticker, asset_type, sentiment, reasoning, confidence
+
 
         Return strictly a JSON list of objects. If no valid signals are found, return an empty list [].
         Example JSON Structure:
