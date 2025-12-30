@@ -10,36 +10,12 @@ if hasattr(ssl, '_create_unverified_context'):
     ssl._create_default_https_context = ssl._create_unverified_context
 
 import trafilatura # Added for Full-Text Scraping
-import requests # Added for Anti-Bot Headers
+from curl_cffi import requests # 🚀 UPGRADE: TLS Fingerprint Spoofing
 
 # ... imports ...
 
 class NewsHunter:
-    def __init__(self):
-        # ... rss_feeds list ...
-        self.rss_feeds = [
-            # --- GENERAL FINANCE ---
-            "https://finance.yahoo.com/news/rssindex",
-            "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000664", # CNBC Finance
-            "https://feeds.content.dowjones.io/public/rss/mw_topstories", # MarketWatch
-            "https://www.investing.com/rss/news.rss", # Investing.com General
-            "https://feeds.a.dj.com/rss/RSSMarketsMain.xml", # WSJ Markets
-            
-            # --- TECH & AI ---
-            "https://techcrunch.com/feed/",
-            "https://venturebeat.com/category/ai/feed/", # VentureBeat AI
-            "https://www.artificialintelligence-news.com/feed/", # AI News
-            "http://news.mit.edu/rss/topic/artificial-intelligence2", # MIT AI Research
-            
-            # --- CRYPTO ---
-            "https://cointelegraph.com/rss",
-            "https://www.coindesk.com/arc/outboundfeeds/rss/",
-            "https://decrypt.co/feed",
-            
-            # --- GREEN ENERGY ---
-            "https://www.renewableenergyworld.com/feed/",
-            "https://cleantechnica.com/feed/",
-        ]
+    # ... (init remains same)
 
     def _fetch_full_text(self, url):
         """
@@ -47,16 +23,19 @@ class NewsHunter:
         Returns a simplified string or None.
         """
         try:
-            # 🛡️ ANTI-BOT DEFENSE: Use a real Browser User-Agent
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5',
-                'Referer': 'https://www.google.com/'
-            }
+            # 🛡️ ANTI-BOT DEFENSE V2: TLS Fingerprint Spoofing (curl_cffi)
+            # This mimics a real Chrome browser at the network layer (JA3), ignoring 403s.
             
-            # Use requests to download (often better at bypassing 403s than trafilatura native)
-            response = requests.get(url, headers=headers, timeout=10)
+            # Note: curl_cffi handles User-Agent automatically when impersonating
+            response = requests.get(
+                url, 
+                impersonate="chrome120", 
+                timeout=15,
+                headers={
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                    'Referer': 'https://www.google.com/'
+                }
+            )
             
             if response.status_code == 200:
                 # Pass the HTML content to trafilatura for extraction
