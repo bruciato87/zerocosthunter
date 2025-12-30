@@ -72,6 +72,7 @@ async def setup_bot_commands(bot):
         BotCommand("setprice", "💶 Correggi Prezzo (es. /setprice AAPL 150)"),
         BotCommand("setticker", "🏷 Correggi Ticker (es. /setticker OLD NEW)"),
         BotCommand("delete", "🗑 Elimina un Asset"),
+        BotCommand("settings", "⚙️ Configura Smart Filters"),
         BotCommand("reset", "☢️ Reset Totale"),
         BotCommand("start", "🚀 Avvia"),
     ]
