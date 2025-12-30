@@ -12,11 +12,47 @@ except Exception:
     pass
 
 # Configure logging
+import requests # Added for CoinGecko
+
+# Configure logging
 logger = logging.getLogger(__name__)
 
 class MarketData:
     def __init__(self):
-        pass
+        self.COINGECKO_MAP = {
+            "BTC-USD": "bitcoin",
+            "ETH-USD": "ethereum",
+            "SOL-USD": "solana",
+            "BTC": "bitcoin",
+            "ETH": "ethereum",
+            "SOL": "solana"
+        }
+
+    def get_crypto_data_coingecko(self, ticker):
+        """
+        Fetch real-time price and 24h change from CoinGecko.
+        Returns (price, change_pct) or (None, None) if failed.
+        """
+        try:
+            coin_id = self.COINGECKO_MAP.get(ticker.upper())
+            if not coin_id:
+                return None, None
+            
+            url = f"https://api.coingecko.com/api/v3/simple/price?ids={coin_id}&vs_currencies=usd&include_24hr_change=true"
+            # Add User-Agent to avoid 403 blocks often typically enforced by CG
+            headers = {'User-Agent': 'Mozilla/5.0'} 
+            
+            response = requests.get(url, headers=headers, timeout=5)
+            data = response.json()
+            
+            if coin_id in data:
+                price = data[coin_id]['usd']
+                change_pct = data[coin_id]['usd_24h_change']
+                return price, change_pct
+            return None, None
+        except Exception as e:
+            logger.warning(f"CoinGecko API failed for {ticker}: {e}")
+            return None, None
 
     def get_technical_summary(self, ticker: str) -> str:
         """
@@ -24,8 +60,12 @@ class MarketData:
         Returns a human-readable summary string.
         """
         try:
-            # 1. Fetch Data (3 months to ensure enough data for SMA50)
             ticker = ticker.upper().strip()
+            
+            # A. Try CoinGecko for Crypto Real-Time Data first
+            cg_price, cg_change = self.get_crypto_data_coingecko(ticker)
+            
+            # 1. Fetch Data (3 months to ensure enough data for SMA50)
             stock = yf.Ticker(ticker)
             df = stock.history(period="6mo") # 6 months to be safe for SMA calculations
 
@@ -45,15 +85,20 @@ class MarketData:
             sma200_ind = SMAIndicator(close=df['Close'], window=200)
             df['SMA_200'] = sma200_ind.sma_indicator()
 
-            # Get latest values (last row)
+            # Get latest values (last row) to use ONLY if CoinGecko failed
             latest = df.iloc[-1]
-            price = latest['Close']
+            
+            # Use CoinGecko price if available, else Yahoo
+            price = cg_price if cg_price else latest['Close']
+            
             rsi = latest['RSI']
             sma_50 = latest['SMA_50']
             sma_200 = latest['SMA_200']
             
             # Calculate 24h Change
-            if len(df) > 1:
+            if cg_change:
+                change_pct = cg_change
+            elif len(df) > 1:
                 prev_close = df.iloc[-2]['Close']
                 change_pct = ((price - prev_close) / prev_close) * 100
             else:

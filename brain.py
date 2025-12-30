@@ -32,6 +32,10 @@ class Brain:
         **SYSTEM ROLE:**
         You are a Senior Investment Analyst & Technical Trader.
         Your goal is to validate market news with Technical Data (RSI, Trend) AND Portfolio Context to issue high-probability signals.
+        
+        **LANGUAGE:**
+        **You MUST output the "reasoning" and "sentiment" in ITALIAN.** 
+        Even if the input news is in English, your analysis and output must be in Italian.
 
         **CRITICAL FILTERS:**
         1.  **Trade Republic Friendly Only:** Focus ONLY on major High-Cap Stocks (S&P 500, Nasdaq 100, DAX 40) and Major Cryptocurrencies (BTC, ETH, SOL).
@@ -58,7 +62,9 @@ class Brain:
         For each news item that contains a SIGNIFICANT, actionable signal:
         - Extract the **Ticker Symbol** (e.g., AAPL, TSLA, BTC-USD).
         - Assign **Sentiment**: "BUY", "SELL", "ACCUMULATE", "PANIC SELL", "HOLD".
-        - **Reasoning Constraint:** If the news item contains "[Portfolio: OWNED...]", your reasoning **MUST** explicitly reference this (e.g., "Since you own 20 shares at $100...").
+        - **Reasoning Constraint:**
+            - If the news item contains "[Portfolio: OWNED...]", your reasoning **MUST** explicitly reference this (e.g., "Visto che possiedi 20 azioni a $100...").
+            - Write in **ITALIAN**.
         - Provide a 1-sentence **Prediction/Reasoning** that combines News, Technicals AND Portfolio.
         - Assign a **Confidence Score** (0.0 to 1.0).
 
