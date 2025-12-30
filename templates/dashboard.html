@@ -165,7 +165,13 @@
                                         {% if sig.sentiment in ['BUY', 'ACCUMULATE'] %}bg-green-900/50 text-green-400 border border-green-700
                                         {% elif sig.sentiment in ['SELL', 'PANIC SELL'] %}bg-red-900/50 text-red-400 border border-red-700
                                         {% else %}bg-gray-700 text-gray-300 border border-gray-600{% endif %}">
-                                        {{ sig.sentiment }}
+                                        {% if sig.sentiment == 'BUY' %}ACQUISTA
+                                        {% elif sig.sentiment == 'SELL' %}VENDI
+                                        {% elif sig.sentiment == 'ACCUMULATE' %}ACCUMULA
+                                        {% elif sig.sentiment == 'PANIC SELL' %}VENDERE SUBITO
+                                        {% elif sig.sentiment == 'HOLD' %}MANTIENI
+                                        {% else %}{{ sig.sentiment }}
+                                        {% endif %}
                                     </span>
                                 </h3>
                                 <div class="text-xs text-gray-500 mt-1 flex items-center space-x-2">
