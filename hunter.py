@@ -40,35 +40,62 @@ class NewsHunter:
             "https://cleantechnica.com/feed/",
         ]
 
+    def _fetch_url_impersonate(self, url, browser_type="chrome120"):
+        """Helper to fetch URL with specific browser impersonation."""
+        return requests.get(
+            url, 
+            impersonate=browser_type, 
+            timeout=10,
+            headers={
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Referer': 'https://www.google.com/',
+                'Upgrade-Insecure-Requests': '1'
+            }
+        )
+
     def _fetch_full_text(self, url):
         """
-        Download and strict the main text from a news URL.
-        Returns a simplified string or None.
+        Attempt to scrape full text using multiple strategies:
+        1. Direct Chrome Impersonation
+        2. Direct Safari Impersonation (Fallback)
+        3. Google Cache (Last Resort)
         """
         try:
-            # 🛡️ ANTI-BOT DEFENSE V2: TLS Fingerprint Spoofing (curl_cffi)
-            # This mimics a real Chrome browser at the network layer (JA3), ignoring 403s.
-            
-            # Note: curl_cffi handles User-Agent automatically when impersonating
-            response = requests.get(
-                url, 
-                impersonate="chrome120", 
-                timeout=15,
-                headers={
-                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                    'Referer': 'https://www.google.com/'
-                }
-            )
+            # STRATEGY 1: Direct Chrome
+            response = self._fetch_url_impersonate(url, "chrome120")
             
             if response.status_code == 200:
-                # Pass the HTML content to trafilatura for extraction
-                text = trafilatura.extract(response.text)
-                return text
-            else:
-                logger.warning(f"Scraper blocked ({response.status_code}) for {url}")
+                return trafilatura.extract(response.text)
+            
+            elif response.status_code == 401:
+                # 401 is usually a Content Paywall (WSJ, etc). No point retrying.
+                logger.info(f"Paywall detected (401) for {url}. Using Summary.")
                 return None
+
+            elif response.status_code == 403:
+                # STRATEGY 2: Safari Impersonation (Sometimes bypasses Cloudflare better)
+                logger.info(f"Chrome blocked (403), retrying as Safari for {url}...")
+                response = self._fetch_url_impersonate(url, "safari15_5")
+                if response.status_code == 200:
+                   logger.info(f"Safari bypass successful for {url}!")
+                   return trafilatura.extract(response.text)
+            
+            # STRATEGY 3: Google Cache Fallback
+            if response.status_code in [403, 503]:
+                logger.info(f"Direct access blocked. Trying Google Cache for {url}...")
+                cache_url = f"http://webcache.googleusercontent.com/search?q=cache:{url}"
+                # Cache often needs a clean simple UA, or sometimes the same impersonation
+                response = self._fetch_url_impersonate(cache_url, "chrome110")
+                if response.status_code == 200:
+                     logger.info(f"Google Cache hit for {url}!")
+                     # Trafilatura is good at extracting the article from the messy Cache wrapper
+                     return trafilatura.extract(response.text)
+            
+            logger.warning(f"All scrape strategies failed ({response.status_code}) for {url}")
+            return None
+
         except Exception as e:
-            logger.warning(f"Failed to scrape {url}: {e}")
+            logger.warning(f"Scraping error for {url}: {e}")
             return None
 
     def fetch_news(self):
