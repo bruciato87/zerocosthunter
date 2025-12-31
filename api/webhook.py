@@ -538,11 +538,24 @@ async def analyze_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         # 6. Send Report (Split if too long, though unlikely for this prompt)
         # Telegram limit is 4096 chars.
-        if len(report) > 4000:
-            for x in range(0, len(report), 4000):
-                await update.message.reply_text(report[x:x+4000], parse_mode="Markdown")
-        else:
-            await update.message.reply_text(report, parse_mode="Markdown")
+        # 6. Send Report with Markdown Fallback
+        async def send_safe(text):
+            try:
+                if len(text) > 4000:
+                    for x in range(0, len(text), 4000):
+                        await update.message.reply_text(text[x:x+4000], parse_mode="Markdown")
+                else:
+                    await update.message.reply_text(text, parse_mode="Markdown")
+            except Exception as e:
+                logger.warning(f"Markdown failed, sending plain text: {e}")
+                # Fallback to plain text if Markdown fails
+                if len(text) > 4000:
+                    for x in range(0, len(text), 4000):
+                        await update.message.reply_text(text[x:x+4000])
+                else:
+                    await update.message.reply_text(text)
+
+        await send_safe(report)
 
     except Exception as e:
         logger.error(f"Analyze Error: {e}")

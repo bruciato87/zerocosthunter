@@ -2,6 +2,9 @@ import os
 import logging
 from datetime import datetime, timedelta
 from supabase import create_client, Client
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
