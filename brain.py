@@ -16,19 +16,35 @@ class Brain:
             raise ValueError("GEMINI_API_KEY must be set.")
         self.client = genai.Client(api_key=self.api_key)
 
-    def analyze_news_batch(self, news_list):
+    def analyze_news_batch(self, news_list, performance_context=None):
         """
+        [2024 UPDATE] V3.0 Hybrid Brain with Memory.
         Analyze a batch of news items to find high-quality trading opportunities.
-        Filters for Trade Republic friendly assets (High Cap/Liquidity).
+        - performance_context: Dict of {"ticker": {stats}} representing past accuracy.
         """
         if not news_list:
             logger.info("No news to analyze.")
             return []
 
+        # [FEEDBACK LOOP INJECTION]
+        memories = ""
+        if performance_context:
+            memories = "\n[PAST PERFORMANCE MEMORY]\n"
+            for ticker, stats in performance_context.items():
+                if stats['status'] == 'NEGATIVE':
+                    memories += f"WARNING: {ticker} -> High Failure Rate ({stats['win_rate']}% wins). Be extremely skeptical. Require overwhelming evidence to BUY.\n"
+                elif stats['status'] == 'POSITIVE':
+                    memories += f"NOTE: {ticker} -> High Success Rate ({stats['win_rate']}% wins). Your past logic works well here.\n"
+                else:
+                    memories += f"INFO: {ticker} -> Neutral/Insufficient history.\n"
+
         # Prepare the prompt
         news_text = "\n\n".join([f"Source: {item['source']}\nTitle: {item['title']}\nSummary: {item['summary']}" for item in news_list])
         
         prompt = f"""
+        ROLES: [Financial Analyst, Hedge Fund Manager, Quantitative Trader]
+        {memories}
+        
         **SYSTEM ROLE:**
         You are a Senior Investment Analyst & Quantitative Trader.
         Your goal is to validate market news with Technical Data AND produce a concrete Quantitative Prediction.
