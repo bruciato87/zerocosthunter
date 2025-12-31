@@ -37,7 +37,14 @@ class Brain:
         - The user is a **European Investor** (Currency: **EUR**).
         - If news mentions USD prices (e.g. "Apple to $200"), KEEP the target in USD ($) but ensure your reasoning considers the asset quality.
         - **Upside %** is universal, so focus heavily on that.
-        
+
+        **CRITICAL INSTRUCTION: TECHNICAL CHECKS (PATH C)**
+        - The input news will contain technical tags (e.g. `[Technical: Price: $100, RSI: 80, Trend: BULLISH]`).
+        - **YOU MUST INCORPORATE THIS DATA.**
+        - **RSI RULE:** If RSI > 75 (Overbought), avoid "BUY" unless news is fundamental-shifting (e.g. Buyout). Prefer "HOLD".
+        - **TREND RULE:** If Trend is "BEARISH", be cautious. "Cheaper" is often a trap.
+        - **ATH RULE:** If "Diff from 6m High" is < -20%, this is a "Discount". Good for "Buy the Dip".
+
         **LANGUAGE:**
         - **Reasoning**: MUST be in **ITALIAN**.
         - **Sentiment**: MUST be ONE of: ["BUY", "SELL", "ACCUMULATE", "PANIC SELL", "HOLD"].
@@ -55,13 +62,12 @@ class Brain:
         **QUANTITATIVE ANALYSIS (NEW):**
         For every signal, you MUST estimate:
         1.  **Risk Score (1-10):**
-            - 1-3: Risk Free / Arbitrage (Rare)
-            - 4-6: Blue Chip / Stable Trend (e.g. Apple, Microsoft)
-            - 7-8: Volatile Growth / Crypto (e.g. Tesla, Solana)
-            - 9-10: Speculative / Gamble / Earnings Play
+            - 1-3: Low Risk (Trend Bullish, RSI Neutral, Blue Chip)
+            - 4-7: Medium Risk
+            - 8-10: High Risk (Crypto, RSI > 80, Speculative)
         2.  **Target Price (Short Term):**
             - Extract from the news (e.g., "Analyst sets $150 target").
-            - If no analyst target, estimate a logical resistance level.
+            - If no analyst target, estimate a logical resistance.
             - **Format:** String with currency (e.g. "$150" or "€140").
         3.  **Upside Percentage:**
             - Numeric value of potential gain (e.g. 15.5 for +15.5%).

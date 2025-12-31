@@ -113,17 +113,26 @@ class MarketData:
             elif price > sma_200:
                 trend = "Recovering (Above SMA 200)"
 
+            # RSI Status
             rsi_status = "Neutral"
             if rsi > 70:
                 rsi_status = "OVERBOUGHT (>70)"
             elif rsi < 30:
                 rsi_status = "OVERSOLD (<30)"
 
+            # ATH (All-Time High) Check - approximate from loaded period or max
+            # Since we only fetch 6mo of data above, we might miss true ATH.
+            # Let's fetch max history for strictly ATH check is expensive? 
+            # Compromise: High of last 6mo (52w High approx)
+            period_high = df['High'].max()
+            dist_from_high = ((price - period_high) / period_high) * 100
+            
             # 4. Format Summary
             summary = (
                 f"Price: ${price:.2f} ({change_pct:+.2f}%), "
                 f"RSI: {rsi:.1f} ({rsi_status}), "
-                f"Trend: {trend}"
+                f"Trend: {trend}, "
+                f"Diff from 6m High: {dist_from_high:.1f}%"
             )
             return summary
 
