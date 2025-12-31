@@ -160,7 +160,7 @@ async def run_async_pipeline():
                 # Parse Target Price string to float (remove symbols)
                 tp_float = None
                 if target_price:
-                    import re
+                    # re is imported globally
                     clean_tp = re.sub(r'[^\d.]', '', str(target_price))
                     if clean_tp:
                         tp_float = float(clean_tp)
