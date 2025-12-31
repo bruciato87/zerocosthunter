@@ -222,8 +222,9 @@ class DBHandler:
                 "upside_percentage": upside_percentage,
                 "created_at": datetime.utcnow().isoformat()
             }
-            self.supabase.table("predictions").insert(data).execute()
+            response = self.supabase.table("predictions").insert(data).execute()
             logger.info(f"Logged prediction for {ticker}: {sentiment}")
+            return response.data[0]['id'] if response.data else None
         except Exception as e:
             logger.error(f"Error logging prediction for {ticker}: {e}")
 

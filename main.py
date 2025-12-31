@@ -151,8 +151,25 @@ async def run_async_pipeline():
         upside_percentage = pred.get("upside_percentage", 0.0)
 
         # 5. Log to DB and Notify
-        db.log_prediction(ticker, sentiment, reasoning, reasoning, confidence, source, risk_score, target_price, upside_percentage)
+        signal_id = db.log_prediction(ticker, sentiment, reasoning, reasoning, confidence, source, risk_score, target_price, upside_percentage)
         
+        # --- AUDITOR INTEGRATION ---
+        # If BUY/ACCUMULATE signal, start tracking performance
+        if sentiment in ["BUY", "ACCUMULATE"] and signal_id:
+            try:
+                # Parse Target Price string to float (remove symbols)
+                tp_float = None
+                if target_price:
+                    import re
+                    clean_tp = re.sub(r'[^\d.]', '', str(target_price))
+                    if clean_tp:
+                        tp_float = float(clean_tp)
+                
+                auditor.record_signal(ticker, signal_id=signal_id, target_price=tp_float)
+            except Exception as e:
+                logger.error(f"Failed to record signal for audit: {e}")
+        # ---------------------------
+
         # Format Alert
         asset_type = pred.get("asset_type", "Asset")
         icon = "🟢" if sentiment in ["BUY", "ACCUMULATE"] else "🔴" if sentiment in ["SELL", "PANIC SELL"] else "⚪"
@@ -175,6 +192,13 @@ async def run_async_pipeline():
         
         await notifier.send_alert(alert_msg)
         processed_count += 1
+
+    # --- AUDIT PHASE ---
+    logger.info("Running Auditor Checkup...")
+    audit_results = auditor.audit_open_signals()
+    if audit_results:
+        summary_audit = "\n".join(audit_results)
+        await notifier.send_alert(f"⚖️ **Auditor Daily Report:**\n{summary_audit}")
 
     db.log_system_event("INFO", "Hunter", "Pipeline Finished")
     logger.info(f"Pipeline finished. Processed {processed_count} actionable signals.")

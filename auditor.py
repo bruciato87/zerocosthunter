@@ -1,0 +1,137 @@
+import logging
+from db_handler import DBHandler
+from market_data import MarketData
+import time
+
+logger = logging.getLogger("Auditor")
+
+class Auditor:
+    def __init__(self):
+        self.db = DBHandler()
+        self.market = MarketData()
+        # Configuration
+        self.TAKE_PROFIT_PCT = 15.0  # +15%
+        self.STOP_LOSS_PCT = -10.0   # -10%
+        self.MAX_AGE_DAYS = 30       # Expire after 30 days if stagnating
+
+    def record_signal(self, ticker: str, entry_price: float = None, signal_id: str = None, target_price: float = None):
+        """
+        Snapshots a new signal into the tracking table.
+        """
+        try:
+            if entry_price is None:
+                # User did not provide price, fetch it now
+                price, _ = self.market.get_crypto_data_coingecko(ticker)
+                if not price:
+                    # Fallback Yahoo
+                    import yfinance as yf
+                    t = yf.Ticker(ticker)
+                    hist = t.history(period="1d")
+                    if not hist.empty:
+                        price = hist['Close'].iloc[-1]
+                
+                entry_price = price
+            
+            if not entry_price:
+                logger.error(f"Auditor: Could not determine entry price for {ticker}. Aborting track.")
+                return False
+
+            data = {
+                "ticker": ticker,
+                "entry_price": entry_price,
+                "current_price": entry_price,
+                "target_price": target_price,
+                "status": "OPEN",
+                "pnl_percent": 0.0,
+                "signal_id": signal_id
+            }
+            res = self.db.supabase.table("signal_tracking").insert(data).execute()
+            logger.info(f"Auditor: Tracking started for {ticker} at ${entry_price}")
+            return True
+        except Exception as e:
+            logger.error(f"Auditor Error recording {ticker}: {e}")
+            return False
+
+    def audit_open_signals(self):
+        """
+        Updates PnL and Status for all OPEN signals.
+        """
+        try:
+            # 1. Fetch OPEN signals
+            response = self.db.supabase.table("signal_tracking").select("*").eq("status", "OPEN").execute()
+            open_signals = response.data
+            
+            if not open_signals:
+                logger.info("Auditor: No open signals to audit.")
+                return []
+
+            updates = []
+            
+            for sig in open_signals:
+                ticker = sig['ticker']
+                entry_price = float(sig['entry_price'])
+                req_target_price = sig.get('target_price')
+                target_price = float(req_target_price) if req_target_price else None
+                
+                # 2. Get Live Price
+                # Uses MarketData helper which handles Crypto/Stocks
+                # Using get_technical_summary logic simplified
+                live_price, _ = self.market.get_crypto_data_coingecko(ticker)
+                
+                if not live_price:
+                    # Fallback to Yahoo
+                    try:
+                        import yfinance as yf
+                        t = yf.Ticker(ticker)
+                        # Fast fetch
+                        hist = t.history(period="1d")
+                        if not hist.empty:
+                            live_price = hist['Close'].iloc[-1]
+                    except: pass
+                
+                if not live_price:
+                    logger.warning(f"Auditor: Could not fetch price for {ticker}. Skipping.")
+                    continue
+
+                # 3. Calculate PnL
+                pnl_pct = ((live_price - entry_price) / entry_price) * 100
+                new_status = "OPEN"
+                
+                # 4. Check Exit Conditions
+                if pnl_pct >= self.TAKE_PROFIT_PCT:
+                    new_status = "WIN"
+                elif target_price and live_price >= target_price:
+                    new_status = "WIN"
+                elif pnl_pct <= self.STOP_LOSS_PCT:
+                    new_status = "LOSS"
+                
+                # Check Expiration (Age)
+                created_at = sig['created_at'] 
+                # Assuming ISO format string, need parsing if we implement precise age check
+                # For now, let's keep it simple. If we want age check, we need datetime parsing.
+                # skipping complex date parsing for now to ensure robustness of V1.
+                
+                # 5. Update DB
+                update_data = {
+                    "current_price": live_price,
+                    "pnl_percent": round(pnl_pct, 2),
+                    "status": new_status,
+                    "updated_at": "now()"
+                }
+                
+                self.db.supabase.table("signal_tracking").update(update_data).eq("id", sig['id']).execute()
+                
+                if new_status != "OPEN":
+                    updates.append(f"{ticker}: {new_status} ({pnl_pct:+.2f}%)")
+                    logger.info(f"Auditor: Signal Closed - {ticker} is {new_status}")
+
+            return updates
+
+        except Exception as e:
+            logger.error(f"Auditor Audit Failed: {e}")
+            return []
+
+if __name__ == "__main__":
+    # Test stub
+    auditor = Auditor()
+    print("Auditor initialized.")
