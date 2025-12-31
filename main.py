@@ -11,6 +11,7 @@ from hunter import NewsHunter
 from market_data import MarketData
 from brain import Brain
 from telegram_bot import TelegramNotifier
+from auditor import Auditor
 import re
 import asyncio
 
@@ -42,6 +43,7 @@ async def run_async_pipeline():
         brain = Brain()
         notifier = TelegramNotifier()
         market = MarketData()
+        auditor = Auditor()
     except Exception as e:
         logger.critical(f"Initialization failed: {e}")
         return
