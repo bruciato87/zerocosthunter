@@ -207,10 +207,36 @@
                                 </div>
                             </div>
 
-                            <!-- Confidence Score -->
+                            <!-- Confidence Score & Prophet Data -->
                             <div class="text-right">
                                 <div class="text-2xl font-bold font-mono">{{ (sig.confidence_score * 100)|int }}%</div>
-                                <div class="text-[10px] text-gray-500 uppercase tracking-widest">Conf</div>
+                                <div class="text-[10px] text-gray-500 uppercase tracking-widest mb-2">Conf</div>
+
+                                {% if sig.target_price %}
+                                <div class="flex flex-col items-end space-y-1">
+                                    <span
+                                        class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-900/50 text-blue-300 border border-blue-800">
+                                        Target: {{ sig.target_price }}
+                                    </span>
+                                    {% if sig.upside_percentage > 0 %}
+                                    <span class="text-[10px] text-green-400 font-mono">
+                                        +{{ sig.upside_percentage }}% Upside
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+
+                                {% if sig.risk_score %}
+                                <div class="mt-2 text-[10px] flex items-center justify-end space-x-1">
+                                    <span class="text-gray-500">Risk:</span>
+                                    <span class="font-bold 
+                                        {% if sig.risk_score <= 3 %}text-green-400
+                                        {% elif sig.risk_score <= 6 %}text-yellow-400
+                                        {% else %}text-red-400{% endif %}">
+                                        {{ sig.risk_score }}/10
+                                    </span>
+                                </div>
+                                {% endif %}
                             </div>
                         </div>
 
