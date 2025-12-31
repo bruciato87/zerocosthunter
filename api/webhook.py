@@ -447,6 +447,9 @@ def dashboard():
     dates = sorted(daily_trend.keys())
     chart_d = [round(daily_trend[d],2) for d in dates]
 
+    # 4. Audit Stats
+    audit_stats = db.get_audit_stats()
+
     return render_template('dashboard.html', 
                            signals=signals, 
                            portfolio=portfolio, 
@@ -458,7 +461,8 @@ def dashboard():
                            chart_data=json.dumps(chart_d),
                            last_run=last_run,
                            last_run_iso=last_run_iso,
-                           now_iso=datetime.utcnow().isoformat())
+                           now_iso=datetime.utcnow().isoformat(),
+                           audit_stats=audit_stats)
 
 @app.route('/api/webhook', methods=['POST'])
 def webhook():

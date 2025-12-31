@@ -207,6 +207,35 @@ class DBHandler:
             logger.error(f"Error fetching recent confirmed items: {e}")
             return []
 
+    def get_audit_stats(self):
+        """
+        Calculates performance metrics from signal_tracking table.
+        Returns: { 'win_rate': 0.0, 'total_trades': 0, 'wins': 0, 'losses': 0, 'open': 0 }
+        """
+        try:
+            response = self.supabase.table("signal_tracking").select("status").execute()
+            signals = response.data
+            
+            total = len(signals)
+            wins = sum(1 for s in signals if s['status'] == 'WIN')
+            losses = sum(1 for s in signals if s['status'] == 'LOSS')
+            open_sigs = sum(1 for s in signals if s['status'] == 'OPEN')
+            
+            closed_trades = wins + losses
+            win_rate = (wins / closed_trades * 100) if closed_trades > 0 else 0.0
+            
+            return {
+                "win_rate": round(win_rate, 1),
+                "total_trades": total,
+                "wins": wins,
+                "losses": losses,
+                "open": open_sigs,
+                "closed": closed_trades
+            }
+        except Exception as e:
+            logger.error(f"Audit Stats Error: {e}")
+            return {"win_rate": 0, "total_trades": 0, "wins": 0, "losses": 0, "open": 0, "closed": 0}
+
     def log_prediction(self, ticker: str, sentiment: str, reasoning: str, prediction_sentence: str, confidence_score: float, source_url: str, risk_score: int = 5, target_price: str = None, upside_percentage: float = 0.0):
         """Save AI analysis to predictions table."""
         try:
