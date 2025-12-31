@@ -15,6 +15,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from brain import Brain
 from db_handler import DBHandler
+from hunter import NewsHunter
+from market_data import MarketData
 from main import run_async_pipeline
 from dotenv import load_dotenv
 
