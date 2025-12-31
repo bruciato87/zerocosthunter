@@ -131,6 +131,46 @@ class Auditor:
             logger.error(f"Auditor Audit Failed: {e}")
             return []
 
+    def get_ticker_stats(self, ticker: str):
+        """
+        Returns performance stats for a specific ticker to inject into AI prompt.
+        """
+        try:
+            # Fetch all closed signals for this ticker
+            response = self.db.supabase.table("signal_tracking") \
+                .select("status") \
+                .eq("ticker", ticker) \
+                .in_("status", ["WIN", "LOSS", "EXPIRED"]) \
+                .execute()
+            
+            signals = response.data
+            total = len(signals)
+            
+            if total < 3:
+                return None # Not enough history to judge
+
+            wins = sum(1 for s in signals if s['status'] == 'WIN')
+            losses = sum(1 for s in signals if s['status'] == 'LOSS')
+            
+            win_rate = (wins / total * 100) if total > 0 else 0
+            
+            status = "NEUTRAL"
+            if win_rate >= 60:
+                status = "POSITIVE"
+            elif win_rate <= 40:
+                status = "NEGATIVE"
+                
+            return {
+                "total": total,
+                "wins": wins,
+                "losses": losses,
+                "win_rate": round(win_rate, 1),
+                "status": status
+            }
+        except Exception as e:
+            logger.error(f"Error fetching stats for {ticker}: {e}")
+            return None
+
 if __name__ == "__main__":
     # Test stub
     auditor = Auditor()

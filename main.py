@@ -112,8 +112,17 @@ async def run_async_pipeline():
             logger.info(f"Enriched {detected_ticker} news.")
 
     # 3. Analyze with AI
+    # [FEEDBACK LOOP] Fetch past performance for detected tickers
+    performance_context = {}
+    detected_tickers = set(i.get('ticker') for i in news_items if i.get('ticker'))
+    for t in detected_tickers:
+        stats = auditor.get_ticker_stats(t)
+        if stats:
+            performance_context[t] = stats
+            logger.info(f"Feedback Loop: Found history for {t} -> {stats['status']} ({stats['win_rate']}%)")
+
     logger.info("Analyzing news with Gemini...")
-    predictions = brain.analyze_news_batch(news_items)
+    predictions = brain.analyze_news_batch(news_items, performance_context=performance_context)
 
     processed_count = 0
     
