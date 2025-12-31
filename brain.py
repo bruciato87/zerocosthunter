@@ -424,10 +424,6 @@ class Brain:
         # as long as the news source covers them.
         pass
 
-if __name__ == "__main__":
-    b = Brain()
-    # ... test code ...
-
     def generate_deep_dive(self, ticker: str, news_list: list, technical_data: str, portfolio_context: str = None):
         """
         Generates a Strategic Analysis Report (Path B).
@@ -481,3 +477,7 @@ if __name__ == "__main__":
         except Exception as e:
             logger.error(f"Deep Dive failed: {e}")
             return "⚠️ Errore durante l'analisi approfondita."
+
+if __name__ == "__main__":
+    b = Brain()
+    # Test stub
