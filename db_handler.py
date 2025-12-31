@@ -204,7 +204,7 @@ class DBHandler:
             logger.error(f"Error fetching recent confirmed items: {e}")
             return []
 
-    def log_prediction(self, ticker: str, sentiment: str, reasoning: str, prediction_sentence: str, confidence_score: float, source_url: str):
+    def log_prediction(self, ticker: str, sentiment: str, reasoning: str, prediction_sentence: str, confidence_score: float, source_url: str, risk_score: int = 5, target_price: str = None, upside_percentage: float = 0.0):
         """Save AI analysis to predictions table."""
         try:
             data = {
@@ -214,6 +214,9 @@ class DBHandler:
                 "prediction_sentence": prediction_sentence,
                 "confidence_score": confidence_score,
                 "source_news_url": source_url,
+                "risk_score": risk_score,
+                "target_price": target_price,
+                "upside_percentage": upside_percentage,
                 "created_at": datetime.utcnow().isoformat()
             }
             self.supabase.table("predictions").insert(data).execute()

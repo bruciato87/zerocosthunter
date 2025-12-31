@@ -146,16 +146,29 @@ async def run_async_pipeline():
         if db.check_if_analyzed_recently(ticker, sentiment):
             continue
 
+        risk_score = pred.get("risk_score", 5)
+        target_price = pred.get("target_price")
+        upside_percentage = pred.get("upside_percentage", 0.0)
+
         # 5. Log to DB and Notify
-        db.log_prediction(ticker, sentiment, reasoning, reasoning, confidence, source)
+        db.log_prediction(ticker, sentiment, reasoning, reasoning, confidence, source, risk_score, target_price, upside_percentage)
         
         # Format Alert
         asset_type = pred.get("asset_type", "Asset")
         icon = "🟢" if sentiment in ["BUY", "ACCUMULATE"] else "🔴" if sentiment in ["SELL", "PANIC SELL"] else "⚪"
+        
+        # Build "Prophet" Badge
+        prophet_badge = ""
+        if target_price:
+             prophet_badge = f"\n🎯 **Target:** {target_price}"
+             if upside_percentage > 0:
+                 prophet_badge += f" (Up +{upside_percentage}%)"
+             prophet_badge += f"\n🎲 **Risk Score:** {risk_score}/10"
+
         alert_msg = (
             f"{icon} **Signal Detected: {ticker} ({asset_type})**\n"
             f"**Action:** {sentiment}\n"
-            f"**Confidence:** {int(confidence * 100)}%\n"
+            f"**Confidence:** {int(confidence * 100)}%{prophet_badge}\n\n"
             f"**Reasoning:** {reasoning}\n"
             f"**Source:** {source}"
         )
