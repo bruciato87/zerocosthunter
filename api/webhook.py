@@ -66,6 +66,7 @@ async def setup_bot_commands(bot):
     """Configures the menu button in Telegram UI."""
     commands = [
         BotCommand("hunt", "🏹 Caccia Manuale (Analisi News)"),
+        BotCommand("analyze", "🔬 Deep Dive Ticker (es. /analyze NVDA)"),
         BotCommand("portfolio", "📊 Vedi Portafoglio & Valore Live"),
         BotCommand("dashboard", "🖥️ Web Dashboard"),
         BotCommand("help", "❓ Lista Comandi"),
@@ -480,6 +481,7 @@ def webhook():
                 bot_app.add_handler(CommandHandler("setprice", setprice_command))
                 bot_app.add_handler(CommandHandler("setticker", setticker_command))
                 bot_app.add_handler(CommandHandler("settings", settings_command))
+                bot_app.add_handler(CommandHandler("analyze", analyze_command))
                 bot_app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
                 bot_app.add_handler(CallbackQueryHandler(handle_callback))
                 
@@ -492,3 +494,54 @@ def webhook():
                 logger.error(f"Error: {e}")
                 return "Error", 500
     return "OK", 200
+
+async def analyze_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    args = context.args
+    if not args:
+        await update.message.reply_text("⚠️ Uso: `/analyze <TICKER>` (es. `/analyze NVDA`)")
+        return
+    
+    ticker = args[0].upper()
+    await update.message.reply_text(f"🔬 **Analisi Strategica in corso su {ticker}...**\n_(Analizzo news, grafici e contesto. Richiede ~10s)_")
+    
+    try:
+        # Initialize modules
+        brain = Brain()
+        hunter = NewsHunter()
+        market = MarketData()
+        db = DBHandler()
+        
+        # 1. Fetch Deep News
+        logger.info(f"Analyze: Fetching news for {ticker}")
+        news_items = hunter.fetch_ticker_news(ticker, limit=3)
+        
+        # 2. Fetch Technicals
+        technical_summary = market.get_technical_summary(ticker)
+        
+        # 3. Validation
+        if not news_items and "Unknown" in technical_summary:
+             await update.message.reply_text(f"❌ Impossibile analizzare **{ticker}**. Ticker non valido o nessuna news trovata.")
+             return
+
+        # 4. Check Portfolio
+        portfolio_map = db.get_portfolio_map()
+        portfolio_context = "Not Owned"
+        if ticker in portfolio_map:
+            p = portfolio_map[ticker]
+            portfolio_context = f"OWNED: {p['quantity']} units @ €{p['avg_price']}. Make sure to suggest TAKING PROFIT or AVERAGING DOWN."
+
+        # 5. Generate Report
+        logger.info(f"Analyze: Generating AI Report for {ticker}...")
+        report = brain.generate_deep_dive(ticker, news_items, technical_summary, portfolio_context)
+        
+        # 6. Send Report (Split if too long, though unlikely for this prompt)
+        # Telegram limit is 4096 chars.
+        if len(report) > 4000:
+            for x in range(0, len(report), 4000):
+                await update.message.reply_text(report[x:x+4000], parse_mode="Markdown")
+        else:
+            await update.message.reply_text(report, parse_mode="Markdown")
+
+    except Exception as e:
+        logger.error(f"Analyze Error: {e}")
+        await update.message.reply_text("❌ Errore durante l'analisi. Riprova più tardi.")

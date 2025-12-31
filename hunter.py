@@ -144,6 +144,54 @@ class NewsHunter:
         logger.info(f"Fetched {len(all_news)} news items.")
         return all_news
 
+    def fetch_ticker_news(self, ticker: str, limit: int = 3):
+        """
+        Fetch specific news for a Single Ticker (for /analyze command).
+        Uses yfinance news feed + Full Text Scraping.
+        """
+        import yfinance as yf
+        logger.info(f"Fetching deep-dive news for {ticker}...")
+        
+        try:
+            # handle cases like "BTC" -> "BTC-USD"
+            if ticker.upper() in ["BTC", "ETH", "SOL"]:
+                ticker = f"{ticker}-USD"
+            
+            t = yf.Ticker(ticker)
+            yf_news = t.news
+            
+            processed_news = []
+            
+            # yfinance news format is list of dicts:
+            # {'uuid': '...', 'title': '...', 'publisher': '...', 'link': '...', 'providerPublishTime': ...}
+            
+            for item in yf_news[:limit]:
+                link = item.get('link')
+                title = item.get('title')
+                
+                # Scrape Full Text
+                full_text = None
+                if link:
+                    full_text = self._fetch_full_text(link)
+                
+                final_content = full_text if full_text else title # Fallback
+                
+                if full_text:
+                     final_content = f"[FULL TEXT EXTRACTED]\n{full_text[:3000]}..."
+
+                processed_news.append({
+                    "source": item.get('publisher', 'Yahoo Finance'),
+                    "title": title,
+                    "summary": final_content,
+                    "link": link
+                })
+            
+            return processed_news
+            
+        except Exception as e:
+            logger.error(f"Error fetching ticker news for {ticker}: {e}")
+            return []
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     hunter = NewsHunter()

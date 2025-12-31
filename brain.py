@@ -425,7 +425,59 @@ class Brain:
         pass
 
 if __name__ == "__main__":
-    # Test stub
     b = Brain()
-    fake_news = [{"source": "Test", "title": "Apple releases new iPhone", "summary": "Revolutionary AI features included."}]
-    print(b.analyze_news_batch(fake_news))
+    # ... test code ...
+
+    def generate_deep_dive(self, ticker: str, news_list: list, technical_data: str, portfolio_context: str = None):
+        """
+        Generates a Strategic Analysis Report (Path B).
+        """
+        if not news_list:
+            return f"❌ Non ho trovato notizie recenti rilevanti per **{ticker}**."
+
+        news_text = "\n\n".join([f"Source: {item['source']}\nTitle: {item['title']}\nContent: {item['summary']}" for item in news_list])
+        
+        prompt = f"""
+        **SYSTEM ROLE:**
+        You are a Senior Hedge Fund Strategist. The user has requested a DEEP DIVE analysis on **{ticker}**.
+        
+        **INPUT DATA:**
+        - **Technical Context:** {technical_data}
+        - **Portfolio Context:** {portfolio_context or "Not owned"}
+        - **Recent News (Full Text):**
+        {news_text}
+
+        **TASK:**
+        Write a concise but professional "Battle Report" in **ITALIAN**.
+        
+        **FORMAT:**
+        
+        # 🛡️ Analisi Strategica: {ticker}
+        
+        ## 🐂 Bull Case (Perché potrebbe salire)
+        - Bullet point 1 (cite specific earnings/news)
+        - Bullet point 2
+        
+        ## 🐻 Bear Case (Rischi Principali)
+        - Bullet point 1 (Risk factors)
+        - Bullet point 2
+        
+        ## 🔮 The Verdict
+        - **Decisione:** [BUY / HOLD / SELL / WAIT]
+        - **Target Price (Est):** [Price or "N/A"]
+        - **Risk Score:** [1-10]
+        - **Catalyst:** Cosa stiamo aspettando? (e.g. Earnings date, FDA approval)
+
+        **TONE:** Professional, Direct, No Fluff. Use Markdown.
+        """
+
+        try:
+            logger.info(f"Generating Deep Dive for {ticker}...")
+            response = self.client.models.generate_content(
+                model='gemini-3-flash-preview',
+                contents=prompt
+            )
+            return response.text
+        except Exception as e:
+            logger.error(f"Deep Dive failed: {e}")
+            return "⚠️ Errore durante l'analisi approfondita."
