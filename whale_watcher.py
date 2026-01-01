@@ -125,6 +125,37 @@ class WhaleWatcher:
         
         return context.strip()
 
+    def get_dashboard_stats(self):
+        """
+        Returns structured stats for the Dashboard UI.
+        """
+        all_whales = []
+        buy_vol = 0
+        sell_vol = 0
+        
+        for sym in self.symbols:
+            w = self.fetch_binance_whales(sym)
+            all_whales.extend(w)
+            
+        for w in all_whales:
+            if w['side'] == "BUY":
+                buy_vol += w['value_usd']
+            else:
+                sell_vol += w['value_usd']
+        
+        net_flow = buy_vol - sell_vol
+        status = "NEUTRAL"
+        if net_flow > 5_000_000: status = "BULLISH"
+        elif net_flow < -5_000_000: status = "BEARISH"
+
+        return {
+            "status": status,
+            "buy_vol_m": round(buy_vol / 1_000_000, 1),
+            "sell_vol_m": round(sell_vol / 1_000_000, 1),
+            "net_flow_m": round(net_flow / 1_000_000, 1),
+            "whale_count": len(all_whales)
+        }
+
 if __name__ == "__main__":
     # Test
     logging.basicConfig(level=logging.INFO)

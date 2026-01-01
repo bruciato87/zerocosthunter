@@ -527,8 +527,20 @@ def dashboard():
     advisor_analysis = adv.analyze_portfolio(portfolio)
 
     # 7. Macro Strategist
-    from economist import Economist
-    macro_stats = Economist().get_dashboard_stats()
+    from economist import Economist # Fetch Macro Stats
+    try:
+        macro_stats = Economist().get_dashboard_stats()
+    except Exception as e:
+        logger.error(f"Macro Stats Error: {e}")
+        macro_stats = None
+
+    # Fetch Whale Stats
+    from whale_watcher import WhaleWatcher
+    try:
+        whale_stats = WhaleWatcher().get_dashboard_stats()
+    except Exception as e:
+        logger.error(f"Whale Stats Error: {e}")
+        whale_stats = None
 
     return render_template('dashboard.html', 
                            signals=signals, 
