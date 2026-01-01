@@ -23,8 +23,16 @@ class Advisor:
             "AMZN": "Consumer Cyclical",
             "XOM": "Energy",
             "CVX": "Energy",
-            "ICGA.FRA": "ETF", # Manual Cache override
-            "3CP": "Technology" # Manual Cache override (Xiaomi)
+            # Manual Overrides for Portfolio Assets (Fixing 'Unknown' Sector)
+            "ICGA.FRA": "ETF",
+            "3CP": "Technology",
+            "EUNL.DE": "ETF",      # iShares Core MSCI World
+            "RBOT.MI": "ETF",      # Automation & Robotics
+            "AIAI.MI": "ETF",      # Artificial Intelligence ETF
+            "TCEHY": "Technology", # Tencent
+            "BYD": "Consumer Cyclical", # BYD Co
+            "RNDR-USD": "Crypto",
+            "RENDER-USD": "Crypto"
         }
         from market_data import MarketData
         self.market = MarketData()
