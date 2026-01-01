@@ -140,10 +140,10 @@ async def run_async_pipeline():
     # [ADVISOR] Portfolio Health Analysis
     from advisor import Advisor
     adv = Advisor()
-    # Fetch current portfolio from DB for analysis (using supabase client directly or helper)
-    # The 'portfolio' variable was loaded earlier in the pipeline for enrichment
-    # We reuse it here. It is a list of dicts.
-    advisor_analysis = adv.analyze_portfolio(portfolio)
+    # Fetch current portfolio from DB for analysis
+    # We use portfolio_map values (loaded earlier)
+    portfolio_list = list(portfolio_map.values()) if portfolio_map else []
+    advisor_analysis = adv.analyze_portfolio(portfolio_list)
     if advisor_analysis:
         logger.info(f"Advisor: Portfolio Value ${advisor_analysis['total_value']:.2f}. Tips: {len(advisor_analysis.get('tips', []))}")
 
