@@ -18,6 +18,11 @@ class DBHandler:
             raise ValueError("SUPABASE_URL and SUPABASE_KEY must be set in environment variables.")
         self.supabase: Client = create_client(url, key)
 
+    # --- USER MANAGEMENT (V8) ---
+    # PAUSED
+
+    # --- PORTFOLIO MANAGEMENT ---
+
     def get_portfolio(self, chat_id: int = None):
         """Fetch current holdings from the portfolio table. Optionally filter by chat_id."""
         try:
@@ -80,7 +85,7 @@ class DBHandler:
             raise e
 
     def delete_drafts(self, chat_id: int):
-        """Delete unconfirmed drafts."""
+        """Delete unconfirmed drafts. Keep chat_id based as drafts are ephemeral per chat."""
         try:
             self.supabase.table("portfolio") \
                 .delete() \
@@ -91,13 +96,6 @@ class DBHandler:
         except Exception as e:
             logger.error(f"Error deleting drafts: {e}")
             raise e
-
-    def get_drafts(self, chat_id: int):
-        """Fetch unconfirmed drafts for a user."""
-        try:
-            response = self.supabase.table("portfolio") \
-                .select("*") \
-                .eq("chat_id", chat_id) \
                 .eq("is_confirmed", False) \
                 .execute()
             return response.data
