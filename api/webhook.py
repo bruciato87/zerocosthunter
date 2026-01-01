@@ -511,7 +511,8 @@ def dashboard():
                            now_iso=datetime.utcnow().isoformat(),
                            audit_stats=audit_stats,
                            market_mood=market_mood,
-                           advisor_analysis=advisor_analysis)
+                           advisor_analysis=advisor_analysis,
+                           macro_stats=macro_stats)
 
 @app.route('/api/webhook', methods=['POST'])
 def webhook():
