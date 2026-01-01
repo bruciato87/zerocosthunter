@@ -45,12 +45,17 @@ class Auditor:
                 
                 # Check Signal Age
                 try:
-                    # Parse ISO format (e.g., 2026-01-01T15:00:00+00:00)
-                    created_dt = datetime.fromisoformat(created_at_iso.replace('Z', '+00:00'))
+                    # ISO Format from Supabase: "2024-01-01T10:00:00+00:00" or "2024-01-01T10:00:00.123456+00:00"
+                    # Replace 'Z' just in case, handle potential microseconds automatically via fromisoformat in modern python
+                    # Note: Python 3.11+ handles fromisoformat strictly.
+                    # Fallback to simple string split if needed.
+                    c_ts = created_at_iso.replace('Z', '+00:00')
+                    created_dt = datetime.fromisoformat(c_ts)
                     now_dt = datetime.now(timezone.utc)
                     age_hours = (now_dt - created_dt).total_seconds() / 3600
-                except:
-                    age_hours = 999 # Default if parsing fails
+                except Exception as e:
+                    logger.warning(f"Auditor: Timestamp parse failed for {ticker}: {e}. Treating as NEW.")
+                    age_hours = 0 # Default SAFE (treat as new, don't close)
                 
                 # 2. Get Live Price
                 # Uses MarketData helper which handles Crypto/Stocks

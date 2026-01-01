@@ -247,7 +247,7 @@ async def run_async_pipeline():
     audit_results = auditor.audit_open_signals()
     if audit_results:
         summary_audit = "\n".join(audit_results)
-        await notifier.send_alert(f"⚖️ **Auditor Daily Report:**\n{summary_audit}")
+        await notifier.send_alert(f"⚖️ **Auditor Monitoring Update:**\n{summary_audit}")
 
     db.log_system_event("INFO", "Hunter", "Pipeline Finished")
     logger.info(f"Pipeline finished. Processed {processed_count} actionable signals.")
