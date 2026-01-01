@@ -54,6 +54,34 @@ class MarketData:
             logger.warning(f"CoinGecko API failed for {ticker}: {e}")
             return None, None
 
+    def get_market_price(self, ticker):
+        """
+        Fetches the current market price for a ticker (Crypto or Stock).
+        Prioritizes CoinGecko for crypto, then Yahoo.
+        """
+        # 1. Try CoinGecko
+        price, _ = self.get_crypto_data_coingecko(ticker)
+        if price:
+            return price
+        
+        # 2. Try Yahoo Finance
+        try:
+            t = yf.Ticker(ticker)
+            # Try fast info first
+            if 'currentPrice' in t.info:
+                return t.info['currentPrice']
+            if 'regularMarketPrice' in t.info:
+                return t.info['regularMarketPrice']
+                
+            # Fallback to history
+            hist = t.history(period="1d")
+            if not hist.empty:
+                return hist['Close'].iloc[-1]
+        except Exception as e:
+            logger.warning(f"Yahoo Price fetch failed for {ticker}: {e}")
+            
+        return None
+
     def get_technical_summary(self, ticker: str) -> str:
         """
         Fetches price history and calculates RSI and SMA.
