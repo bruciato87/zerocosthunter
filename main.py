@@ -12,6 +12,7 @@ from market_data import MarketData
 from brain import Brain
 from telegram_bot import TelegramNotifier
 from auditor import Auditor
+from economist import Economist
 import re
 import asyncio
 
@@ -44,6 +45,7 @@ async def run_async_pipeline():
         notifier = TelegramNotifier()
         market = MarketData()
         auditor = Auditor()
+        economist = Economist()
     except Exception as e:
         logger.critical(f"Initialization failed: {e}")
         return
@@ -147,12 +149,17 @@ async def run_async_pipeline():
     if advisor_analysis:
         logger.info(f"Advisor: Portfolio Value ${advisor_analysis['total_value']:.2f}. Tips: {len(advisor_analysis.get('tips', []))}")
 
+    # [ECONOMIST] Macro Context (V4.0)
+    macro_context = economist.get_macro_summary()
+    logger.info(f"Economist: Macro Context Generated. ({len(macro_context)} chars)")
+
     logger.info("Analyzing news with Gemini...")
     predictions = brain.analyze_news_batch(
         news_items, 
         performance_context=performance_context, 
         insider_context=insider_context,
-        portfolio_context=advisor_analysis
+        portfolio_context=advisor_analysis,
+        macro_context=macro_context
     )
 
     processed_count = 0

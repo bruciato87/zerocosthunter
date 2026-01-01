@@ -16,13 +16,14 @@ class Brain:
             raise ValueError("GEMINI_API_KEY must be set.")
         self.client = genai.Client(api_key=self.api_key)
 
-    def analyze_news_batch(self, news_list, performance_context=None, insider_context=None, portfolio_context=None):
+    def analyze_news_batch(self, news_list, performance_context=None, insider_context=None, portfolio_context=None, macro_context=None):
         """
-        [2024 UPDATE] V3.0 Hybrid Brain with Memory & Insider & Advisor Info.
+        [2024 UPDATE] V3.0 Hybrid Brain with Memory & Insider & Advisor Info & Macro Strategy.
         Analyze a batch of news items to find high-quality trading opportunities.
         - performance_context: Dict of {"ticker": {stats}} representing past accuracy.
         - insider_context: Dict of { "overall": "EXTREME FEAR", ... }
         - portfolio_context: Dict analysis from Advisor (sectors, tips).
+        - macro_context: String summary from Economist (VIX, FED, Yields).
         """
         if not news_list:
             logger.info("No news to analyze.")
@@ -75,6 +76,17 @@ class Brain:
             *OBJECTIVE*: If possible, favor trades that help DIVERSIFY this portfolio.
             """
 
+        # [MACRO ECONOMIST CONTEXT] (V4.0)
+        macro_bg = ""
+        if macro_context:
+            macro_bg = f"""
+            {macro_context}
+            **MACRO RULE:**
+            - If Risk Level is HIGH (FED Mtg / VIX Spike): CRITICAL CAUTION.
+            - **Downgrade 'BUY' to 'WAIT'** unless the signal is overwhelmingly strong (Confidence > 95% and 'Buyout'/'Earnings Beat').
+            - Do NOT recommend Buying speculative assets (Crypto/Tech) during HIGH RISK.
+            """
+
         # Prepare the prompt
         news_text = "\n\n".join([f"Source: {item['source']}\nTitle: {item['title']}\nSummary: {item['summary']}" for item in news_list])
         
@@ -82,6 +94,7 @@ class Brain:
         ROLES: [Financial Analyst, Hedge Fund Manager, Quantitative Trader]
         {memories}
         {sentiment_bg}
+        {macro_bg}
         
         **SYSTEM ROLE:**
         You are a Senior Investment Analyst & Quantitative Trader.
