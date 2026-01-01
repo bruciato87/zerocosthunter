@@ -119,25 +119,37 @@ class Advisor:
             if pct < 5 and sec != 'Cash': # Assuming 'Cash' might be a sector not needing diversification
                 tips.append(f"Low exposure to {sec} ({pct:.1f}%). Look for opportunities.")
         
-        # 2. Concentration Logic
+        # 3. Tax Harvesting & Profit Taking (Italy 2026 Logic)
+        # Disclaimer: Automated logic, implies 'Riforma Redditi Finanziari' scenarios.
+        
         for asset in asset_performance:
             asset_pct = (asset['value'] / total_value) * 100
+            
+            # Concentration Check
             if asset_pct > 20:
                 tips.append(f"⚠️ Concentration Risk: {asset['ticker']} is {asset_pct:.1f}% of Portfolio.")
                 
-            # 3. Tax Harvesting & Profit Taking
+            # Tax Harvesting (IT 2026)
             if asset['pnl_pct'] < -40:
-                loss_val = asset['value'] - (asset['avg_price'] * asset['quantity']) # Approx
-                tips.append(f"📉 Tax Harvest Opportunity: {asset['ticker']} is down {asset['pnl_pct']:.1f}%. Sell to offset gains?")
+                loss_val = asset['value'] - (asset['avg_price'] * asset['quantity'])
+                
+                if asset['sector'] == 'Crypto':
+                    tips.append(f"📉 Tax Harvest (Crypto): {asset['ticker']} down {asset['pnl_pct']:.1f}%. Sell to generate credit vs 33-42% Crypto Tax (Siloed).")
+                elif asset['sector'] == 'ETF':
+                     tips.append(f"📉 Tax Harvest (ETF): {asset['ticker']} down {asset['pnl_pct']:.1f}%. Useful for offsetting gains (New 2026 Unification Rules).")
+                else:
+                     tips.append(f"📉 Tax Harvest: {asset['ticker']} down {asset['pnl_pct']:.1f}%. Sell to generate 'Minusvalenza' (4 years).")
             
+            # Profit Taking
             if asset['pnl_pct'] > 50:
-                 tips.append(f"💰 Take Profit: {asset['ticker']} is up {asset['pnl_pct']:.1f}%. Consider selling 20%.")
+                 tips.append(f"💰 Take Profit: {asset['ticker']} is up {asset['pnl_pct']:.1f}%. Consider selling 20% to rebalance.")
 
         return {
             "total_value": total_value,
             "sector_value": exposure,
             "sector_percent": pct_exposure,
-            "tips": tips
+            "tips": tips,
+            "note": "Tax tips based on Italy 2026 draft reforms. Consult a commercialista."
         }
 
     def generate_tips(self, analysis):
