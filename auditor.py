@@ -22,13 +22,27 @@ class Auditor:
             if entry_price is None:
                 # User did not provide price, fetch it now
                 price, _ = self.market.get_crypto_data_coingecko(ticker)
+                
                 if not price:
                     # Fallback Yahoo
                     import yfinance as yf
-                    t = yf.Ticker(ticker)
-                    hist = t.history(period="1d")
-                    if not hist.empty:
-                        price = hist['Close'].iloc[-1]
+                    
+                    # 1. Try Ticker-USD (Common for Crypto)
+                    try:
+                        t = yf.Ticker(f"{ticker}-USD")
+                        hist = t.history(period="1d")
+                        if not hist.empty:
+                            price = hist['Close'].iloc[-1]
+                    except: pass
+                    
+                    # 2. If that failed, try raw Ticker (Stocks)
+                    if not price:
+                        try:
+                            t = yf.Ticker(ticker)
+                            hist = t.history(period="1d")
+                            if not hist.empty:
+                                price = hist['Close'].iloc[-1]
+                        except: pass
                 
                 entry_price = price
             
@@ -82,11 +96,18 @@ class Auditor:
                     # Fallback to Yahoo
                     try:
                         import yfinance as yf
-                        t = yf.Ticker(ticker)
-                        # Fast fetch
+                        # 1. Try Ticker-USD (Common for Crypto)
+                        t = yf.Ticker(f"{ticker}-USD")
                         hist = t.history(period="1d")
                         if not hist.empty:
                             live_price = hist['Close'].iloc[-1]
+                        
+                        # 2. Fallback to raw Ticker
+                        if not live_price:
+                            t = yf.Ticker(ticker)
+                            hist = t.history(period="1d")
+                            if not hist.empty:
+                                live_price = hist['Close'].iloc[-1]
                     except: pass
                 
                 if not live_price:
