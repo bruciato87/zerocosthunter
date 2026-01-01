@@ -21,46 +21,58 @@ class WhaleWatcher:
     def fetch_binance_whales(self, symbol):
         """
         Fetches the last 1000 aggregated trades for a symbol.
+        Implements fallback logic for Geo-Blocked regions (US).
         Returns list of 'Whale' trades (value > min_value_usd).
         """
         whales = []
-        try:
-            # Fetch last 1000 trades (Max allowed by Binance public API)
-            params = {"symbol": symbol, "limit": 1000}
-            resp = requests.get(self.base_url, params=params, timeout=5)
-            
-            if resp.status_code == 200:
-                trades = resp.json()
-                for t in trades:
-                    # Binance aggTrade format:
-                    # {
-                    #   "p": "price",
-                    #   "q": "quantity",
-                    #   "m": true/false (isBuyerMaker. If true, Taker was Seller. SELL trade.)
-                    # }
-                    price = float(t['p'])
-                    qty = float(t['q'])
-                    value_usd = price * qty
-                    
-                    if value_usd >= self.min_value_usd:
-                        # Determine side
-                        # isBuyerMaker = True -> Maker was Buyer -> Taker was SELLER -> RED
-                        # isBuyerMaker = False -> Maker was Seller -> Taker was BUYER -> GREEN
-                        side = "SELL" if t['m'] else "BUY"
-                        
-                        whales.append({
-                            "symbol": symbol,
-                            "price": price,
-                            "qty": qty,
-                            "value_usd": value_usd,
-                            "side": side,
-                            "timestamp": t['T']
-                        })
-            else:
-                logger.warning(f"Binance API Error {resp.status_code}: {resp.text}")
+        endpoints = [
+            "https://api.binance.com/api/v3/aggTrades",      # Global
+            "https://api.binance.us/api/v3/aggTrades",       # US Fallback
+             # Coinbase typically uses different format, so we stick to Binance family for compat 
+             # or implement distinct logic. Let's start with Binance US.
+        ]
+
+        success = False
+        for base_url in endpoints:
+            try:
+                # Adjust symbol for Binance US if needed (usually same for major pairs)
+                # Binance US volume is lower, but still indicative of major moves.
+                params = {"symbol": symbol, "limit": 1000}
                 
-        except Exception as e:
-            logger.error(f"Binance Fetch Failed for {symbol}: {e}")
+                # Fast timeout to quick-fail to fallback
+                resp = requests.get(base_url, params=params, timeout=3)
+                
+                if resp.status_code == 200:
+                    trades = resp.json()
+                    for t in trades:
+                        # Binance aggTrade format is consistent across .com and .us
+                        price = float(t['p'])
+                        qty = float(t['q'])
+                        value_usd = price * qty
+                        
+                        if value_usd >= self.min_value_usd:
+                            side = "SELL" if t['m'] else "BUY"
+                            whales.append({
+                                "symbol": symbol,
+                                "price": price,
+                                "qty": qty,
+                                "value_usd": value_usd,
+                                "side": side,
+                                "timestamp": t['T']
+                            })
+                    success = True
+                    break # Success, stop trying endpoints
+                elif resp.status_code == 451:
+                    logger.warning(f"Binance Global Geo-Blocked (451). Trying US endpoint...")
+                    continue # Try next endpoint
+                else:
+                    logger.warning(f"Binance API Error {resp.status_code} from {base_url}: {resp.text}")
+            
+            except Exception as e:
+                logger.error(f"Binance Fetch Error ({base_url}): {e}")
+        
+        if not success:
+             logger.error(f"All Binance endpoints failed for {symbol}.")
             
         return whales
 
