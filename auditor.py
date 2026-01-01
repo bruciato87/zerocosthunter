@@ -224,8 +224,6 @@ class Auditor:
                             except: continue
                             
                     except: pass
-                            
-                    except: pass
                 
                 if not live_price:
                     logger.warning(f"Auditor: Could not fetch price for {ticker}. Skipping.")
