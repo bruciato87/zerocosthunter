@@ -102,6 +102,31 @@ class Economist:
         """
         return summary
 
+    def get_dashboard_stats(self):
+        """
+        Returns structured data for the Web Dashboard.
+        """
+        risk, reason = self.check_risk_level()
+        stats = {
+            "risk_level": risk,
+            "risk_reason": reason if reason else "Normal Market Conditions",
+            "vix": "N/A",
+            "tnx_yield": "N/A",
+            "next_meeting": self._get_next_meeting()
+        }
+        
+        try:
+            vix = yf.Ticker("^VIX").history(period="1d")['Close'].iloc[-1]
+            stats["vix"] = round(vix, 2)
+        except: pass
+        
+        try:
+            tnx = yf.Ticker("^TNX").history(period="1d")['Close'].iloc[-1]
+            stats["tnx_yield"] = f"{tnx:.2f}%"
+        except: pass
+        
+        return stats
+
     def _get_next_meeting(self):
         today = datetime.date.today()
         for m in self.FED_MEETINGS_2026:
