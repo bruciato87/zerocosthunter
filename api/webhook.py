@@ -450,19 +450,25 @@ def dashboard():
     # 4. Audit Stats
     audit_stats = db.get_audit_stats()
 
+    # 5. Market Mood (Insider)
+    from insider import Insider
+    insider = Insider()
+    market_mood = insider.get_market_mood()
+
     return render_template('dashboard.html', 
                            signals=signals, 
                            portfolio=portfolio, 
                            total_value_eur=total_val, 
-                           total_invested_eur=total_inv,
-                           total_pl_eur=total_pl,
+                           total_invested_eur=total_inv, 
+                           total_pl_eur=total_pl, 
                            total_pl_percent=pl_pct,
-                           chart_labels=json.dumps(dates),
+                           chart_labels=dates,
                            chart_data=json.dumps(chart_d),
                            last_run=last_run,
                            last_run_iso=last_run_iso,
                            now_iso=datetime.utcnow().isoformat(),
-                           audit_stats=audit_stats)
+                           audit_stats=audit_stats,
+                           market_mood=market_mood)
 
 @app.route('/api/webhook', methods=['POST'])
 def webhook():

@@ -16,11 +16,12 @@ class Brain:
             raise ValueError("GEMINI_API_KEY must be set.")
         self.client = genai.Client(api_key=self.api_key)
 
-    def analyze_news_batch(self, news_list, performance_context=None):
+    def analyze_news_batch(self, news_list, performance_context=None, insider_context=None):
         """
-        [2024 UPDATE] V3.0 Hybrid Brain with Memory.
+        [2024 UPDATE] V3.0 Hybrid Brain with Memory & Insider Info.
         Analyze a batch of news items to find high-quality trading opportunities.
         - performance_context: Dict of {"ticker": {stats}} representing past accuracy.
+        - insider_context: Dict of { "overall": "EXTREME FEAR", ... }
         """
         if not news_list:
             logger.info("No news to analyze.")
@@ -38,12 +39,26 @@ class Brain:
                 else:
                     memories += f"INFO: {ticker} -> Neutral/Insufficient history.\n"
 
+        # [INSIDER SENTIMENT INJECTION]
+        sentiment_bg = ""
+        if insider_context:
+            mood = insider_context.get('overall', 'NEUTRAL')
+            fg_val = insider_context.get('crypto', {}).get('value', 50)
+            sentiment_bg = f"""
+            [MARKET SENTIMENT CONTEXT]
+            Market Mood: {mood} (Index: {fg_val}/100).
+            STRATEGY: "Be Greedy when others are Fearful".
+            - If "EXTREME FEAR" (<20): Look for quality assets at a discount ("Buy the Dip").
+            - If "EXTREME GREED" (>80): Be cautious of tops ("Take Profit" or "Wait").
+            """
+
         # Prepare the prompt
         news_text = "\n\n".join([f"Source: {item['source']}\nTitle: {item['title']}\nSummary: {item['summary']}" for item in news_list])
         
         prompt = f"""
         ROLES: [Financial Analyst, Hedge Fund Manager, Quantitative Trader]
         {memories}
+        {sentiment_bg}
         
         **SYSTEM ROLE:**
         You are a Senior Investment Analyst & Quantitative Trader.
