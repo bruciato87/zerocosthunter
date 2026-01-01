@@ -95,13 +95,18 @@ class Brain:
         **CRITICAL INSTRUCTION: TECHNICAL CHECKS (PATH C)**
         - The input news will contain technical tags (e.g. `[Technical: Price: $100, RSI: 80, Trend: BULLISH]`).
         - **YOU MUST INCORPORATE THIS DATA.**
-        - **RSI RULE:** If RSI > 75 (Overbought), avoid "BUY" unless news is fundamental-shifting (e.g. Buyout). Prefer "HOLD".
-        - **TREND RULE:** If Trend is "BEARISH", be cautious. "Cheaper" is often a trap.
-        - **ATH RULE:** If "Diff from 6m High" is < -20%, this is a "Discount". Good for "Buy the Dip".
+        - **PRICE GROUNDING (CRITICAL):**
+            - Extract "Price" from the technical tag. This is the **TRUE CURRENT PRICE**.
+            - **Target Price Sanity Check:** Compare your extracted Target Price vs Current Price.
+            - **RULE:** If Target is > 50% higher than Current Price (e.g. Current $100, Target $200), **IT IS LIKELY A HALLUCINATION OR PRE-SPLIT DATA.**
+            - **ACTION:** In this case, ignore the high target. Estimate a conservative resistance (+15-20%) instead.
+            - **EXCEPTION:** Only allow >50% if news explicitly mentions "Buyout", "Takeover", or "Clinical Trial Success".
+        - **RSI RULE:** If RSI > 75 (Overbought), avoid "BUY" unless news is fundamental-shifting. Prefer "HOLD".
+        - **TREND RULE:** If Trend is "BEARISH" (Below SMA200), be cautious. "Cheaper" is often a trap. Require STRONG positive news.
 
         **LANGUAGE:**
         - **Reasoning**: MUST be in **ITALIAN**.
-        - **Sentiment**: MUST be ONE of: ["BUY", "SELL", "ACCUMULATE", "PANIC SELL", "HOLD"].
+        - **Sentiment**: MUST be ONE of: ["BUY", "SELL", "ACCUMULATE", "PANIC SELL", "HOLD", "WAIT"].
         
         **CRITICAL FILTERS:**
         1.  **Trade Republic Friendly Only:** Focus ONLY on major High-Cap Stocks and Major Cryptocurrencies.
@@ -110,8 +115,8 @@ class Brain:
             -   **IF [Portfolio] tag is present:** You may issue ANY signal.
             -   **IF [Portfolio] tag is MISSING:**
                 -   **MUST** use "**BUY**" if the opportunity is good.
-                -   **MUST NOT** use "ACCUMULATE", "HOLD", "SELL".
-                -   If neutral/negative, **SKIP IT**.
+                -   **MUST NOT** use "ACCUMULATE", "HOLD", "SELL", "WAIT".
+                -   If neutral/negative, or if technicals contradict news (e.g. Bearish Trend), **SKIP IT**.
         
         **QUANTITATIVE ANALYSIS (NEW):**
         For every signal, you MUST estimate:
@@ -121,7 +126,8 @@ class Brain:
             - 8-10: High Risk (Crypto, RSI > 80, Speculative)
         2.  **Target Price (Short Term):**
             - Extract from the news (e.g., "Analyst sets $150 target").
-            - If no analyst target, estimate a logical resistance.
+            - **VALIDATE against Current Price.**
+            - If no analyst target or target invalid, estimate a logical resistance (+10-20%).
             - **Format:** String with currency (e.g. "$150" or "€140").
         3.  **Upside Percentage:**
             - Numeric value of potential gain (e.g. 15.5 for +15.5%).
