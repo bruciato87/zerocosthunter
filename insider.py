@@ -29,26 +29,61 @@ class Insider:
 
     def get_stock_fear_greed(self):
         """
-        [PLACEHOLDER] Fetches Stock Fear & Greed Index.
-        Currently returns a static value until a reliable scraping method is implemented.
+        Fetches the CNN Fear & Greed Index (Stock Market).
+        Uses the specialized data visualization endpoint.
         """
-        # CNN Fear & Greed is hard to scrape without Selenium/Browser.
-        # For V1, we will skip or mock. Let's return None to indicate no data.
+        url = "https://production.dataviz.cnn.io/index/fearandgreed/graphdata"
+        try:
+            # User-Agent is critical here
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            }
+            r = requests.get(url, headers=headers, timeout=5)
+            r.raise_for_status()
+            data = r.json()
+            
+            # The API returns 'fear_and_greed_historical'
+            # We want the latest data point
+            
+            if 'fear_and_greed_historical' in data:
+                latest = data['fear_and_greed_historical']['data'][-1]
+                score = round(latest['y'])
+                rating = latest['rating'].upper() # e.g. "EXTREME FEAR"
+                
+                logger.info(f"Insider: Stock Fear & Greed is {rating} ({score})")
+                return {
+                    "value": score,
+                    "classification": rating
+                }
+                
+        except Exception as e:
+            logger.warning(f"Failed to fetch Stock Fear & Greed: {e}")
+        
         return None
 
     def get_market_mood(self):
         """
-        Returns a simplified mood string: "EXTREME FEAR", "FEAR", "NEUTRAL", "GREED", "EXTREME GREED".
-        Prioritizes Crypto for now.
+        Aggregates market sentiment from multiple sources (Crypto F&G, Stock F&G).
         """
-        crypto = self.get_crypto_fear_greed()
-        if crypto:
-            return {
-                "crypto": crypto,
-                "stock": None,
-                "overall": crypto['classification'].upper()
-            }
-        return None
+        crypto_fg = self.get_crypto_fear_greed()
+        stock_fg = self.get_stock_fear_greed()
+        
+        mood = {
+            "crypto": crypto_fg,
+            "stock": stock_fg,
+            "overall": "NEUTRAL"
+        }
+        
+        # Determine overall mood priority: Extreme > Normal
+        # If Crypto is Extreme Fear, that dominates.
+        if crypto_fg:
+            mood['overall'] = crypto_fg.get('classification', 'NEUTRAL')
+            
+        if stock_fg:
+            # If stock is more extreme, let it influence (simple logic for now)
+            pass
+            
+        return mood
 
     def get_social_sentiment(self):
         """

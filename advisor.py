@@ -51,10 +51,11 @@ class Advisor:
 
     def analyze_portfolio(self, portfolio_items):
         """
-        Analyzes the portfolio and returns sector exposure.
-        portfolio_items: List of dicts from DB (must have 'ticker', 'quantity', 'current_price').
+        Analyzes the portfolio and returns sector exposure + advanced metrics.
+        portfolio_items: List of dicts from DB.
         """
         exposure = {}
+        asset_performance = [] # New list for rebalancing logic
         total_value = 0.0
         
         # Helper to fetch price if missing (lazy load)
@@ -75,43 +76,75 @@ class Advisor:
                 except Exception as e:
                     logger.warning(f"Advisor: Failed to fetch price for {ticker}: {e}")
             
+            # Avg Price for PnL
+            avg_price = float(item.get('avg_price', 0) or 0)
+            
             if price:
                 value = price * qty
                 total_value += value
 
                 sector = self.get_sector(ticker)
                 exposure[sector] = exposure.get(sector, 0.0) + value
+                
+                # Check Performance
+                pnl_pct = 0.0
+                if avg_price > 0:
+                    pnl_pct = ((price - avg_price) / avg_price) * 100
+                
+                asset_performance.append({
+                    "ticker": ticker,
+                    "value": value,
+                    "pnl_pct": pnl_pct,
+                    "sector": sector,
+                    "avg_price": avg_price, # Include avg_price for tax harvesting logic
+                    "quantity": qty
+                })
 
-        # specific check for overly dominating sectors
-        pct_exposure = {}
-        if total_value > 0:
-            for sec, val in exposure.items():
-                pct_exposure[sec] = round((val / total_value) * 100, 1)
+        pct_exposure = {k: (v / total_value) * 100 for k, v in exposure.items()} if total_value > 0 else {}
+        
+        # Generate Tips internally or return data for generation
+        tips = []
+
+        if total_value == 0:
+            return {
+                "total_value": 0.0,
+                "sector_value": {},
+                "sector_percent": {},
+                "tips": ["Portfolio is empty. Start accumulating assets."]
+            }
+        
+        # 1. Sector Logic
+        for sec, pct in pct_exposure.items():
+            if pct > 40: tips.append(f"⚠️ High {sec} Exposure ({pct:.1f}%). Consider Diversifying.")
+            if pct < 5 and sec != 'Cash': # Assuming 'Cash' might be a sector not needing diversification
+                tips.append(f"Low exposure to {sec} ({pct:.1f}%). Look for opportunities.")
+        
+        # 2. Concentration Logic
+        for asset in asset_performance:
+            asset_pct = (asset['value'] / total_value) * 100
+            if asset_pct > 20:
+                tips.append(f"⚠️ Concentration Risk: {asset['ticker']} is {asset_pct:.1f}% of Portfolio.")
+                
+            # 3. Tax Harvesting & Profit Taking
+            if asset['pnl_pct'] < -40:
+                loss_val = asset['value'] - (asset['avg_price'] * asset['quantity']) # Approx
+                tips.append(f"📉 Tax Harvest Opportunity: {asset['ticker']} is down {asset['pnl_pct']:.1f}%. Sell to offset gains?")
+            
+            if asset['pnl_pct'] > 50:
+                 tips.append(f"💰 Take Profit: {asset['ticker']} is up {asset['pnl_pct']:.1f}%. Consider selling 20%.")
 
         return {
             "total_value": total_value,
             "sector_value": exposure,
-            "sector_percent": pct_exposure
+            "sector_percent": pct_exposure,
+            "tips": tips
         }
 
     def generate_tips(self, analysis):
         """
-        Generates risk management tips based on analysis.
+        Wrapper to return tips generated during analysis.
         """
-        tips = []
-        pcts = analysis['sector_percent']
-        
-        # Rule 1: Tech Overload
-        if pcts.get('Technology', 0) > 40:
-            tips.append(f"High Tech Exposure ({pcts['Technology']}%). Consider diversifying into Energy or Healthcare.")
-        
-        # Rule 2: Crypto Volatility
-        if pcts.get('Crypto', 0) > 30:
-            tips.append(f"High Crypto Exposure ({pcts['Crypto']}%). Ensure you are comfortable with high volatility.")
-
-        # Rule 3: Single Asset Risk (Not implemented yet, needs per-asset calc)
-        
-        return tips
+        return analysis.get('tips', [])
 
 if __name__ == "__main__":
     # Mock data
