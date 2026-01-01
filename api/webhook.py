@@ -452,7 +452,7 @@ def dashboard():
 
     # 5. Market Mood (Insider)
     from insider import Insider
-    ins = Insider()
+    insider = Insider()
     market_mood = insider.get_market_mood()
 
     # 6. Advisor (Risk Manager)
