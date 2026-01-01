@@ -213,7 +213,9 @@ async def whale_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("🐋 Localizzo le Balene (On-Chain Analysis)...")
     try:
         ww = WhaleWatcher()
-        summary = ww.analyze_flow()
+        # Explicitly enable test_mode for the manual command to show the demo capabilities
+        # even if the user hasn't paid for an API key yet.
+        summary = ww.analyze_flow(test_mode=True)
         # Clean up
         await update.message.reply_text(f"```{summary}```", parse_mode="Markdown")
     except Exception as e:

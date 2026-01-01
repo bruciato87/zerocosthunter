@@ -12,13 +12,19 @@ class WhaleWatcher:
         self.base_url = "https://api.whale-alert.io/v1"
         self.min_value_usd = 10_000_000 # Minimum $10M to be considered a Whale
 
-    def fetch_latest_whales(self):
+    def fetch_latest_whales(self, test_mode=False):
         """
-        Fetches large transactions from the last 24h (or simulated if no API key).
+        Fetches large transactions from the last 24h.
+        Args:
+            test_mode (bool): If True, returns realistic mock data for UI demo.
         """
         transfers = []
         
-        # 1. REAL MODE (API Key Present)
+        # 1. MOCK MODE (Explicit Request Only)
+        if test_mode:
+            return self._generate_mock_data()
+
+        # 2. REAL MODE (API Key Present)
         if self.api_key and self.api_key != "your_whale_key_here":
             try:
                 # Fetch last hour for responsiveness
@@ -34,22 +40,18 @@ class WhaleWatcher:
                     logger.warning(f"Whale API Error {resp.status_code}: {resp.text}")
             except Exception as e:
                 logger.error(f"Whale Fetch Failed: {e}")
-
-        # 2. MOCK MODE (Fallback / Demo)
-        # If no API key or empty result (for testing), generate realistic noise
-        # This ensures the user sees the system working immediately.
-        if not transfers and not self.api_key:
-            logger.info("WhaleWatcher: No API Key found. Using MOCK DATA for Demo.")
-            transfers = self._generate_mock_data()
             
         return transfers
 
-    def analyze_flow(self):
+    def analyze_flow(self, test_mode=False):
         """
         Analyzes transfers to detect Net Flow Pressure.
         Returns: (status, context_string)
         """
-        transfers = self.fetch_latest_whales()
+        transfers = self.fetch_latest_whales(test_mode=test_mode)
+        
+        if not transfers:
+            return "[WHALE CONTEXT]\nStatus: NO DATA (No API Key)\nAction: Using Technical Volume Analysis instead."
         
         buy_pressure_usd = 0
         sell_pressure_usd = 0
