@@ -32,7 +32,8 @@ class MarketData:
         self.TICKER_ALIASES = {
             "ICGA.FRA": "ICGA.DE",   # Yahoo uses .DE for Xetra/Frankfurt often
             "3CP": "3CP.F",          # Xiaomi on Frankfurt
-            "RNDR-USD": "RENDER-USD" # Rebranding fallback
+            "RNDR-USD": "RENDER-USD", # Rebranding fallback
+            "BYD": "BY6.DE"          # User owns BYD EV (Frankfurt), not Boyd Gaming (NYSE)
         }
 
     def get_crypto_data_coingecko(self, ticker):
