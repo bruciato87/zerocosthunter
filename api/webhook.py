@@ -423,7 +423,7 @@ def dashboard():
             curr = 0.0
             
             if search != "UNKNOWN":
-                hist = yf.Ticker(search).history(period="1mo")
+                hist = yf.Ticker(search).history(period="5d")
                 if not hist.empty:
                     close = hist['Close'].iloc[-1]
                     is_eu = search.endswith(('.DE','.F','.MI','.PA'))
