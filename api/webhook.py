@@ -71,6 +71,7 @@ async def setup_bot_commands(bot):
         BotCommand("analyze", "🔬 Deep Dive Ticker (es. /analyze NVDA)"),
         BotCommand("portfolio", "📊 Vedi Portafoglio & Valore Live"),
         BotCommand("dashboard", "🖥️ Web Dashboard"),
+        BotCommand("macro", "🏛 Macro Strategist Context"),
         BotCommand("help", "❓ Lista Comandi"),
         BotCommand("setprice", "💶 Correggi Prezzo (es. /setprice AAPL 150)"),
         BotCommand("setticker", "🏷 Correggi Ticker (es. /setticker OLD NEW)"),
