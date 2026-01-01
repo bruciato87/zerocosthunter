@@ -44,12 +44,20 @@ class Brain:
         if insider_context:
             mood = insider_context.get('overall', 'NEUTRAL')
             fg_val = insider_context.get('crypto', {}).get('value', 50)
+            
+            # Formatting social headlines
+            social_lines = ""
+            headlines = insider_context.get('social', [])
+            if headlines:
+                social_lines = "\n\n[SOCIAL HYPE - REDDIT TRENDING]\n" + "\n".join([f"- {h}" for h in headlines])
+
             sentiment_bg = f"""
             [MARKET SENTIMENT CONTEXT]
             Market Mood: {mood} (Index: {fg_val}/100).
             STRATEGY: "Be Greedy when others are Fearful".
             - If "EXTREME FEAR" (<20): Look for quality assets at a discount ("Buy the Dip").
             - If "EXTREME GREED" (>80): Be cautious of tops ("Take Profit" or "Wait").
+            {social_lines}
             """
 
         # Prepare the prompt

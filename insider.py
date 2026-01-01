@@ -50,6 +50,50 @@ class Insider:
             }
         return None
 
+    def get_social_sentiment(self):
+        """
+        Fetches trending topics from Reddit (r/stocks, r/bitcoin, r/investing).
+        Returns a list of top 5 combined hot headlines.
+        """
+        import feedparser
+        import random
+        import requests
+        
+        feeds = [
+            "https://www.reddit.com/r/stocks/.rss",
+            "https://www.reddit.com/r/bitcoin/.rss",
+            "https://www.reddit.com/r/investing/.rss"
+        ]
+        
+        headlines = []
+        # Reddit requires unique UA
+        headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36'}
+        
+        for url in feeds:
+            try:
+                # 1. Fetch raw XML with requests (better UA handling)
+                resp = requests.get(url, headers=headers, timeout=5)
+                if resp.status_code != 200:
+                    logger.warning(f"Reddit RSS blocked: {resp.status_code}")
+                    continue
+
+                # 2. Parse string
+                f = feedparser.parse(resp.content)
+                
+                if f.entries:
+                    # Take top 3 from each
+                    for e in f.entries[:3]:
+                        # Clean title
+                        title = e.title
+                        headlines.append(f"Reddit ({f.feed.title}): {title}")
+            except Exception as e:
+                logger.warning(f"Failed to fetch RSS {url}: {e}")
+                
+        # Shuffle and return top 7 to avoid clutter
+        random.shuffle(headlines)
+        return headlines[:7]
+
 if __name__ == "__main__":
     insider = Insider()
-    print(insider.get_market_mood())
+    print("Market Mood:", insider.get_market_mood())
+    print("Social Sentiment:", insider.get_social_sentiment())

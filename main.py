@@ -121,15 +121,24 @@ async def run_async_pipeline():
             performance_context[t] = stats
             logger.info(f"Feedback Loop: Found history for {t} -> {stats['status']} ({stats['win_rate']}%)")
 
-    # [INSIDER] Fetch Market Mood
+    # [INSIDER] Fetch Market Mood & Social Sentiment
     from insider import Insider
     ins = Insider()
     market_mood = ins.get_market_mood()
-    if market_mood:
-        logger.info(f"Insider: Market Mood is {market_mood.get('overall')} ({market_mood.get('crypto',{}).get('value')})")
+    social_sentiment = ins.get_social_sentiment()
+    
+    insider_context = None
+    if market_mood or social_sentiment:
+        insider_context = market_mood if market_mood else {}
+        if social_sentiment:
+            insider_context['social'] = social_sentiment
+            logger.info(f"Insider: Found {len(social_sentiment)} trending social headlines.")
+        
+        if market_mood:
+            logger.info(f"Insider: Market Mood is {market_mood.get('overall')} ({market_mood.get('crypto',{}).get('value')})")
 
     logger.info("Analyzing news with Gemini...")
-    predictions = brain.analyze_news_batch(news_items, performance_context=performance_context, insider_context=market_mood)
+    predictions = brain.analyze_news_batch(news_items, performance_context=performance_context, insider_context=insider_context)
 
     processed_count = 0
     
