@@ -492,6 +492,10 @@ def dashboard():
     # portfolio lines are rows from supabase.
     advisor_analysis = adv.analyze_portfolio(portfolio)
 
+    # 7. Macro Strategist
+    from economist import Economist
+    macro_stats = Economist().get_dashboard_stats()
+
     return render_template('dashboard.html', 
                            signals=signals, 
                            portfolio=portfolio, 
