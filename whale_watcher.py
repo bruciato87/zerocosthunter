@@ -70,12 +70,12 @@ class WhaleWatcher:
                     # Stablecoin -> Exchange = Buying Power
                     buy_pressure_usd += amount_usd
                     if amount_usd > 50_000_000:
-                        significant_events.append(f"🟢 BUY LOAD: ${amount_usd/1M:.1f}M {symbol.upper()} to Exchange")
+                        significant_events.append(f"🟢 BUY LOAD: ${amount_usd/1_000_000:.1f}M {symbol.upper()} to Exchange")
                 elif symbol in ['btc', 'eth']:
                     # Crypto -> Exchange = Potential Dump
                     sell_pressure_usd += amount_usd
                     if amount_usd > 50_000_000:
-                        significant_events.append(f"🔴 DUMP RISK: ${amount_usd/1M:.1f}M {symbol.upper()} to Exchange")
+                        significant_events.append(f"🔴 DUMP RISK: ${amount_usd/1_000_000:.1f}M {symbol.upper()} to Exchange")
 
         # Determine Context
         net_flow = buy_pressure_usd - sell_pressure_usd
