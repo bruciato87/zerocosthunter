@@ -154,11 +154,16 @@ async def settings_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("❌ Errore/Nessuna modifica. Usa il formato: `/settings confidence=80`")
 
+from economist import Economist
+
+# ... (Previous imports)
+
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await setup_bot_commands(context.bot)
     msg = (
         "🛠 **Lista Comandi Disponibili:**\n\n"
-        "📊 `/portfolio`\nVisualizza il valore attuale del tuo portafoglio in tempo reale (Yahoo Finance).\n\n"
+        "📊 `/portfolio`\nVisualizza il valore attuale del tuo portafoglio in tempo reale.\n\n"
+        "🏛 `/macro`\nVisualizza il contesto Macro Economico (VIX, Tassi, FED).\n\n"
         "✍️ **Correzioni Manuali:**\n"
         "• `/setprice <TICKER> <PREZZO>`: Imposta manualmente il prezzo medio.\n"
         "• `/setticker <OLD> <NEW>`: Rinomina un ticker errato.\n\n"
@@ -169,6 +174,17 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "📸 **Caricamento:**\nBasta inviare una foto! Se vuoi forzare il ticker, scrivilo nella **didascalia**."
     )
     await update.message.reply_text(msg)
+
+async def macro_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("🏛 Analizzo lo scenario Macro Economico... (VIX, Yields, FED)")
+    try:
+        eco = Economist()
+        summary = eco.get_macro_summary()
+        # Clean up for Telegram (remove multiple newlines/tabs if needed, but summary is usually clean)
+        await update.message.reply_text(f"```{summary}```", parse_mode="Markdown")
+    except Exception as e:
+        logger.error(f"Macro Command Fail: {e}")
+        await update.message.reply_text("❌ Errore nel recupero dati Macro.")
 
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -516,6 +532,7 @@ def webhook():
                 bot_app.add_handler(CommandHandler("setticker", setticker_command))
                 bot_app.add_handler(CommandHandler("settings", settings_command))
                 bot_app.add_handler(CommandHandler("analyze", analyze_command))
+                bot_app.add_handler(CommandHandler("macro", macro_command))
                 bot_app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
                 bot_app.add_handler(CallbackQueryHandler(handle_callback))
                 
