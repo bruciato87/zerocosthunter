@@ -27,6 +27,13 @@ class MarketData:
             "ETH": "ethereum",
             "SOL": "solana"
         }
+        
+        # Manual overrides for problematic tickers (User Request)
+        self.TICKER_ALIASES = {
+            "ICGA.FRA": "ICGA.DE",   # Yahoo uses .DE for Xetra/Frankfurt often
+            "3CP": "3CP.F",          # Xiaomi on Frankfurt
+            "RNDR-USD": "RENDER-USD" # Rebranding fallback
+        }
 
     def get_crypto_data_coingecko(self, ticker):
         """
@@ -58,15 +65,19 @@ class MarketData:
         """
         Fetches the current market price for a ticker (Crypto or Stock).
         Prioritizes CoinGecko for crypto, then Yahoo.
+        Handles aliases.
         """
+        # 0. Check Aliases
+        search_ticker = self.TICKER_ALIASES.get(ticker, ticker)
+        
         # 1. Try CoinGecko
-        price, _ = self.get_crypto_data_coingecko(ticker)
+        price, _ = self.get_crypto_data_coingecko(search_ticker)
         if price:
             return price
         
         # 2. Try Yahoo Finance
         try:
-            t = yf.Ticker(ticker)
+            t = yf.Ticker(search_ticker)
             # Try fast info first
             if 'currentPrice' in t.info:
                 return t.info['currentPrice']
@@ -78,7 +89,7 @@ class MarketData:
             if not hist.empty:
                 return hist['Close'].iloc[-1]
         except Exception as e:
-            logger.warning(f"Yahoo Price fetch failed for {ticker}: {e}")
+            logger.warning(f"Yahoo Price fetch failed for {search_ticker} (orig: {ticker}): {e}")
             
         return None
 
