@@ -119,8 +119,8 @@ class Advisor:
             if pct < 5 and sec != 'Cash': # Assuming 'Cash' might be a sector not needing diversification
                 tips.append(f"Low exposure to {sec} ({pct:.1f}%). Look for opportunities.")
         
-        # 3. Tax Harvesting & Profit Taking (Italy 2026 Logic)
-        # Disclaimer: Automated logic, implies 'Riforma Redditi Finanziari' scenarios.
+        # 3. Tax Harvesting & Profit Taking (Definitive Italy 2025/2026 Rules)
+        # Based on 'Legge di Bilancio 2025' (Approved Dec 2024).
         
         for asset in asset_performance:
             asset_pct = (asset['value'] / total_value) * 100
@@ -129,14 +129,14 @@ class Advisor:
             if asset_pct > 20:
                 tips.append(f"⚠️ Concentration Risk: {asset['ticker']} is {asset_pct:.1f}% of Portfolio.")
                 
-            # Tax Harvesting (IT 2026)
+            # Tax Harvesting (IT Specifics)
             if asset['pnl_pct'] < -40:
                 loss_val = asset['value'] - (asset['avg_price'] * asset['quantity'])
                 
                 if asset['sector'] == 'Crypto':
-                    tips.append(f"📉 Tax Harvest (Crypto): {asset['ticker']} down {asset['pnl_pct']:.1f}%. Sell to generate credit vs 33-42% Crypto Tax (Siloed).")
+                    tips.append(f"📉 Tax Harvest (Crypto): {asset['ticker']} down {asset['pnl_pct']:.1f}%. Realize loss before 2026 (Tax rises to 33%).")
                 elif asset['sector'] == 'ETF':
-                     tips.append(f"📉 Tax Harvest (ETF): {asset['ticker']} down {asset['pnl_pct']:.1f}%. Useful for offsetting gains (New 2026 Unification Rules).")
+                     tips.append(f"📉 Tax Harvest (ETF): {asset['ticker']} down {asset['pnl_pct']:.1f}%. WARNING: Losses are SILOED until Aug 2026 (Unification pending).")
                 else:
                      tips.append(f"📉 Tax Harvest: {asset['ticker']} down {asset['pnl_pct']:.1f}%. Sell to generate 'Minusvalenza' (4 years).")
             
@@ -149,7 +149,7 @@ class Advisor:
             "sector_value": exposure,
             "sector_percent": pct_exposure,
             "tips": tips,
-            "note": "Tax tips based on Italy 2026 draft reforms. Consult a commercialista."
+            "note": "Tax tips based on definitive Legge di Bilancio 2025 (Crypto 26%->33%, ETF Siloed). Consult a commercialista."
         }
 
     def generate_tips(self, analysis):
