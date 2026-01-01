@@ -128,33 +128,44 @@ class WhaleWatcher:
     def get_dashboard_stats(self):
         """
         Returns structured stats for the Dashboard UI.
+        Fail-safe: Returns neutral stats on error instead of raising.
         """
-        all_whales = []
-        buy_vol = 0
-        sell_vol = 0
-        
-        for sym in self.symbols:
-            w = self.fetch_binance_whales(sym)
-            all_whales.extend(w)
+        try:
+            all_whales = []
+            buy_vol = 0
+            sell_vol = 0
             
-        for w in all_whales:
-            if w['side'] == "BUY":
-                buy_vol += w['value_usd']
-            else:
-                sell_vol += w['value_usd']
-        
-        net_flow = buy_vol - sell_vol
-        status = "NEUTRAL"
-        if net_flow > 5_000_000: status = "BULLISH"
-        elif net_flow < -5_000_000: status = "BEARISH"
+            for sym in self.symbols:
+                w = self.fetch_binance_whales(sym)
+                all_whales.extend(w)
+                
+            for w in all_whales:
+                if w['side'] == "BUY":
+                    buy_vol += w['value_usd']
+                else:
+                    sell_vol += w['value_usd']
+            
+            net_flow = buy_vol - sell_vol
+            status = "NEUTRAL"
+            if net_flow > 5_000_000: status = "BULLISH"
+            elif net_flow < -5_000_000: status = "BEARISH"
 
-        return {
-            "status": status,
-            "buy_vol_m": round(buy_vol / 1_000_000, 1),
-            "sell_vol_m": round(sell_vol / 1_000_000, 1),
-            "net_flow_m": round(net_flow / 1_000_000, 1),
-            "whale_count": len(all_whales)
-        }
+            return {
+                "status": status,
+                "buy_vol_m": round(buy_vol / 1_000_000, 1),
+                "sell_vol_m": round(sell_vol / 1_000_000, 1),
+                "net_flow_m": round(net_flow / 1_000_000, 1),
+                "whale_count": len(all_whales)
+            }
+        except Exception as e:
+            logger.error(f"Whale Stats Calculation Failed: {e}")
+            return {
+                "status": "NEUTRAL",
+                "buy_vol_m": 0.0,
+                "sell_vol_m": 0.0,
+                "net_flow_m": 0.0,
+                "whale_count": 0
+            }
 
 if __name__ == "__main__":
     # Test
