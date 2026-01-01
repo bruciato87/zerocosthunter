@@ -179,7 +179,35 @@ async def setup_bot_commands(bot):
     ]
     await bot.set_my_commands(commands)
 
-# ... (Previous help_command)
+    await bot.set_my_commands(commands)
+
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await setup_bot_commands(context.bot)
+    msg = (
+        "🛠 **Lista Comandi Disponibili:**\n\n"
+        "📊 `/portfolio`\nVisualizza il valore attuale del tuo portafoglio in tempo reale.\n\n"
+        "🏛 `/macro`\nVisualizza il contesto Macro Economico (VIX, Tassi, FED).\n\n"
+        "🐋 `/whale`\nVisualizza movimenti On-Chain (Balene).\n\n"
+        "✍️ **Correzioni Manuali:**\n"
+        "• `/setprice <TICKER> <PREZZO>`: Imposta manualmente il prezzo medio.\n"
+        "• `/setticker <OLD> <NEW>`: Rinomina un ticker errato.\n\n"
+        "🗑 **Gestione:**\n"
+        "• `/delete <TICKER>`: Elimina un singolo asset.\n"
+        "• `/reset`: Cancella TUTTO il portafoglio.\n\n"
+        "⚙️ `/settings`: Configura filtri AI.\n\n"
+        "📸 **Caricamento:**\nBasta inviare una foto! Se vuoi forzare il ticker, scrivilo nella **didascalia**."
+    )
+    await update.message.reply_text(msg)
+
+async def macro_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("🏛 Analizzo lo scenario Macro Economico... (VIX, Yields, FED)")
+    try:
+        eco = Economist()
+        summary = eco.get_macro_summary()
+        await update.message.reply_text(f"```{summary}```", parse_mode="Markdown")
+    except Exception as e:
+        logger.error(f"Macro Command Fail: {e}")
+        await update.message.reply_text("❌ Errore nel recupero dati Macro.")
 
 async def whale_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("🐋 Localizzo le Balene (On-Chain Analysis)...")
