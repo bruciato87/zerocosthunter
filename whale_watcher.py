@@ -1,125 +1,117 @@
 import os
 import requests
 import logging
-import random
 import datetime
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 logger = logging.getLogger("WhaleWatcher")
 
 class WhaleWatcher:
+    """
+    Zero-Cost 'Hacker Style' Whale Watcher.
+    Uses Binance Public API (aggTrades) to detect large market orders.
+    No API Key required.
+    """
     def __init__(self):
-        self.api_key = os.environ.get("WHALE_ALERT_API_KEY")
-        self.base_url = "https://api.whale-alert.io/v1"
-        self.min_value_usd = 10_000_000 # Minimum $10M to be considered a Whale
-
-    def fetch_latest_whales(self, test_mode=False):
-        """
-        Fetches large transactions from the last 24h.
-        Args:
-            test_mode (bool): If True, returns realistic mock data for UI demo.
-        """
-        transfers = []
+        self.base_url = "https://api.binance.com/api/v3/aggTrades"
+        self.min_value_usd = 500_000  # Lowered slightly to catch 'Sharks' too, not just Whales
+        self.symbols = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
         
-        # 1. MOCK MODE (Explicit Request Only)
-        if test_mode:
-            return self._generate_mock_data()
-
-        # 2. REAL MODE (API Key Present)
-        if self.api_key and self.api_key != "your_whale_key_here":
-            try:
-                # Fetch last hour for responsiveness
-                now_ts = int(datetime.datetime.now().timestamp())
-                start_ts = now_ts - 3600 
-                url = f"{self.base_url}/transactions?api_key={self.api_key}&min_value={self.min_value_usd}&start={start_ts}"
-                
-                resp = requests.get(url, timeout=5)
-                if resp.status_code == 200:
-                    data = resp.json()
-                    transfers = data.get('transactions', [])
-                else:
-                    logger.warning(f"Whale API Error {resp.status_code}: {resp.text}")
-            except Exception as e:
-                logger.error(f"Whale Fetch Failed: {e}")
+    def fetch_binance_whales(self, symbol):
+        """
+        Fetches the last 1000 aggregated trades for a symbol.
+        Returns list of 'Whale' trades (value > min_value_usd).
+        """
+        whales = []
+        try:
+            # Fetch last 1000 trades (Max allowed by Binance public API)
+            params = {"symbol": symbol, "limit": 1000}
+            resp = requests.get(self.base_url, params=params, timeout=5)
             
-        return transfers
+            if resp.status_code == 200:
+                trades = resp.json()
+                for t in trades:
+                    # Binance aggTrade format:
+                    # {
+                    #   "p": "price",
+                    #   "q": "quantity",
+                    #   "m": true/false (isBuyerMaker. If true, Taker was Seller. SELL trade.)
+                    # }
+                    price = float(t['p'])
+                    qty = float(t['q'])
+                    value_usd = price * qty
+                    
+                    if value_usd >= self.min_value_usd:
+                        # Determine side
+                        # isBuyerMaker = True -> Maker was Buyer -> Taker was SELLER -> RED
+                        # isBuyerMaker = False -> Maker was Seller -> Taker was BUYER -> GREEN
+                        side = "SELL" if t['m'] else "BUY"
+                        
+                        whales.append({
+                            "symbol": symbol,
+                            "price": price,
+                            "qty": qty,
+                            "value_usd": value_usd,
+                            "side": side,
+                            "timestamp": t['T']
+                        })
+            else:
+                logger.warning(f"Binance API Error {resp.status_code}: {resp.text}")
+                
+        except Exception as e:
+            logger.error(f"Binance Fetch Failed for {symbol}: {e}")
+            
+        return whales
 
     def analyze_flow(self, test_mode=False):
         """
-        Analyzes transfers to detect Net Flow Pressure.
-        Returns: (status, context_string)
+        Analyzes recent market flow for Whales.
+        test_mode: Not used anymore (Real Data is Free!), kept for signature compatibility.
         """
-        transfers = self.fetch_latest_whales(test_mode=test_mode)
+        all_whales = []
+        buy_vol = 0
+        sell_vol = 0
         
-        if not transfers:
-            return "[WHALE CONTEXT]\nStatus: NO DATA (No API Key)\nAction: Using Technical Volume Analysis instead."
-        
-        buy_pressure_usd = 0
-        sell_pressure_usd = 0
-        significant_events = []
-        
-        # Known Stablecoins
-        stables = ['usdt', 'usdc', 'busd', 'dai']
-        
-        for tx in transfers:
-            symbol = tx.get('symbol', '').lower()
-            amount_usd = tx.get('amount_usd', 0)
-            from_wallet = tx.get('from', {}).get('owner_type', 'unknown')
-            to_wallet = tx.get('to', {}).get('owner_type', 'unknown')
+        for sym in self.symbols:
+            w = self.fetch_binance_whales(sym)
+            all_whales.extend(w)
             
-            # Heuristic: Exchange Inflow
-            if to_wallet == 'exchange':
-                if symbol in stables:
-                    # Stablecoin -> Exchange = Buying Power
-                    buy_pressure_usd += amount_usd
-                    if amount_usd > 50_000_000:
-                        significant_events.append(f"🟢 BUY LOAD: ${amount_usd/1_000_000:.1f}M {symbol.upper()} to Exchange")
-                elif symbol in ['btc', 'eth']:
-                    # Crypto -> Exchange = Potential Dump
-                    sell_pressure_usd += amount_usd
-                    if amount_usd > 50_000_000:
-                        significant_events.append(f"🔴 DUMP RISK: ${amount_usd/1_000_000:.1f}M {symbol.upper()} to Exchange")
-
+        # Aggregate
+        significant_events = []
+        for w in all_whales:
+            val_m = w['value_usd'] / 1_000_000
+            if w['side'] == "BUY":
+                buy_vol += w['value_usd']
+                if val_m > 1.0: # Only log super-whales (>1M) individually
+                    significant_events.append(f"🟢 ${val_m:.1f}M BUY on {w['symbol']}")
+            else:
+                sell_vol += w['value_usd']
+                if val_m > 1.0:
+                    significant_events.append(f"🔴 ${val_m:.1f}M SELL on {w['symbol']}")
+        
         # Determine Context
-        net_flow = buy_pressure_usd - sell_pressure_usd
+        net_flow = buy_vol - sell_vol
         
         status = "NEUTRAL"
-        if net_flow > 100_000_000: status = "BULLISH (Inflow)"
-        elif net_flow < -100_000_000: status = "BEARISH (Outflow)"
+        if net_flow > 5_000_000: status = "BULLISH (Net Buying)"
+        elif net_flow < -5_000_000: status = "BEARISH (Net Selling)"
         
-        # Format Context for AI
+        # If no data found (e.g. quiet market or offset issue), handle gracefully
+        if not all_whales:
+             return "[WHALE CONTEXT] No significant Whale activity detected in last 1000 trades."
+
         context = f"""
-        [WHALE WATCHER CONTEXT]
-        Net Flow Status: {status}
-        Buy Pressure (Stables IN): ${buy_pressure_usd/1_000_000:.1f}M
-        Sell Pressure (Coins IN): ${sell_pressure_usd/1_000_000:.1f}M
-        Major Events: {', '.join(significant_events) if significant_events else 'None'}
-        strategy_hint: {'⚠️ CAUTION: High Dump Risk Detected' if status.startswith('BEARISH') else '✅ SUPPORT: Institutional Buying Detected' if status.startswith('BULLISH') else 'Neutral Flow'}
+        [WHALE WATCHER (BINANCE REAL-TIME)]
+        Status: {status}
+        Whale Buy Vol: ${buy_vol/1_000_000:.1f}M
+        Whale Sell Vol: ${sell_vol/1_000_000:.1f}M
+        Net Flow: ${net_flow/1_000_000:.1f}M
+        Largest Transactions: {', '.join(significant_events[:5])}
+        strategy_hint: {'⚠️ DUMP DETECTED: Be cautious with Crypto' if status.startswith('BEARISH') else '✅ ACCUMULATION: Institutional interest visible' if status.startswith('BULLISH') else 'Flow is balanced'}
         """
         
         return context.strip()
-
-    def _generate_mock_data(self):
-        """Generates realistic whale transactions for demo."""
-        mock_txs = []
-        # Simulate 1 big Bitcoin move (Sell Pressure)
-        if random.random() > 0.5:
-            mock_txs.append({
-                "symbol": "btc",
-                "amount_usd": random.randint(50, 200) * 1_000_000,
-                "from": {"owner_type": "unknown"},
-                "to": {"owner_type": "exchange"}
-            })
-        
-        # Simulate 2 big USDT moves (Buy Pressure)
-        if random.random() > 0.3:
-            mock_txs.append({
-                "symbol": "usdt",
-                "amount_usd": random.randint(50, 300) * 1_000_000,
-                "from": {"owner_type": "unknown"},
-                "to": {"owner_type": "exchange"}
-            })
-            
-        return mock_txs
 
 if __name__ == "__main__":
     # Test

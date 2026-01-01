@@ -210,12 +210,10 @@ async def macro_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ Errore nel recupero dati Macro.")
 
 async def whale_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("🐋 Localizzo le Balene (On-Chain Analysis)...")
+    await update.message.reply_text("🐋 Localizzo le Balene (Binance Real-Time)...")
     try:
         ww = WhaleWatcher()
-        # Explicitly enable test_mode for the manual command to show the demo capabilities
-        # even if the user hasn't paid for an API key yet.
-        summary = ww.analyze_flow(test_mode=True)
+        summary = ww.analyze_flow()
         # Clean up
         await update.message.reply_text(f"```{summary}```", parse_mode="Markdown")
     except Exception as e:
