@@ -96,18 +96,27 @@ class Auditor:
                     # Fallback to Yahoo
                     try:
                         import yfinance as yf
-                        # 1. Try Ticker-USD (Common for Crypto)
-                        t = yf.Ticker(f"{ticker}-USD")
-                        hist = t.history(period="1d")
-                        if not hist.empty:
-                            live_price = hist['Close'].iloc[-1]
                         
-                        # 2. Fallback to raw Ticker
-                        if not live_price:
-                            t = yf.Ticker(ticker)
-                            hist = t.history(period="1d")
-                            if not hist.empty:
-                                live_price = hist['Close'].iloc[-1]
+                        # Heuristic: Known Cryptos vs Stocks
+                        # Prevent "NVDA-USD" delisted error by trying Raw first for stocks
+                        # Prevent "BTC" Trust error by trying USD first for crypto
+                        known_crypto = {"BTC", "ETH", "SOL", "XRP", "ADA", "DOGE", "DOT", "LINK", "LTC", "BCH", "UNI", "MATIC"}
+                        
+                        attempts = []
+                        if ticker.upper() in known_crypto:
+                            attempts = [f"{ticker}-USD", ticker]
+                        else:
+                            attempts = [ticker, f"{ticker}-USD"]
+
+                        for sym in attempts:
+                            try:
+                                t = yf.Ticker(sym)
+                                hist = t.history(period="1d")
+                                if not hist.empty:
+                                    live_price = hist['Close'].iloc[-1]
+                                    break
+                            except: continue
+                            
                     except: pass
                 
                 if not live_price:

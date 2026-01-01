@@ -158,6 +158,61 @@
             </div>
             {% endif %}
 
+            <!-- Advisor: Portfolio Allocation -->
+            {% if advisor_analysis %}
+            <div class="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-lg">
+                <h2 class="text-sm font-semibold mb-4 flex items-center text-gray-400 uppercase tracking-widest">
+                    <span>⚖️ Portfolio Allocation</span>
+                </h2>
+
+                <div class="relative h-48 w-full">
+                    <canvas id="sectorChart"></canvas>
+                </div>
+
+                <!-- Advisor Tips -->
+                <div class="mt-4 space-y-2">
+                    {% for tip in advisor_analysis.tips %}
+                    <div
+                        class="text-xs bg-yellow-500/10 text-yellow-500 px-3 py-2 rounded-lg border border-yellow-500/20 flex items-start">
+                        <span class="mr-2">⚠️</span>
+                        {{ tip }}
+                    </div>
+                    {% endfor %}
+
+                    {% if not advisor_analysis.tips %}
+                    <div class="text-xs text-green-500 flex items-center">
+                        <span class="mr-2">✅</span> Healthy Diversification
+                    </div>
+                    {% endif %}
+                </div>
+
+                <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+                <script>
+                    const ctxSector = document.getElementById('sectorChart').getContext('2d');
+                    new Chart(ctxSector, {
+                        type: 'doughnut',
+                        data: {
+                            labels: {{ advisor_analysis.sector_percent.keys() | list | tojson }},
+                        datasets: [{
+                            data: {{ advisor_analysis.sector_percent.values() | list | tojson }},
+                        backgroundColor: [
+                            '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#6366F1'
+                        ],
+                        borderWidth: 0
+                            }]
+                        },
+                        options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'right', labels: { color: '#9CA3AF', font: { size: 10 } } }
+                        }
+                    }
+                    });
+                </script>
+            </div>
+            {% endif %}
+
             <!-- AI Scorecard (The Auditor) -->
             <div class="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-lg relative overflow-hidden">
                 <div

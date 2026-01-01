@@ -137,8 +137,23 @@ async def run_async_pipeline():
         if market_mood:
             logger.info(f"Insider: Market Mood is {market_mood.get('overall')} ({market_mood.get('crypto',{}).get('value')})")
 
+    # [ADVISOR] Portfolio Health Analysis
+    from advisor import Advisor
+    adv = Advisor()
+    # Fetch current portfolio from DB for analysis (using supabase client directly or helper)
+    # The 'portfolio' variable was loaded earlier in the pipeline for enrichment
+    # We reuse it here. It is a list of dicts.
+    advisor_analysis = adv.analyze_portfolio(portfolio)
+    if advisor_analysis:
+        logger.info(f"Advisor: Portfolio Value ${advisor_analysis['total_value']:.2f}. Tips: {len(advisor_analysis.get('tips', []))}")
+
     logger.info("Analyzing news with Gemini...")
-    predictions = brain.analyze_news_batch(news_items, performance_context=performance_context, insider_context=insider_context)
+    predictions = brain.analyze_news_batch(
+        news_items, 
+        performance_context=performance_context, 
+        insider_context=insider_context,
+        portfolio_context=advisor_analysis
+    )
 
     processed_count = 0
     

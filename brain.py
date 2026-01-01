@@ -16,12 +16,13 @@ class Brain:
             raise ValueError("GEMINI_API_KEY must be set.")
         self.client = genai.Client(api_key=self.api_key)
 
-    def analyze_news_batch(self, news_list, performance_context=None, insider_context=None):
+    def analyze_news_batch(self, news_list, performance_context=None, insider_context=None, portfolio_context=None):
         """
-        [2024 UPDATE] V3.0 Hybrid Brain with Memory & Insider Info.
+        [2024 UPDATE] V3.0 Hybrid Brain with Memory & Insider & Advisor Info.
         Analyze a batch of news items to find high-quality trading opportunities.
         - performance_context: Dict of {"ticker": {stats}} representing past accuracy.
         - insider_context: Dict of { "overall": "EXTREME FEAR", ... }
+        - portfolio_context: Dict analysis from Advisor (sectors, tips).
         """
         if not news_list:
             logger.info("No news to analyze.")
@@ -58,6 +59,20 @@ class Brain:
             - If "EXTREME FEAR" (<20): Look for quality assets at a discount ("Buy the Dip").
             - If "EXTREME GREED" (>80): Be cautious of tops ("Take Profit" or "Wait").
             {social_lines}
+            """
+        
+        # [ADVISOR PORTFOLIO CONTEXT]
+        advisor_bg = ""
+        if portfolio_context:
+            tips = portfolio_context.get('tips', [])
+            sectors = portfolio_context.get('sector_percent', {})
+            tips_str = "\n".join([f"- {t}" for t in tips])
+            advisor_bg = f"""
+            [PORTFOLIO HEALTH CONTEXT]
+            Current Allocation: {sectors}
+            RISK MANAGEMENT WARNINGS:
+            {tips_str}
+            *OBJECTIVE*: If possible, favor trades that help DIVERSIFY this portfolio.
             """
 
         # Prepare the prompt

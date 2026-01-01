@@ -452,8 +452,15 @@ def dashboard():
 
     # 5. Market Mood (Insider)
     from insider import Insider
-    insider = Insider()
+    ins = Insider()
     market_mood = insider.get_market_mood()
+
+    # 6. Advisor (Risk Manager)
+    from advisor import Advisor
+    adv = Advisor()
+    # Convert row objects to dicts if needed, or pass as is (Advisor expects dict-like with 'ticker', 'quantity')
+    # portfolio lines are rows from supabase.
+    advisor_analysis = adv.analyze_portfolio(portfolio)
 
     return render_template('dashboard.html', 
                            signals=signals, 
@@ -468,7 +475,8 @@ def dashboard():
                            last_run_iso=last_run_iso,
                            now_iso=datetime.utcnow().isoformat(),
                            audit_stats=audit_stats,
-                           market_mood=market_mood)
+                           market_mood=market_mood,
+                           advisor_analysis=advisor_analysis)
 
 @app.route('/api/webhook', methods=['POST'])
 def webhook():
