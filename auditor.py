@@ -105,6 +105,26 @@ class Auditor:
                     elif age_hours > (self.MAX_AGE_DAYS * 24):
                         new_status = "EXPIRED"
 
+                # 5. Update DB
+                update_data = {
+                    "current_price": live_price,
+                    "pnl_percent": round(pnl_pct, 2),
+                    "status": new_status,
+                    "updated_at": "now()"
+                }
+                
+                self.db.supabase.table("signal_tracking").update(update_data).eq("id", sig['id']).execute()
+                
+                if new_status != "OPEN":
+                    updates.append(f"{ticker}: {new_status} ({pnl_pct:+.2f}%)")
+                    logger.info(f"Auditor: Signal Closed - {ticker} is {new_status}")
+
+            return updates
+
+        except Exception as e:
+            logger.error(f"Auditor Audit Failed: {e}")
+            return []
+
     def record_signal(self, ticker: str, entry_price: float = None, signal_id: str = None, target_price: float = None):
         """
         Snapshots a new signal into the tracking table.
