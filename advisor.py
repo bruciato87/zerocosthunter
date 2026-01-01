@@ -56,18 +56,31 @@ class Advisor:
         """
         exposure = {}
         total_value = 0.0
+        
+        # Helper to fetch price if missing (lazy load)
+        from market_data import MarketData
+        market = MarketData()
 
         for item in portfolio_items:
             ticker = item['ticker']
-            # current_price from DB might be old, but good enough for relative exposure
-            # Or use market_data if needed. Assuming current_price is populated from dashboard fetch.
-            price = float(item.get('current_price', 0) or 0)
             qty = float(item.get('quantity', 0))
-            value = price * qty
-            total_value += value
+            
+            # Use DB price if available, else fetch live
+            price = float(item.get('current_price', 0) or 0)
+            if price == 0:
+                try:
+                    price = market.get_market_price(ticker)
+                    if price:
+                        logger.info(f"Advisor: Fetched live price for {ticker}: ${price}")
+                except Exception as e:
+                    logger.warning(f"Advisor: Failed to fetch price for {ticker}: {e}")
+            
+            if price:
+                value = price * qty
+                total_value += value
 
-            sector = self.get_sector(ticker)
-            exposure[sector] = exposure.get(sector, 0.0) + value
+                sector = self.get_sector(ticker)
+                exposure[sector] = exposure.get(sector, 0.0) + value
 
         # specific check for overly dominating sectors
         pct_exposure = {}
