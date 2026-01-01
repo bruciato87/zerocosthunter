@@ -382,26 +382,11 @@ def dashboard():
         signals = db.supabase.table("predictions").select("*").order("created_at", desc=True).limit(25).execute().data
     except: signals = []
 
-    # 2. Portfolio
-    try:
-        portfolio = db.supabase.table("portfolio").select("*").eq("is_confirmed", True).execute().data
-    except: portfolio = []
-
-    # 3. Analytics
-    total_val = 0.0
-    total_inv = 0.0
-    last_run = "Mai"
-    last_run_iso = None
-    daily_trend = {}
+    # 2. Portfolio Valuation with Forward-Fill Chart
+    portfolio = db.get_portfolio()
+    total_val, total_inv = 0.0, 0.0
+    asset_trends = {}  # Track each asset's trend separately for forward-fill
     
-    # Last Run
-    try:
-        logs = db.supabase.table("logs").select("created_at").eq("module","Hunter").order("created_at",desc=True).limit(1).execute().data
-        if logs: 
-            last_run_iso = logs[0]['created_at']
-            last_run = datetime.fromisoformat(last_run_iso.replace('Z','+00:00')).strftime("%d/%m/%Y %H:%M")
-    except: pass
-
     # FX & Tickers
     eur_usd = 1.1
     try:
@@ -423,17 +408,18 @@ def dashboard():
             curr = 0.0
             
             if search != "UNKNOWN":
-                hist = yf.Ticker(search).history(period="2d")
+                hist = yf.Ticker(search).history(period="5d")
                 if not hist.empty:
                     close = hist['Close'].iloc[-1]
                     is_eu = search.endswith(('.DE','.F','.MI','.PA'))
                     curr = qty * close if is_eu else qty * (close / eur_usd)
                     
-                    # Trend
+                    # Store per-asset trend
+                    asset_trends[ticker] = {}
                     for dt, val in hist['Close'].items():
                         d_str = dt.strftime("%Y-%m-%d")
                         v_eu = qty * val if is_eu else qty * (val / eur_usd)
-                        daily_trend[d_str] = daily_trend.get(d_str, 0.0) + v_eu
+                        asset_trends[ticker][d_str] = v_eu
 
             total_val += curr
             item['live_value_eur'] = round(curr, 2)
@@ -441,11 +427,39 @@ def dashboard():
             item['pnl_percent'] = round(((curr - cost)/cost)*100, 2) if cost > 0 else 0
         except: pass
 
+    # Build chart with forward-fill to handle missing data
+    all_dates = sorted(set(d for trends in asset_trends.values() for d in trends.keys()))
+    daily_trend = {}
+    
+    for date in all_dates:
+        total_for_date = 0.0
+        for ticker, trends in asset_trends.items():
+            if date in trends:
+                total_for_date += trends[date]
+            else:
+                # Forward-fill: use last known value
+                earlier_dates = [d for d in trends.keys() if d < date]
+                if earlier_dates:
+                    total_for_date += trends[max(earlier_dates)]
+        daily_trend[date] = total_for_date
+
     total_pl = total_val - total_inv
     pl_pct = (total_pl/total_inv*100) if total_inv > 0 else 0
     
     dates = sorted(daily_trend.keys())
     chart_d = [round(daily_trend[d],2) for d in dates]
+
+    # 3. Analytics
+    last_run = "Mai"
+    last_run_iso = None
+    
+    # Last Run
+    try:
+        logs = db.supabase.table("logs").select("created_at").eq("module","Hunter").order("created_at",desc=True).limit(1).execute().data
+        if logs: 
+            last_run_iso = logs[0]['created_at']
+            last_run = datetime.fromisoformat(last_run_iso.replace('Z','+00:00')).strftime("%d/%m/%Y %H:%M")
+    except: pass
 
     # 4. Audit Stats
     audit_stats = db.get_audit_stats()
