@@ -155,37 +155,42 @@ async def settings_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("❌ Errore/Nessuna modifica. Usa il formato: `/settings confidence=80`")
 
+from whale_watcher import WhaleWatcher
 from economist import Economist
 
 # ... (Previous imports)
 
-async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await setup_bot_commands(context.bot)
-    msg = (
-        "🛠 **Lista Comandi Disponibili:**\n\n"
-        "📊 `/portfolio`\nVisualizza il valore attuale del tuo portafoglio in tempo reale.\n\n"
-        "🏛 `/macro`\nVisualizza il contesto Macro Economico (VIX, Tassi, FED).\n\n"
-        "✍️ **Correzioni Manuali:**\n"
-        "• `/setprice <TICKER> <PREZZO>`: Imposta manualmente il prezzo medio.\n"
-        "• `/setticker <OLD> <NEW>`: Rinomina un ticker errato.\n\n"
-        "🗑 **Gestione:**\n"
-        "• `/delete <TICKER>`: Elimina un singolo asset.\n"
-        "• `/reset`: Cancella TUTTO il portafoglio.\n\n"
-        "⚙️ `/settings`: Configura filtri AI.\n\n"
-        "📸 **Caricamento:**\nBasta inviare una foto! Se vuoi forzare il ticker, scrivilo nella **didascalia**."
-    )
-    await update.message.reply_text(msg)
+async def setup_bot_commands(bot):
+    """Configures the menu button in Telegram UI."""
+    commands = [
+        BotCommand("hunt", "🏹 Caccia Manuale (Analisi News)"),
+        BotCommand("analyze", "🔬 Deep Dive Ticker (es. /analyze NVDA)"),
+        BotCommand("portfolio", "📊 Vedi Portafoglio & Valore Live"),
+        BotCommand("dashboard", "🖥️ Web Dashboard"),
+        BotCommand("macro", "🏛 Macro Context (FED/VIX)"),
+        BotCommand("whale", "🐋 Whale Alert (On-Chain)"),
+        BotCommand("help", "❓ Lista Comandi"),
+        BotCommand("setprice", "💶 Correggi Prezzo (es. /setprice AAPL 150)"),
+        BotCommand("setticker", "🏷 Correggi Ticker (es. /setticker OLD NEW)"),
+        BotCommand("delete", "🗑 Elimina un Asset"),
+        BotCommand("settings", "⚙️ Configura Smart Filters"),
+        BotCommand("reset", "☢️ Reset Totale"),
+        BotCommand("start", "🚀 Avvia"),
+    ]
+    await bot.set_my_commands(commands)
 
-async def macro_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("🏛 Analizzo lo scenario Macro Economico... (VIX, Yields, FED)")
+# ... (Previous help_command)
+
+async def whale_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("🐋 Localizzo le Balene (On-Chain Analysis)...")
     try:
-        eco = Economist()
-        summary = eco.get_macro_summary()
-        # Clean up for Telegram (remove multiple newlines/tabs if needed, but summary is usually clean)
+        ww = WhaleWatcher()
+        summary = ww.analyze_flow()
+        # Clean up
         await update.message.reply_text(f"```{summary}```", parse_mode="Markdown")
     except Exception as e:
-        logger.error(f"Macro Command Fail: {e}")
-        await update.message.reply_text("❌ Errore nel recupero dati Macro.")
+        logger.error(f"Whale Command Fail: {e}")
+        await update.message.reply_text("❌ Errore Whale Watcher.")
 
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -539,6 +544,7 @@ def webhook():
                 bot_app.add_handler(CommandHandler("settings", settings_command))
                 bot_app.add_handler(CommandHandler("analyze", analyze_command))
                 bot_app.add_handler(CommandHandler("macro", macro_command))
+                bot_app.add_handler(CommandHandler("whale", whale_command))
                 bot_app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
                 bot_app.add_handler(CallbackQueryHandler(handle_callback))
                 

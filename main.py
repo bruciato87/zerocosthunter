@@ -153,13 +153,21 @@ async def run_async_pipeline():
     macro_context = economist.get_macro_summary()
     logger.info(f"Economist: Macro Context Generated. ({len(macro_context)} chars)")
 
+    # [WHALE WATCHER] On-Chain Context (V4.0 Phase 11)
+    # Checks for large transfers (Buy Pressure vs Sell Pressure)
+    from whale_watcher import WhaleWatcher
+    whale = WhaleWatcher()
+    whale_context = whale.analyze_flow()
+    logger.info(f"WhaleWatcher: {whale_context.splitlines()[2].strip()} | {whale_context.splitlines()[6].strip() if 'strategy_hint' in whale_context else ''}")
+
     logger.info("Analyzing news with Gemini...")
     predictions = brain.analyze_news_batch(
         news_items, 
         performance_context=performance_context, 
         insider_context=insider_context,
         portfolio_context=advisor_analysis,
-        macro_context=macro_context
+        macro_context=macro_context,
+        whale_context=whale_context
     )
 
     processed_count = 0

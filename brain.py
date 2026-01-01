@@ -16,14 +16,15 @@ class Brain:
             raise ValueError("GEMINI_API_KEY must be set.")
         self.client = genai.Client(api_key=self.api_key)
 
-    def analyze_news_batch(self, news_list, performance_context=None, insider_context=None, portfolio_context=None, macro_context=None):
+    def analyze_news_batch(self, news_list, performance_context=None, insider_context=None, portfolio_context=None, macro_context=None, whale_context=None):
         """
-        [2024 UPDATE] V3.0 Hybrid Brain with Memory & Insider & Advisor Info & Macro Strategy.
+        [2024 UPDATE] V3.0 Hybrid Brain with Memory & Insider & Advisor Info & Macro Strategy & Whale Watcher.
         Analyze a batch of news items to find high-quality trading opportunities.
         - performance_context: Dict of {"ticker": {stats}} representing past accuracy.
         - insider_context: Dict of { "overall": "EXTREME FEAR", ... }
         - portfolio_context: Dict analysis from Advisor (sectors, tips).
         - macro_context: String summary from Economist (VIX, FED, Yields).
+        - whale_context: String summary from WhaleWatcher (On-Chain Flows).
         """
         if not news_list:
             logger.info("No news to analyze.")
@@ -87,6 +88,19 @@ class Brain:
             - Do NOT recommend Buying speculative assets (Crypto/Tech) during HIGH RISK.
             """
 
+        # [WHALE WATCHER CONTEXT] (V4.0 Phase 11)
+        whale_bg = ""
+        if whale_context:
+            whale_bg = f"""
+            {whale_context}
+            **WHALE RULE:**
+            - If **SELL PRESSURE (Dump Risk)** is detected (Large BTC/ETH Inflows to Exchanges):
+                - Be skeptical of Bullish news on Crypto.
+                - Prefer 'WAIT' or 'ACCUMULATE' with low targets.
+            - If **BUY PRESSURE** (Inflow of Stablecoins):
+                - Confirm BULLISH signals with higher confidence.
+            """
+
         # Prepare the prompt
         news_text = "\n\n".join([f"Source: {item['source']}\nTitle: {item['title']}\nSummary: {item['summary']}" for item in news_list])
         
@@ -95,6 +109,7 @@ class Brain:
         {memories}
         {sentiment_bg}
         {macro_bg}
+        {whale_bg}
         
         **SYSTEM ROLE:**
         You are a Senior Investment Analyst & Quantitative Trader.
