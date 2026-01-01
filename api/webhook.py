@@ -557,7 +557,8 @@ def dashboard():
                            audit_stats=audit_stats,
                            market_mood=market_mood,
                            advisor_analysis=advisor_analysis,
-                           macro_stats=macro_stats)
+                           macro_stats=macro_stats,
+                           whale_stats=whale_stats)
 
 @app.route('/api/webhook', methods=['POST'])
 def webhook():
