@@ -158,7 +158,14 @@ async def run_async_pipeline():
     from whale_watcher import WhaleWatcher
     whale = WhaleWatcher()
     whale_context = whale.analyze_flow()
-    logger.info(f"WhaleWatcher: {whale_context.splitlines()[2].strip()} | {whale_context.splitlines()[6].strip() if 'strategy_hint' in whale_context else ''}")
+    
+    # Safe logging
+    w_lines = whale_context.splitlines()
+    if len(w_lines) > 2:
+        log_hint = w_lines[6].strip() if len(w_lines) > 6 and 'strategy_hint' in whale_context else ''
+        logger.info(f"WhaleWatcher: {w_lines[2].strip()} | {log_hint}")
+    else:
+        logger.info(f"WhaleWatcher: {whale_context}")
 
     logger.info("Analyzing news with Gemini...")
     predictions = brain.analyze_news_batch(
