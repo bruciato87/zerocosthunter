@@ -22,8 +22,12 @@ class Advisor:
             "TSLA": "Consumer Cyclical",
             "AMZN": "Consumer Cyclical",
             "XOM": "Energy",
-            "CVX": "Energy"
+            "CVX": "Energy",
+            "ICGA.FRA": "ETF", # Manual Cache override
+            "3CP": "Technology" # Manual Cache override (Xiaomi)
         }
+        from market_data import MarketData
+        self.market = MarketData()
 
     def get_sector(self, ticker):
         """
@@ -31,16 +35,18 @@ class Advisor:
         """
         # 1. Check Cache
         clean_ticker = ticker.upper().replace("-USD", "")
-        # Check known crypto variations
         if "-USD" in ticker.upper() or ticker.upper() in ["BTC", "ETH", "SOL"]:
             return "Crypto"
         
         if ticker.upper() in self.sector_cache:
             return self.sector_cache[ticker.upper()]
         
-        # 2. Fetch from Yahoo (Slow)
+        # 2. Fetch from Yahoo (Slow) - Use Alias from MarketData
         try:
-            t = yf.Ticker(ticker)
+            # Resolve alias using MarketData
+            search_ticker = self.market.TICKER_ALIASES.get(ticker, ticker)
+            
+            t = yf.Ticker(search_ticker)
             info = t.info
             sector = info.get('sector', 'Unknown')
             self.sector_cache[ticker.upper()] = sector
