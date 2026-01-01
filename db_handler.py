@@ -96,6 +96,12 @@ class DBHandler:
         except Exception as e:
             logger.error(f"Error deleting drafts: {e}")
             raise e
+    def get_drafts(self, chat_id: int):
+        """Fetch unconfirmed drafts for a user."""
+        try:
+            response = self.supabase.table("portfolio") \
+                .select("*") \
+                .eq("chat_id", chat_id) \
                 .eq("is_confirmed", False) \
                 .execute()
             return response.data
