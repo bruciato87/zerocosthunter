@@ -221,9 +221,11 @@ class Auditor:
                                 if not hist.empty:
                                     live_price = hist['Close'].iloc[-1]
                                     break
-                            except: continue
+                            except Exception: 
+                                continue
                             
-                    except: pass
+                    except Exception: 
+                        pass
                 
                 if not live_price:
                     logger.warning(f"Auditor: Could not fetch price for {ticker}. Skipping.")
