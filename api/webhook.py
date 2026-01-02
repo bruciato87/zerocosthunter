@@ -365,7 +365,18 @@ async def show_portfolio(update: Update, context: ContextTypes.DEFAULT_TYPE):
         eur_usd = t.history(period="1d")['Close'].iloc[-1]
     except: pass
 
-    TICKER_FIX_MAP = {"RNDR-USD": "RENDER-USD", "3DJ.DE": "3CP.F", "BYD": "BY6.F", "ICGA.FRA": "IAG.MC", "ICGA.DE": "IAG.MC", "ICGA.F": "IAG.MC", "3CP": "3CP.F"}
+    TICKER_FIX_MAP = {
+        "RNDR-USD": "RENDER-USD", 
+        "3DJ.DE": "3CP.F", 
+        "BYD": "BY6.F", 
+        "ICGA.FRA": "IAG.MC", 
+        "ICGA.DE": "IAG.MC", 
+        "ICGA.F": "IAG.MC", 
+        "3CP": "3CP.F",
+        "TCT": "NNnD.F",  # Tencent Frankfurt
+        "3XC": "3CP.F",   # Xiaomi Frankfurt (user variant)
+        "NUKL": "NUKL.DE" # Global X Uranium
+    }
 
     def fetch_price_smart(candidate_ticker):
         """
