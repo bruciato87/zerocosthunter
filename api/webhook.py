@@ -89,42 +89,33 @@ async def setup_bot_commands(bot):
     ]
     await bot.set_my_commands(commands)
 
-import threading
-from telegram_bot import TelegramNotifier
-
-def run_background_hunt(chat_id):
-    """Runs the pipeline in a separate thread and notifies completion."""
-    print(f"DEBUG: Background Thread Spawned for Chat {chat_id}", flush=True)
-    try:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        print("DEBUG: Event Loop Created. Running Pipeline...", flush=True)
-        
-        # Run the pipeline
-        loop.run_until_complete(run_async_pipeline())
-        print("DEBUG: Pipeline Completed. Sending Notification...", flush=True)
-        
-        # Send completion message using Notifier
-        notifier = TelegramNotifier()
-        loop.run_until_complete(notifier.send_alert("✅ **Caccia Completata.**\nSe ho trovato segnali, te li ho inviati.", chat_id=chat_id))
-    except Exception as e:
-        print(f"CRITICAL THREAD ERROR: {e}", flush=True)
-        import traceback
-        traceback.print_exc()
-        logger.error(f"Background hunt error: {e}")
-    finally:
-        try:
-            loop.close()
-            print("DEBUG: Event Loop Closed.", flush=True)
-        except: pass
+# Simple logic preventing double-execution on Retry
+IS_HUNTING = False
 
 async def hunt_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    global IS_HUNTING
     chat_id = update.effective_chat.id
-    await update.message.reply_text("🏹 **Caccia Iniziata!**\nAnalizzo le news... (Procedo in background, non bloccare la chat)")
     
-    # Spawn Thread to prevent Webhook Timeout (which causes Telegram to retry/pam)
-    t = threading.Thread(target=run_background_hunt, args=(chat_id,))
-    t.start()
+    if IS_HUNTING:
+        logger.info("Request blocked: Hunt already in progress.")
+        await update.message.reply_text("⏳ **Caccia già in corso...**\nAttendi il termine della scansione attuale.")
+        return
+
+    try:
+        IS_HUNTING = True
+        await update.message.reply_text("🏹 **Caccia Iniziata!**\nAnalizzo le news... (Attendi report)")
+        
+        # Execute Pipeline Synchronously (logs will be visible)
+        await run_async_pipeline()
+        
+        # Send Completion
+        await update.message.reply_text("✅ **Caccia Completata.**\nSe ho trovato segnali validi, li hai ricevuti.")
+    
+    except Exception as e:
+        logger.error(f"Pipeline Failed: {e}")
+        await update.message.reply_text(f"❌ **Errore:** {str(e)}")
+    finally:
+        IS_HUNTING = False
 
 async def dashboard_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     app_url = os.environ.get("APP_URL", "https://zerocosthunter.vercel.app")
