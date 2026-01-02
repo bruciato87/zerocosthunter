@@ -130,7 +130,8 @@ async def run_async_pipeline():
                     "summary": f"Routine technical check for owned asset. {tech_summary}. [Portfolio: OWNED {holding['quantity']} @ ${holding['avg_price']}]",
                     "published": "Just Now",
                     "ticker": p_ticker,
-                    "synthetic": True
+                    "synthetic": True,
+                    "source": "Portfolio Technicals"
                 }
                 news_items.append(synthetic_item)
                 logger.info(f"Injected Synthetic Item for {p_ticker}")
