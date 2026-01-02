@@ -84,14 +84,33 @@ async def setup_bot_commands(bot):
     ]
     await bot.set_my_commands(commands)
 
-async def hunt_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("🏹 **Caccia Iniziata!**\nAnalizzo le news... attendi qualche secondo.")
+import threading
+from telegram_bot import TelegramNotifier
+
+def run_background_hunt(chat_id):
+    """Runs the pipeline in a separate thread and notifies completion."""
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    
     try:
-        await run_async_pipeline()
-        await update.message.reply_text("✅ **Caccia Completata.**\nSe ho trovato segnali, te li ho inviati.")
+        # Run the pipeline
+        loop.run_until_complete(run_async_pipeline())
+        
+        # Send completion message using Notifier
+        notifier = TelegramNotifier()
+        loop.run_until_complete(notifier.send_alert("✅ **Caccia Completata.**\nSe ho trovato segnali, te li ho inviati.", chat_id=chat_id))
     except Exception as e:
-        logger.error(f"Manual hunt error: {e}")
-        await update.message.reply_text(f"❌ Errore durante la caccia: {e}")
+        logger.error(f"Background hunt error: {e}")
+    finally:
+        loop.close()
+
+async def hunt_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = update.effective_chat.id
+    await update.message.reply_text("🏹 **Caccia Iniziata!**\nAnalizzo le news... (Procedo in background, non bloccare la chat)")
+    
+    # Spawn Thread to prevent Webhook Timeout (which causes Telegram to retry/pam)
+    t = threading.Thread(target=run_background_hunt, args=(chat_id,))
+    t.start()
 
 async def dashboard_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     app_url = os.environ.get("APP_URL", "https://zerocosthunter.vercel.app")
