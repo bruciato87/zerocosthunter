@@ -25,7 +25,12 @@ load_dotenv()
 app = Flask(__name__, template_folder='../templates')
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "fallback_secret_key_change_in_prod")
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler(sys.stdout)],
+    force=True
+)
 # Silence yfinance internal logging (prevents "possibly delisted" spam during suffix rotation)
 logging.getLogger("yfinance").setLevel(logging.CRITICAL)
 logger = logging.getLogger("VercelWebhook")
