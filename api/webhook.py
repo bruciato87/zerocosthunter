@@ -386,18 +386,25 @@ async def show_portfolio(update: Update, context: ContextTypes.DEFAULT_TYPE):
         Handles Crypto (-USD) separately to avoid suffix spam.
         Returns: (price_in_eur, found_ticker_suffix) or (0.0, None)
         """
-        # OPTIMIZATION: If ticker has '-', assume Crypto/Pair -> Skip Suffixes
-        if '-' in candidate_ticker:
-            # Try Raw first (fastest)
+        # OPTIMIZATION: If ticker has '-' or is known crypto
+        if '-' in candidate_ticker or candidate_ticker in ['RENDER', 'SOL', 'BTC', 'ETH']:
+            base = candidate_ticker.split('-')[0] if '-' in candidate_ticker else candidate_ticker
+            
+            # 1. Try EUR Pair first (e.g. BTC-EUR) - Most accurate for EU users
             try:
-                hist = yf.Ticker(candidate_ticker).history(period="1d")
+                hist = yf.Ticker(f"{base}-EUR").history(period="1d")
+                if not hist.empty:
+                    return hist['Close'].iloc[-1], f"{base}-EUR"
+            except: pass
+
+            # 2. Try USD Pair (e.g. BTC-USD) - Fallback
+            try:
+                hist = yf.Ticker(f"{base}-USD").history(period="1d")
                 if not hist.empty:
                      price = hist['Close'].iloc[-1]
-                     # Convert if USD
-                     if candidate_ticker.endswith('USD'):
-                         return price / eur_usd, candidate_ticker
-                     return price, candidate_ticker
+                     return price / eur_usd, f"{base}-USD"
             except: pass
+            
             return 0.0, None
 
         # 1. Try Explicit EUR Suffixes first (Trade Republic common markets)
@@ -406,7 +413,6 @@ async def show_portfolio(update: Update, context: ContextTypes.DEFAULT_TYPE):
             try:
                 # If ticker already has suffix, skip double suffixing (unless it's different)
                 if '.' in candidate_ticker and len(candidate_ticker.split('.')[-1]) < 3:
-                     # e.g. "ABC.MI", don't add .DE
                      t_test = candidate_ticker
                      s = "" 
                 else:
@@ -415,8 +421,8 @@ async def show_portfolio(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 hist = yf.Ticker(t_test).history(period="1d")
                 if not hist.empty:
                     return hist['Close'].iloc[-1], t_test
-            except: pass
-            if s == "": break # optimization if we tested raw already
+            except: pass # Silent fail for suffixes
+            if s == "": break 
             
         # 2. Try Raw (Assume USD typically, or Global)
         try:
