@@ -44,6 +44,10 @@ async def run_async_pipeline():
     logger = logging.getLogger("MainController")
     logger.setLevel(logging.INFO)
     
+    # FORCE Sub-module Loggers to INFO/DEBUG
+    for mod in ["hunter", "brain", "market_data", "advisor", "auditor", "economist", "whale_watcher"]:
+        logging.getLogger(mod).setLevel(logging.INFO)
+
     # DEBUG: Use print to confirm thread stdout is alive
     print("DEBUG: Pipeline Thread Started - Stdout Check", flush=True)
     logger.info("Starting Zero-Cost Investment Hunter Pipeline...")
