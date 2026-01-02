@@ -132,19 +132,29 @@ class Brain:
         - **RSI RULE:** If RSI > 75 (Overbought), avoid "BUY" unless news is fundamental-shifting. Prefer "HOLD".
         - **TREND RULE:** If Trend is "BEARISH" (Below SMA200), be cautious. "Cheaper" is often a trap. Require STRONG positive news.
 
-        **CRITICAL INSTRUCTION: WHALE WATCHER (BINANCE FLOW)**
+        **CRITICAL INSTRUCTION: MACRO & WHALE LOGIC (PRIORITY 1)**
+        
+        **A) MACRO CONTEXT CHECK**
+        - You will receive a `[MACRO STRATEGIST]` context block (Risk Level, VIX, Yields).
+        - **IF RISK IS 'HIGH' (e.g. FED Meeting, VIX > 30):**
+            - **ACTION:** Downgrade ALL "BUY" signals to "WAIT" or "HOLD" unless the specific news is "Game Changing" (e.g. Earnings beat +20%).
+            - **REASONING:** Explicitly mention "Macro Risk is High (Safety First)" in your reasoning.
+        
+        **B) WHALE WATCHER CHECK (Binance Flow)**
         - You will receive a `[WHALE WATCHER]` context block.
-        - **BEARISH FLOW RULE:** If Status is "BEARISH (Net Selling)" or "DUMP DETECTED":
-            - **VETO POWER:** You CANNOT issue a "BUY" signal for BTC, ETH, SOL, or Crypto-related stocks (COIN, MSTR) unless the specific news is overwhelmingly positive (e.g. ETF Approval).
-            - **ACTION:** Downgrade "BUY" to "WAIT" or "HOLD".
-        - **BULLISH FLOW RULE:** If Status is "BULLISH (Net Buying)":
-            - **BOOST:** Increase Confidence Score by +0.1.
-            - **ACTION:** You may upgrade "WAIT" to "ACCUMULATE".
-        - **NEUTRAL:** If "Quiet Market", rely solely on News & Technicals.
+        - **IF FLOW IS 'BEARISH' (Net Selling / Dump Detected):**
+            - **VETO POWER:** You CANNOT issue a "BUY" signal for BTC, ETH, SOL, or Crypto-related stocks (COIN, MSTR).
+            - **ACTION:** Downgrade "BUY" to "WAIT".
+            - **REASONING:** Start with "Whales are selling..."
+        - **IF FLOW IS 'BULLISH' (Net Buying):**
+            - **BOOST:** This is a conviction multiplier. Increase Confidence Score by +0.1.
+            - **ACTION:** Validates "BUY" signals.
+            - **REASONING:** Mention "Supported by Whale Accumulation."
 
-        **LANGUAGE:**
+        **LANGUAGE & FORMAT:**
         - **Reasoning**: MUST be in **ITALIAN**.
-        - **Sentiment**: MUST be ONE of: ["BUY", "SELL", "ACCUMULATE", "PANIC SELL", "HOLD", "WAIT"].
+        - **Sentiment**: ONE of: ["BUY", "SELL", "ACCUMULATE", "PANIC SELL", "HOLD", "WAIT"].
+        - **Required:** Your reasoning MUST cite the specific data point (Macro or Whale) if it influenced the decision.
         
         **CRITICAL FILTERS:**
         1.  **Trade Republic Friendly Only:** Focus ONLY on major High-Cap Stocks and Major Cryptocurrencies.
@@ -161,7 +171,7 @@ class Brain:
         1.  **Risk Score (1-10):**
             - 1-3: Low Risk (Trend Bullish, RSI Neutral, Blue Chip)
             - 4-7: Medium Risk
-            - 8-10: High Risk (Crypto, RSI > 80, Speculative)
+            - 8-10: High Risk (Crypto, RSI > 80, Speculative, Macro High)
         2.  **Target Price (Short Term):**
             - Extract from the news (e.g., "Analyst sets $150 target").
             - **VALIDATE against Current Price.**
@@ -170,16 +180,16 @@ class Brain:
         3.  **Upside Percentage:**
             - Numeric value of potential gain (e.g. 15.5 for +15.5%).
             - Return 0.0 if unknown/negative.
-
+            
         **OUTPUT FORMAT:** JSON list.
-
-        **NEWS DATA:**
+        
+        **DATA CONTEXTS:**
         {news_text}
 
         **INSTRUCTIONS:**
         For each news item that contains a SIGNIFICANT signal:
         - Extract **Ticker**, **Type**, **Sentiment**.
-        - Write **Reasoning** in **ITALIAN**, concise but insightful.
+        - Write **Reasoning** in **ITALIAN**, concise but insightful. Cite Macro/Whale if relevant.
         - **Risk Score** (1-10), **Target Price**, **Upside %**.
         - **Confidence Score** (0.0 to 1.0).
         
@@ -192,7 +202,7 @@ class Brain:
             {{
                 "ticker": "AAPL",
                 "sentiment": "BUY",
-                "reasoning": "Strong earnings. Analyst upgraded target to $200. Upside is clear.",
+                "reasoning": "Utili sopra le attese. Whales in accumulo confermano il trend rialzista nonostante il Macro incerto.",
                 "confidence": 0.85,
                 "risk_score": 4,
                 "target_price": "$200",
