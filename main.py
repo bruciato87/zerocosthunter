@@ -81,6 +81,15 @@ async def run_async_pipeline():
         "SPY": "SPY", "S&P 500": "SPY"
     }
 
+    # Canonical Map for De-duplication
+    CANONICAL_MAP = {
+        "BTC": "BTC-USD", "BITCOIN": "BTC-USD",
+        "ETH": "ETH-USD", "ETHEREUM": "ETH-USD",
+        "SOL": "SOL-USD", "SOLANA": "SOL-USD",
+        "RNDR": "RENDER-USD", "RENDER": "RENDER-USD",
+        "RNDR-USD": "RENDER-USD"
+    }
+
     # Add Portfolio Tickers to Monitored list dynamically
     for p_ticker in portfolio_map.keys():
         MONITORED_TICKERS[p_ticker] = p_ticker
@@ -91,19 +100,26 @@ async def run_async_pipeline():
         # Find first matching ticker
         detected_ticker = None
         for key, symbol in MONITORED_TICKERS.items():
-            # word boundary check to avoid matching "BETTER" as "ETH"
+            # word boundary check
             if re.search(r'\b' + re.escape(key) + r'\b', text_content):
                 detected_ticker = symbol
                 break
         
         if detected_ticker:
+            # 1. Normalize Ticker
+            if detected_ticker in CANONICAL_MAP:
+                detected_ticker = CANONICAL_MAP[detected_ticker]
+            
+            # Persist normalized ticker
+            item['ticker'] = detected_ticker
+
             extras = []
             
-            # 1. Technicals
+            # 2. Technicals
             tech_summary = market.get_technical_summary(detected_ticker)
             extras.append(f"Technical: {tech_summary}")
             
-            # 2. Portfolio
+            # 3. Portfolio
             if detected_ticker in portfolio_map:
                 holding = portfolio_map[detected_ticker]
                 p_summary = f"OWNED {holding['quantity']} @ ${holding['avg_price']}"
@@ -114,29 +130,41 @@ async def run_async_pipeline():
             logger.info(f"Enriched {detected_ticker} news.")
 
     # --- SYNTHETIC PORTFOLIO INJECTION ---
-    # Ensure ALL portfolio assets are analyzed, even if no news found.
-    found_tickers = set(i.get('ticker') for i in news_items if i.get('ticker'))
+    # Ensure ALL portfolio assets are analyzed. Use CANONICAL tickers.
+    found_tickers = set()
+    for i in news_items:
+        if i.get('ticker'):
+            t = i['ticker']
+            if t in CANONICAL_MAP: t = CANONICAL_MAP[t]
+            found_tickers.add(t)
+
     for p_ticker, holding in portfolio_map.items():
-        if p_ticker not in found_tickers:
-            logger.info(f"Portfolio Asset {p_ticker} not in news. Generating Synthetic Check...")
+        # Normalize portfolio ticker for check
+        norm_p_ticker = CANONICAL_MAP.get(p_ticker, p_ticker)
+        
+        if norm_p_ticker not in found_tickers:
+            logger.info(f"Portfolio Asset {norm_p_ticker} not in news. Generating Synthetic Check...")
             try:
-                # 1. Fetch Technicals
-                tech_summary = market.get_technical_summary(p_ticker)
+                # 1. Fetch Technicals using ORIGINAL ticker (market data handles aliases) or Normalized?
+                # Best to use normalized if it's a standard YF ticker like BTC-USD
+                fetch_ticker = norm_p_ticker
+                
+                tech_summary = market.get_technical_summary(fetch_ticker)
                 
                 # 2. Create Synthetic Item
                 synthetic_item = {
-                    "title": f"PORTFOLIO CHECK: {p_ticker}",
-                    "link": f"https://finance.yahoo.com/quote/{p_ticker}",
+                    "title": f"PORTFOLIO CHECK: {fetch_ticker}",
+                    "link": f"https://finance.yahoo.com/quote/{fetch_ticker}",
                     "summary": f"Routine technical check for owned asset. {tech_summary}. [Portfolio: OWNED {holding['quantity']} @ ${holding['avg_price']}]",
                     "published": "Just Now",
-                    "ticker": p_ticker,
+                    "ticker": fetch_ticker, # Use Normalized
                     "synthetic": True,
                     "source": "Portfolio Technicals"
                 }
                 news_items.append(synthetic_item)
-                logger.info(f"Injected Synthetic Item for {p_ticker}")
+                logger.info(f"Injected Synthetic Item for {fetch_ticker}")
             except Exception as e:
-                logger.error(f"Failed to generate synthetic item for {p_ticker}: {e}")
+                logger.error(f"Failed to generate synthetic item for {norm_p_ticker}: {e}")
     # -------------------------------------
 
     # 3. Analyze with AI
@@ -193,9 +221,31 @@ async def run_async_pipeline():
     else:
         logger.info(f"WhaleWatcher: {whale_context}")
 
+    # --- PRE-BRAIN DEDUPLICATION & MERGING ---
+    # Group items by ticker to prevent multiple signals for same asset (e.g. News + Synthetic)
+    merged_map = {}
+    for item in news_items:
+        t = item.get('ticker')
+        if not t: continue
+        
+        if t in merged_map:
+            # Merge logic: Append summary
+            existing = merged_map[t]
+            existing['summary'] += f"\n\n--- ADDITIONAL CONTEXT ---\n{item['title']}: {item['summary']}"
+            # Keep the 'synthetic' flag false if ANY item is real news
+            if not item.get('synthetic', False):
+                existing['synthetic'] = False
+                existing['source'] = item.get('source', 'News') # Prefer real source
+        else:
+            merged_map[t] = item
+
+    unique_news_items = list(merged_map.values())
+    logger.info(f"Deduplicated News Items: {len(news_items)} -> {len(unique_news_items)}")
+    # -----------------------------------------
+
     logger.info("Analyzing news with Gemini...")
     predictions = brain.analyze_news_batch(
-        news_items, 
+        unique_news_items, 
         performance_context=performance_context, 
         insider_context=insider_context,
         portfolio_context=advisor_analysis,
