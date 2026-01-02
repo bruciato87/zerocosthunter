@@ -32,10 +32,7 @@ async def run_async_pipeline():
     print("DEBUG: Pipeline Thread Started - Stdout Check", flush=True)
     print("Hunter: Starting Zero-Cost Investment Hunter Pipeline...", flush=True)
 
-    # Force re-configuration of logging (just in case)
-    for handler in logging.root.handlers[:]:
-        logging.root.removeHandler(handler)
-    logging.basicConfig(level=logging.INFO, handlers=[logging.StreamHandler(sys.stdout)], force=True)
+    # Logging config removed to avoid fighting with system logger. Relies on print() and default handlers.
     
     # 0. Log Start (for Dashboard visibility even if timeout occurs)
     try:
