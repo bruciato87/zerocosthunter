@@ -342,6 +342,49 @@ class DBHandler:
         except Exception as e:
             print(f"Failed to log system event to DB: {e}") # Fallback to print
 
+    # --- DISTRIBUTED LOCK (Ad-Hoc via Logs) ---
+    def acquire_hunt_lock(self, expiry_minutes: int = 2) -> bool:
+        """
+        Attempts to acquire a lock for the 'hunt' process.
+        Returns True if acquired, False if already locked by another instance.
+        Uses the 'logs' table with module='HUNTER_LOCK' as a semaphore.
+        """
+        try:
+            # 1. Check state
+            # Fetch most recent lock event
+            response = self.supabase.table("logs") \
+                .select("*") \
+                .eq("module", "HUNTER_LOCK") \
+                .order("created_at", desc=True) \
+                .limit(1) \
+                .execute()
+            
+            if response.data:
+                last_event = response.data[0]
+                status = last_event.get("message")
+                created_at = datetime.fromisoformat(last_event.get("created_at").replace('Z', '+00:00')).replace(tzinfo=None)
+                
+                # Check if currently locked
+                if status == "LOCKED":
+                    # Check expiry
+                    now = datetime.utcnow()
+                    if (now - created_at).total_seconds() < (expiry_minutes * 60):
+                        logger.warning(f"Hunt Locked. Active since {created_at} (Expires in {expiry_minutes}m)")
+                        return False # BUSY
+
+            # 2. Acquire
+            self.log_system_event("INFO", "HUNTER_LOCK", "LOCKED")
+            return True
+        except Exception as e:
+            logger.error(f"Lock Error: {e}")
+            return True # Fail-open to avoid permanent blockage, or False? True is risky but prevents deadlock. 
+
+    def release_hunt_lock(self):
+        """Releases the hunt lock."""
+        try:
+             self.log_system_event("INFO", "HUNTER_LOCK", "RELEASED")
+        except: pass
+
 if __name__ == "__main__":
     # Test connection
     try:

@@ -90,15 +90,25 @@ async def setup_bot_commands(bot):
     await bot.set_my_commands(commands)
 
 # Simple logic preventing double-execution on Retry
+# Local (per-instance) lock + DB (distributed) lock
 IS_HUNTING = False
 
 async def hunt_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     global IS_HUNTING
     chat_id = update.effective_chat.id
     
+    # 1. Local Check (Fast)
     if IS_HUNTING:
-        logger.info("Request blocked: Hunt already in progress.")
-        await update.message.reply_text("⏳ **Caccia già in corso...**\nAttendi il termine della scansione attuale.")
+        logger.info("Request blocked (Local Lock): Hunt already in progress.")
+        await update.message.reply_text("⏳ **Caccia già in corso...** (Istanza Locale)")
+        return
+
+    # 2. Distributed Check (DB)
+    db = DBHandler()
+    if not db.acquire_hunt_lock(expiry_minutes=2):
+        logger.info("Request blocked (DB Lock): Hunt already running in another instance.")
+        # Optional: Notify user or just ignore to avoid spamming 'Busy' on retries
+        # await update.message.reply_text("⏳ **Caccia già in corso...** (Processo attivo)")
         return
 
     try:
@@ -116,6 +126,7 @@ async def hunt_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"❌ **Errore:** {str(e)}")
     finally:
         IS_HUNTING = False
+        db.release_hunt_lock()
 
 async def dashboard_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     app_url = os.environ.get("APP_URL", "https://zerocosthunter.vercel.app")
