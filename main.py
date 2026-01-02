@@ -68,25 +68,46 @@ async def run_async_pipeline():
         market = MarketData()
         auditor = Auditor()
         economist = Economist()
+    # DEBUG: Use print to confirm thread stdout is alive
+    print("DEBUG: Pipeline Thread Started - Stdout Check", flush=True)
+    print("Hunter: Starting Zero-Cost Investment Hunter Pipeline...", flush=True)
+    
+    # 0. Log Start (for Dashboard visibility even if timeout occurs)
+    try:
+        tmp_db = DBHandler()
+        tmp_db.log_system_event("INFO", "Hunter", "Pipeline Started")
+    except:
+        pass
+
+    # 1. Initialize Modules
+    try:
+        db = DBHandler()
+        hunter = NewsHunter()
+        brain = Brain()
+        notifier = TelegramNotifier()
+        market = MarketData()
+        auditor = Auditor()
+        economist = Economist()
     except Exception as e:
-        logger.critical(f"Initialization failed: {e}")
+        print(f"CRITICAL: Initialization failed: {e}", flush=True)
         return
 
     # 2. Fetch News
     news_items = hunter.fetch_news()
     if not news_items:
-        logger.info("No news found. Exiting.")
+        print("Hunter: No news found. Exiting.", flush=True)
         return
 
     # 2.2 Load Portfolio
-    logger.info("Loading Portfolio...")
+    print("Hunter: Loading Portfolio...", flush=True)
     portfolio_map = db.get_portfolio_map()
     if portfolio_map:
-        logger.info(f"Loaded {len(portfolio_map)} holdings.")
+        print(f"Hunter: Loaded {len(portfolio_map)} holdings.", flush=True)
 
     # 2.5 Enrich News with Technical Data & Portfolio Context
-    logger.info("Enriching news with Technical Data & Portfolio Context...")
+    print("Hunter: Enriching news with Technical Data & Portfolio Context...", flush=True)
     
+    # ... (Monitored Tickers Setup - Unchanged) ...
     # Simple whitelist for Zero-Cost extraction (expandable)
     MONITORED_TICKERS = {
         "BTC": "BTC-USD", "BITCOIN": "BTC-USD",
@@ -154,10 +175,10 @@ async def run_async_pipeline():
                 holding = portfolio_map[detected_ticker]
                 p_summary = f"OWNED {holding['quantity']} @ ${holding['avg_price']}"
                 extras.append(f"Portfolio: {p_summary}")
-                logger.info(f"Enriched {detected_ticker} with Portfolio data: {p_summary}")
+                print(f"Hunter: Enriched {detected_ticker} with Portfolio data: {p_summary}", flush=True)
 
             item['summary'] += "\n\n[" + " | ".join(extras) + "]"
-            logger.info(f"Enriched {detected_ticker} news.")
+            print(f"Hunter: Enriched {detected_ticker} news.", flush=True)
 
     # --- SYNTHETIC PORTFOLIO INJECTION ---
     # Ensure ALL portfolio assets are analyzed. Use CANONICAL tickers.
@@ -173,7 +194,7 @@ async def run_async_pipeline():
         norm_p_ticker = CANONICAL_MAP.get(p_ticker, p_ticker)
         
         if norm_p_ticker not in found_tickers:
-            logger.info(f"Portfolio Asset {norm_p_ticker} not in news. Generating Synthetic Check...")
+            print(f"Hunter: Portfolio Asset {norm_p_ticker} not in news. Generating Synthetic Check...", flush=True)
             try:
                 # 1. Fetch Technicals using ORIGINAL ticker (market data handles aliases) or Normalized?
                 # Best to use normalized if it's a standard YF ticker like BTC-USD
@@ -192,9 +213,9 @@ async def run_async_pipeline():
                     "source": "Portfolio Technicals"
                 }
                 news_items.append(synthetic_item)
-                logger.info(f"Injected Synthetic Item for {fetch_ticker}")
+                print(f"Hunter: Injected Synthetic Item for {fetch_ticker}", flush=True)
             except Exception as e:
-                logger.error(f"Failed to generate synthetic item for {norm_p_ticker}: {e}")
+                print(f"ERROR: Failed to generate synthetic item for {norm_p_ticker}: {e}", flush=True)
     # -------------------------------------
 
     # 3. Analyze with AI
@@ -205,7 +226,7 @@ async def run_async_pipeline():
         stats = auditor.get_ticker_stats(t)
         if stats:
             performance_context[t] = stats
-            logger.info(f"Feedback Loop: Found history for {t} -> {stats['status']} ({stats['win_rate']}%)")
+            print(f"Hunter: Feedback Loop: Found history for {t} -> {stats['status']} ({stats['win_rate']}%)")
 
     # [INSIDER] Fetch Market Mood & Social Sentiment
     from insider import Insider
@@ -218,10 +239,10 @@ async def run_async_pipeline():
         insider_context = market_mood if market_mood else {}
         if social_sentiment:
             insider_context['social'] = social_sentiment
-            logger.info(f"Insider: Found {len(social_sentiment)} trending social headlines.")
+            print(f"Insider: Found {len(social_sentiment)} trending social headlines.", flush=True)
         
         if market_mood:
-            logger.info(f"Insider: Market Mood is {market_mood.get('overall')} ({market_mood.get('crypto',{}).get('value')})")
+            print(f"Insider: Market Mood is {market_mood.get('overall')} ({market_mood.get('crypto',{}).get('value')})", flush=True)
 
     # [ADVISOR] Portfolio Health Analysis
     from advisor import Advisor
@@ -231,14 +252,13 @@ async def run_async_pipeline():
     portfolio_list = list(portfolio_map.values()) if portfolio_map else []
     advisor_analysis = adv.analyze_portfolio(portfolio_list)
     if advisor_analysis:
-        logger.info(f"Advisor: Portfolio Value ${advisor_analysis['total_value']:.2f}. Tips: {len(advisor_analysis.get('tips', []))}")
+        print(f"Advisor: Portfolio Value ${advisor_analysis['total_value']:.2f}. Tips: {len(advisor_analysis.get('tips', []))}", flush=True)
 
     # [ECONOMIST] Macro Context (V4.0)
     macro_context = economist.get_macro_summary()
-    logger.info(f"Economist: Macro Context Generated. ({len(macro_context)} chars)")
+    print(f"Economist: Macro Context Generated. ({len(macro_context)} chars)", flush=True)
 
     # [WHALE WATCHER] On-Chain Context (V4.0 Phase 11)
-    # Checks for large transfers (Buy Pressure vs Sell Pressure)
     from whale_watcher import WhaleWatcher
     whale = WhaleWatcher()
     whale_context = whale.analyze_flow()
@@ -247,33 +267,30 @@ async def run_async_pipeline():
     w_lines = whale_context.splitlines()
     if len(w_lines) > 2:
         log_hint = w_lines[6].strip() if len(w_lines) > 6 and 'strategy_hint' in whale_context else ''
-        logger.info(f"WhaleWatcher: {w_lines[2].strip()} | {log_hint}")
+        print(f"WhaleWatcher: {w_lines[2].strip()} | {log_hint}", flush=True)
     else:
-        logger.info(f"WhaleWatcher: {whale_context}")
+        print(f"WhaleWatcher: {whale_context}", flush=True)
 
     # --- PRE-BRAIN DEDUPLICATION & MERGING ---
-    # Group items by ticker to prevent multiple signals for same asset (e.g. News + Synthetic)
     merged_map = {}
     for item in news_items:
         t = item.get('ticker')
         if not t: continue
         
         if t in merged_map:
-            # Merge logic: Append summary
             existing = merged_map[t]
             existing['summary'] += f"\n\n--- ADDITIONAL CONTEXT ---\n{item['title']}: {item['summary']}"
-            # Keep the 'synthetic' flag false if ANY item is real news
             if not item.get('synthetic', False):
                 existing['synthetic'] = False
-                existing['source'] = item.get('source', 'News') # Prefer real source
+                existing['source'] = item.get('source', 'News') 
         else:
             merged_map[t] = item
 
     unique_news_items = list(merged_map.values())
-    logger.info(f"Deduplicated News Items: {len(news_items)} -> {len(unique_news_items)}")
+    print(f"Hunter: Deduplicated News Items: {len(news_items)} -> {len(unique_news_items)}", flush=True)
     # -----------------------------------------
 
-    logger.info("Analyzing news with Gemini...")
+    print("Hunter: Analyzing news with Gemini...", flush=True)
     predictions = brain.analyze_news_batch(
         unique_news_items, 
         performance_context=performance_context, 
@@ -289,7 +306,7 @@ async def run_async_pipeline():
     user_settings = db.get_settings()
     min_conf = float(user_settings.get("min_confidence", 0.70))
     only_portfolio = user_settings.get("only_portfolio", False)
-    logger.info(f"Smart Filters Active: Min Confidence={min_conf}, Only Portfolio={only_portfolio}")
+    print(f"Hunter: Smart Filters Active: Min Confidence={min_conf}, Only Portfolio={only_portfolio}", flush=True)
 
     # 4. Process Predictions
     for pred in predictions:
@@ -304,12 +321,12 @@ async def run_async_pipeline():
 
         # FILTER 1: Confidence Score
         if confidence < min_conf:
-            logger.info(f"Skipped {ticker}: Confidence {confidence:.2f} < Threshold {min_conf}")
+            print(f"Skipped {ticker}: Confidence {confidence:.2f} < Threshold {min_conf}", flush=True)
             continue
 
         # FILTER 2: Portfolio Only Mode
         if only_portfolio and ticker not in portfolio_map:
-            logger.info(f"Skipped {ticker}: Portfolio Mode ON and asset not owned.")
+            print(f"Skipped {ticker}: Portfolio Mode ON and asset not owned.", flush=True)
             continue
 
         # Check if recently analyzed (Same Ticker + Same Sentiment = SPAM)
@@ -337,7 +354,7 @@ async def run_async_pipeline():
                 
                 auditor.record_signal(ticker, signal_id=signal_id, target_price=tp_float)
             except Exception as e:
-                logger.error(f"Failed to record signal for audit: {e}")
+                print(f"ERROR: Failed to record signal for audit: {e}", flush=True)
         # ---------------------------
 
         # Format Alert
@@ -364,14 +381,14 @@ async def run_async_pipeline():
         processed_count += 1
 
     # --- AUDIT PHASE ---
-    logger.info("Running Auditor Checkup...")
+    print("Hunter: Running Auditor Checkup...", flush=True)
     audit_results = auditor.audit_open_signals()
     if audit_results:
         summary_audit = "\n".join(audit_results)
         await notifier.send_alert(f"⚖️ **Auditor Monitoring Update:**\n{summary_audit}")
 
     db.log_system_event("INFO", "Hunter", "Pipeline Finished")
-    logger.info(f"Pipeline finished. Processed {processed_count} actionable signals.")
+    print(f"Hunter: Pipeline finished. Processed {processed_count} actionable signals.", flush=True)
 
 if __name__ == "__main__":
     run_pipeline()
