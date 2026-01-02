@@ -20,60 +20,80 @@ class WhaleWatcher:
         
     def fetch_binance_whales(self, symbol):
         """
-        Fetches the last 1000 aggregated trades for a symbol.
-        Implements fallback logic for Geo-Blocked regions (US).
-        Returns list of 'Whale' trades (value > min_value_usd).
+        Fetches the last ~10,000 aggregated trades (10 batches of 1000).
+        Iterates backwards using 'endTime'.
         """
         whales = []
         endpoints = [
-            "https://api.binance.com/api/v3/aggTrades",      # Global
-            "https://api.binance.us/api/v3/aggTrades",       # US Fallback
-             # Coinbase typically uses different format, so we stick to Binance family for compat 
-             # or implement distinct logic. Let's start with Binance US.
+            "https://api.binance.com/api/v3/aggTrades",
+            "https://api.binance.us/api/v3/aggTrades",
         ]
 
-        success = False
-        for base_url in endpoints:
-            try:
-                # Adjust symbol for Binance US if needed (usually same for major pairs)
-                # Binance US volume is lower, but still indicative of major moves.
-                params = {"symbol": symbol, "limit": 1000}
-                
-                # Fast timeout to quick-fail to fallback
-                resp = requests.get(base_url, params=params, timeout=3)
-                
-                if resp.status_code == 200:
-                    trades = resp.json()
-                    for t in trades:
-                        # Binance aggTrade format is consistent across .com and .us
-                        price = float(t['p'])
-                        qty = float(t['q'])
-                        value_usd = price * qty
-                        
-                        if value_usd >= self.min_value_usd:
-                            side = "SELL" if t['m'] else "BUY"
-                            whales.append({
-                                "symbol": symbol,
-                                "price": price,
-                                "qty": qty,
-                                "value_usd": value_usd,
-                                "side": side,
-                                "timestamp": t['T']
-                            })
-                    success = True
-                    break # Success, stop trying endpoints
-                elif resp.status_code == 451:
-                    logger.warning(f"Binance Global Geo-Blocked (451). Trying US endpoint...")
-                    continue # Try next endpoint
-                else:
-                    logger.warning(f"Binance API Error {resp.status_code} from {base_url}: {resp.text}")
-            
-            except Exception as e:
-                logger.error(f"Binance Fetch Error ({base_url}): {e}")
+        target_count = 10000
+        total_fetched = 0
+        end_time = None  # None = Now
         
-        if not success:
-             logger.error(f"All Binance endpoints failed for {symbol}.")
+        # Max loops to avoid infinite stuck state
+        for _ in range(15):
+             if total_fetched >= target_count: break
+             
+             batch_success = False
+             current_batch = []
+             
+             for base_url in endpoints:
+                 try:
+                     params = {"symbol": symbol, "limit": 1000}
+                     if end_time:
+                         params["endTime"] = end_time
+                     
+                     resp = requests.get(base_url, params=params, timeout=3)
+                     
+                     if resp.status_code == 200:
+                         trades = resp.json()
+                         if not trades: break # No more history
+                         
+                         # Sort just in case (Binance usually sends asc, but we need newest->oldest)
+                         # Wait, aggTrades are usually returned oldest -> newest in the range.
+                         # So last element is newest.
+                         # To go back, we need 'startTime' and 'endTime'.
+                         # If we just set endTime to the Timestamp of the FIRST element (oldest) - 1, we get the previous batch.
+                         
+                         current_batch = trades
+                         batch_success = True
+                         break # Got data from one endpoint
+                     elif resp.status_code == 451:
+                         continue # Try US
+                     else:
+                         logger.warning(f"Binance Error {resp.status_code}")
+                 except Exception:
+                     continue
             
+             if not batch_success or not current_batch:
+                 break
+             
+             # Process Batch
+             for t in current_batch:
+                 price = float(t['p'])
+                 qty = float(t['q'])
+                 value_usd = price * qty
+                 
+                 if value_usd >= self.min_value_usd:
+                     side = "SELL" if t['m'] else "BUY"
+                     whales.append({
+                         "symbol": symbol,
+                         "price": price,
+                         "qty": qty,
+                         "value_usd": value_usd,
+                         "side": side,
+                         "timestamp": t['T']
+                     })
+             
+             total_fetched += len(current_batch)
+             
+             # New endTime = Oldest trade in this batch - 1ms
+             # Batch is sorted by time ascending (oldest first)
+             end_time = current_batch[0]['T'] - 1
+             
         return whales
 
     def analyze_flow(self, test_mode=False):

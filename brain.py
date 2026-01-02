@@ -132,6 +132,16 @@ class Brain:
         - **RSI RULE:** If RSI > 75 (Overbought), avoid "BUY" unless news is fundamental-shifting. Prefer "HOLD".
         - **TREND RULE:** If Trend is "BEARISH" (Below SMA200), be cautious. "Cheaper" is often a trap. Require STRONG positive news.
 
+        **CRITICAL INSTRUCTION: WHALE WATCHER (BINANCE FLOW)**
+        - You will receive a `[WHALE WATCHER]` context block.
+        - **BEARISH FLOW RULE:** If Status is "BEARISH (Net Selling)" or "DUMP DETECTED":
+            - **VETO POWER:** You CANNOT issue a "BUY" signal for BTC, ETH, SOL, or Crypto-related stocks (COIN, MSTR) unless the specific news is overwhelmingly positive (e.g. ETF Approval).
+            - **ACTION:** Downgrade "BUY" to "WAIT" or "HOLD".
+        - **BULLISH FLOW RULE:** If Status is "BULLISH (Net Buying)":
+            - **BOOST:** Increase Confidence Score by +0.1.
+            - **ACTION:** You may upgrade "WAIT" to "ACCUMULATE".
+        - **NEUTRAL:** If "Quiet Market", rely solely on News & Technicals.
+
         **LANGUAGE:**
         - **Reasoning**: MUST be in **ITALIAN**.
         - **Sentiment**: MUST be ONE of: ["BUY", "SELL", "ACCUMULATE", "PANIC SELL", "HOLD", "WAIT"].
