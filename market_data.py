@@ -33,7 +33,11 @@ class MarketData:
             "ICGA.FRA": "ICGA.DE",   # Yahoo uses .DE for Xetra/Frankfurt often
             "3CP": "3CP.F",          # Xiaomi on Frankfurt
             "RNDR-USD": "RENDER-USD", # Rebranding fallback
-            "BYD": "BY6.F"           # User owns BYD EV (Frankfurt), not Boyd Gaming (NYSE)
+            "RENDER": "RENDER-USD",   # Naked ticker support
+            "BYD": "BY6.F",           # User owns BYD EV (Frankfurt), not Boyd Gaming (NYSE)
+            "TCT": "NNnD.F",          # Tencent Frankfurt
+            "3XC": "3CP.F",           # Xiaomi Frankfurt
+            "NUKL": "NUKL.DE"         # Global X Uranium
         }
 
     def get_crypto_data_coingecko(self, ticker):
@@ -101,6 +105,8 @@ class MarketData:
         """
         try:
             ticker = ticker.upper().strip()
+            # Apply Alias Mapping for Technical Analysis
+            ticker = self.TICKER_ALIASES.get(ticker, ticker)
             
             # A. Try CoinGecko for Crypto Real-Time Data first
             cg_price, cg_change = self.get_crypto_data_coingecko(ticker)
