@@ -367,6 +367,40 @@ async def show_portfolio(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     TICKER_FIX_MAP = {"RNDR-USD": "RENDER-USD", "3DJ.DE": "3CP.F", "BYD": "BY6.F", "ICGA.FRA": "IAG.MC", "ICGA.DE": "IAG.MC", "ICGA.F": "IAG.MC", "3CP": "3CP.F"}
 
+    def fetch_price_smart(candidate_ticker):
+        """
+        Attempts to find a price for the ticker trying multiple suffixes.
+        Prioritizes EUR markets (DE, MI, F, PA) to avoid conversion errors.
+        Returns: (price_in_eur, found_ticker_suffix) or (0.0, None)
+        """
+        # 1. Try Explicit EUR Suffixes first (Trade Republic common markets)
+        suffixes_eur = ['.DE', '.F', '.MI', '.PA', '.MC', '.AS']
+        for s in suffixes_eur:
+            try:
+                # If ticker already has suffix, skip double suffixing (unless it's different)
+                if '.' in candidate_ticker and len(candidate_ticker.split('.')[-1]) < 3:
+                     # e.g. "ABC.MI", don't add .DE
+                     t_test = candidate_ticker
+                     s = "" 
+                else:
+                     t_test = candidate_ticker + s
+                
+                hist = yf.Ticker(t_test).history(period="1d")
+                if not hist.empty:
+                    return hist['Close'].iloc[-1], t_test
+            except: pass
+            if s == "": break # optimization if we tested raw already
+            
+        # 2. Try Raw (Assume USD typically, or Global)
+        try:
+            hist = yf.Ticker(candidate_ticker).history(period="1d")
+            if not hist.empty:
+                 price_usd = hist['Close'].iloc[-1]
+                 return price_usd / eur_usd, candidate_ticker # Convert to EUR
+        except: pass
+        
+        return 0.0, None    
+
     for item in portfolio:
         ticker = item.get('ticker', 'N/A')
         search = TICKER_FIX_MAP.get(ticker, ticker)
@@ -375,14 +409,15 @@ async def show_portfolio(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         if search and search != "UNKNOWN":
             try:
-                hist = yf.Ticker(search).history(period="1d")
-                if not hist.empty:
-                    price = hist['Close'].iloc[-1]
-                    if search.endswith(('.DE','.F','.MI','.PA')):
-                        curr_val = qty * price
-                    else:
-                        curr_val = qty * (price / eur_usd)
-            except: pass
+                 # Use Smart Fetch
+                 found_price, used_ticker = fetch_price_smart(search)
+                 if found_price > 0:
+                      curr_val = qty * found_price
+                      # Update ticker display if we found a better specific one (optional, helps debugging)
+                      if used_ticker and used_ticker != search:
+                          ticker = f"{ticker} ({used_ticker})"
+            except Exception as e:
+                 logger.error(f"Price error for {search}: {e}")
         
         total_val += curr_val
         val_str = f"€{curr_val:,.2f}" if curr_val > 0 else "N/A"
