@@ -337,6 +337,16 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.edit_message_text(text="🗑️ Operazione annullata.")
         except Exception as e:
             await query.edit_message_text(text=f"❌ Errore: {e}")
+    elif query.data == "confirm_reset":
+        try:
+           if db.delete_portfolio(chat_id):
+               await query.edit_message_text(text="☢️ **BOOM! Reset completato.**\nIl portafoglio è stato raso al suolo.")
+           else:
+               await query.edit_message_text(text="❌ Errore reset.")
+        except Exception as e:
+            await query.edit_message_text(text=f"❌ Errore: {e}")
+    elif query.data == "cancel_reset":
+        await query.edit_message_text(text="😮‍💨 **Reset Annullato.**\nI tuoi asset sono salvi.")
 
 async def show_portfolio(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
@@ -393,10 +403,17 @@ async def delete_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ Errore o non trovato.")
 
 async def reset_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if DBHandler().delete_portfolio(update.effective_chat.id):
-        await update.message.reply_text("☢️ Reset completato.")
-    else:
-        await update.message.reply_text("❌ Errore.")
+    keyboard = [
+        [InlineKeyboardButton("🔴 Conferma Reset (IRREVERSIBILE)", callback_data="confirm_reset")],
+        [InlineKeyboardButton("🟢 ANNULLA", callback_data="cancel_reset")]
+    ]
+    await update.message.reply_text(
+        "⚠️ **ATTENZIONE: RESET TOTALE** ⚠️\n\n"
+        "Stai per cancellare **TUTTO** il portafoglio.\n"
+        "Questa azione non può essere annullata.\n"
+        "Sei sicuro?",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
 
 async def setprice_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args or len(context.args) < 2:
