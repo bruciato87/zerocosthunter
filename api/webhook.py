@@ -367,6 +367,7 @@ async def show_portfolio(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     TICKER_FIX_MAP = {
         "RNDR-USD": "RENDER-USD", 
+        "RENDER": "RENDER-USD", # Fix for naked ticker
         "3DJ.DE": "3CP.F", 
         "BYD": "BY6.F", 
         "ICGA.FRA": "IAG.MC", 
@@ -381,9 +382,24 @@ async def show_portfolio(update: Update, context: ContextTypes.DEFAULT_TYPE):
     def fetch_price_smart(candidate_ticker):
         """
         Attempts to find a price for the ticker trying multiple suffixes.
-        Prioritizes EUR markets (DE, MI, F, PA) to avoid conversion errors.
+        Prioritizes EUR markets (DE, MI, F, PA) for Stocks.
+        Handles Crypto (-USD) separately to avoid suffix spam.
         Returns: (price_in_eur, found_ticker_suffix) or (0.0, None)
         """
+        # OPTIMIZATION: If ticker has '-', assume Crypto/Pair -> Skip Suffixes
+        if '-' in candidate_ticker:
+            # Try Raw first (fastest)
+            try:
+                hist = yf.Ticker(candidate_ticker).history(period="1d")
+                if not hist.empty:
+                     price = hist['Close'].iloc[-1]
+                     # Convert if USD
+                     if candidate_ticker.endswith('USD'):
+                         return price / eur_usd, candidate_ticker
+                     return price, candidate_ticker
+            except: pass
+            return 0.0, None
+
         # 1. Try Explicit EUR Suffixes first (Trade Republic common markets)
         suffixes_eur = ['.DE', '.F', '.MI', '.PA', '.MC', '.AS']
         for s in suffixes_eur:
