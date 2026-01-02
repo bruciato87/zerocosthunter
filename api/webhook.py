@@ -26,6 +26,8 @@ app = Flask(__name__, template_folder='../templates')
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "fallback_secret_key_change_in_prod")
 
 logging.basicConfig(level=logging.INFO)
+# Silence yfinance internal logging (prevents "possibly delisted" spam during suffix rotation)
+logging.getLogger("yfinance").setLevel(logging.CRITICAL)
 logger = logging.getLogger("VercelWebhook")
 
 TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
