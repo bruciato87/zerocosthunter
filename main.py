@@ -28,49 +28,14 @@ def run_pipeline():
     asyncio.run(run_async_pipeline())
 
 async def run_async_pipeline():
-    # Force re-configuration of logging to ensure visibility in Vercel/Threaded context
-    # We use FORCE=True and remove existing handlers to be strictly sure
-    for handler in logging.root.handlers[:]:
-        logging.root.removeHandler(handler)
-    
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        handlers=[logging.StreamHandler(sys.stdout)],
-        force=True
-    )
-    
-    # Re-acquire logger after config
-    logger = logging.getLogger("MainController")
-    logger.setLevel(logging.INFO)
-    
-    # FORCE Sub-module Loggers to INFO/DEBUG
-    for mod in ["hunter", "brain", "market_data", "advisor", "auditor", "economist", "whale_watcher"]:
-        logging.getLogger(mod).setLevel(logging.INFO)
-
-    # DEBUG: Use print to confirm thread stdout is alive
-    print("DEBUG: Pipeline Thread Started - Stdout Check", flush=True)
-    logger.info("Starting Zero-Cost Investment Hunter Pipeline...")
-    
-    # 0. Log Start (for Dashboard visibility even if timeout occurs)
-    try:
-        tmp_db = DBHandler()
-        tmp_db.log_system_event("INFO", "Hunter", "Pipeline Started")
-    except:
-        pass
-
-    # 1. Initialize Modules
-    try:
-        db = DBHandler()
-        hunter = NewsHunter()
-        brain = Brain()
-        notifier = TelegramNotifier()
-        market = MarketData()
-        auditor = Auditor()
-        economist = Economist()
     # DEBUG: Use print to confirm thread stdout is alive
     print("DEBUG: Pipeline Thread Started - Stdout Check", flush=True)
     print("Hunter: Starting Zero-Cost Investment Hunter Pipeline...", flush=True)
+
+    # Force re-configuration of logging (just in case)
+    for handler in logging.root.handlers[:]:
+        logging.root.removeHandler(handler)
+    logging.basicConfig(level=logging.INFO, handlers=[logging.StreamHandler(sys.stdout)], force=True)
     
     # 0. Log Start (for Dashboard visibility even if timeout occurs)
     try:
