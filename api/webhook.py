@@ -94,20 +94,29 @@ from telegram_bot import TelegramNotifier
 
 def run_background_hunt(chat_id):
     """Runs the pipeline in a separate thread and notifies completion."""
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    
+    print(f"DEBUG: Background Thread Spawned for Chat {chat_id}", flush=True)
     try:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        print("DEBUG: Event Loop Created. Running Pipeline...", flush=True)
+        
         # Run the pipeline
         loop.run_until_complete(run_async_pipeline())
+        print("DEBUG: Pipeline Completed. Sending Notification...", flush=True)
         
         # Send completion message using Notifier
         notifier = TelegramNotifier()
         loop.run_until_complete(notifier.send_alert("✅ **Caccia Completata.**\nSe ho trovato segnali, te li ho inviati.", chat_id=chat_id))
     except Exception as e:
+        print(f"CRITICAL THREAD ERROR: {e}", flush=True)
+        import traceback
+        traceback.print_exc()
         logger.error(f"Background hunt error: {e}")
     finally:
-        loop.close()
+        try:
+            loop.close()
+            print("DEBUG: Event Loop Closed.", flush=True)
+        except: pass
 
 async def hunt_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
