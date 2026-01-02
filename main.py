@@ -28,6 +28,16 @@ def run_pipeline():
     asyncio.run(run_async_pipeline())
 
 async def run_async_pipeline():
+    # Force re-configuration of logging to ensure visibility in Vercel/Threaded context
+    root = logging.getLogger()
+    if not root.handlers:
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            handlers=[logging.StreamHandler(sys.stdout)],
+            force=True
+        )
+    logger.setLevel(logging.INFO)
     logger.info("Starting Zero-Cost Investment Hunter Pipeline...")
     
     # 0. Log Start (for Dashboard visibility even if timeout occurs)
