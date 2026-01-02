@@ -386,7 +386,7 @@ async def show_portfolio(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         total_val += curr_val
         val_str = f"€{curr_val:,.2f}" if curr_val > 0 else "N/A"
-        msg += f"🔹 **{item.get('asset_name') or ticker}** ({item.get('asset_type','Unknown')})\n   Qty: {qty} | Val: {val_str}\n\n"
+        msg += f"🔹 **{item.get('asset_name') or ticker}** ({item.get('asset_type','Unknown')})\n   Ticker: `{ticker}`\n   Qty: {qty} | Val: {val_str}\n\n"
 
     msg += f"-----------------------------\n💰 **Totale:** `€{total_val:,.2f}`"
     await update.message.reply_text(msg)
