@@ -109,9 +109,10 @@ class WhaleWatcher:
         if net_flow > 5_000_000: status = "BULLISH (Net Buying)"
         elif net_flow < -5_000_000: status = "BEARISH (Net Selling)"
         
-        # If no data found (e.g. quiet market or offset issue), handle gracefully
+        # If no data found, be explicit but keep format
         if not all_whales:
-             return "[WHALE CONTEXT] No significant Whale activity detected in last 1000 trades."
+             status = "NEUTRAL (Quiet Market)"
+             significant_events = ["None"]
 
         context = f"""
         [WHALE WATCHER (BINANCE REAL-TIME)]
@@ -120,7 +121,7 @@ class WhaleWatcher:
         Whale Sell Vol: ${sell_vol/1_000_000:.1f}M
         Net Flow: ${net_flow/1_000_000:.1f}M
         Largest Transactions: {', '.join(significant_events[:5])}
-        strategy_hint: {'⚠️ DUMP DETECTED: Be cautious with Crypto' if status.startswith('BEARISH') else '✅ ACCUMULATION: Institutional interest visible' if status.startswith('BULLISH') else 'Flow is balanced'}
+        strategy_hint: {'⚠️ DUMP DETECTED: Be cautious with Crypto' if status.startswith('BEARISH') else '✅ ACCUMULATION: Institutional interest visible' if status.startswith('BULLISH') else 'Market is calm. No whale manipulation detected.'}
         """
         
         return context.strip()
