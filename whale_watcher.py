@@ -20,8 +20,8 @@ class WhaleWatcher:
         
     def fetch_binance_whales(self, symbol):
         """
-        Fetches the last ~10,000 aggregated trades (10 batches of 1000).
-        Iterates backwards using 'endTime'.
+        Fetches aggregated trades from the LAST 1 HOUR.
+        Iterates backwards using 'endTime' until the cutoff time is reached.
         """
         whales = []
         endpoints = [
@@ -29,14 +29,14 @@ class WhaleWatcher:
             "https://api.binance.us/api/v3/aggTrades",
         ]
 
-        target_count = 10000
-        total_fetched = 0
-        end_time = None  # None = Now
+        # 1 Hour Window
+        now_ms = int(datetime.datetime.now(datetime.timezone.utc).timestamp() * 1000)
+        cutoff_time = now_ms - (60 * 60 * 1000) # 1 Hour ago
         
-        # Max loops to avoid infinite stuck state
-        for _ in range(15):
-             if total_fetched >= target_count: break
-             
+        end_time = None  # Starts at "Now"
+        
+        # Safety Limit: Max 30 requests (~30k trades max) to prevent timeout
+        for _ in range(30):
              batch_success = False
              current_batch = []
              
@@ -50,29 +50,27 @@ class WhaleWatcher:
                      
                      if resp.status_code == 200:
                          trades = resp.json()
-                         if not trades: break # No more history
-                         
-                         # Sort just in case (Binance usually sends asc, but we need newest->oldest)
-                         # Wait, aggTrades are usually returned oldest -> newest in the range.
-                         # So last element is newest.
-                         # To go back, we need 'startTime' and 'endTime'.
-                         # If we just set endTime to the Timestamp of the FIRST element (oldest) - 1, we get the previous batch.
-                         
+                         if not trades: break
                          current_batch = trades
                          batch_success = True
-                         break # Got data from one endpoint
+                         break
                      elif resp.status_code == 451:
-                         continue # Try US
-                     else:
-                         logger.warning(f"Binance Error {resp.status_code}")
+                         continue
                  except Exception:
                      continue
             
              if not batch_success or not current_batch:
                  break
              
-             # Process Batch
+             # Check if we crossed the cutoff line
+             # Batch is oldest -> newest
+             oldest_in_batch = current_batch[0]['T']
+             
              for t in current_batch:
+                 # Only keep trades within the 1-hour window
+                 if t['T'] < cutoff_time:
+                     continue
+
                  price = float(t['p'])
                  qty = float(t['q'])
                  value_usd = price * qty
@@ -88,11 +86,13 @@ class WhaleWatcher:
                          "timestamp": t['T']
                      })
              
-             total_fetched += len(current_batch)
-             
-             # New endTime = Oldest trade in this batch - 1ms
-             # Batch is sorted by time ascending (oldest first)
-             end_time = current_batch[0]['T'] - 1
+             # Prepare next loop
+             # If the oldest trade in this batch is ALREADY older than cutoff, stop.
+             if oldest_in_batch < cutoff_time:
+                 break
+                 
+             # Otherwise, go back further
+             end_time = oldest_in_batch - 1
              
         return whales
 
