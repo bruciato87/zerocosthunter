@@ -641,9 +641,25 @@ def dashboard():
         logger.error(f"Whale Stats Error: {e}")
         whale_stats = None
 
+    # 8. Trade History
+    try:
+        history = db.supabase.table("signal_tracking").select("*").in_("status", ["WIN", "LOSS", "EXPIRED"]).order("updated_at", desc=True).limit(50).execute().data
+        # Parse dates to nicer string in python if needed, or do it in jinja
+        for h in history:
+            try:
+                if h.get('created_at'):
+                    h['created_at_fmt'] = datetime.fromisoformat(h['created_at'].replace('Z', '+00:00')).strftime("%d/%m/%Y")
+                if h.get('updated_at'):
+                    h['updated_at_fmt'] = datetime.fromisoformat(h['updated_at'].replace('Z', '+00:00')).strftime("%d/%m/%Y")
+            except: pass
+    except Exception as e:
+        logger.error(f"History Fetch Error: {e}")
+        history = []
+
     return render_template('dashboard.html', 
                            signals=signals, 
                            portfolio=portfolio, 
+                           history=history,
                            total_value_eur=total_val, 
                            total_invested_eur=total_inv, 
                            total_pl_eur=total_pl, 
