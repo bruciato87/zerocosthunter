@@ -107,8 +107,16 @@ async def run_async_pipeline():
         
         if detected_ticker:
             # 1. Normalize Ticker
+            # A) Hardcoded Canonical Map (BTC -> BTC-USD)
             if detected_ticker in CANONICAL_MAP:
                 detected_ticker = CANONICAL_MAP[detected_ticker]
+            
+            # B) Dynamic Portfolio Match (Catch-all for future assets)
+            # If "ADA" is found but I own "ADA-USD", normalize to "ADA-USD"
+            elif f"{detected_ticker}-USD" in portfolio_map:
+                detected_ticker = f"{detected_ticker}-USD"
+            elif f"{detected_ticker}USD" in portfolio_map:
+                 detected_ticker = f"{detected_ticker}USD"
             
             # Persist normalized ticker
             item['ticker'] = detected_ticker
