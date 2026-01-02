@@ -113,6 +113,31 @@ async def run_async_pipeline():
             item['summary'] += "\n\n[" + " | ".join(extras) + "]"
             logger.info(f"Enriched {detected_ticker} news.")
 
+    # --- SYNTHETIC PORTFOLIO INJECTION ---
+    # Ensure ALL portfolio assets are analyzed, even if no news found.
+    found_tickers = set(i.get('ticker') for i in news_items if i.get('ticker'))
+    for p_ticker, holding in portfolio_map.items():
+        if p_ticker not in found_tickers:
+            logger.info(f"Portfolio Asset {p_ticker} not in news. Generating Synthetic Check...")
+            try:
+                # 1. Fetch Technicals
+                tech_summary = market.get_technical_summary(p_ticker)
+                
+                # 2. Create Synthetic Item
+                synthetic_item = {
+                    "title": f"PORTFOLIO CHECK: {p_ticker}",
+                    "link": f"https://finance.yahoo.com/quote/{p_ticker}",
+                    "summary": f"Routine technical check for owned asset. {tech_summary}. [Portfolio: OWNED {holding['quantity']} @ ${holding['avg_price']}]",
+                    "published": "Just Now",
+                    "ticker": p_ticker,
+                    "synthetic": True
+                }
+                news_items.append(synthetic_item)
+                logger.info(f"Injected Synthetic Item for {p_ticker}")
+            except Exception as e:
+                logger.error(f"Failed to generate synthetic item for {p_ticker}: {e}")
+    # -------------------------------------
+
     # 3. Analyze with AI
     # [FEEDBACK LOOP] Fetch past performance for detected tickers
     performance_context = {}
