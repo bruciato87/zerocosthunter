@@ -29,15 +29,23 @@ def run_pipeline():
 
 async def run_async_pipeline():
     # Force re-configuration of logging to ensure visibility in Vercel/Threaded context
-    root = logging.getLogger()
-    if not root.handlers:
-        logging.basicConfig(
-            level=logging.INFO,
-            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-            handlers=[logging.StreamHandler(sys.stdout)],
-            force=True
-        )
+    # We use FORCE=True and remove existing handlers to be strictly sure
+    for handler in logging.root.handlers[:]:
+        logging.root.removeHandler(handler)
+    
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[logging.StreamHandler(sys.stdout)],
+        force=True
+    )
+    
+    # Re-acquire logger after config
+    logger = logging.getLogger("MainController")
     logger.setLevel(logging.INFO)
+    
+    # DEBUG: Use print to confirm thread stdout is alive
+    print("DEBUG: Pipeline Thread Started - Stdout Check", flush=True)
     logger.info("Starting Zero-Cost Investment Hunter Pipeline...")
     
     # 0. Log Start (for Dashboard visibility even if timeout occurs)
