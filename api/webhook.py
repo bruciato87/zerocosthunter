@@ -562,6 +562,19 @@ async def setprice_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except:
         await update.message.reply_text("⚠️ Errore formato.")
 
+async def setqty_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not context.args or len(context.args) < 2:
+        await update.message.reply_text("⚠️ Uso: `/setqty <TICKER> <QTY>`")
+        return
+    try:
+        qty = float(context.args[1].replace(',', '.'))
+        if DBHandler().update_asset_quantity(update.effective_chat.id, context.args[0].upper(), qty):
+            await update.message.reply_text(f"✅ Quantità di {context.args[0].upper()} impostata a {qty}.")
+        else:
+            await update.message.reply_text("❌ Ticker non trovato in portafoglio.")
+    except Exception as e:
+        await update.message.reply_text(f"⚠️ Errore formato: {e}")
+
 async def setticker_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args or len(context.args) < 2:
         await update.message.reply_text("⚠️ Uso: `/setticker <OLD> <NEW>`")
@@ -762,6 +775,7 @@ def webhook():
                 bot_app.add_handler(CommandHandler("reset", reset_command))
                 bot_app.add_handler(CommandHandler("setprice", setprice_command))
                 bot_app.add_handler(CommandHandler("setticker", setticker_command))
+                bot_app.add_handler(CommandHandler("setqty", setqty_command))
                 bot_app.add_handler(CommandHandler("settings", settings_command))
                 bot_app.add_handler(CommandHandler("analyze", analyze_command))
                 bot_app.add_handler(CommandHandler("macro", macro_command))

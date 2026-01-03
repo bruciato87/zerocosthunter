@@ -194,6 +194,20 @@ class DBHandler:
             logger.error(f"Error updating asset ticker: {e}")
             return False
 
+    def update_asset_quantity(self, chat_id: int, ticker: str, new_quantity: float):
+        """Manually update the quantity of a confirmed asset."""
+        try:
+            self.supabase.table("portfolio") \
+                .update({"quantity": new_quantity}) \
+                .eq("chat_id", chat_id) \
+                .eq("ticker", ticker) \
+                .execute()
+            logger.info(f"Manual quantity update: {ticker} -> {new_quantity} for {chat_id}")
+            return True
+        except Exception as e:
+            logger.error(f"Error updating asset quantity: {e}")
+            return False
+
     def get_recent_confirmed_portfolio(self, chat_id: int, minutes: int = 5):
         """Fetch portfolio items confirmed in the last N minutes."""
         try:
