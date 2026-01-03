@@ -71,23 +71,7 @@ def favicon_png():
 
 # --- Bot Logic ---
 
-async def setup_bot_commands(bot):
-    """Configures the menu button in Telegram UI."""
-    commands = [
-        BotCommand("hunt", "🏹 Caccia Manuale (Analisi News)"),
-        BotCommand("analyze", "🔬 Deep Dive Ticker (es. /analyze NVDA)"),
-        BotCommand("portfolio", "📊 Vedi Portafoglio & Valore Live"),
-        BotCommand("dashboard", "🖥️ Web Dashboard"),
-        BotCommand("macro", "🏛 Macro Strategist Context"),
-        BotCommand("help", "❓ Lista Comandi"),
-        BotCommand("setprice", "💶 Correggi Prezzo (es. /setprice AAPL 150)"),
-        BotCommand("setticker", "🏷 Correggi Ticker (es. /setticker OLD NEW)"),
-        BotCommand("delete", "🗑 Elimina un Asset"),
-        BotCommand("settings", "⚙️ Configura Smart Filters"),
-        BotCommand("reset", "☢️ Reset Totale"),
-        BotCommand("start", "🚀 Avvia"),
-    ]
-    await bot.set_my_commands(commands)
+
 
 # Simple logic preventing double-execution on Retry
 # Local (per-instance) lock + DB (distributed) lock
@@ -209,13 +193,12 @@ async def setup_bot_commands(bot):
         BotCommand("help", "❓ Lista Comandi"),
         BotCommand("setprice", "💶 Correggi Prezzo (es. /setprice AAPL 150)"),
         BotCommand("setticker", "🏷 Correggi Ticker (es. /setticker OLD NEW)"),
+        BotCommand("setqty", "🔢 Imposta Quantità (es. /setqty BTC 0.5)"),
         BotCommand("delete", "🗑 Elimina un Asset"),
         BotCommand("settings", "⚙️ Configura Smart Filters"),
         BotCommand("reset", "☢️ Reset Totale"),
         BotCommand("start", "🚀 Avvia"),
     ]
-    await bot.set_my_commands(commands)
-
     await bot.set_my_commands(commands)
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -227,6 +210,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "🐋 `/whale`\nVisualizza movimenti On-Chain (Balene).\n\n"
         "✍️ **Correzioni Manuali:**\n"
         "• `/setprice <TICKER> <PREZZO>`: Imposta manualmente il prezzo medio.\n"
+        "• `/setqty <TICKER> <QTY>`: Imposta manualmente la quantità.\n"
         "• `/setticker <OLD> <NEW>`: Rinomina un ticker errato.\n\n"
         "🗑 **Gestione:**\n"
         "• `/delete <TICKER>`: Elimina un singolo asset.\n"
