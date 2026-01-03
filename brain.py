@@ -168,7 +168,8 @@ class Brain:
             -   **IF [Portfolio] tag is MISSING (New Entry):**
                 -   **MUST** use "**BUY**" if the opportunity is good.
                 -   **MUST NOT** use "ACCUMULATE" (reserved for existing positions).
-                -   If neutral/negative, or if technicals contradict news (e.g. Bearish Trend), **SKIP IT**.
+                -   **MUST NOT** use "SELL" or "PANIC SELL" (Cannot sell what is not owned).
+                -   If news is negative, strictly **OMIT/SKIP** the signal.
         
         **QUANTITATIVE ANALYSIS (NEW):**
         For every signal, you MUST estimate:
