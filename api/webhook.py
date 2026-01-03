@@ -816,74 +816,7 @@ async def analyze_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
              await update.message.reply_text(f"❌ Impossibile analizzare **{ticker}**. Ticker non valido o nessuna news trovata.")
              return # This return was missing in the original snippet, but implied by the context.
     
-    # 0. Global FX Rate for fallback
-    eur_usd = 1.1
-
-def fetch_price_smart(candidate_ticker):
-    """
-    Attempts to find a price for the ticker trying multiple suffixes.
-    Prioritizes EUR markets (DE, MI, F, PA) for Stocks.
-    Handles Crypto (-USD) separately to avoid suffix spam.
-    Returns: (price_in_eur, found_ticker_suffix) or (0.0, None)
-    """
-    # Note: eur_usd global variable is assumed if needed, or we fetch it inside.
-    # To be safe, let's fetch eur_usd inside or use a default if strict isolation needed.
-    # But since this is module level, we can redefine a quick fetch or pass it.
-    # For now, simplistic fallback to avoid scope issues.
-    eur_usd_rate = 1.09
-    try:
-         hist = yf.Ticker("EURUSD=X").history(period="1d")
-         if not hist.empty: eur_usd_rate = hist['Close'].iloc[-1]
-    except: pass
-
-    # OPTIMIZATION: If ticker has '-' or is known crypto
-    updated_crypto_list = ['RENDER', 'SOL', 'BTC', 'ETH', 'XRP', 'ADA', 'DOGE', 'DOT', 'LINK', 'AVAX', 'MATIC', 'SHIB', 'PEPE']
-    if '-' in candidate_ticker or candidate_ticker in updated_crypto_list:
-        base = candidate_ticker.split('-')[0] if '-' in candidate_ticker else candidate_ticker
-        
-        # 1. Try EUR Pair first (e.g. BTC-EUR) - Most accurate for EU users
-        try:
-            hist = yf.Ticker(f"{base}-EUR").history(period="1d")
-            if not hist.empty:
-                return hist['Close'].iloc[-1], f"{base}-EUR"
-        except: pass
-
-        # 2. Try USD Pair (e.g. BTC-USD) - Fallback
-        try:
-            hist = yf.Ticker(f"{base}-USD").history(period="1d")
-            if not hist.empty:
-                    price = hist['Close'].iloc[-1]
-                    return price / eur_usd_rate, f"{base}-USD"
-        except: pass
-        
-        return 0.0, None
-
-    # 1. Try Explicit EUR Suffixes first (Trade Republic common markets)
-    suffixes_eur = ['.DE', '.F', '.MI', '.PA', '.MC', '.AS']
-    for s in suffixes_eur:
-        try:
-            # If ticker already has suffix, skip double suffixing (unless it's different)
-            if '.' in candidate_ticker and len(candidate_ticker.split('.')[-1]) < 3:
-                    t_test = candidate_ticker
-                    s = "" 
-            else:
-                    t_test = candidate_ticker + s
-            
-            hist = yf.Ticker(t_test).history(period="1d")
-            if not hist.empty:
-                return hist['Close'].iloc[-1], t_test
-        except: pass # Silent fail for suffixes
-        if s == "": break 
-        
-    # 2. Try Raw (Assume USD typically, or Global)
-    try:
-        hist = yf.Ticker(candidate_ticker).history(period="1d")
-        if not hist.empty:
-                price_usd = hist['Close'].iloc[-1]
-                return price_usd / eur_usd_rate, candidate_ticker # Convert to EUR
-    except: pass
     
-    return 0.0, None    
 
         # 4. Check Portfolio & Allocations
         portfolio = db.get_portfolio()
