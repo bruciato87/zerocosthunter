@@ -521,7 +521,7 @@ async def show_portfolio(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
             # Cleaner, less indented format with spacing
             msg += f"\n{icon} **{a.get('asset_name') or a['display_ticker']}**\n"
-            msg += f"   `{val_str}`  •  {a['quantity']} pz\n"
+            msg += f"   `{a['display_ticker']}`  •  `{val_str}`  •  {a['quantity']} pz\n"
 
     msg += f"\n━━━━━━━━━━━━━━━━━━━━\n💰 **TOTALE PORTAFOGLIO:** `€{total_val:,.2f}`"
     await update.message.reply_text(msg)
