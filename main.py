@@ -132,7 +132,22 @@ async def run_async_pipeline():
             # 3. Portfolio
             if detected_ticker in portfolio_map:
                 holding = portfolio_map[detected_ticker]
-                p_summary = f"OWNED {holding['quantity']} @ ${holding['avg_price']}"
+                
+                # Try to extract current price from tech_summary (Format: "Price: $123.45, ...")
+                current_price = 0.0
+                try:
+                    match = re.search(r'Price:\s*\$?([\d,]+\.?\d*)', tech_summary)
+                    if match:
+                        current_price = float(match.group(1).replace(',', ''))
+                except: pass
+
+                pnl_str = ""
+                if current_price > 0 and holding['avg_price'] > 0:
+                    pnl_pct = ((current_price - holding['avg_price']) / holding['avg_price']) * 100
+                    sign = "+" if pnl_pct >= 0 else ""
+                    pnl_str = f" | PnL: {sign}{pnl_pct:.2f}%"
+
+                p_summary = f"OWNED {holding['quantity']} @ ${holding['avg_price']}{pnl_str}"
                 extras.append(f"Portfolio: {p_summary}")
                 logger.info(f"Enriched {detected_ticker} with Portfolio data: {p_summary}")
 
@@ -161,11 +176,26 @@ async def run_async_pipeline():
                 
                 tech_summary = market.get_technical_summary(fetch_ticker)
                 
+                
+                # PnL Calculation for Synthetic
+                current_price = 0.0
+                try:
+                    match = re.search(r'Price:\s*\$?([\d,]+\.?\d*)', tech_summary)
+                    if match:
+                        current_price = float(match.group(1).replace(',', ''))
+                except: pass
+
+                pnl_str = ""
+                if current_price > 0 and holding['avg_price'] > 0:
+                    pnl_pct = ((current_price - holding['avg_price']) / holding['avg_price']) * 100
+                    sign = "+" if pnl_pct >= 0 else ""
+                    pnl_str = f" | PnL: {sign}{pnl_pct:.2f}%"
+
                 # 2. Create Synthetic Item
                 synthetic_item = {
                     "title": f"PORTFOLIO CHECK: {fetch_ticker}",
                     "link": f"https://finance.yahoo.com/quote/{fetch_ticker}",
-                    "summary": f"Routine technical check for owned asset. {tech_summary}. [Portfolio: OWNED {holding['quantity']} @ ${holding['avg_price']}]",
+                    "summary": f"Routine technical check for owned asset. {tech_summary}. [Portfolio: OWNED {holding['quantity']} @ ${holding['avg_price']}{pnl_str}]",
                     "published": "Just Now",
                     "ticker": fetch_ticker, # Use Normalized
                     "synthetic": True,
