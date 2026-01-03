@@ -630,18 +630,38 @@ def dashboard():
             curr = 0.0
             
             if search != "UNKNOWN":
-                hist = yf.Ticker(search).history(period="5d")
-                if not hist.empty:
-                    close = hist['Close'].iloc[-1]
-                    is_eu = search.endswith(('.DE','.F','.MI','.PA'))
-                    curr = qty * close if is_eu else qty * (close / eur_usd)
+                # Use Global Smart Fetch for accurate price (Handles Crypto & Suffixes)
+                price_eur, used_ticker = fetch_price_smart(search)
+                if price_eur > 0:
+                    curr = qty * price_eur
                     
-                    # Store per-asset trend
-                    asset_trends[ticker] = {}
-                    for dt, val in hist['Close'].items():
-                        d_str = dt.strftime("%Y-%m-%d")
-                        v_eu = qty * val if is_eu else qty * (val / eur_usd)
-                        asset_trends[ticker][d_str] = v_eu
+                    # Fetch history for Chart using the CORRECT ticker
+                    # We utilize the resolved 'used_ticker' (e.g. XRP-USD)
+                    try:
+                        t_obj = yf.Ticker(used_ticker if used_ticker else search)
+                        hist = t_obj.history(period="5d")
+                        
+                        if not hist.empty:
+                            asset_trends[ticker] = {}
+                            for dt, val in hist['Close'].items():
+                                d_str = dt.strftime("%Y-%m-%d")
+                                # Convert history to EUR if needed
+                                # formatting note: used_ticker usually has suffix if EUR, or is -USD.
+                                # But we need to know if we divide by USD.
+                                # Heuristic: If price_eur was derived via division, then history needs division.
+                                # fetch_price_smart returns pure EUR.
+                                # But here we have history objects.
+                                # Re-deriving is_eu from used_ticker
+                                is_usd_pair = used_ticker.endswith('-USD') or (used_ticker == search and '.' not in search)
+                                is_eur_pair = used_ticker.endswith(('.DE', '.F', '.MI', '.PA')) or "EUR" in used_ticker
+                                
+                                # If it's a USD pair, convert. If EUR pair, keep.
+                                val_eur = val
+                                if is_usd_pair and not is_eur_pair:
+                                     val_eur = val / eur_usd
+                                
+                                asset_trends[ticker][d_str] = qty * val_eur
+                    except: pass
 
             total_val += curr
             item['live_value_eur'] = round(curr, 2)
