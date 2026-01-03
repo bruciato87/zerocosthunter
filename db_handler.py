@@ -364,13 +364,20 @@ class DBHandler:
                 status = last_event.get("message")
                 created_at = datetime.fromisoformat(last_event.get("created_at").replace('Z', '+00:00')).replace(tzinfo=None)
                 
-                # Check if currently locked
+                # Check if currently locked or recently finished (Debounce)
                 if status == "LOCKED":
                     # Check expiry
                     now = datetime.utcnow()
                     if (now - created_at).total_seconds() < (expiry_minutes * 60):
                         logger.warning(f"Hunt Locked. Active since {created_at} (Expires in {expiry_minutes}m)")
                         return False # BUSY
+                
+                elif status == "RELEASED":
+                    # Debounce Vercel Retries: If finished < 5 mins ago, block.
+                    now = datetime.utcnow()
+                    if (now - created_at).total_seconds() < 300: # 5 Minutes Debounce
+                        logger.warning(f"Hunt Debounced. Recently finished at {created_at}. Ignoring retry.")
+                        return False # DEBOUNCED
 
             # 2. Acquire
             self.log_system_event("INFO", "HUNTER_LOCK", "LOCKED")
