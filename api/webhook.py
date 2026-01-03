@@ -471,6 +471,9 @@ async def show_portfolio(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         return 0.0, None    
 
+    # Grouping Logic
+    grouped_assets = {"Crypto": [], "Stock": [], "ETF": [], "Other": []}
+    
     for item in portfolio:
         ticker = item.get('ticker', 'N/A')
         search = TICKER_FIX_MAP.get(ticker, ticker)
@@ -479,21 +482,45 @@ async def show_portfolio(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         if search and search != "UNKNOWN":
             try:
-                 # Use Smart Fetch
                  found_price, used_ticker = fetch_price_smart(search)
                  if found_price > 0:
                       curr_val = qty * found_price
-                      # Update ticker display if we found a better specific one (optional, helps debugging)
+                      # Update ticker display distinctively if mapped
                       if used_ticker and used_ticker != search:
-                          ticker = f"{ticker} ({used_ticker})"
+                          ticker = f"{ticker}" # Keep original cleaner, maybe put suffix in details if debug needed
             except Exception as e:
                  logger.error(f"Price error for {search}: {e}")
         
         total_val += curr_val
-        val_str = f"€{curr_val:,.2f}" if curr_val > 0 else "N/A"
-        msg += f"🔹 **{item.get('asset_name') or ticker}** ({item.get('asset_type','Unknown')})\n   Ticker: `{ticker}`\n   Qty: {qty} | Val: {val_str}\n\n"
+        
+        # Determine Group
+        a_type = item.get('asset_type', 'Unknown')
+        if a_type not in grouped_assets:
+            grouped_assets["Other"].append({**item, 'current_value': curr_val, 'display_ticker': ticker})
+        else:
+            grouped_assets[a_type].append({**item, 'current_value': curr_val, 'display_ticker': ticker})
 
-    msg += f"-----------------------------\n💰 **Totale:** `€{total_val:,.2f}`"
+    # Build Message with Headers and Sorting
+    # Order of Categories
+    cat_order = ["Crypto", "Stock", "ETF", "Other"]
+    
+    for cat in cat_order:
+        assets = grouped_assets.get(cat, [])
+        if not assets: continue
+        
+        # Sort by Value Descending
+        assets.sort(key=lambda x: x['current_value'], reverse=True)
+        
+        # Category Header
+        cat_total = sum(a['current_value'] for a in assets)
+        msg += f"\n📁 **{cat}** (Tot: €{cat_total:,.2f})\n"
+        
+        for a in assets:
+            val_str = f"€{a['current_value']:,.2f}" if a['current_value'] > 0 else "N/A"
+            icon = "🪙" if cat == "Crypto" else "📈" if cat == "Stock" else "📊"
+            msg += f"   {icon} **{a.get('asset_name') or a['display_ticker']}**\n      `{a['display_ticker']}` | Qty: {a['quantity']} | Val: {val_str}\n"
+
+    msg += f"\n-----------------------------\n💰 **TOTALE PORTAFOGLIO:** `€{total_val:,.2f}`"
     await update.message.reply_text(msg)
 
 async def delete_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
