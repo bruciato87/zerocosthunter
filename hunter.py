@@ -153,7 +153,6 @@ class NewsHunter:
         logger.info(f"Fetching deep-dive news for {ticker}...")
         
         try:
-        try:
             # 1. AUTO-FIX: Known Cryptos
             known_crypto = ["BTC", "ETH", "SOL", "XRP", "ADA", "DOGE", "DOT", "LINK", "AVAX"]
             original_ticker = ticker
