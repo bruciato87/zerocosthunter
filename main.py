@@ -382,4 +382,23 @@ async def run_async_pipeline():
     logger.info(f"Pipeline finished. Processed {processed_count} actionable signals.")
 
 if __name__ == "__main__":
-    run_pipeline()
+    # Scheduled / Manual CLI Execution
+    # MUST acquire lock to avoid overlap with Webhook hunts
+    import time
+    
+    # Generate Unique ID for this run
+    request_id = f"SCHEDULED_{int(time.time())}"
+    
+    try:
+        db = DBHandler()
+        # Try to acquire lock
+        if db.acquire_hunt_lock(request_id=request_id, expiry_minutes=5):
+            try:
+                run_pipeline()
+            finally:
+                db.release_hunt_lock(request_id=request_id)
+        else:
+            logger.warning(f"Scheduled Hunt Skipped: System is BUSY (Locked by another process). Request ID: {request_id}")
+    except Exception as e:
+        logger.error(f"Scheduled Execution Failed to Initialize: {e}")
+        # Fallback: Try to run anyway if DB failed? No, safer to fail.
