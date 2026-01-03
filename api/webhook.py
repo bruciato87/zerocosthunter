@@ -513,14 +513,17 @@ async def show_portfolio(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         # Category Header
         cat_total = sum(a['current_value'] for a in assets)
-        msg += f"\n📁 **{cat}** (Tot: €{cat_total:,.2f})\n"
+        msg += f"\n━━━━━━━━━━━━━━━━━━━━\n📁 **{cat}** (Tot: €{cat_total:,.2f})\n"
         
         for a in assets:
             val_str = f"€{a['current_value']:,.2f}" if a['current_value'] > 0 else "N/A"
             icon = "🪙" if cat == "Crypto" else "📈" if cat == "Stock" else "📊"
-            msg += f"   {icon} **{a.get('asset_name') or a['display_ticker']}**\n      `{a['display_ticker']}` | Qty: {a['quantity']} | Val: {val_str}\n"
+            
+            # Cleaner, less indented format with spacing
+            msg += f"\n{icon} **{a.get('asset_name') or a['display_ticker']}**\n"
+            msg += f"   `{val_str}`  •  {a['quantity']} pz\n"
 
-    msg += f"\n-----------------------------\n💰 **TOTALE PORTAFOGLIO:** `€{total_val:,.2f}`"
+    msg += f"\n━━━━━━━━━━━━━━━━━━━━\n💰 **TOTALE PORTAFOGLIO:** `€{total_val:,.2f}`"
     await update.message.reply_text(msg)
 
 async def delete_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
