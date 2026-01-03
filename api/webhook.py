@@ -103,12 +103,12 @@ async def hunt_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("⏳ **Caccia già in corso...** (Istanza Locale)")
         return
 
-    # 2. Distributed Check (DB)
+    # 2. Distributed Check (DB) - Idempotency Key (update_id)
+    # Allows manual retries (New ID) but blocks Vercel/Telegram retries (Same ID)
+    request_id = str(update.update_id)
     db = DBHandler()
-    if not db.acquire_hunt_lock(expiry_minutes=2):
-        logger.info("Request blocked (DB Lock): Hunt already running in another instance.")
-        # Optional: Notify user or just ignore to avoid spamming 'Busy' on retries
-        # await update.message.reply_text("⏳ **Caccia già in corso...** (Processo attivo)")
+    if not db.acquire_hunt_lock(request_id=request_id, expiry_minutes=2):
+        logger.info(f"Request blocked (DB Lock/Idempotency): {request_id}")
         return
 
     try:
@@ -126,7 +126,7 @@ async def hunt_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"❌ **Errore:** {str(e)}")
     finally:
         IS_HUNTING = False
-        db.release_hunt_lock()
+        db.release_hunt_lock(request_id=request_id)
 
 async def dashboard_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     app_url = os.environ.get("APP_URL", "https://zerocosthunter.vercel.app")

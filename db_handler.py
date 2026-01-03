@@ -342,16 +342,20 @@ class DBHandler:
         except Exception as e:
             print(f"Failed to log system event to DB: {e}") # Fallback to print
 
-    # --- DISTRIBUTED LOCK (Ad-Hoc via Logs) ---
-    def acquire_hunt_lock(self, expiry_minutes: int = 2) -> bool:
+    # --- DISTRIBUTED LOCK (Idempotency Key) ---
+    def acquire_hunt_lock(self, request_id: str, expiry_minutes: int = 2) -> bool:
         """
-        Attempts to acquire a lock for the 'hunt' process.
-        Returns True if acquired, False if already locked by another instance.
-        Uses the 'logs' table with module='HUNTER_LOCK' as a semaphore.
+        Attempts to acquire a lock for the 'hunt' process using an Idempotency Key.
+        - request_id: Unique ID from Telegram (update.update_id) to identify the specific click.
+        
+        Logic:
+        1. Fetch last log.
+        2. If last log has SAME request_id (whether LOCKED or RELEASED) -> BLOCK (Duplicate/Retry).
+        3. If last log is LOCKED (and not expired) -> BLOCK (Busy).
+        4. Else -> ACQUIRE.
         """
         try:
             # 1. Check state
-            # Fetch most recent lock event
             response = self.supabase.table("logs") \
                 .select("*") \
                 .eq("module", "HUNTER_LOCK") \
@@ -361,35 +365,34 @@ class DBHandler:
             
             if response.data:
                 last_event = response.data[0]
-                status = last_event.get("message")
+                last_msg = last_event.get("message", "")
                 created_at = datetime.fromisoformat(last_event.get("created_at").replace('Z', '+00:00')).replace(tzinfo=None)
                 
-                # Check if currently locked or recently finished (Debounce)
-                if status == "LOCKED":
+                # Check Idempotency (Prevent Retries of SAME request)
+                # Message format: "LOCKED|123456" or "RELEASED|123456"
+                if f"|{request_id}" in last_msg:
+                    logger.warning(f"Duplicate Request Detected ({request_id}). Already processed/processing. Ignoring.")
+                    return False # DUPLICATE
+
+                # Check if currently locked by ANOTHER request
+                if "LOCKED" in last_msg:
                     # Check expiry
                     now = datetime.utcnow()
                     if (now - created_at).total_seconds() < (expiry_minutes * 60):
-                        logger.warning(f"Hunt Locked. Active since {created_at} (Expires in {expiry_minutes}m)")
+                        logger.warning(f"Hunt Locked by another process. Active since {created_at}")
                         return False # BUSY
-                
-                elif status == "RELEASED":
-                    # Debounce Vercel Retries: If finished < 5 mins ago, block.
-                    now = datetime.utcnow()
-                    if (now - created_at).total_seconds() < 300: # 5 Minutes Debounce
-                        logger.warning(f"Hunt Debounced. Recently finished at {created_at}. Ignoring retry.")
-                        return False # DEBOUNCED
-
+            
             # 2. Acquire
-            self.log_system_event("INFO", "HUNTER_LOCK", "LOCKED")
+            self.log_system_event("INFO", "HUNTER_LOCK", f"LOCKED|{request_id}")
             return True
         except Exception as e:
             logger.error(f"Lock Error: {e}")
-            return True # Fail-open to avoid permanent blockage, or False? True is risky but prevents deadlock. 
+            return True # Fail-open
 
-    def release_hunt_lock(self):
-        """Releases the hunt lock."""
+    def release_hunt_lock(self, request_id: str = "unknown"):
+        """Releases the hunt lock with ID reference."""
         try:
-             self.log_system_event("INFO", "HUNTER_LOCK", "RELEASED")
+             self.log_system_event("INFO", "HUNTER_LOCK", f"RELEASED|{request_id}")
         except: pass
 
 if __name__ == "__main__":
