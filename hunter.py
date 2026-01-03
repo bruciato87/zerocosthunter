@@ -153,12 +153,22 @@ class NewsHunter:
         logger.info(f"Fetching deep-dive news for {ticker}...")
         
         try:
-            # handle cases like "BTC" -> "BTC-USD"
-            if ticker.upper() in ["BTC", "ETH", "SOL"]:
+        try:
+            # 1. AUTO-FIX: Known Cryptos
+            known_crypto = ["BTC", "ETH", "SOL", "XRP", "ADA", "DOGE", "DOT", "LINK", "AVAX"]
+            original_ticker = ticker
+            
+            if ticker.upper() in known_crypto:
                 ticker = f"{ticker}-USD"
             
             t = yf.Ticker(ticker)
             yf_news = t.news
+            
+            # 2. FALLBACK: If no news and no suffix, try adding -USD (General Crypto Fallback)
+            if not yf_news and '-' not in original_ticker:
+                 logger.info(f"No news for {original_ticker}, trying {original_ticker}-USD...")
+                 t_retry = yf.Ticker(f"{original_ticker}-USD")
+                 yf_news = t_retry.news
             
             processed_news = []
             
