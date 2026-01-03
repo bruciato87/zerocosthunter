@@ -583,6 +583,13 @@ class Brain:
         - **Risk Score:** [1-10]
         - **Catalyst:** Cosa stiamo aspettando? (e.g. Earnings date, FDA approval)
 
+        **PORTFOLIO STRATEGY RULES (CRITICAL):**
+        1. **Position Sizing:** Check the "Portfolio Context".
+           - **Small Position (< 5% of Total):** Do NOT suggest "Take Profit" or "Trim" for small gains (e.g. +10%). It is pointless. Suggest "HOLD" or "ACCUMULATE" to ride the trend.
+           - **Large Position (> 20% of Total):** Be defensive. Suggest "Trim" if risk is high.
+        2. **Objective:** MAXIMIZE PROFIT. Do not sell winners too early.
+        3. **Contextual Verdict:** Your decision MUST account for the specific quantity and value owned.
+
         **TONE:** Professional, Direct, No Fluff. Use Markdown.
         """
 

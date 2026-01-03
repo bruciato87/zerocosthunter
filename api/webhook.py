@@ -806,12 +806,55 @@ async def analyze_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
              await update.message.reply_text(f"❌ Impossibile analizzare **{ticker}**. Ticker non valido o nessuna news trovata.")
              return
 
-        # 4. Check Portfolio
-        portfolio_map = db.get_portfolio_map()
+        # 4. Check Portfolio & Allocations
+        portfolio = db.get_portfolio()
+        total_invested = 0.0
+        asset_data = None
+        
+        # Calculate Total Cost Basis (Approx Portfolio Size) for Context
+        for p in portfolio:
+            qty = p.get('quantity', 0)
+            avg = p.get('avg_price', 0)
+            if qty and avg:
+                total_invested += qty * avg
+            
+            # Find the specific asset
+            p_ticker = p.get('ticker','').upper()
+            if p_ticker == ticker or (ticker.endswith('-USD') and p_ticker == ticker.replace('-USD','')):
+                 asset_data = p
+        
         portfolio_context = "Not Owned"
-        if ticker in portfolio_map:
-            p = portfolio_map[ticker]
-            portfolio_context = f"OWNED: {p['quantity']} units @ €{p['avg_price']}. Make sure to suggest TAKING PROFIT or AVERAGING DOWN."
+        if asset_data:
+            qty = asset_data.get('quantity', 0)
+            avg = asset_data.get('avg_price', 0)
+            
+            # Calculate Live Value of this asset
+            live_price = 0.0
+            # Try to extract live price from technical summary output? No, separate logic.
+            # We use 'technical_summary' string which might contain price, but cleaner to fetch.
+            # Reuse logic from smart fetch? 
+            # We already validated ticker via news, let's trust market data or just use cost basis if simplest.
+            # User wants "Current Value".
+            # Let's peek at technical_summary content? It's a string.
+            
+            # Re-fetch price quickly
+            price_eur, _ = fetch_price_smart(ticker)
+            live_val = qty * price_eur if price_eur > 0 else (qty * avg)
+            
+            alloc_pct = 0.0
+            if total_invested > 0:
+                # Allocation vs Cost Basis is a decent proxy for "Size"
+                alloc_pct = (live_val / total_invested) * 100
+            
+            size_desc = "Tiny" if alloc_pct < 2 else "Small" if alloc_pct < 5 else "Medium" if alloc_pct < 15 else "Large" if alloc_pct < 30 else "Huge"
+            
+            portfolio_context = (
+                f"OWNED: {qty} units. Live Value: €{live_val:.2f}. "
+                f"Total Portfolio (Approx): €{total_invested:.0f}. "
+                f"Allocation: {alloc_pct:.1f}% ({size_desc}). "
+                f"Avg Buy Price: €{avg:.2f}. "
+                f"PnL: €{(live_val - (qty*avg)):.2f}."
+            )
 
         # 5. Generate Report
         logger.info(f"Analyze: Generating AI Report for {ticker}...")
