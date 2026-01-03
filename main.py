@@ -89,7 +89,9 @@ async def run_async_pipeline():
         "ETH": "ETH-USD", "ETHEREUM": "ETH-USD",
         "SOL": "SOL-USD", "SOLANA": "SOL-USD",
         "RNDR": "RENDER-USD", "RENDER": "RENDER-USD",
-        "RNDR-USD": "RENDER-USD"
+        "RNDR-USD": "RENDER-USD",
+        "BYD": "BYDDF", # Map BYD to USD OTC (prevents Boyd Gaming mixup)
+        "BYD COMPANY": "BYDDF"
     }
 
     # Add Portfolio Tickers to Monitored list dynamically
