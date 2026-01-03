@@ -408,7 +408,8 @@ async def show_portfolio(update: Update, context: ContextTypes.DEFAULT_TYPE):
         Returns: (price_in_eur, found_ticker_suffix) or (0.0, None)
         """
         # OPTIMIZATION: If ticker has '-' or is known crypto
-        if '-' in candidate_ticker or candidate_ticker in ['RENDER', 'SOL', 'BTC', 'ETH']:
+        updated_crypto_list = ['RENDER', 'SOL', 'BTC', 'ETH', 'XRP', 'ADA', 'DOGE', 'DOT', 'LINK', 'AVAX', 'MATIC', 'SHIB', 'PEPE']
+        if '-' in candidate_ticker or candidate_ticker in updated_crypto_list:
             base = candidate_ticker.split('-')[0] if '-' in candidate_ticker else candidate_ticker
             
             # 1. Try EUR Pair first (e.g. BTC-EUR) - Most accurate for EU users
