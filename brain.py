@@ -160,10 +160,14 @@ class Brain:
         1.  **Trade Republic Friendly Only:** Focus ONLY on major High-Cap Stocks and Major Cryptocurrencies.
         2.  **Ignore:** Penny stocks, low volume altcoins, obscure companies.
         3.  **OWNERSHIP RULE (CRITICAL):**
-            -   **IF [Portfolio] tag is present:** You may issue ANY signal.
-            -   **IF [Portfolio] tag is MISSING:**
+            -   **IF [Portfolio] tag is present (Asset is OWNED):**
+                -   **PREFER "ACCUMULATE" over "BUY"** (since we already have exposure).
+                -   Use "**BUY**" only if the opportunity is MASSIVE (e.g. Target > +30% or Confidence > 95%).
+                -   Use "**HOLD**" if technicals are neutral or risk is medium.
+                -   Use "**SELL**" if headwinds are strong.
+            -   **IF [Portfolio] tag is MISSING (New Entry):**
                 -   **MUST** use "**BUY**" if the opportunity is good.
-                -   **MUST NOT** use "ACCUMULATE", "HOLD", "SELL", "WAIT".
+                -   **MUST NOT** use "ACCUMULATE" (reserved for existing positions).
                 -   If neutral/negative, or if technicals contradict news (e.g. Bearish Trend), **SKIP IT**.
         
         **QUANTITATIVE ANALYSIS (NEW):**
