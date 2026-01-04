@@ -228,7 +228,8 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "• `/setticker <OLD> <NEW>`: Rinomina un ticker errato.\n\n"
         "🗑 **Gestione:**\n"
         "• `/delete <TICKER>`: Elimina un singolo asset.\n"
-        "• `/reset`: Cancella TUTTO il portafoglio.\n\n"
+        "• `/reset`: Cancella TUTTO il portafoglio.\n"
+        "• `/dbstatus`: Stato storage database (500MB limit).\n\n"
         "⚙️ `/settings`: Configura filtri AI.\n\n"
         "📸 **Caricamento:**\nBasta inviare una foto! Se vuoi forzare il ticker, scrivilo nella **didascalia**."
     )
@@ -807,6 +808,7 @@ def webhook():
                 bot_app.add_handler(CommandHandler("paper", paper_command))
                 bot_app.add_handler(CommandHandler("recall", recall_command))
                 bot_app.add_handler(CommandHandler("learn", learn_command))
+                bot_app.add_handler(CommandHandler("dbstatus", dbstatus_command))
                 bot_app.add_handler(CommandHandler("backtest", backtest_command))
                 bot_app.add_handler(CommandHandler("analyze", analyze_command))
                 bot_app.add_handler(CommandHandler("settings", settings_command))
@@ -1012,6 +1014,43 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         logger.error(f"Learn command error: {e}")
         await update.message.reply_text(f"❌ Errore nel recupero lezioni: {e}")
+
+async def dbstatus_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Show database storage status and table statistics."""
+    await update.message.reply_text("📊 **Controllo stato database...**", parse_mode="Markdown")
+    
+    try:
+        from db_maintenance import DBMaintenance
+        maint = DBMaintenance()
+        
+        health = maint.check_storage_health()
+        stats = maint.get_table_stats()
+        
+        # Status emoji
+        status_emoji = "✅" if health["status"] == "healthy" else "⚡" if health["status"] == "warning" else "⚠️"
+        
+        msg = f"{status_emoji} **Database Status**\n\n"
+        msg += f"📦 **Storage:** {health['size_mb']:.1f}MB / {health['limit_mb']}MB\n"
+        msg += f"📊 **Utilizzo:** {health['usage_percent']:.1f}%\n\n"
+        
+        # Table stats
+        msg += "📋 **Tabelle (righe):**\n"
+        for table, count in sorted(stats.items(), key=lambda x: -x[1]):
+            if count > 0:
+                msg += f"• `{table}`: {count:,}\n"
+        
+        # Cleanup policies
+        msg += "\n♻️ **Policy Cleanup Automatico:**\n"
+        msg += "• Logs: 7 giorni\n"
+        msg += "• Memory: 90 giorni\n"
+        msg += "• Backtest: 60 giorni\n"
+        msg += "• Signals: 180 giorni\n"
+        
+        await update.message.reply_text(msg, parse_mode="Markdown")
+        
+    except Exception as e:
+        logger.error(f"DB Status command error: {e}")
+        await update.message.reply_text(f"❌ Errore: {e}")
 
 async def backtest_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Runs the best historical strategy backtest for a given ticker."""

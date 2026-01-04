@@ -451,6 +451,24 @@ async def run_async_pipeline():
         summary_audit = "\n".join(audit_results)
         await notifier.send_alert(f"⚖️ **Auditor Monitoring Update:**\n{summary_audit}")
 
+    # --- MAINTENANCE PHASE (Storage Monitoring) ---
+    try:
+        from db_maintenance import DBMaintenance
+        maint = DBMaintenance()
+        health = maint.check_storage_health()
+        
+        if health["status"] == "critical":
+            # Auto-cleanup and notify
+            deleted = maint.cleanup_old_records(force=True)
+            total_deleted = sum(v for v in deleted.values() if v > 0)
+            await notifier.send_alert(f"⚠️ **Storage Alert:**\n{health['message']}\n🧹 Auto-cleaned {total_deleted} old records.")
+        elif health["status"] == "warning":
+            await notifier.send_alert(f"⚡ **Storage Warning:**\n{health['message']}")
+        
+        logger.info(f"Maintenance: {health['message']}")
+    except Exception as e:
+        logger.warning(f"Maintenance check failed: {e}")
+
     db.log_system_event("INFO", "Hunter", "Pipeline Finished")
     logger.info(f"Pipeline finished. Processed {processed_count} actionable signals.")
 
