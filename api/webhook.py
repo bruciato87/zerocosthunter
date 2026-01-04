@@ -801,7 +801,7 @@ async def alert_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         if success:
             arrow = "↗️" if condition == "ABOVE" else "↘️"
-            await update.message.reply_text(f"✅ **Alert Impostato!**\nTi avviserò se **{ticker}** va **{condition}** €{price} {arrow}")
+            await update.message.reply_text(f"✅ **Alert Impostato!**\nTi avviserò se **{ticker}** va **{condition}** €{price} (EUR) {arrow}")
         else:
             await update.message.reply_text("❌ Errore nel salvataggio dell'alert.")
 
