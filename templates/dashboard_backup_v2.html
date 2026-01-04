@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zero-Cost Hunter 🏹 | Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        gray: {
+                            900: '#111827',
+                            800: '#1f2937',
+                            700: '#374151',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #0f172a;
+            color: #e2e8f0;
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen p-6">
+
+    <!-- TradingView Widget BEGIN -->
+    <div class="tradingview-widget-container mb-6">
+        <div class="tradingview-widget-container__widget"></div>
+        <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js"
+            async>
+                {
+                    "symbols": [
+                        { "proName": "FOREXCOM:SPXUSD", "title": "S&P 500" },
+                        { "proName": "FOREXCOM:NSXUSD", "title": "US 100" },
+                        { "proName": "FX_IDC:EURUSD", "title": "EUR to USD" },
+                        { "proName": "BITSTAMP:BTCUSD", "title": "Bitcoin" },
+                        { "proName": "BITSTAMP:ETHUSD", "title": "Ethereum" },
+                        { "proName": "BINANCE:SOLUSD", "title": "Solana" }
+                    ],
+                        "showSymbolLogo": true,
+                            "colorTheme": "dark",
+                                "isTransparent": false,
+                                    "displayMode": "adaptive",
+                                        "locale": "it"
+                }
+            </script>
+    </div>
+    <!-- TradingView Widget END -->
+
+    <!-- Navbar -->
+    <nav class="flex items-center justify-between mb-8 max-w-7xl mx-auto">
+        <div class="flex items-center space-x-2">
+            <span class="text-3xl">🏹</span>
+            <h1 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-blue-500">
+                Zero-Cost Hunter
+            </h1>
+        </div>
+        <div class="text-sm text-gray-400 text-right">
+            <div>Last Hunt:
+                <span class="text-white font-mono local-time" data-iso="{{ last_run_iso }}">
+                    {{ last_run }}
+                </span>
+            </div>
+            <div class="text-xs">Updated:
+                <span class="local-time" data-iso="{{ now_iso }}">
+                    Waiting...
+                </span>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+        <!-- MACRO STRATEGIST V4.0 WIDGET -->
+        <section class="lg:col-span-3">
+            <div class="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-lg relative overflow-hidden">
+                <div class="absolute top-0 right-0 p-4 opacity-10">
+                    <span class="text-6xl">🏛</span>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Macro Strategist Widget -->
+                    <div
+                        class="bg-gray-800 rounded-xl shadow-lg border border-gray-700 p-6 flex flex-col justify-between">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                                    <svg class="w-6 h-6 text-purple-400" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                                        </path>
+                                    </svg>
+                                    Macro Strategist
+                                </h2>
+                                <p class="text-xs text-gray-400 mt-1">Global Risk Context</p>
+                            </div>
+                            {% if macro_stats %}
+                            <span class="px-3 py-1 rounded-full text-xs font-bold 
+                        {% if macro_stats.risk_level == 'HIGH' %}bg-red-900 text-red-300 border border-red-700
+                        {% elif macro_stats.risk_level == 'MEDIUM' %}bg-yellow-900 text-yellow-300 border border-yellow-700
+                        {% else %}bg-green-900 text-green-300 border border-green-700{% endif %}">
+                                RISK: {{ macro_stats.risk_level }}
+                            </span>
+                            {% endif %}
+                        </div>
+
+                        {% if macro_stats %}
+                        <div class="grid grid-cols-3 gap-4 text-center">
+                            <div class="bg-gray-700/50 rounded-lg p-2">
+                                <p class="text-xs text-gray-400">VIX</p>
+                                <p class="text-lg font-mono text-white">{{ macro_stats.vix }}</p>
+                            </div>
+                            <div class="bg-gray-700/50 rounded-lg p-2">
+                                <p class="text-xs text-gray-400">10Y Yield</p>
+                                <p class="text-lg font-mono text-white">{{ macro_stats.tnx_yield }}%</p>
+                            </div>
+                            <div class="bg-gray-700/50 rounded-lg p-2">
+                                <p class="text-xs text-gray-400">Next FED</p>
+                                <p class="text-sm font-mono text-white pt-1">{{ macro_stats.next_meeting }}</p>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="text-center text-gray-500 text-sm py-4">Data Unavailable</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Whale Watcher Widget -->
+                    <div
+                        class="bg-gray-800 rounded-xl shadow-lg border border-gray-700 p-6 flex flex-col justify-between">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                                    <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                                    </svg>
+                                    Whale Watcher
+                                </h2>
+                                <p class="text-xs text-gray-400 mt-1">On-Chain Flow (Binance)</p>
+                            </div>
+                            {% if whale_stats %}
+                            <span class="px-3 py-1 rounded-full text-xs font-bold 
+                        {% if 'BULLISH' in whale_stats.status %}bg-green-900 text-green-300 border border-green-700
+                        {% elif 'BEARISH' in whale_stats.status %}bg-red-900 text-red-300 border border-red-700
+                        {% else %}bg-gray-700 text-gray-300 border border-gray-600{% endif %}">
+                                {{ whale_stats.status }}
+                            </span>
+                            {% endif %}
+                        </div>
+
+                        {% if whale_stats %}
+                        <div class="grid grid-cols-2 gap-4 text-center">
+                            <div class="bg-gray-700/50 rounded-lg p-2 border-l-2 border-green-500">
+                                <p class="text-xs text-gray-400">Buying Vol</p>
+                                <p class="text-lg font-mono text-green-400">${{ whale_stats.buy_vol_m }}M</p>
+                            </div>
+                            <div class="bg-gray-700/50 rounded-lg p-2 border-l-2 border-red-500">
+                                <p class="text-xs text-gray-400">Selling Vol</p>
+                                <p class="text-lg font-mono text-red-400">${{ whale_stats.sell_vol_m }}M</p>
+                            </div>
+                        </div>
+                        <div class="mt-3 text-center">
+                            <p class="text-xs text-gray-500">Net Flow:
+                                <span
+                                    class="font-mono font-bold ml-1 {% if whale_stats.net_flow_m > 0 %}text-green-400{% elif whale_stats.net_flow_m < 0 %}text-red-400{% else %}text-gray-400{% endif %}">
+                                    {{ '+' if whale_stats.net_flow_m > 0 else '' }}{{ whale_stats.net_flow_m }}M
+                                </span>
+                            </p>
+                        </div>
+                        {% else %}
+                        <div class="text-center text-gray-500 text-sm py-4">Scanning On-Chain...</div>
+                        {% endif %}
+                    </div>
+        </section>
+
+        <!-- TOP: Portfolio Chart (Mobile Priority: Top) -->
+        <section class="lg:col-span-3">
+            <div class="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-lg">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+                    <div>
+                        <h2 class="text-gray-400 text-sm font-medium uppercase tracking-wider">Total Net Worth</h2>
+                        <div class="text-3xl font-bold text-white mt-1">€{{ "{:,.2f}".format(total_value_eur) }}</div>
+                    </div>
+
+                    <div class="flex items-center space-x-6 mt-4 md:mt-0">
+                        <div class="text-right">
+                            <div class="text-xs text-gray-500">Invested</div>
+                            <div class="text-sm text-gray-300 font-mono">€{{ "{:,.2f}".format(total_invested_eur) }}
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-xs text-gray-500">P/L</div>
+                            <div class="text-lg font-bold font-mono 
+                                {% if total_pl_eur >= 0 %}text-green-400{% else %}text-red-400{% endif %}">
+                                {% if total_pl_eur >= 0 %}+{% endif %}€{{ "{:,.2f}".format(total_pl_eur) }}
+                                <span class="text-xs opacity-75">({% if total_pl_eur >= 0 %}+{% endif %}{{
+                                    "{:,.2f}".format(total_pl_percent) }}%)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="relative h-64 w-full">
+                    <div id="portfolioChart" class="w-full h-full"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- RIGHT COL: Scorecard & Assets -->
+        <section class="lg:col-span-1 lg:order-last space-y-6">
+
+            <!-- Market Mood (The Insider) -->
+            {% if market_mood %}
+            <div class="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-lg relative overflow-hidden">
+                <div
+                    class="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 blur-2xl">
+                </div>
+
+                <h2 class="text-sm font-semibold mb-4 flex items-center text-gray-400 uppercase tracking-widest">
+                    <span>🐋 Market Mood</span>
+                </h2>
+
+                <div class="flex items-center justify-between">
+                    <div>
+                        <div class="text-4xl font-black text-white font-mono">{{ market_mood.crypto.value }}</div>
+                        <div class="text-[10px] text-gray-500">Crypto Fear & Greed</div>
+                    </div>
+
+                    <div class="text-right">
+                        {% set mood = market_mood.overall %}
+                        {% if 'FEAR' in mood %}
+                        <div class="text-xl font-bold text-red-400">{{ mood }}</div>
+                        <div class="text-[10px] text-gray-400">Time to Buy the Dip?</div>
+                        {% elif 'GREED' in mood %}
+                        <div class="text-xl font-bold text-green-400">{{ mood }}</div>
+                        <div class="text-[10px] text-gray-400">Be Careful</div>
+                        {% else %}
+                        <div class="text-xl font-bold text-gray-300">{{ mood }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Simple Gauge Bar -->
+                <div class="w-full bg-gray-700 h-1 mt-4 rounded-full overflow-hidden">
+                    {% set color_cls = 'bg-red-500' if 'FEAR' in market_mood.overall else ('bg-green-500' if 'GREED' in
+                    market_mood.overall else 'bg-gray-400') %}
+                    <div class="{{ color_cls }} h-1 rounded-full" style="width: {{ market_mood.crypto.value }}%"></div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Advisor: Portfolio Allocation -->
+            {% if advisor_analysis %}
+            <div class="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-lg">
+                <h2 class="text-sm font-semibold mb-4 flex items-center text-gray-400 uppercase tracking-widest">
+                    <span>⚖️ Portfolio Allocation</span>
+                </h2>
+
+                <div class="relative h-48 w-full">
+                    <canvas id="sectorChart"></canvas>
+                </div>
+
+                <!-- Advisor Tips -->
+                <div class="mt-4 space-y-2">
+                    {% for tip in advisor_analysis.tips %}
+                    <div
+                        class="text-xs bg-yellow-500/10 text-yellow-500 px-3 py-2 rounded-lg border border-yellow-500/20 flex items-start">
+                        <span class="mr-2">⚠️</span>
+                        {{ tip }}
+                    </div>
+                    {% endfor %}
+
+                    {% if not advisor_analysis.tips %}
+                    <div class="text-xs text-green-500 flex items-center">
+                        <span class="mr-2">✅</span> Healthy Diversification
+                    </div>
+                    {% endif %}
+                </div>
+
+                <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+                <script>
+                    const ctxSector = document.getElementById('sectorChart').getContext('2d');
+                    new Chart(ctxSector, {
+                        type: 'doughnut',
+                        data: {
+                            labels: {{ advisor_analysis.sector_percent.keys() | list | tojson }},
+                        datasets: [{
+                            data: {{ advisor_analysis.sector_percent.values() | list | tojson }},
+                        backgroundColor: [
+                            '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#6366F1'
+                        ],
+                        borderWidth: 0
+                            }]
+                        },
+                        options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'right', labels: { color: '#9CA3AF', font: { size: 10 } } }
+                        }
+                    }
+                    });
+                </script>
+            </div>
+            {% endif %}
+
+            <!-- AI Scorecard (The Auditor) -->
+            <div class="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-lg relative overflow-hidden">
+                <div
+                    class="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 blur-xl">
+                </div>
+
+                <h2 class="text-lg font-semibold mb-4 flex items-center text-indigo-400">
+                    <span>👑 AI Scorecard</span>
+                </h2>
+
+                <div class="flex items-end justify-between mb-2">
+                    <div>
+                        <div class="text-3xl font-bold font-mono text-white">{{ audit_stats.win_rate }}%</div>
+                        <div class="text-[10px] text-gray-500 uppercase tracking-widest">Win Rate</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-sm font-bold text-gray-300">{{ audit_stats.wins }}W - {{ audit_stats.losses }}L
+                        </div>
+                        <div class="text-[10px] text-gray-500">{{ audit_stats.closed }} Closed Trades</div>
+                    </div>
+                </div>
+
+                <!-- Win Rate Bar -->
+                <div class="w-full bg-gray-700 rounded-full h-2 mb-4 overflow-hidden">
+                    <div class="bg-indigo-500 h-2 rounded-full" style="width: {{ audit_stats.win_rate }}%"></div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 text-center">
+                    <div class="bg-gray-700/50 rounded p-2">
+                        <div class="text-lg font-bold text-white">{{ audit_stats.open }}</div>
+                        <div class="text-[9px] text-gray-400">OPEN SIGNALS</div>
+                    </div>
+                    <div class="bg-gray-700/50 rounded p-2">
+                        <div class="text-lg font-bold text-white">{{ audit_stats.total_trades }}</div>
+                        <div class="text-[9px] text-gray-400">TOTAL SIGNALS</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Assets List -->
+            <div class="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-lg">
+                <h2 class="text-xl font-semibold mb-4 flex items-center">
+                    <span>🎒 Assets</span>
+                    <span class="ml-auto text-xs font-mono bg-blue-900 text-blue-200 px-2 py-1 rounded">{{
+                        portfolio|length }}</span>
+                </h2>
+
+                {% if portfolio %}
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left">
+                        <thead class="text-xs text-gray-400 uppercase bg-gray-700/50">
+                            <tr>
+                                <th class="px-4 py-2">Asset</th>
+                                <th class="px-4 py-2 text-right">Value</th>
+                                <th class="px-4 py-2 text-right">P/L</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-700">
+                            {% for item in portfolio %}
+                            <tr class="hover:bg-gray-700/30 transition">
+                                <td class="px-4 py-3 font-medium">
+                                    <div class="text-white font-bold">{{ item.ticker }}</div>
+                                    <div class="text-[10px] text-gray-500">{{ item.quantity }} @ €{{ item.avg_price }}
+                                    </div>
+                                </td>
+                                <td class="px-4 py-3 text-right text-white font-mono">
+                                    €{{ "{:,.2f}".format(item.live_value_eur|default(0)) }}
+                                </td>
+                                <td class="px-4 py-3 text-right font-mono font-bold
+                                    {% if item.pnl_eur >= 0 %}text-green-400{% else %}text-red-400{% endif %}">
+                                    {{ "{:,.1f}".format(item.pnl_percent) }}%
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-8 text-gray-500">
+                    Empty Portfolio.
+                </div>
+                {% endif %}
+            </div>
+        </section>
+
+        <!-- LEFT COL: Signals Feed -->
+        <section class="lg:col-span-2 space-y-6">
+            <h2 class="text-xl font-semibold flex items-center space-x-2">
+                <span>📡 Latest Signals</span>
+            </h2>
+
+            {% if signals %}
+            <div class="grid gap-4">
+                {% for sig in signals %}
+                <div
+                    class="bg-gray-800 rounded-xl p-5 border border-gray-700 shadow-md hover:border-gray-600 transition group relative overflow-hidden">
+                    <!-- Sentiment Stripe -->
+                    <div class="absolute left-0 top-0 bottom-0 w-1.5 
+                        {% if sig.sentiment in ['BUY', 'ACCUMULATE'] %}bg-green-500
+                        {% elif sig.sentiment in ['SELL', 'PANIC SELL'] %}bg-red-500
+                        {% else %}bg-gray-500{% endif %}">
+                    </div>
+
+                    <div class="pl-3">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <h3 class="text-lg font-bold text-white flex items-center space-x-2">
+                                    <span>{{ sig.ticker }}</span>
+                                    <span class="px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wide
+                                        {% if sig.sentiment in ['BUY', 'ACCUMULATE'] %}bg-green-900/50 text-green-400 border border-green-700
+                                        {% elif sig.sentiment in ['SELL', 'PANIC SELL'] %}bg-red-900/50 text-red-400 border border-red-700
+                                        {% else %}bg-gray-700 text-gray-300 border border-gray-600{% endif %}">
+                                        {% if sig.sentiment == 'BUY' %}ACQUISTA
+                                        {% elif sig.sentiment == 'SELL' %}VENDI
+                                        {% elif sig.sentiment == 'ACCUMULATE' %}ACCUMULA
+                                        {% elif sig.sentiment == 'PANIC SELL' %}VENDERE SUBITO
+                                        {% elif sig.sentiment == 'HOLD' %}MANTIENI
+                                        {% else %}{{ sig.sentiment }}
+                                        {% endif %}
+                                    </span>
+                                </h3>
+                                <div class="text-xs text-gray-500 mt-1 flex items-center space-x-2">
+                                    <span class="local-time" data-iso="{{ sig.created_at }}">
+                                        {{ sig.created_at[:16].replace('T', ' ') }}
+                                    </span>
+                                    <span>•</span>
+                                    <span>{{ sig.source_news_url[:25] }}...</span>
+                                </div>
+                            </div>
+
+                            <!-- Confidence Score & Prophet Data -->
+                            <div class="text-right">
+                                <div class="text-2xl font-bold font-mono">{{ (sig.confidence_score * 100)|int }}%</div>
+                                <div class="text-[10px] text-gray-500 uppercase tracking-widest mb-2">Conf</div>
+
+                                {% if sig.target_price %}
+                                <div class="flex flex-col items-end space-y-1">
+                                    <span
+                                        class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-900/50 text-blue-300 border border-blue-800">
+                                        Target: {{ sig.target_price }}
+                                    </span>
+                                    {% if sig.upside_percentage > 0 %}
+                                    <span class="text-[10px] text-green-400 font-mono">
+                                        +{{ sig.upside_percentage }}% Upside
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+
+                                {% if sig.risk_score %}
+                                <div class="mt-2 text-[10px] flex items-center justify-end space-x-1">
+                                    <span class="text-gray-500">Risk:</span>
+                                    <span class="font-bold 
+                                        {% if sig.risk_score <= 3 %}text-green-400
+                                        {% elif sig.risk_score <= 6 %}text-yellow-400
+                                        {% else %}text-red-400{% endif %}">
+                                        {{ sig.risk_score }}/10
+                                    </span>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <p class="text-gray-300 text-sm leading-relaxed mt-3 border-t border-gray-700 pt-3">
+                            {{ sig.reasoning }}
+                        </p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="bg-gray-800 rounded-xl p-12 text-center text-gray-500 border border-gray-700 border-dashed">
+                <span class="text-4xl block mb-2">💤</span>
+                No signals yet. Using /hunt to trigger a scan!
+            </div>
+            {% endif %}
+        </section>
+
+        <!-- Trade History -->
+        <section class="lg:col-span-3">
+            <div class="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-lg">
+                <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                    <span>📜 Trade History</span>
+                </h2>
+                {% if history %}
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left border-collapse">
+                        <thead class="text-xs text-gray-400 uppercase bg-gray-700/50">
+                            <tr>
+                                <th class="px-4 py-3 rounded-tl-lg">Status</th>
+                                <th class="px-4 py-3">Ticker</th>
+                                <th class="px-4 py-3 text-right">Start</th>
+                                <th class="px-4 py-3 text-right">End</th>
+                                <th class="px-4 py-3 text-right">Entry</th>
+                                <th class="px-4 py-3 text-right">Target</th>
+                                <th class="px-4 py-3 text-right">Exit</th>
+                                <th class="px-4 py-3 text-right rounded-tr-lg">P/L</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-700">
+                            {% for trade in history %}
+                            <tr class="hover:bg-gray-700/30 transition-colors">
+                                <td class="px-4 py-3">
+                                    <span class="px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider
+                                        {% if trade.status == 'WIN' %}bg-green-900/50 text-green-400 border border-green-700
+                                        {% elif trade.status == 'LOSS' %}bg-red-900/50 text-red-400 border border-red-700
+                                        {% else %}bg-gray-700 text-gray-400{% endif %}">
+                                        {{ trade.status }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 font-bold text-white">{{ trade.ticker }}</td>
+                                <td class="px-4 py-3 text-right text-gray-400 font-mono text-xs">{{ trade.created_at_fmt
+                                    }}</td>
+                                <td class="px-4 py-3 text-right text-gray-400 font-mono text-xs">{{ trade.updated_at_fmt
+                                    }}</td>
+                                <td class="px-4 py-3 text-right font-mono text-gray-300">
+                                    {% if trade.entry_price < 1000 %} ${{ "{:,.2f}" .format(trade.entry_price) }} {%
+                                        else %} ${{ "{:,.0f}" .format(trade.entry_price) }} {% endif %} </td>
+                                <td class="px-4 py-3 text-right font-mono text-gray-500">
+                                    {{ "${:,.2f}".format(trade.target_price) if trade.target_price else '-' }}
+                                </td>
+                                <td class="px-4 py-3 text-right font-mono text-white">
+                                    {% if trade.current_price < 1000 %} ${{ "{:,.2f}" .format(trade.current_price) }} {%
+                                        else %} ${{ "{:,.0f}" .format(trade.current_price) }} {% endif %} </td>
+                                <td
+                                    class="px-4 py-3 text-right font-bold font-mono 
+                                    {% if trade.pnl_percent > 0 %}text-green-400{% elif trade.pnl_percent < 0 %}text-red-400{% else %}text-gray-400{% endif %}">
+                                    {{ "{:+.2f}".format(trade.pnl_percent) }}%
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-8 text-gray-500 border border-gray-700 border-dashed rounded-lg">
+                    <span class="block text-2xl mb-2">🕸️</span>
+                    No trade history available yet.
+                </div>
+                {% endif %}
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="mt-12 text-center text-xs text-gray-600 py-6">
+        Zero-Cost Hunter Bot • Flask Dashboard • v2.1
+    </footer>
+
+    <!-- Scripts: TradingView Charts + Timezone Fix -->
+    <script src="https://unpkg.com/lightweight-charts@4.0.1/dist/lightweight-charts.standalone.production.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log("DOM Ready. Initializing Dashboard...");
+
+            // 1. Timezone Fix
+            function updateLocalTimes() {
+                try {
+                    document.querySelectorAll('.local-time').forEach(el => {
+                        const iso = el.getAttribute('data-iso');
+                        if (iso && iso !== 'None') {
+                            const dateStr = iso.endsWith('Z') || iso.includes('+') ? iso : iso + 'Z';
+                            const date = new Date(dateStr);
+                            if (!isNaN(date)) {
+                                el.textContent = date.toLocaleString('it-IT', {
+                                    day: '2-digit', month: '2-digit', year: 'numeric',
+                                    hour: '2-digit', minute: '2-digit'
+                                });
+                            }
+                        }
+                    });
+                } catch (e) { console.error("Timezone fix error:", e); }
+            }
+            updateLocalTimes();
+
+            // 2. TradingView Lightweight Chart (Portfolio value)
+            const charts = document.getElementsByClassName('tv-lightweight-charts');
+            // Cleanup existing if any (HMR safety)
+            for (let i = 0; i < charts.length; i++) {
+                charts[i].remove();
+            }
+
+            const chartContainer = document.getElementById('portfolioChart');
+            if (!chartContainer) {
+                console.error("Chart container not found!");
+                return;
+            }
+
+            // Clear content just in case
+            chartContainer.innerHTML = '';
+
+            try {
+                // Ensure container has dimensions - Force a min width/height via JS fallback
+                let initialWidth = chartContainer.clientWidth;
+                let initialHeight = chartContainer.clientHeight;
+
+                // Fallback if hidden or 0
+                if (initialWidth === 0) initialWidth = chartContainer.parentElement.clientWidth || 600;
+                if (initialHeight === 0) initialHeight = 250;
+
+                console.log(`Chart Init: ${initialWidth}x${initialHeight}`);
+
+                const chart = LightweightCharts.createChart(chartContainer, {
+                    width: initialWidth,
+                    height: initialHeight,
+                    layout: {
+                        background: { type: 'solid', color: 'transparent' },
+                        textColor: '#9ca3af',
+                    },
+                    grid: {
+                        vertLines: { color: 'rgba(55, 65, 81, 0.4)', visible: false },
+                        horzLines: { color: 'rgba(55, 65, 81, 0.4)', visible: false },
+                    },
+                    rightPriceScale: {
+                        borderVisible: false,
+                        scaleMargins: {
+                            top: 0.1,
+                            bottom: 0.1,
+                        },
+                    },
+                    timeScale: {
+                        borderVisible: false,
+                        fixLeftEdge: true,
+                        fixRightEdge: true,
+                    },
+                    crosshair: {
+                        vertLine: {
+                            width: 1,
+                            color: 'rgba(34, 197, 94, 0.5)',
+                            style: 0,
+                            labelBackgroundColor: '#22c55e',
+                        },
+                        horzLine: {
+                            width: 1,
+                            color: 'rgba(34, 197, 94, 0.5)',
+                            style: 0,
+                            labelBackgroundColor: '#22c55e',
+                        },
+                    },
+                });
+
+                const areaSeries = chart.addAreaSeries({
+                    topColor: 'rgba(34, 197, 94, 0.56)',
+                    bottomColor: 'rgba(34, 197, 94, 0.04)',
+                    lineColor: 'rgba(34, 197, 94, 1)',
+                    lineWidth: 2,
+                });
+
+                // Data Handling
+                let chartData = [];
+                const backendLabels = {{ chart_labels| safe
+            }};
+        const backendValues = {{ chart_data| safe }};
+        const currentValue = {{ total_value_eur }};
+
+        if (backendLabels && backendLabels.length > 0 && backendValues && backendValues.length > 0) {
+            chartData = backendLabels.map((date, index) => ({
+                time: date,
+                value: backendValues[index]
+            }));
+        } else {
+            console.log("No backend data. Simulating...");
+            const now = new Date();
+            let simValue = currentValue > 0 ? currentValue * 0.90 : 1000;
+            for (let i = 30; i >= 0; i--) {
+                const d = new Date();
+                d.setDate(now.getDate() - i);
+                const isoDate = d.toISOString().split('T')[0];
+                const change = (Math.random() - 0.45) * (simValue * 0.05);
+                simValue += change;
+                if (i === 0 && currentValue > 0) simValue = currentValue;
+                chartData.push({ time: isoDate, value: Math.max(0, simValue) });
+            }
+        }
+
+        // Sort & Unique
+        chartData.sort((a, b) => (a.time > b.time) ? 1 : -1);
+        const uniqueData = [];
+        const seenDates = new Set();
+        for (const item of chartData) {
+            if (!seenDates.has(item.time)) {
+                uniqueData.push(item);
+                seenDates.add(item.time);
+            }
+        }
+
+        if (uniqueData.length > 0) {
+            areaSeries.setData(uniqueData);
+            chart.timeScale().fitContent();
+        }
+
+        // Resize observer
+        new ResizeObserver(entries => {
+            if (entries.length === 0 || entries[0].target !== chartContainer) { return; }
+            const newRect = entries[0].contentRect;
+            if (newRect.width > 0 && newRect.height > 0) {
+                chart.applyOptions({ height: newRect.height, width: newRect.width });
+                chart.timeScale().fitContent();
+            }
+        }).observe(chartContainer);
+
+            } catch (e) {
+            console.error("Chart Error:", e);
+            chartContainer.innerHTML = `<div class="text-red-500 text-xs p-4">Chart Error: ${e.message}</div>`;
+        }
+        });
+    </script>
+</body>
+
+</html>

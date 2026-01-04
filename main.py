@@ -13,6 +13,7 @@ from brain import Brain
 from telegram_bot import TelegramNotifier
 from auditor import Auditor
 from economist import Economist
+from sentinel import Sentinel
 import re
 import asyncio
 
@@ -45,10 +46,22 @@ async def run_async_pipeline():
         notifier = TelegramNotifier()
         market = MarketData()
         auditor = Auditor()
+        auditor = Auditor()
         economist = Economist()
+        sentinel = Sentinel()
     except Exception as e:
         logger.critical(f"Initialization failed: {e}")
         return
+
+    # 1.5 Sentinel Checks (Price Alerts)
+    logger.info("Running Sentinel Checks...")
+    try:
+        notifications = sentinel.check_alerts(market)
+        for n in notifications:
+            await notifier.send_message(n['chat_id'], n['text'])
+            logger.info(f"Sentinel: Notification sent to {n['chat_id']}")
+    except Exception as e:
+        logger.error(f"Sentinel Failed: {e}")
 
     # 2. Fetch News
     news_items = hunter.fetch_news()

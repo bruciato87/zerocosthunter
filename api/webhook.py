@@ -735,6 +735,8 @@ def webhook():
                 bot_app.add_handler(CommandHandler("setprice", setprice_command))
                 bot_app.add_handler(CommandHandler("setticker", setticker_command))
                 bot_app.add_handler(CommandHandler("setqty", setqty_command))
+                bot_app.add_handler(CommandHandler("alert", alert_command))
+                bot_app.add_handler(CommandHandler("alerts", my_alerts_command))
                 bot_app.add_handler(CommandHandler("settings", settings_command))
                 bot_app.add_handler(CommandHandler("analyze", analyze_command))
                 bot_app.add_handler(CommandHandler("macro", macro_command))
@@ -751,6 +753,78 @@ def webhook():
                 logger.error(f"Error: {e}")
                 return "Error", 500
     return "OK", 200
+
+async def alert_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Sets a price alert.
+    Usage: /alert BTC > 80000  OR  /alert NVDA < 100
+    """
+    try:
+        args = context.args
+        if len(args) < 3:
+            await update.message.reply_text("❌ **Uso Corretto:** `/alert BTC > 80000` oppure `/alert BTC < 50000`", parse_mode='Markdown')
+            return
+
+        ticker = args[0].upper()
+        operator = args[1]
+        try:
+            price = float(args[2].replace(',', '.'))
+        except ValueError:
+             await update.message.reply_text("❌ Il prezzo deve essere un numero valido.")
+             return
+
+        condition = ""
+        if operator in [">", "sopra", "above"]:
+            condition = "ABOVE"
+        elif operator in ["<", "sotto", "below"]:
+            condition = "BELOW"
+        else:
+            await update.message.reply_text("❌ Operatore non riconosciuto. Usa `>` o `<`.")
+            return
+
+        db = DBHandler()
+        # Normalization check logic could go here, but DBHandler saves as is. 
+        # Sentinel will map logic.
+        
+        success = db.add_alert(
+            chat_id=update.effective_chat.id,
+            ticker=ticker,
+            condition=condition,
+            price_threshold=price
+        )
+
+        if success:
+            arrow = "↗️" if condition == "ABOVE" else "↘️"
+            await update.message.reply_text(f"✅ **Alert Impostato!**\nTi avviserò se **{ticker}** va **{condition}** €{price} {arrow}")
+        else:
+            await update.message.reply_text("❌ Errore nel salvataggio dell'alert.")
+
+    except Exception as e:
+        logger.error(f"Alert command error: {e}")
+        await update.message.reply_text("❌ Errore interno.")
+
+
+async def my_alerts_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Show active alerts."""
+    try:
+        db = DBHandler()
+        alerts = db.get_user_alerts(chat_id=update.effective_chat.id)
+        
+        if not alerts:
+            await update.message.reply_text("🔕 Non hai allarmi attivi.")
+            return
+
+        msg = "🔔 **I tuoi Allarmi Attivi:**\n\n"
+        for a in alerts:
+            cond = ">" if a['condition'] == "ABOVE" else "<"
+            msg += f"🔹 **{a['ticker']}** {cond} €{a['price_threshold']}\n"
+        
+        msg += "\n(Gli allarmi si disattivano automaticamente una volta scattati)"
+        await update.message.reply_text(msg, parse_mode='Markdown')
+
+    except Exception as e:
+        logger.error(f"My alerts error: {e}")
+        await update.message.reply_text("❌ Errore nel recupero degli allarmi.")
 
 async def analyze_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     args = context.args

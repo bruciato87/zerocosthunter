@@ -403,11 +403,69 @@ class DBHandler:
             logger.error(f"Lock Error: {e}")
             return True # Fail-open
 
-    def release_hunt_lock(self, request_id: str = "unknown"):
-        """Releases the hunt lock with ID reference."""
-        try:
              self.log_system_event("INFO", "HUNTER_LOCK", f"RELEASED|{request_id}")
         except: pass
+
+    # --- ALERTS (Sentinel) ---
+    def add_alert(self, chat_id: int, ticker: str, condition: str, price_threshold: float):
+        """Adds a new price alert."""
+        try:
+            data = {
+                "chat_id": chat_id,
+                "ticker": ticker.upper(),
+                "condition": condition.upper(), # ABOVE or BELOW
+                "price_threshold": price_threshold,
+                "is_active": True
+            }
+            self.supabase.table("alerts").insert(data).execute()
+            return True
+        except Exception as e:
+            logger.error(f"Error adding alert: {e}")
+            return False
+
+    def get_active_alerts(self):
+        """Fetches all active alerts."""
+        try:
+            response = self.supabase.table("alerts").select("*").eq("is_active", True).execute()
+            return response.data
+        except Exception as e:
+            logger.error(f"Error fetching alerts: {e}")
+            return []
+
+    def deactivate_alert(self, alert_id: str, trigger_msg: str = None):
+        """Marks alert as inactive (triggered)."""
+        try:
+            data = {"is_active": False, "triggered_at": datetime.utcnow().isoformat()}
+            if trigger_msg:
+                data["trigger_message"] = trigger_msg
+            
+            self.supabase.table("alerts").update(data).eq("id", alert_id).execute()
+            return True
+        except Exception as e:
+            logger.error(f"Error deactivating alert: {e}")
+            return False
+
+    def delete_alert(self, alert_id: str):
+        """Deletes an alert permanently."""
+        try:
+            self.supabase.table("alerts").delete().eq("id", alert_id).execute()
+            return True
+        except Exception as e:
+            logger.error(f"Error deleting alert: {e}")
+            return False
+
+    def get_user_alerts(self, chat_id: int):
+        """Fetches active alerts for a specific user (for UI/Bot)."""
+        try:
+            response = self.supabase.table("alerts") \
+                .select("*") \
+                .eq("chat_id", chat_id) \
+                .eq("is_active", True) \
+                .execute()
+            return response.data
+        except Exception as e:
+            logger.error(f"Error fetching user alerts: {e}")
+            return []
 
 if __name__ == "__main__":
     # Test connection
