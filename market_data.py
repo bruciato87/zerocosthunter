@@ -25,8 +25,20 @@ class MarketData:
             "SOL-USD": "solana",
             "BTC": "bitcoin",
             "ETH": "ethereum",
-            "SOL": "solana"
+            "SOL": "solana",
+            "XRP": "ripple", "XRP-USD": "ripple",
+            "ADA": "cardano", "ADA-USD": "cardano",
+            "DOGE": "dogecoin", "DOGE-USD": "dogecoin",
+            "DOT": "polkadot", "DOT-USD": "polkadot",
+            "LINK": "chainlink", "LINK-USD": "chainlink",
+            "AVAX": "avalanche-2", "AVAX-USD": "avalanche-2",
+            "MATIC": "matic-network", "MATIC-USD": "matic-network",
+            "SHIB": "shiba-inu", "SHIB-USD": "shiba-inu",
+            "PEPE": "pepe", "PEPE-USD": "pepe",
+            "RENDER": "render-token", "RENDER-USD": "render-token"
         }
+        
+        self.KNOWN_CRYPTO = list(self.COINGECKO_MAP.keys())
         
         # Manual overrides for problematic tickers (User Request)
         self.TICKER_ALIASES = {
@@ -72,8 +84,10 @@ class MarketData:
         Prioritizes CoinGecko for crypto, then Yahoo.
         Handles aliases.
         """
+        ticker_u = ticker.upper()
+        
         # 0. Check Aliases
-        search_ticker = self.TICKER_ALIASES.get(ticker, ticker)
+        search_ticker = self.TICKER_ALIASES.get(ticker_u, ticker_u)
         
         # 1. Try CoinGecko
         price, _ = self.get_crypto_data_coingecko(search_ticker)
@@ -82,6 +96,11 @@ class MarketData:
         
         # 2. Try Yahoo Finance
         try:
+            # AUTO-FIX: If known crypto but not in aliases, append -USD for Yahoo
+            # (Matches logic in webhook.py fetch_price_smart)
+            if search_ticker in ["XRP", "ADA", "DOGE", "DOT", "LINK", "AVAX", "MATIC", "SHIB", "PEPE", "BTC", "ETH", "SOL"] and '-' not in search_ticker:
+                 search_ticker = f"{search_ticker}-USD"
+            
             t = yf.Ticker(search_ticker)
             # Try fast info first
             if 'currentPrice' in t.info:
