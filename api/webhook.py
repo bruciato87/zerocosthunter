@@ -196,6 +196,7 @@ async def setup_bot_commands(bot):
         BotCommand("paper", "🧪 Lab / Paper Trading"),
         BotCommand("recall", "🧠 Memoria Storica (es. /recall BTC)"),
         BotCommand("learn", "🎓 Lezioni dagli Errori"),
+        BotCommand("benchmark", "📊 Portfolio vs S&P500/BTC"),
         BotCommand("dbstatus", "📦 Stato Storage DB"),
         BotCommand("help", "❓ Lista Comandi"),
         BotCommand("setprice", "💶 Correggi Prezzo"),
@@ -234,6 +235,8 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "• `/delete <TICKER>`: Elimina un singolo asset.\n"
         "• `/reset`: Cancella TUTTO il portafoglio.\n"
         "• `/dbstatus`: Stato storage database (500MB limit).\n\n"
+        "📊 **Reports:**\n"
+        "• `/benchmark`: Confronta portfolio vs S&P500, BTC.\n\n"
         "⚙️ `/settings`: Configura filtri AI.\n\n"
         "📸 **Caricamento:**\nBasta inviare una foto! Se vuoi forzare il ticker, scrivilo nella **didascalia**."
     )
@@ -813,6 +816,7 @@ def webhook():
                 bot_app.add_handler(CommandHandler("recall", recall_command))
                 bot_app.add_handler(CommandHandler("learn", learn_command))
                 bot_app.add_handler(CommandHandler("dbstatus", dbstatus_command))
+                bot_app.add_handler(CommandHandler("benchmark", benchmark_command))
                 bot_app.add_handler(CommandHandler("backtest", backtest_command))
                 bot_app.add_handler(CommandHandler("analyze", analyze_command))
                 bot_app.add_handler(CommandHandler("settings", settings_command))
@@ -1055,6 +1059,29 @@ async def dbstatus_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         logger.error(f"DB Status command error: {e}")
         await update.message.reply_text(f"❌ Errore: {e}")
+
+async def benchmark_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Compare portfolio performance against S&P500, BTC, and other benchmarks."""
+    await update.message.reply_text("📊 **Calcolo performance vs benchmarks...**", parse_mode="Markdown")
+    
+    try:
+        from benchmark import Benchmark
+        bench = Benchmark()
+        
+        # Default 30 days, or parse from args
+        period_days = 30
+        if context.args:
+            try:
+                period_days = int(context.args[0])
+            except:
+                pass
+        
+        report = bench.format_benchmark_report(period_days)
+        await update.message.reply_text(report, parse_mode="Markdown")
+        
+    except Exception as e:
+        logger.error(f"Benchmark command error: {e}")
+        await update.message.reply_text(f"❌ Errore nel calcolo benchmark: {e}")
 
 async def backtest_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Runs the best historical strategy backtest for a given ticker."""
