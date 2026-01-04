@@ -369,69 +369,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif query.data == "cancel_reset":
         await query.edit_message_text(text="😮‍💨 **Reset Annullato.**\nI tuoi asset sono salvi.")
 
-def fetch_price_smart(candidate_ticker):
-    """
-    Attempts to find a price for the ticker trying multiple suffixes.
-    Prioritizes EUR markets (DE, MI, F, PA) for Stocks.
-    Handles Crypto (-USD) separately to avoid suffix spam.
-    Returns: (price_in_eur, found_ticker_suffix) or (0.0, None)
-    """
-    # Note: eur_usd global variable is assumed if needed, or we fetch it inside.
-    # To be safe, let's fetch eur_usd inside or use a default if strict isolation needed.
-    eur_usd_rate = 1.09
-    try:
-         hist = yf.Ticker("EURUSD=X").history(period="1d")
-         if not hist.empty: eur_usd_rate = hist['Close'].iloc[-1]
-    except: pass
 
-    # OPTIMIZATION: If ticker has '-' or is known crypto
-    updated_crypto_list = ['RENDER', 'SOL', 'BTC', 'ETH', 'XRP', 'ADA', 'DOGE', 'DOT', 'LINK', 'AVAX', 'MATIC', 'SHIB', 'PEPE']
-    if '-' in candidate_ticker or candidate_ticker in updated_crypto_list:
-        base = candidate_ticker.split('-')[0] if '-' in candidate_ticker else candidate_ticker
-        
-        # 1. Try EUR Pair first (e.g. BTC-EUR) - Most accurate for EU users
-        try:
-            hist = yf.Ticker(f"{base}-EUR").history(period="1d")
-            if not hist.empty:
-                return hist['Close'].iloc[-1], f"{base}-EUR"
-        except: pass
-
-        # 2. Try USD Pair (e.g. BTC-USD) - Fallback
-        try:
-            hist = yf.Ticker(f"{base}-USD").history(period="1d")
-            if not hist.empty:
-                    price = hist['Close'].iloc[-1]
-                    return price / eur_usd_rate, f"{base}-USD"
-        except: pass
-        
-        return 0.0, None
-
-    # 1. Try Explicit EUR Suffixes first (Trade Republic common markets)
-    suffixes_eur = ['.DE', '.F', '.MI', '.PA', '.MC', '.AS']
-    for s in suffixes_eur:
-        try:
-            # If ticker already has suffix, skip double suffixing (unless it's different)
-            if '.' in candidate_ticker and len(candidate_ticker.split('.')[-1]) < 3:
-                    t_test = candidate_ticker
-                    s = "" 
-            else:
-                    t_test = candidate_ticker + s
-            
-            hist = yf.Ticker(t_test).history(period="1d")
-            if not hist.empty:
-                return hist['Close'].iloc[-1], t_test
-        except: pass # Silent fail for suffixes
-        if s == "": break 
-        
-    # 2. Try Raw (Assume USD typically, or Global)
-    try:
-        hist = yf.Ticker(candidate_ticker).history(period="1d")
-        if not hist.empty:
-                price_usd = hist['Close'].iloc[-1]
-                return price_usd / eur_usd_rate, candidate_ticker # Convert to EUR
-    except: pass
-    
-    return 0.0, None
 
 async def show_portfolio(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
@@ -441,6 +379,9 @@ async def show_portfolio(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("📂 Il tuo portafoglio è vuoto.")
         return
     await update.message.reply_text("⏳ **Recupero prezzi live...**")
+    
+    # Instantiate MarketData for Centralized Pricing
+    market = MarketData()
     
     msg = "📊 **Il tuo Portafoglio:**\n\n"
     total_val = 0.0
@@ -477,7 +418,8 @@ async def show_portfolio(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         if search and search != "UNKNOWN":
             try:
-                 found_price, used_ticker = fetch_price_smart(search)
+                 # Use Centralized MarketData Logic
+                 found_price, used_ticker = market.get_smart_price_eur(search)
                  if found_price > 0:
                       curr_val = qty * found_price
                       # Update ticker display distinctively if mapped
@@ -586,6 +528,8 @@ def dashboard():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
     db = DBHandler()
+    market = MarketData()
+    
     
     # 1. Signals
     try:
@@ -630,8 +574,8 @@ def dashboard():
             curr = 0.0
             
             if search != "UNKNOWN":
-                # Use Global Smart Fetch for accurate price (Handles Crypto & Suffixes)
-                price_eur, used_ticker = fetch_price_smart(search)
+                # Use Global Smart Fetch via MarketData
+                price_eur, used_ticker = market.get_smart_price_eur(search)
                 if price_eur > 0:
                     curr = qty * price_eur
                     
@@ -875,8 +819,8 @@ async def analyze_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             # User wants "Current Value".
             # Let's peek at technical_summary content? It's a string.
             
-            # Re-fetch price quickly
-            price_eur, _ = fetch_price_smart(ticker)
+            # Re-fetch price quickly using MarketData logic
+            price_eur, _ = market.get_smart_price_eur(ticker)
             live_val = qty * price_eur if price_eur > 0 else (qty * avg)
             
             alloc_pct = 0.0
