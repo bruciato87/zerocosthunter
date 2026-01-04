@@ -423,6 +423,25 @@ async def run_async_pipeline():
         )
         
         await notifier.send_alert(alert_msg)
+        
+        # Save to Memory (Neuro-Link) for historical recall
+        try:
+            from memory import Memory
+            mem = Memory()
+            mem.save_memory(
+                ticker=ticker,
+                event_type="signal",
+                reasoning=reasoning,
+                sentiment=sentiment,
+                confidence=confidence,
+                target_price=float(target_price.replace('$', '').replace('€', '')) if target_price else None,
+                risk_score=risk_score,
+                signal_id=signal_id,
+                source=source
+            )
+        except Exception as e:
+            logger.warning(f"Memory save failed for {ticker}: {e}")
+        
         processed_count += 1
 
     # --- AUDIT PHASE ---

@@ -211,6 +211,9 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "📊 `/portfolio`\nVisualizza il valore attuale del tuo portafoglio in tempo reale.\n\n"
         "🔬 `/analyze <TICKER>`\nAnalisi AI approfondita con news, technicals, e backtest storici.\n\n"
         "📈 `/backtest <TICKER>`\nEsegue un backtest storico con la miglior strategia per l'asset.\n\n"
+        "🧠 **Memory (Neuro-Link):**\n"
+        "• `/recall <TICKER>`: Perché abbiamo comprato/venduto questo asset?\n"
+        "• `/learn`: Lezioni apprese dagli errori recenti.\n\n"
         "🏛 `/macro`\nVisualizza il contesto Macro Economico (VIX, Tassi, FED).\n\n"
         "🐋 `/whale`\nVisualizza movimenti On-Chain (Balene).\n\n"
         "🔔 **Allarmi Prezzo:**\n"
@@ -802,6 +805,8 @@ def webhook():
                 bot_app.add_handler(CommandHandler("alert", alert_command))
                 bot_app.add_handler(CommandHandler("alerts", my_alerts_command))
                 bot_app.add_handler(CommandHandler("paper", paper_command))
+                bot_app.add_handler(CommandHandler("recall", recall_command))
+                bot_app.add_handler(CommandHandler("learn", learn_command))
                 bot_app.add_handler(CommandHandler("backtest", backtest_command))
                 bot_app.add_handler(CommandHandler("analyze", analyze_command))
                 bot_app.add_handler(CommandHandler("settings", settings_command))
@@ -933,6 +938,80 @@ async def paper_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         logger.error(f"Paper command error: {e}")
         await update.message.reply_text("❌ Errore Paper Trader.")
+
+async def recall_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Recall historical AI decisions for a ticker."""
+    args = context.args
+    if not args:
+        await update.message.reply_text("⚠️ Uso: `/recall <TICKER>` (es. `/recall BTC`)", parse_mode="Markdown")
+        return
+    
+    ticker = args[0].upper()
+    await update.message.reply_text(f"🧠 **Recupero memoria storica per {ticker}...**", parse_mode="Markdown")
+    
+    try:
+        from memory import Memory
+        mem = Memory()
+        
+        memories = mem.recall_memory(ticker, limit=5)
+        
+        if not memories:
+            await update.message.reply_text(f"📭 Nessuna decisione storica trovata per **{ticker}**.\n\n_L'AI inizierà a ricordare dopo il prossimo /hunt o /analyze._", parse_mode="Markdown")
+            return
+        
+        msg = f"🧠 **Memoria Storica: {ticker}**\n\n"
+        for m in memories:
+            date = m.get('event_date', '')[:10]
+            sentiment = m.get('sentiment', 'N/A')
+            reasoning = m.get('reasoning', 'N/A')[:200]
+            outcome = m.get('actual_outcome')
+            
+            emoji = "🟢" if sentiment in ["BUY", "ACCUMULATE"] else "🔴" if sentiment in ["SELL", "PANIC SELL"] else "⚪"
+            msg += f"{emoji} **{date}**: {sentiment}\n"
+            msg += f"_{reasoning}_\n"
+            
+            if outcome is not None:
+                outcome_emoji = "✅" if outcome > 0 else "❌"
+                msg += f"{outcome_emoji} Outcome: {outcome:+.1f}%\n"
+            
+            msg += "\n"
+        
+        await update.message.reply_text(msg, parse_mode="Markdown")
+        
+    except Exception as e:
+        logger.error(f"Recall command error: {e}")
+        await update.message.reply_text(f"❌ Errore nel recupero memoria: {e}")
+
+async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Show lessons learned from trading mistakes."""
+    await update.message.reply_text("🎓 **Recupero lezioni apprese dagli errori...**", parse_mode="Markdown")
+    
+    try:
+        from memory import Memory
+        mem = Memory()
+        
+        lessons = mem.get_lessons_learned(limit=5)
+        
+        if not lessons:
+            await update.message.reply_text("📚 Nessuna lezione ancora registrata.\n\n_Le lezioni vengono generate quando i trade si chiudono con perdite significative._", parse_mode="Markdown")
+            return
+        
+        msg = "🎓 **Lezioni Apprese (Errori Recenti):**\n\n"
+        for l in lessons:
+            ticker = l.get('ticker', 'N/A')
+            date = l.get('event_date', '')[:10]
+            outcome = l.get('actual_outcome', 0)
+            lesson = l.get('lessons_learned', 'N/A')
+            
+            emoji = "❌" if outcome < 0 else "⚠️"
+            msg += f"{emoji} **{ticker}** ({date}): {outcome:+.1f}%\n"
+            msg += f"📝 _{lesson}_\n\n"
+        
+        await update.message.reply_text(msg, parse_mode="Markdown")
+        
+    except Exception as e:
+        logger.error(f"Learn command error: {e}")
+        await update.message.reply_text(f"❌ Errore nel recupero lezioni: {e}")
 
 async def backtest_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Runs the best historical strategy backtest for a given ticker."""
