@@ -25,10 +25,14 @@ class Backtester:
         end_date = datetime.now()
         start_date = end_date - timedelta(days=period_days + 50)  # Buffer for indicator calc
         
+        # Use centralized TICKER_ALIASES from MarketData for consistency
+        yf_ticker = self.market.TICKER_ALIASES.get(ticker.upper(), ticker)
+        logger.info(f"📊 Fetching data for {ticker} (resolved to: {yf_ticker})")
+        
         try:
-            df = yf.download(ticker, start=start_date, end=end_date, progress=False)
+            df = yf.download(yf_ticker, start=start_date, end=end_date, progress=False)
             if df.empty:
-                logger.error(f"❌ No data found for {ticker}")
+                logger.error(f"❌ No data found for {yf_ticker}")
                 return None
         except Exception as e:
             logger.error(f"❌ Download failed: {e}")
