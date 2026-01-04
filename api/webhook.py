@@ -1159,7 +1159,7 @@ async def report_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 emoji = "🟢" if pnl > 0 else "🔴" if pnl < 0 else "⚪"
                 report += f"  {emoji} {ticker}: {status} ({pnl:+.1f}%)\n"
         
-        report += "\n━" * 20
+        report += "\n" + "━" * 20
         report += f"\n_Generato: {datetime.now().strftime('%Y-%m-%d %H:%M')}_"
         
         await update.message.reply_text(report, parse_mode="Markdown")
