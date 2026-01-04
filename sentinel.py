@@ -88,7 +88,6 @@ class Sentinel:
                     logger.error(f"Sentinel: Error checking ticker {ticker}: {e}")
 
         except Exception as e:
-        except Exception as e:
             logger.error(f"Sentinel: Error in _check_price_alerts: {e}")
         
         return notifications
