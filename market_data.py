@@ -14,11 +14,15 @@ except Exception:
 # Configure logging
 import requests # Added for CoinGecko
 
+import logging
+import requests # Added for CoinGecko
+
 # Configure logging
 logger = logging.getLogger(__name__)
 
 class MarketData:
     def __init__(self):
+        logger.info("MarketData Class Loaded (v2.1 - Smart Price Enabled)")
         self.COINGECKO_MAP = {
             "BTC-USD": "bitcoin",
             "ETH-USD": "ethereum",
@@ -116,6 +120,83 @@ class MarketData:
             logger.warning(f"Yahoo Price fetch failed for {search_ticker} (orig: {ticker}): {e}")
             
         return None
+
+    def get_smart_price_eur(self, candidate_ticker):
+        """
+        Centralized Smart Pricing Logic (Single Source of Truth).
+        Attempts to find a price for the ticker trying multiple suffixes.
+        Prioritizes EUR markets (DE, MI, F, PA) for Stocks.
+        Handles Crypto (-USD) separately and converts to EUR.
+        Returns: (price_in_eur, found_ticker_suffix_or_alias) or (0.0, None)
+        """
+        # Note: Fetch EUR/USD rate dynamically or fallback
+        eur_usd_rate = 1.09
+        try:
+             hist = yf.Ticker("EURUSD=X").history(period="1d")
+             if not hist.empty: eur_usd_rate = hist['Close'].iloc[-1]
+        except: pass
+
+        ticker_u = candidate_ticker.upper()
+        # 0. Check Aliases first
+        # Usually aliases map to the EXACT ticker intended (e.g. BYD -> BY6.F)
+        # If alias is found, trust it 100% and fetch that.
+        if ticker_u in self.TICKER_ALIASES:
+             start_ticker = self.TICKER_ALIASES[ticker_u]
+        else:
+             start_ticker = ticker_u
+
+        # OPTIMIZATION: If ticker has '-' or is known crypto
+        # This list should match known crypto list in COINGECKO_MAP roughly
+        updated_crypto_list = ['RENDER', 'SOL', 'BTC', 'ETH', 'XRP', 'ADA', 'DOGE', 'DOT', 'LINK', 'AVAX', 'MATIC', 'SHIB', 'PEPE']
+        
+        if '-' in start_ticker or start_ticker in updated_crypto_list:
+            base = start_ticker.split('-')[0] if '-' in start_ticker else start_ticker
+            
+            # 1. Try CoinGecko First (Most reliable for Crypto)
+            cg_price, _ = self.get_crypto_data_coingecko(base + "-USD")
+            if cg_price and cg_price > 0:
+                return cg_price / eur_usd_rate, base + "-USD" # Convert USD to EUR
+
+            # 2. Try EUR Pair first (e.g. BTC-EUR) - Most accurate for EU users
+            try:
+                hist = yf.Ticker(f"{base}-EUR").history(period="1d")
+                if not hist.empty:
+                    return hist['Close'].iloc[-1], f"{base}-EUR"
+            except: pass
+
+            # 3. Try USD Pair (e.g. BTC-USD) - Fallback
+            try:
+                hist = yf.Ticker(f"{base}-USD").history(period="1d")
+                if not hist.empty:
+                     price = hist['Close'].iloc[-1]
+                     return price / eur_usd_rate, f"{base}-USD"
+            except: pass
+            
+            return 0.0, None
+
+        # 1. Try Explicit EUR Suffixes first (Trade Republic common markets)
+        suffixes_eur = ['.DE', '.F', '.MI', '.PA', '.MC', '.AS']
+        
+        # If start_ticker already has a suffix, try it directly first
+        initial_candidates = [start_ticker]
+        if '.' not in start_ticker:
+             initial_candidates = [start_ticker + s for s in suffixes_eur] + [start_ticker]
+        
+        for t_test in initial_candidates:
+            try:
+                hist = yf.Ticker(t_test).history(period="1d")
+                if not hist.empty:
+                    # If it's a raw ticker (no dot) and not crypto, assumed USD?
+                    # Usually stocks without suffix on Yahoo are US Stocks (USD).
+                    # If ticker had suffix (e.g. .DE), price is EUR.
+                    price = hist['Close'].iloc[-1]
+                    if '.' in t_test: 
+                         return price, t_test # EUR
+                    else:
+                         return price / eur_usd_rate, t_test # Convert USD (heuristic)
+            except: pass
+        
+        return 0.0, None
 
     def get_technical_summary(self, ticker: str) -> str:
         """
