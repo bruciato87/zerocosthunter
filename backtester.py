@@ -263,8 +263,24 @@ class Backtester:
         
         return self._save_result(ticker, period_days, df, cash, holdings, trades_count, wins, f"RSI_MACD_Confluence")
 
+    def run_best_strategy(self, ticker: str, period_days: int = 90):
+        """
+        Run ONLY the historically best performing strategy for this asset type.
+        - Crypto (contains USD/EUR or SOL/BTC/ETH/XRP): RSI+MACD Confluence
+        - Stocks/ETFs: Bollinger Bands
+        """
+        crypto_keywords = ["USD", "EUR", "BTC", "ETH", "SOL", "XRP", "RENDER"]
+        is_crypto = any(kw in ticker.upper() for kw in crypto_keywords)
+        
+        if is_crypto:
+            logger.info(f"🎯 {ticker} identified as CRYPTO -> Using RSI+MACD Confluence")
+            return self.run_rsi_macd_confluence_backtest(ticker, period_days)
+        else:
+            logger.info(f"🎯 {ticker} identified as STOCK/ETF -> Using Bollinger Bands")
+            return self.run_bollinger_backtest(ticker, period_days)
+
     def run_all_strategies(self, ticker: str, period_days: int = 90):
-        """Run all available strategies for a ticker."""
+        """Run all available strategies for a ticker (for comparison/research only)."""
         logger.info(f"🚀 Running ALL strategies for {ticker}...")
         results = []
         results.append(self.run_rsi_backtest(ticker, period_days))
@@ -276,5 +292,7 @@ class Backtester:
 
 if __name__ == "__main__":
     bt = Backtester()
-    # Test all strategies on BTC
-    bt.run_all_strategies("BTC-USD", 90)
+    # Test best strategy on portfolio
+    bt.run_best_strategy("BTC-USD", 90)
+    bt.run_best_strategy("NVDA", 90)
+

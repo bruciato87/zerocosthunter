@@ -500,9 +500,8 @@
                             <thead class="bg-purple-900/20 uppercase text-xs font-bold text-purple-300">
                                 <tr>
                                     <th class="px-4 py-3">Ticker</th>
+                                    <th class="px-4 py-3">Strategia</th>
                                     <th class="px-4 py-3">Period</th>
-                                    <th class="px-4 py-3 text-right">Start Balance</th>
-                                    <th class="px-4 py-3 text-right">End Balance</th>
                                     <th class="px-4 py-3 text-right">P/L</th>
                                     <th class="px-4 py-3 text-right">Win Rate</th>
                                     <th class="px-4 py-3 text-right">Trades</th>
@@ -512,11 +511,13 @@
                                 {% for bt in backtest_results %}
                                 <tr class="border-b border-gray-700 hover:bg-gray-700/30 transition">
                                     <td class="px-4 py-3 font-bold text-white">{{ bt.ticker }}</td>
+                                    <td class="px-4 py-3 text-xs">
+                                        <span
+                                            class="px-2 py-1 rounded bg-purple-900/30 text-purple-300 border border-purple-800">
+                                            {{ bt.strategy_version }}
+                                        </span>
+                                    </td>
                                     <td class="px-4 py-3">{{ bt.period_days }}d</td>
-                                    <td class="px-4 py-3 text-right font-mono">€{{ "{:,.0f}".format(bt.starting_balance)
-                                        }}</td>
-                                    <td class="px-4 py-3 text-right font-mono">€{{ "{:,.0f}".format(bt.ending_balance)
-                                        }}</td>
                                     <td class="px-4 py-3 text-right font-mono font-bold 
                                         {% if bt.pnl_percent >= 0 %}text-green-400{% else %}text-red-400{% endif %}">
                                         {{ "{:+.2f}".format(bt.pnl_percent) }}%
