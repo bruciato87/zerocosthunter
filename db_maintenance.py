@@ -134,71 +134,102 @@ class DBMaintenance:
             "usage_percent": usage_pct
         }
     
-    def cleanup_old_records(self, force: bool = False) -> Dict[str, int]:
+    def cleanup_old_records(self, target_percent: float = 70.0) -> Dict[str, int]:
         """
-        Delete old records based on cleanup policies.
-        Only runs if storage is above threshold (or force=True).
+        Delete old records progressively until storage reaches target_percent.
+        Only called when storage is critical (>90%).
+        
+        Strategy: 
+        - Start with oldest records from low-priority tables
+        - Progressively reduce max_age until target is reached
+        - Always keep most recent data
+        
+        Args:
+            target_percent: Target usage percentage (default 70% = 30% free)
         
         Returns dict of {table: deleted_count}
         """
         health = self.check_storage_health()
+        current_size = health["size_mb"]
+        target_size = (target_percent / 100) * FREE_TIER_LIMIT_MB
         
-        if not force and health["status"] == "healthy":
-            logger.info("Storage healthy, skipping cleanup")
+        # Calculate how much we need to delete
+        mb_to_delete = current_size - target_size
+        if mb_to_delete <= 0:
+            logger.info(f"Storage OK ({current_size:.1f}MB), no cleanup needed")
             return {}
         
-        logger.warning(f"🧹 Starting cleanup... {health['message']}")
+        logger.warning(f"🧹 Cleanup needed: {current_size:.1f}MB -> {target_size:.1f}MB (delete ~{mb_to_delete:.1f}MB)")
+        
         deleted = {}
+        total_deleted = 0
         
-        # Sort by priority (clean lower priority first for critical, higher priority tables can wait)
-        sorted_policies = sorted(self.cleanup_policies, key=lambda x: x[2])
+        # Progressive cleanup: start with oldest data first
+        # We iterate with increasingly aggressive age thresholds
+        age_multipliers = [1.0, 0.75, 0.5, 0.25]  # 100%, 75%, 50%, 25% of max_age
         
-        for table, max_age_days, priority in sorted_policies:
-            try:
-                cutoff_date = (datetime.now() - timedelta(days=max_age_days)).isoformat()
-                
-                # Determine date column (different tables use different names)
-                date_column = "created_at"
-                if table == "memory":
-                    date_column = "event_date"
-                elif table == "signal_tracking":
-                    date_column = "detected_at"
-                elif table == "backtest_results":
-                    date_column = "run_at"
-                elif table == "paper_trades":
-                    date_column = "trade_date"
-                
-                # Get count before delete
-                before = self.db.supabase.table(table).select("*", count="exact").lt(date_column, cutoff_date).limit(0).execute()
-                count_to_delete = before.count if hasattr(before, 'count') else 0
-                
-                if count_to_delete > 0:
-                    # Delete old records
-                    self.db.supabase.table(table).delete().lt(date_column, cutoff_date).execute()
-                    deleted[table] = count_to_delete
-                    logger.info(f"🗑️ Deleted {count_to_delete} old records from {table} (>{max_age_days} days)")
-                
-            except Exception as e:
-                logger.warning(f"Cleanup failed for {table}: {e}")
-                deleted[table] = -1
+        for multiplier in age_multipliers:
+            # Check if we've freed enough space
+            current_health = self.check_storage_health()
+            if current_health["usage_percent"] <= target_percent:
+                logger.info(f"✅ Target reached: {current_health['usage_percent']:.1f}%")
+                break
+            
+            # Sort by priority (clean high priority = low value first)
+            sorted_policies = sorted(self.cleanup_policies, key=lambda x: x[2])
+            
+            for table, base_max_age, priority in sorted_policies:
+                try:
+                    # Calculate adjusted age threshold
+                    adjusted_age = int(base_max_age * multiplier)
+                    if adjusted_age < 7:  # Never delete data less than 7 days old
+                        continue
+                    
+                    cutoff_date = (datetime.now() - timedelta(days=adjusted_age)).isoformat()
+                    
+                    # Determine date column
+                    date_column = "created_at"
+                    if table == "memory":
+                        date_column = "event_date"
+                    elif table == "signal_tracking":
+                        date_column = "detected_at"
+                    elif table == "backtest_results":
+                        date_column = "run_at"
+                    elif table == "paper_trades":
+                        date_column = "trade_date"
+                    
+                    # Count records to delete
+                    before = self.db.supabase.table(table).select("*", count="exact").lt(date_column, cutoff_date).limit(0).execute()
+                    count_to_delete = before.count if hasattr(before, 'count') else 0
+                    
+                    if count_to_delete > 0:
+                        self.db.supabase.table(table).delete().lt(date_column, cutoff_date).execute()
+                        deleted[table] = deleted.get(table, 0) + count_to_delete
+                        total_deleted += count_to_delete
+                        logger.info(f"🗑️ Deleted {count_to_delete} from {table} (>{adjusted_age} days)")
+                        
+                except Exception as e:
+                    logger.warning(f"Cleanup failed for {table}: {e}")
         
-        total_deleted = sum(v for v in deleted.values() if v > 0)
-        logger.info(f"🧹 Cleanup complete: {total_deleted} total records deleted")
+        # Final status
+        final_health = self.check_storage_health()
+        logger.info(f"🧹 Cleanup complete: {total_deleted} records deleted. New usage: {final_health['usage_percent']:.1f}%")
         
         return deleted
     
     def run_maintenance(self) -> str:
         """
         Run full maintenance check and cleanup if needed.
-        Returns a status message.
+        Only cleans when CRITICAL (>90%), targets 70% (30% free).
         """
         health = self.check_storage_health()
         
         if health["status"] == "critical":
-            deleted = self.cleanup_old_records(force=True)
-            return f"{health['message']}\n🧹 Cleaned: {sum(v for v in deleted.values() if v > 0)} records"
-        elif health["status"] == "warning":
-            return health["message"]
+            # Only clean at critical, target 70% (30% free)
+            deleted = self.cleanup_old_records(target_percent=70.0)
+            total = sum(v for v in deleted.values() if v > 0)
+            new_health = self.check_storage_health()
+            return f"⚠️ Storage was {health['usage_percent']:.0f}%. Cleaned {total} records. Now {new_health['usage_percent']:.0f}%."
         else:
             return health["message"]
 
