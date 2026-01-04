@@ -168,6 +168,10 @@ async def run_async_pipeline():
                 p_summary = f"OWNED {holding['quantity']} @ ${holding['avg_price']}{pnl_str}"
                 extras.append(f"Portfolio: {p_summary}")
                 logger.info(f"Enriched {detected_ticker} with Portfolio data: {p_summary}")
+            else:
+                # CRITICAL: Explicitly tell AI that asset is NOT owned to prevent hallucinations
+                extras.append("Portfolio: NOT OWNED (New Entry)")
+                logger.info(f"Marked {detected_ticker} as NOT OWNED")
 
             item['summary'] += "\n\n[" + " | ".join(extras) + "]"
             logger.info(f"Enriched {detected_ticker} news.")
