@@ -190,7 +190,6 @@ async def setup_bot_commands(bot):
         BotCommand("dashboard", "🖥️ Web Dashboard"),
         BotCommand("macro", "🏛 Macro Context (FED/VIX)"),
         BotCommand("whale", "🐋 Whale Alert (On-Chain)"),
-        BotCommand("whale", "🐋 Whale Alert (On-Chain)"),
         BotCommand("alert", "🔔 Imposta Alert Prezzo"),
         BotCommand("alerts", "🔕 I tuoi Alert"),
         BotCommand("paper", "🧪 Lab / Paper Trading"),
