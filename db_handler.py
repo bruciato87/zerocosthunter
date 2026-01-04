@@ -470,6 +470,26 @@ class DBHandler:
             logger.error(f"Error fetching user alerts: {e}")
             return []
 
+    def save_backtest_result(self, result: dict):
+        """
+        Saves a backtest run result to the database.
+        
+        Args:
+            result (dict): Dictionary containing backtest metrics
+                           (ticker, period_days, start_date, end_date, 
+                            starting_balance, ending_balance, pnl_percent, 
+                            win_rate, total_trades, strategy_version)
+        """
+        try:
+            data, count = self.supabase.table("backtest_results").insert(result).execute()
+            if count:
+                logger.info(f"💾 Backtest Saved: {result.get('ticker')} | PnL: {result.get('pnl_percent')}%")
+                return True
+            return False
+        except Exception as e:
+            logger.error(f"Error saving backtest result: {e}")
+            return False
+
 if __name__ == "__main__":
     # Test connection
     try:
