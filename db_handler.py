@@ -403,6 +403,9 @@ class DBHandler:
             logger.error(f"Lock Error: {e}")
             return True # Fail-open
 
+    def release_hunt_lock(self, request_id: str = "unknown"):
+        """Releases the hunt lock with ID reference."""
+        try:
              self.log_system_event("INFO", "HUNTER_LOCK", f"RELEASED|{request_id}")
         except: pass
 
