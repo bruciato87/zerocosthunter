@@ -850,9 +850,15 @@ async def analyze_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if qty and avg:
                 total_invested += qty * avg
             
-            # Find the specific asset
+            # Find the specific asset (Robust Match)
             p_ticker = p.get('ticker','').upper()
-            if p_ticker == ticker or (ticker.endswith('-USD') and p_ticker == ticker.replace('-USD','')):
+            
+            # Normalize: Remove -USD suffix for comparison
+            # e.g. Input "BTC" matches DB "BTC-USD"
+            # e.g. Input "BTC-USD" matches DB "BTC"
+            def normalize(t): return t.replace('-USD', '')
+            
+            if normalize(p_ticker) == normalize(ticker):
                  asset_data = p
         
         portfolio_context = "Not Owned"
