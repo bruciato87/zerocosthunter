@@ -485,6 +485,57 @@
                 {% else %}
                 <div class="text-gray-500 italic">No Active Paper Positions yet. Waiting for signals...</div>
                 {% endif %}
+
+                <!-- Backtest Results Section -->
+                <div class="mt-8 text-left">
+                    <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                        <span>📊 Backtest History</span>
+                        <span class="text-xs font-normal text-gray-500 bg-gray-800 px-2 py-1 rounded-full">RSI
+                            Strategy</span>
+                    </h3>
+
+                    {% if backtest_results %}
+                    <div class="bg-gray-800 rounded-xl border border-gray-600 overflow-hidden">
+                        <table class="w-full text-left text-sm text-gray-400">
+                            <thead class="bg-purple-900/20 uppercase text-xs font-bold text-purple-300">
+                                <tr>
+                                    <th class="px-4 py-3">Ticker</th>
+                                    <th class="px-4 py-3">Period</th>
+                                    <th class="px-4 py-3 text-right">Start Balance</th>
+                                    <th class="px-4 py-3 text-right">End Balance</th>
+                                    <th class="px-4 py-3 text-right">P/L</th>
+                                    <th class="px-4 py-3 text-right">Win Rate</th>
+                                    <th class="px-4 py-3 text-right">Trades</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for bt in backtest_results %}
+                                <tr class="border-b border-gray-700 hover:bg-gray-700/30 transition">
+                                    <td class="px-4 py-3 font-bold text-white">{{ bt.ticker }}</td>
+                                    <td class="px-4 py-3">{{ bt.period_days }}d</td>
+                                    <td class="px-4 py-3 text-right font-mono">€{{ "{:,.0f}".format(bt.starting_balance)
+                                        }}</td>
+                                    <td class="px-4 py-3 text-right font-mono">€{{ "{:,.0f}".format(bt.ending_balance)
+                                        }}</td>
+                                    <td class="px-4 py-3 text-right font-mono font-bold 
+                                        {% if bt.pnl_percent >= 0 %}text-green-400{% else %}text-red-400{% endif %}">
+                                        {{ "{:+.2f}".format(bt.pnl_percent) }}%
+                                    </td>
+                                    <td class="px-4 py-3 text-right font-mono">{{ bt.win_rate }}%</td>
+                                    <td class="px-4 py-3 text-right">{{ bt.total_trades }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div
+                        class="bg-gray-800/50 rounded-xl p-6 text-center border border-gray-700 border-dashed text-gray-500">
+                        <span class="text-2xl block mb-2">🔬</span>
+                        No backtest results yet. Run a backtest to see historical simulation data.
+                    </div>
+                    {% endif %}
+                </div>
             </div>
         </div>
 
@@ -521,7 +572,9 @@
                     });
 
                     // Inject Data
-                    const dates = {{ chart_labels | tojson }};
+                    const dates = {{ chart_labels | tojson
+                }
+            };
             const values = {{ chart_data | safe }}; // safe because json.dumps used in python
 
             if (dates && values && dates.length === values.length) {

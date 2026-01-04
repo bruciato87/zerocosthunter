@@ -741,6 +741,16 @@ def dashboard():
         paper_portfolio_enriched = []
         paper_total_value = 0.0
 
+    # 10. Backtest Results (Lab)
+    try:
+        backtest_results = db.supabase.table("backtest_results") \
+            .select("*") \
+            .order("run_at", desc=True) \
+            .limit(10) \
+            .execute().data
+    except Exception as e:
+        logger.error(f"Backtest Fetch Error: {e}")
+        backtest_results = []
 
     return render_template('dashboard.html', 
                            signals=signals, 
@@ -761,7 +771,8 @@ def dashboard():
                            macro_stats=macro_stats,
                            whale_stats=whale_stats,
                            paper_portfolio=paper_portfolio_enriched,
-                           paper_total_value=paper_total_value)
+                           paper_total_value=paper_total_value,
+                           backtest_results=backtest_results)
 
 @app.route('/api/webhook', methods=['POST'])
 def webhook():
