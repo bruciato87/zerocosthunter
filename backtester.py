@@ -34,9 +34,12 @@ class Backtester:
             logger.error(f"❌ Download failed: {e}")
             return None
         
-        # Ensure Close is flat series
-        if isinstance(df['Close'], pd.DataFrame):
-            df['Close'] = df['Close'].iloc[:, 0]
+        # Fix yfinance MultiIndex columns (returns MultiIndex with ticker as second level)
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = df.columns.droplevel(1)
+        
+        # Ensure Close is truly 1D
+        df['Close'] = df['Close'].values.flatten()
         
         # Trim to requested period
         mask = (df.index >= pd.Timestamp(end_date - timedelta(days=period_days)).tz_localize(df.index.tz))
