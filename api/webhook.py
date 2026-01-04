@@ -190,6 +190,8 @@ async def setup_bot_commands(bot):
         BotCommand("dashboard", "🖥️ Web Dashboard"),
         BotCommand("macro", "🏛 Macro Context (FED/VIX)"),
         BotCommand("whale", "🐋 Whale Alert (On-Chain)"),
+        BotCommand("alert", "🔔 Imposta Alert Prezzo"),
+        BotCommand("alerts", "🔕 I tuoi Alert"),
         BotCommand("help", "❓ Lista Comandi"),
         BotCommand("setprice", "💶 Correggi Prezzo (es. /setprice AAPL 150)"),
         BotCommand("setticker", "🏷 Correggi Ticker (es. /setticker OLD NEW)"),
@@ -208,6 +210,10 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "📊 `/portfolio`\nVisualizza il valore attuale del tuo portafoglio in tempo reale.\n\n"
         "🏛 `/macro`\nVisualizza il contesto Macro Economico (VIX, Tassi, FED).\n\n"
         "🐋 `/whale`\nVisualizza movimenti On-Chain (Balene).\n\n"
+        "🔔 **Allarmi Prezzo:**\n"
+        "• `/alert BTC > 100000`: Avvisa se BTC supera 100k.\n"
+        "• `/alert NVDA < 90`: Avvisa se NVDA scende sotto 90.\n"
+        "• `/alerts`: Lista dei tuoi allarmi attivi.\n\n"
         "✍️ **Correzioni Manuali:**\n"
         "• `/setprice <TICKER> <PREZZO>`: Imposta manualmente il prezzo medio.\n"
         "• `/setqty <TICKER> <QTY>`: Imposta manualmente la quantità.\n"
