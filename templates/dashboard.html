@@ -136,7 +136,7 @@
                 <div
                     class="col-span-1 md:col-span-4 bg-gray-800 rounded-xl p-5 border border-gray-700 shadow-lg relative overflow-hidden group hover:border-gray-600 transition">
                     <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition"><span
-                            class="text-6xl">��</span></div>
+                            class="text-6xl"></span></div>
                     <div class="card-header">
                         <span class="card-title">🌊 On-Chain Flow</span>
                         {% if whale_stats %}
@@ -538,8 +538,18 @@
                 const newRect = entries[0].contentRect;
                 chart.applyOptions({ width: newRect.width, height: newRect.height });
             }).observe(chartContainer);
+                }
+            });
+
+            function showTab(tabName) {
+                // Hide All
+                document.getElementById('tab-real').classList.add('hidden');
+                document.getElementById('tab-paper').classList.add('hidden');
+
+                // Show Target
+                document.getElementById('tab-' + tabName).classList.remove('hidden');
+                document.getElementById('tab-' + tabName).classList.add('block');
             }
-        });
         </script>
 </body>
 
