@@ -5,6 +5,8 @@ import pandas as pd
 from datetime import datetime, timedelta
 import pytz
 from ta.momentum import RSIIndicator
+from ta.trend import MACD
+from ta.volatility import BollingerBands
 from db_handler import DBHandler
 from market_data import MarketData
 
@@ -18,83 +20,37 @@ class Backtester:
         self.market = MarketData()
         self.start_balance = start_balance
 
-    def run_rsi_backtest(self, ticker: str, period_days: int = 90, rsi_buy=30, rsi_sell=70):
-        """
-        Runs a standard RSI Mean Reversion backtest.
-        Buy when RSI < 30. Sell when RSI > 70.
-        """
-        logger.info(f"🧪 Starting RSI Backtest for {ticker} ({period_days}d)...")
-        
-        # 1. Fetch History
+    def _fetch_data(self, ticker: str, period_days: int):
+        """Helper to fetch and prepare historical data."""
         end_date = datetime.now()
-        start_date = end_date - timedelta(days=period_days + 30) # Buffer for MA/RSI calc
+        start_date = end_date - timedelta(days=period_days + 50)  # Buffer for indicator calc
         
-        # Handle ticker mapping (MarketData may have aliases, but for backtest use raw ticker)
-        yf_ticker = ticker
-             
         try:
-             df = yf.download(yf_ticker, start=start_date, end=end_date, progress=False)
-             if df.empty:
-                 logger.error(f"❌ No data found for {yf_ticker}")
-                 return None
+            df = yf.download(ticker, start=start_date, end=end_date, progress=False)
+            if df.empty:
+                logger.error(f"❌ No data found for {ticker}")
+                return None
         except Exception as e:
             logger.error(f"❌ Download failed: {e}")
             return None
-
-        # 2. Calculate Indicators
+        
         # Ensure Close is flat series
-        close_series = df['Close']
-        if isinstance(close_series, pd.DataFrame):
-            close_series = close_series.iloc[:, 0]
-            
-        rsi_indicator = RSIIndicator(close=close_series, window=14)
-        df['RSI'] = rsi_indicator.rsi()
+        if isinstance(df['Close'], pd.DataFrame):
+            df['Close'] = df['Close'].iloc[:, 0]
         
         # Trim to requested period
         mask = (df.index >= pd.Timestamp(end_date - timedelta(days=period_days)).tz_localize(df.index.tz))
-        sim_data = df.loc[mask].copy()
-        
-        if sim_data.empty:
-            logger.error("❌ Not enough data after trimming.")
-            return None
-            
-        # 3. Simulate
-        cash = self.start_balance
-        holdings = 0.0
-        trades_count = 0
-        wins = 0
-        
-        entry_price = 0.0
-        
-        for i in range(len(sim_data)):
-            # Get row safely
-            row = sim_data.iloc[i]
-            price = float(row['Close'])
-            rsi = float(row['RSI'])
-            date = sim_data.index[i]
-            
-            # Logic
-            if rsi < rsi_buy and cash > 0:
-                # BUY ALL
-                qty = cash / price
-                holdings = qty
-                cash = 0
-                entry_price = price
-                # logger.info(f"[{date.date()}] BUY  @ {price:.2f} (RSI: {rsi:.1f})")
-                
-            elif rsi > rsi_sell and holdings > 0:
-                # SELL ALL
-                sale_value = holdings * price
-                pnl = (price - entry_price) / entry_price * 100
-                
-                cash = sale_value
-                holdings = 0
-                trades_count += 1
-                if pnl > 0: wins += 1
-                # logger.info(f"[{date.date()}] SELL @ {price:.2f} (RSI: {rsi:.1f}) -> PnL: {pnl:.2f}%")
-        
-        # Final Valuation
-        final_price = float(sim_data.iloc[-1]['Close'])
+        return df.loc[mask].copy()
+
+    def _safe_float(self, val):
+        """Safely convert pandas series element to float."""
+        if hasattr(val, 'iloc'):
+            return float(val.iloc[0])
+        return float(val)
+
+    def _save_result(self, ticker, period_days, sim_data, cash, holdings, trades_count, wins, strategy_version):
+        """Calculate final metrics and save to DB."""
+        final_price = self._safe_float(sim_data.iloc[-1]['Close'])
         final_value = cash + (holdings * final_price)
         total_pnl = ((final_value - self.start_balance) / self.start_balance) * 100
         win_rate = (wins / trades_count * 100) if trades_count > 0 else 0.0
@@ -109,16 +65,130 @@ class Backtester:
             "pnl_percent": round(total_pnl, 2),
             "win_rate": round(win_rate, 2),
             "total_trades": trades_count,
-            "strategy_version": f"RSI_{rsi_buy}_{rsi_sell}"
+            "strategy_version": strategy_version
         }
         
-        # Save to DB
         self.db.save_backtest_result(result)
-        logger.info(f"✅ Backtest Complete: {ticker} -> {total_pnl}% ({trades_count} trades)")
+        logger.info(f"✅ Backtest Complete: {ticker} [{strategy_version}] -> {total_pnl:.2f}% ({trades_count} trades)")
         return result
+
+    def run_rsi_backtest(self, ticker: str, period_days: int = 90, rsi_buy=30, rsi_sell=70):
+        """RSI Mean Reversion: Buy when RSI < 30, Sell when RSI > 70."""
+        logger.info(f"🧪 Starting RSI Backtest for {ticker} ({period_days}d)...")
+        
+        df = self._fetch_data(ticker, period_days)
+        if df is None or df.empty:
+            return None
+        
+        # Calculate RSI
+        rsi_indicator = RSIIndicator(close=df['Close'], window=14)
+        df['RSI'] = rsi_indicator.rsi()
+        
+        # Simulate
+        cash, holdings, trades_count, wins, entry_price = self.start_balance, 0.0, 0, 0, 0.0
+        
+        for i in range(len(df)):
+            price = self._safe_float(df.iloc[i]['Close'])
+            rsi = self._safe_float(df.iloc[i]['RSI'])
+            
+            if rsi < rsi_buy and cash > 0:
+                holdings = cash / price
+                cash = 0
+                entry_price = price
+            elif rsi > rsi_sell and holdings > 0:
+                pnl = (price - entry_price) / entry_price * 100
+                cash = holdings * price
+                holdings = 0
+                trades_count += 1
+                if pnl > 0: wins += 1
+        
+        return self._save_result(ticker, period_days, df, cash, holdings, trades_count, wins, f"RSI_{rsi_buy}_{rsi_sell}")
+
+    def run_macd_backtest(self, ticker: str, period_days: int = 90):
+        """MACD Crossover: Buy when MACD crosses above Signal, Sell when crosses below."""
+        logger.info(f"🧪 Starting MACD Backtest for {ticker} ({period_days}d)...")
+        
+        df = self._fetch_data(ticker, period_days)
+        if df is None or df.empty:
+            return None
+        
+        # Calculate MACD
+        macd = MACD(close=df['Close'], window_slow=26, window_fast=12, window_sign=9)
+        df['MACD'] = macd.macd()
+        df['MACD_Signal'] = macd.macd_signal()
+        df['MACD_Hist'] = macd.macd_diff()
+        
+        # Simulate
+        cash, holdings, trades_count, wins, entry_price = self.start_balance, 0.0, 0, 0, 0.0
+        prev_hist = 0.0
+        
+        for i in range(1, len(df)):
+            price = self._safe_float(df.iloc[i]['Close'])
+            hist = self._safe_float(df.iloc[i]['MACD_Hist'])
+            prev = self._safe_float(df.iloc[i-1]['MACD_Hist'])
+            
+            # Buy: MACD histogram crosses from negative to positive
+            if prev < 0 and hist > 0 and cash > 0:
+                holdings = cash / price
+                cash = 0
+                entry_price = price
+            # Sell: MACD histogram crosses from positive to negative
+            elif prev > 0 and hist < 0 and holdings > 0:
+                pnl = (price - entry_price) / entry_price * 100
+                cash = holdings * price
+                holdings = 0
+                trades_count += 1
+                if pnl > 0: wins += 1
+        
+        return self._save_result(ticker, period_days, df, cash, holdings, trades_count, wins, "MACD_12_26_9")
+
+    def run_bollinger_backtest(self, ticker: str, period_days: int = 90, window=20, std_dev=2):
+        """Bollinger Bands Mean Reversion: Buy at lower band, Sell at upper band."""
+        logger.info(f"🧪 Starting Bollinger Bands Backtest for {ticker} ({period_days}d)...")
+        
+        df = self._fetch_data(ticker, period_days)
+        if df is None or df.empty:
+            return None
+        
+        # Calculate Bollinger Bands
+        bb = BollingerBands(close=df['Close'], window=window, window_dev=std_dev)
+        df['BB_Upper'] = bb.bollinger_hband()
+        df['BB_Lower'] = bb.bollinger_lband()
+        df['BB_Mid'] = bb.bollinger_mavg()
+        
+        # Simulate
+        cash, holdings, trades_count, wins, entry_price = self.start_balance, 0.0, 0, 0, 0.0
+        
+        for i in range(len(df)):
+            price = self._safe_float(df.iloc[i]['Close'])
+            lower = self._safe_float(df.iloc[i]['BB_Lower'])
+            upper = self._safe_float(df.iloc[i]['BB_Upper'])
+            
+            # Buy: Price touches lower band
+            if price <= lower and cash > 0:
+                holdings = cash / price
+                cash = 0
+                entry_price = price
+            # Sell: Price touches upper band
+            elif price >= upper and holdings > 0:
+                pnl = (price - entry_price) / entry_price * 100
+                cash = holdings * price
+                holdings = 0
+                trades_count += 1
+                if pnl > 0: wins += 1
+        
+        return self._save_result(ticker, period_days, df, cash, holdings, trades_count, wins, f"BB_{window}_{std_dev}")
+
+    def run_all_strategies(self, ticker: str, period_days: int = 90):
+        """Run all available strategies for a ticker."""
+        logger.info(f"🚀 Running ALL strategies for {ticker}...")
+        results = []
+        results.append(self.run_rsi_backtest(ticker, period_days))
+        results.append(self.run_macd_backtest(ticker, period_days))
+        results.append(self.run_bollinger_backtest(ticker, period_days))
+        return [r for r in results if r is not None]
 
 if __name__ == "__main__":
     bt = Backtester()
-    # Test
-    bt.run_rsi_backtest("BTC-USD", 90)
-    bt.run_rsi_backtest("NVDA", 90)
+    # Test all strategies on BTC
+    bt.run_all_strategies("BTC-USD", 90)
