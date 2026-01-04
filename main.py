@@ -151,21 +151,17 @@ async def run_async_pipeline():
             if detected_ticker in portfolio_map:
                 holding = portfolio_map[detected_ticker]
                 
-                # Try to extract current price from tech_summary (Format: "Price: $123.45, ...")
-                current_price = 0.0
-                try:
-                    match = re.search(r'Price:\s*\$?([\d,]+\.?\d*)', tech_summary)
-                    if match:
-                        current_price = float(match.group(1).replace(',', ''))
-                except: pass
-
+                # Use MarketData for consistent EUR pricing (avg_price is stored in EUR)
+                current_price_eur, _ = market.get_smart_price_eur(detected_ticker)
+                
                 pnl_str = ""
-                if current_price > 0 and holding['avg_price'] > 0:
-                    pnl_pct = ((current_price - holding['avg_price']) / holding['avg_price']) * 100
+                if current_price_eur > 0 and holding['avg_price'] > 0:
+                    pnl_pct = ((current_price_eur - holding['avg_price']) / holding['avg_price']) * 100
                     sign = "+" if pnl_pct >= 0 else ""
                     pnl_str = f" | PnL: {sign}{pnl_pct:.2f}%"
+                    logger.info(f"PnL for {detected_ticker}: €{current_price_eur:.4f} vs avg €{holding['avg_price']:.4f} = {pnl_pct:.2f}%")
 
-                p_summary = f"OWNED {holding['quantity']} @ ${holding['avg_price']}{pnl_str}"
+                p_summary = f"OWNED {holding['quantity']} @ €{holding['avg_price']:.2f}{pnl_str}"
                 extras.append(f"Portfolio: {p_summary}")
                 logger.info(f"Enriched {detected_ticker} with Portfolio data: {p_summary}")
             else:
