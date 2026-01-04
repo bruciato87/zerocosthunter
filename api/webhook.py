@@ -1111,10 +1111,10 @@ async def report_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         comparison = bench.compare_vs_benchmarks(7)
         movers = bench.get_top_movers(5)
         
-        # Get recent signals
+        # Get recent signals (use correct column names)
         signals = db.supabase.table("signal_tracking") \
-            .select("ticker, sentiment, confidence, detected_at") \
-            .order("detected_at", desc=True) \
+            .select("ticker, status, pnl_percent, target_price, created_at") \
+            .order("created_at", desc=True) \
             .limit(10) \
             .execute().data or []
         
@@ -1151,13 +1151,13 @@ async def report_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         # Recent Signals
         if signals:
-            report += "\n📡 **Recent Signals:**\n"
+            report += "\n📡 **Signal Tracking:**\n"
             for s in signals[:5]:
-                sentiment = s.get("sentiment", "N/A")
+                status = s.get("status", "ACTIVE")
                 ticker = s.get("ticker", "?")
-                conf = s.get("confidence", 0)
-                emoji = "🟢" if sentiment in ["BUY", "ACCUMULATE"] else "🔴" if sentiment in ["SELL", "PANIC SELL"] else "⚪"
-                report += f"  {emoji} {ticker}: {sentiment} ({int(conf*100)}%)\n"
+                pnl = s.get("pnl_percent", 0) or 0
+                emoji = "🟢" if pnl > 0 else "🔴" if pnl < 0 else "⚪"
+                report += f"  {emoji} {ticker}: {status} ({pnl:+.1f}%)\n"
         
         report += "\n━" * 20
         report += f"\n_Generato: {datetime.now().strftime('%Y-%m-%d %H:%M')}_"
