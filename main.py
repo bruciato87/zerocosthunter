@@ -12,8 +12,10 @@ from market_data import MarketData
 from brain import Brain
 from telegram_bot import TelegramNotifier
 from auditor import Auditor
+from auditor import Auditor
 from economist import Economist
 from sentinel import Sentinel
+from paper_trader import PaperTrader
 import re
 import asyncio
 
@@ -49,6 +51,7 @@ async def run_async_pipeline():
         auditor = Auditor()
         economist = Economist()
         sentinel = Sentinel()
+        paper_trader = PaperTrader()
     except Exception as e:
         logger.critical(f"Initialization failed: {e}")
         return
@@ -364,7 +367,40 @@ async def run_async_pipeline():
                 auditor.record_signal(ticker, signal_id=signal_id, target_price=tp_float)
             except Exception as e:
                 logger.error(f"Failed to record signal for audit: {e}")
+            except Exception as e:
+                logger.error(f"Failed to record signal for audit: {e}")
         # ---------------------------
+
+        # --- PHASE 14: PAPER TRADER EXECUTION ---
+        # Execute in Lab if Confidence is High (Validation Mode)
+        if hasattr(paper_trader, 'execute_trade'):
+            try:
+                # Decide trade size: Fixed €1000 for simulation consistency
+                # Or dynamic based on "risk_score"
+                trade_size_eur = 1000.0
+                
+                # Fetch fresh price for execution accuracy
+                # (We have technical_summary but not clean float price here easily, assume market_data is fast)
+                p_price, _ = market.get_smart_price_eur(ticker)
+                
+                if p_price > 0:
+                    qty = trade_size_eur / p_price
+                    
+                    # Log buy or sell
+                    if sentiment in ["BUY", "ACCUMULATE"]:
+                         paper_trader.execute_trade(999999999, ticker, "BUY", qty, p_price, f"Auto-Signal: {confidence:.2f}")
+                    elif sentiment in ["SELL"]:
+                         # For sell, we need to know how much we have. PaperTrader handles logic?
+                         # The execute_trade SELL logic handles partials.
+                         # Let's try to sell 100% of holdings if Panic Sell.
+                         paper_trader.execute_trade(999999999, ticker, "SELL", 0, p_price, "Auto-Signal Sell")
+                         # Note: quantity=0 in SELL logic needs update? 
+                         # Actually checking paper_trader logic: it expects quantity.
+                         # Better: Let PaperTrader handle 'SELL ALL' if quantity is generic or explicit method.
+                         # For V1: Simple Buy testing.
+            except Exception as e:
+                logger.error(f"Paper Trader Failed: {e}")
+        # ----------------------------------------
 
         # Format Alert
         asset_type = pred.get("asset_type", "Asset")

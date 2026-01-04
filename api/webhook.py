@@ -190,8 +190,10 @@ async def setup_bot_commands(bot):
         BotCommand("dashboard", "🖥️ Web Dashboard"),
         BotCommand("macro", "🏛 Macro Context (FED/VIX)"),
         BotCommand("whale", "🐋 Whale Alert (On-Chain)"),
+        BotCommand("whale", "🐋 Whale Alert (On-Chain)"),
         BotCommand("alert", "🔔 Imposta Alert Prezzo"),
         BotCommand("alerts", "🔕 I tuoi Alert"),
+        BotCommand("paper", "🧪 Lab / Paper Trading"),
         BotCommand("help", "❓ Lista Comandi"),
         BotCommand("setprice", "💶 Correggi Prezzo (es. /setprice AAPL 150)"),
         BotCommand("setticker", "🏷 Correggi Ticker (es. /setticker OLD NEW)"),
@@ -214,6 +216,8 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "• `/alert BTC > 100000`: Avvisa se BTC supera 100k.\n"
         "• `/alert NVDA < 90`: Avvisa se NVDA scende sotto 90.\n"
         "• `/alerts`: Lista dei tuoi allarmi attivi.\n\n"
+        "🧪 **Laboratory (Paper Trading):**\n"
+        "• `/paper`: Vedi le performance del tuo portafoglio simulato.\n\n"
         "✍️ **Correzioni Manuali:**\n"
         "• `/setprice <TICKER> <PREZZO>`: Imposta manualmente il prezzo medio.\n"
         "• `/setqty <TICKER> <QTY>`: Imposta manualmente la quantità.\n"
@@ -699,6 +703,46 @@ def dashboard():
         logger.error(f"History Fetch Error: {e}")
         history = []
 
+    # 9. Paper Trading (Lab)
+    try:
+        from paper_trader import PaperTrader
+        pt = PaperTrader()
+        paper_raw = pt.get_portfolio(chat_id=None) # Fetch All
+        
+        paper_total_value = 0.0
+        paper_portfolio_enriched = []
+        
+        for p in paper_raw:
+            qty = p.get('quantity', 0)
+            avg = p.get('avg_price', 0)
+            ticker = p.get('ticker', 'UNKNOWN')
+            
+            # Use market data for price
+            curr_p, _ = market.get_smart_price_eur(ticker)
+            if curr_p <= 0: curr_p = avg # Fallback
+            
+            val = qty * curr_p
+            paper_total_value += val
+            
+            cost = qty * avg
+            pnl = val - cost
+            pnl_pct = ((pnl) / cost * 100) if cost > 0 else 0.0
+            
+            paper_portfolio_enriched.append({
+                "ticker": ticker,
+                "quantity": qty,
+                "avg_price": avg,
+                "current_price": curr_p,
+                "pnl": pnl_pct,
+                "current_value": val
+            })
+            
+    except Exception as e:
+        logger.error(f"Paper Dashboard Error: {e}")
+        paper_portfolio_enriched = []
+        paper_total_value = 0.0
+
+
     return render_template('dashboard.html', 
                            signals=signals, 
                            portfolio=portfolio, 
@@ -716,7 +760,9 @@ def dashboard():
                            market_mood=market_mood,
                            advisor_analysis=advisor_analysis,
                            macro_stats=macro_stats,
-                           whale_stats=whale_stats)
+                           whale_stats=whale_stats,
+                           paper_portfolio=paper_portfolio_enriched,
+                           paper_total_value=paper_total_value)
 
 @app.route('/api/webhook', methods=['POST'])
 def webhook():
@@ -743,6 +789,7 @@ def webhook():
                 bot_app.add_handler(CommandHandler("setqty", setqty_command))
                 bot_app.add_handler(CommandHandler("alert", alert_command))
                 bot_app.add_handler(CommandHandler("alerts", my_alerts_command))
+                bot_app.add_handler(CommandHandler("paper", paper_command))
                 bot_app.add_handler(CommandHandler("settings", settings_command))
                 bot_app.add_handler(CommandHandler("analyze", analyze_command))
                 bot_app.add_handler(CommandHandler("macro", macro_command))
@@ -831,6 +878,48 @@ async def my_alerts_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         logger.error(f"My alerts error: {e}")
         await update.message.reply_text("❌ Errore nel recupero degli allarmi.")
+
+async def paper_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Shows Paper Trading stats."""
+    await update.message.reply_text("🧪 **Laboratorio Zero-Cost**\nCalcolo performance simulata...")
+    try:
+        from paper_trader import PaperTrader
+        from market_data import MarketData
+        
+        pt = PaperTrader()
+        market = MarketData()
+        
+        chat_id = update.effective_chat.id
+        portfolio = pt.get_portfolio(chat_id)
+        
+        if not portfolio:
+             await update.message.reply_text("🧪 Il tuo portafoglio simulato è vuoto.\nAttendi i prossimi segnali automatici!")
+             return
+
+        total_value = 0.0
+        msg = "🧪 **Paper Portfolio Holdings:**\n\n"
+        
+        for p in portfolio:
+            price, _ = market.get_smart_price_eur(p['ticker'])
+            val = p['quantity'] * price
+            total_value += val
+            
+            # PnL
+            cost = p['quantity'] * p['avg_price']
+            pnl = val - cost
+            pnl_pct = (pnl / cost) * 100 if cost > 0 else 0
+            
+            icon = "🟢" if pnl >= 0 else "🔴"
+            msg += f"{icon} **{p['ticker']}**: {p['quantity']:.4f} @ €{p['avg_price']:.2f}\n"
+            msg += f"   Valore: €{val:.2f} ({pnl_pct:+.1f}%)\n"
+            
+        msg += f"\n💰 **Valore Totale Simulato:** €{total_value:.2f}"
+        
+        await update.message.reply_text(msg, parse_mode='Markdown')
+
+    except Exception as e:
+        logger.error(f"Paper command error: {e}")
+        await update.message.reply_text("❌ Errore Paper Trader.")
 
 async def analyze_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     args = context.args

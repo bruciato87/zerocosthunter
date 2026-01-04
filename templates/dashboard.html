@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en" class="dark">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -21,39 +22,58 @@
             }
         }
     </script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
     <style>
-        body { background-color: #0f172a; color: #e2e8f0; font-family: "Inter", sans-serif; }
-        .glass { background: rgba(31, 41, 55, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(55, 65, 81, 0.5); }
-        .card-header { @apply flex items-center justify-between mb-4; }
-        .card-title { @apply text-sm font-semibold text-gray-400 uppercase tracking-widest flex items-center gap-2; }
+        body {
+            background-color: #0f172a;
+            color: #e2e8f0;
+            font-family: "Inter", sans-serif;
+        }
+
+        .glass {
+            background: rgba(31, 41, 55, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(55, 65, 81, 0.5);
+        }
+
+        .card-header {
+            @apply flex items-center justify-between mb-4;
+        }
+
+        .card-title {
+            @apply text-sm font-semibold text-gray-400 uppercase tracking-widest flex items-center gap-2;
+        }
     </style>
 </head>
+
 <body class="min-h-screen pb-12">
 
     <!-- TradingView Ticker Tape -->
     <div class="tradingview-widget-container sticky top-0 z-50 shadow-xl">
         <div class="tradingview-widget-container__widget"></div>
-        <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
-        {
-            "symbols": [
-                { "proName": "FOREXCOM:SPXUSD", "title": "S&P 500" },
-                { "proName": "FOREXCOM:NSXUSD", "title": "Nasdaq" },
-                { "proName": "BITSTAMP:BTCUSD", "title": "Bitcoin" },
-                { "proName": "BITSTAMP:ETHUSD", "title": "Ethereum" },
-                { "proName": "BINANCE:SOLUSD", "title": "Solana" }
-            ],
-            "showSymbolLogo": true,
-            "colorTheme": "dark",
-            "isTransparent": false,
-            "displayMode": "adaptive",
-            "locale": "en"
-        }
-        </script>
+        <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js"
+            async>
+                {
+                    "symbols": [
+                        { "proName": "FOREXCOM:SPXUSD", "title": "S&P 500" },
+                        { "proName": "FOREXCOM:NSXUSD", "title": "Nasdaq" },
+                        { "proName": "BITSTAMP:BTCUSD", "title": "Bitcoin" },
+                        { "proName": "BITSTAMP:ETHUSD", "title": "Ethereum" },
+                        { "proName": "BINANCE:SOLUSD", "title": "Solana" }
+                    ],
+                        "showSymbolLogo": true,
+                            "colorTheme": "dark",
+                                "isTransparent": false,
+                                    "displayMode": "adaptive",
+                                        "locale": "en"
+                }
+            </script>
     </div>
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
-        
+
         <!-- Header -->
         <header class="flex justify-between items-end mb-8 border-b border-gray-800 pb-4">
             <div>
@@ -68,365 +88,460 @@
             </div>
         </header>
 
-        <!-- GRID LAYOUT -->
-        <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+        <!-- TABS (Simple Toggle for V1) -->
+        <div class="flex gap-4 mb-6 border-b border-gray-700">
+            <button class="px-4 py-2 text-indigo-400 border-b-2 border-indigo-400 font-bold"
+                onclick="showTab('real')">🚀 Live Portfolio</button>
+            <button class="px-4 py-2 text-gray-500 hover:text-white" onclick="showTab('paper')">🧪 Laboratory
+                (Paper)</button>
+        </div>
 
-            <!-- ROW 1: CONTEXT (The Weather) -->
-            
-            <!-- 1. Macro Risk -->
-            <div class="col-span-1 md:col-span-4 bg-gray-800 rounded-xl p-5 border border-gray-700 shadow-lg relative overflow-hidden group hover:border-gray-600 transition">
-                <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition"><span class="text-6xl">🏛</span></div>
-                <div class="card-header">
-                    <span class="card-title">🌍 Macro Context</span>
-                    {% if macro_stats %}
-                    <span class="px-2 py-0.5 rounded text-[10px] font-bold border 
-                        {% if macro_stats.risk_level == "HIGH" %}bg-red-900/30 text-red-400 border-red-800
-                        {% elif macro_stats.risk_level == "MEDIUM" %}bg-yellow-900/30 text-yellow-400 border-yellow-800
-                        {% else %}bg-green-900/30 text-green-400 border-green-800{% endif %}">
-                        RISK: {{ macro_stats.risk_level }}
-                    </span>
-                    {% endif %}
-                </div>
-                <div class="grid grid-cols-2 gap-4 mt-2">
-                    <div>
-                        <div class="text-xs text-gray-500">VIX (Fear)</div>
-                        <div class="text-xl font-mono text-white">{{ macro_stats.vix if macro_stats else "-" }}</div>
-                    </div>
-                    <div>
-                        <div class="text-xs text-gray-500">10Y Yield</div>
-                        <div class="text-xl font-mono text-white">{{ macro_stats.tnx_yield }}%</div>
-                    </div>
-                </div>
-            </div>
+        <!-- REAL PORTFOLIO TAB -->
+        <div id="tab-real" class="block">
+            <!-- GRID LAYOUT -->
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
 
-            <!-- 2. Whale Watcher -->
-            <div class="col-span-1 md:col-span-4 bg-gray-800 rounded-xl p-5 border border-gray-700 shadow-lg relative overflow-hidden group hover:border-gray-600 transition">
-                <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition"><span class="text-6xl">��</span></div>
-                <div class="card-header">
-                    <span class="card-title">🌊 On-Chain Flow</span>
+                <!-- ROW 1: CONTEXT (The Weather) -->
+
+                <!-- 1. Macro Risk -->
+                <div
+                    class="col-span-1 md:col-span-4 bg-gray-800 rounded-xl p-5 border border-gray-700 shadow-lg relative overflow-hidden group hover:border-gray-600 transition">
+                    <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition"><span
+                            class="text-6xl">🏛</span></div>
+                    <div class="card-header">
+                        <span class="card-title">🌍 Macro Context</span>
+                        {% if macro_stats %}
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold border 
+                        {% if macro_stats.risk_level == " HIGH" %}bg-red-900/30 text-red-400 border-red-800 {% elif
+                            macro_stats.risk_level=="MEDIUM" %}bg-yellow-900/30 text-yellow-400 border-yellow-800 {%
+                            else %}bg-green-900/30 text-green-400 border-green-800{% endif %}">
+                            RISK: {{ macro_stats.risk_level }}
+                        </span>
+                        {% endif %}
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 mt-2">
+                        <div>
+                            <div class="text-xs text-gray-500">VIX (Fear)</div>
+                            <div class="text-xl font-mono text-white">{{ macro_stats.vix if macro_stats else "-" }}
+                            </div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-gray-500">10Y Yield</div>
+                            <div class="text-xl font-mono text-white">{{ macro_stats.tnx_yield }}%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Whale Watcher -->
+                <div
+                    class="col-span-1 md:col-span-4 bg-gray-800 rounded-xl p-5 border border-gray-700 shadow-lg relative overflow-hidden group hover:border-gray-600 transition">
+                    <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition"><span
+                            class="text-6xl">��</span></div>
+                    <div class="card-header">
+                        <span class="card-title">🌊 On-Chain Flow</span>
+                        {% if whale_stats %}
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold border 
+                        {% if " BULLISH" in whale_stats.status %}bg-green-900/30 text-green-400 border-green-800 {%
+                            elif "BEARISH" in whale_stats.status %}bg-red-900/30 text-red-400 border-red-800 {% else
+                            %}bg-gray-700/30 text-gray-400 border-gray-600{% endif %}">
+                            {{ "BULLISH" if "BULLISH" in whale_stats.status else ("BEARISH" if "BEARISH" in
+                            whale_stats.status else "NEUTRAL") }}
+                        </span>
+                        {% endif %}
+                    </div>
                     {% if whale_stats %}
-                    <span class="px-2 py-0.5 rounded text-[10px] font-bold border 
-                        {% if "BULLISH" in whale_stats.status %}bg-green-900/30 text-green-400 border-green-800
-                        {% elif "BEARISH" in whale_stats.status %}bg-red-900/30 text-red-400 border-red-800
-                        {% else %}bg-gray-700/30 text-gray-400 border-gray-600{% endif %}">
-                        {{ "BULLISH" if "BULLISH" in whale_stats.status else ("BEARISH" if "BEARISH" in whale_stats.status else "NEUTRAL") }}
-                    </span>
-                    {% endif %}
-                </div>
-                {% if whale_stats %}
-                <div class="flex items-end justify-between mt-2">
-                    <div>
-                        <div class="text-xs text-gray-500">Net Flow (1h)</div>
-                        <div class="text-xl font-mono font-bold
+                    <div class="flex items-end justify-between mt-2">
+                        <div>
+                            <div class="text-xs text-gray-500">Net Flow (1h)</div>
+                            <div
+                                class="text-xl font-mono font-bold
                             {% if whale_stats.net_flow_m > 0 %}text-green-400{% elif whale_stats.net_flow_m < 0 %}text-red-400{% else %}text-gray-400{% endif %}">
-                            {{ "+" if whale_stats.net_flow_m > 0 else "" }}{{ whale_stats.net_flow_m }}M
-                        </div>
-                    </div>
-                    <div class="text-right text-xs text-gray-500">
-                        <span class="text-green-400">Buy ${{whale_stats.buy_vol_m}}M</span> | <span class="text-red-400">Sell ${{whale_stats.sell_vol_m}}M</span>
-                    </div>
-                </div>
-                {% else %}
-                <div class="text-center py-2 text-gray-600 text-sm">Offline</div>
-                {% endif %}
-            </div>
-
-            <!-- 3. Market Sentiment -->
-            <div class="col-span-1 md:col-span-4 bg-gray-800 rounded-xl p-5 border border-gray-700 shadow-lg relative overflow-hidden group hover:border-gray-600 transition">
-                <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition"><span class="text-6xl">🎭</span></div>
-                <div class="card-header">
-                    <span class="card-title">🧠 Market Mood</span>
-                </div>
-                {% if market_mood %}
-                <div class="flex items-center justify-between mt-2">
-                    <div>
-                        <div class="text-3xl font-black text-white font-mono">{{ market_mood.crypto.value }}</div>
-                    </div>
-                    <div class="text-right">
-                        <div class="text-lg font-bold
-                            {% if "FEAR" in market_mood.overall %}text-red-400{% elif "GREED" in market_mood.overall %}text-green-400{% else %}text-gray-300{% endif %}">
-                            {{ market_mood.overall }}
-                        </div>
-                        <div class="text-[10px] text-gray-500">Sentiment Score</div>
-                    </div>
-                </div>
-                <!-- Mini Bar -->
-                <div class="w-full bg-gray-700 h-1 mt-3 rounded-full overflow-hidden">
-                    <div class="h-1 rounded-full {{ "bg-red-500" if "FEAR" in market_mood.overall else ("bg-green-500" if "GREED" in market_mood.overall else "bg-gray-400") }}" 
-                         style="width: {{ market_mood.crypto.value }}%"></div>
-                </div>
-                {% endif %}
-            </div>
-
-
-            <!-- ROW 2: PERFORMANCE (The Core) -->
-            
-            <!-- Portfolio Chart (Left 8 Cols) -->
-            <div class="col-span-1 md:col-span-8 bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-lg">
-                <div class="flex justify-between items-start mb-6">
-                    <div>
-                        <div class="text-xs text-gray-500 uppercase tracking-widest">Net Worth</div>
-                        <div class="text-4xl font-bold text-white mt-1">€{{ "{:,.2f}".format(total_value_eur) }}</div>
-                    </div>
-                    <div class="text-right">
-                        <div class="text-xs text-gray-500 uppercase tracking-widest">Total P/L</div>
-                        <div class="text-2xl font-bold font-mono 
-                            {% if total_pl_eur >= 0 %}text-green-400{% else %}text-red-400{% endif %}">
-                            {% if total_pl_eur >= 0 %}+{% endif %}€{{ "{:,.2f}".format(total_pl_eur) }}
-                        </div>
-                        <div class="text-sm font-mono opacity-75 {% if total_pl_eur >= 0 %}text-green-400{% else %}text-red-400{% endif %}">
-                            ({% if total_pl_eur >= 0 %}+{% endif %}{{ "{:,.2f}".format(total_pl_percent) }}%)
-                        </div>
-                    </div>
-                </div>
-                <div class="relative h-64 w-full">
-                     <div id="portfolioChart" class="w-full h-full"></div>
-                </div>
-            </div>
-
-            <!-- AI Scorecard (Right 4 Cols) -->
-            <div class="col-span-1 md:col-span-4 bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-lg flex flex-col justify-center relative overflow-hidden">
-                <div class="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl -mr-10 -mt-10"></div>
-                
-                <h2 class="card-title mb-6"><span class="text-indigo-400">🤖 AI Accuracy</span></h2>
-                
-                <div class="flex items-center justify-center relative w-40 h-40 mx-auto">
-                    <svg class="transform -rotate-90 w-full h-full">
-                        <circle cx="80" cy="80" r="70" stroke="currentColor" stroke-width="12" fill="transparent" class="text-gray-700" />
-                        <circle cx="80" cy="80" r="70" stroke="currentColor" stroke-width="12" fill="transparent" 
-                                class="text-indigo-500" 
-                                stroke-dasharray="440" 
-                                stroke-dashoffset="{{ 440 - (440 * (audit_stats.win_rate / 100)) }}" />
-                    </svg>
-                    <div class="absolute text-center">
-                        <span class="text-3xl font-bold text-white">{{ audit_stats.win_rate }}%</span>
-                        <span class="block text-[10px] text-gray-400 uppercase">Win Rate</span>
-                    </div>
-                </div>
-
-                <div class="flex justify-center gap-6 mt-6 text-center">
-                    <div>
-                        <div class="text-xl font-bold text-green-400">{{ audit_stats.wins }}</div>
-                        <div class="text-[10px] text-gray-500">WINS</div>
-                    </div>
-                    <div>
-                        <div class="text-xl font-bold text-red-400">{{ audit_stats.losses }}</div>
-                        <div class="text-[10px] text-gray-500">LOSSES</div>
-                    </div>
-                    <div>
-                        <div class="text-xl font-bold text-white">{{ audit_stats.open }}</div>
-                        <div class="text-[10px] text-gray-500">ACTIVE</div>
-                    </div>
-                </div>
-            </div>
-
-
-            <!-- ROW 3: ACTION (The Feed) -->
-
-            <!-- Latest Signals (Left 6 Cols) -->
-            <div class="col-span-1 md:col-span-7 space-y-4">
-                <h3 class="text-lg font-bold text-white flex items-center gap-2">
-                    <span>📡 Live Signals</span>
-                    <span class="text-xs font-normal text-gray-500 bg-gray-800 px-2 py-1 rounded-full">{{ signals|length }} active</span>
-                </h3>
-
-                {% if signals %}
-                <div class="space-y-4">
-                    {% for sig in signals %}
-                    <div class="bg-gray-800 rounded-lg p-5 border border-gray-700 shadow-md hover:border-gray-500 transition group relative overflow-hidden">
-                        <!-- Left Stripe -->
-                        <div class="absolute left-0 top-0 bottom-0 w-1 
-                            {% if sig.sentiment in ["BUY", "ACCUMULATE"] %}bg-green-500
-                            {% elif sig.sentiment in ["SELL", "PANIC SELL"] %}bg-red-500
-                            {% else %}bg-gray-500{% endif %}">
-                        </div>
-
-                        <div class="pl-3">
-                            <div class="flex justify-between items-start">
-                                <div>
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-lg font-bold text-white">{{ sig.ticker }}</span>
-                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase
-                                            {% if sig.sentiment in ["BUY", "ACCUMULATE"] %}bg-green-900/30 text-green-400 border border-green-800
-                                            {% elif sig.sentiment in ["SELL", "PANIC SELL"] %}bg-red-900/30 text-red-400 border border-red-800
-                                            {% else %}bg-gray-700 text-gray-300 border border-gray-600{% endif %}">
-                                            {{ sig.sentiment }}
-                                        </span>
-                                    </div>
-                                    <div class="text-xs text-gray-500 mt-1 local-time" data-iso="{{ sig.created_at }}"></div>
-                                </div>
-                                <div class="text-right">
-                                    <div class="text-xl font-bold text-white">{{ (sig.confidence_score * 100)|int }}%</div>
-                                    <div class="text-[9px] text-gray-500 uppercase">Conf</div>
-                                </div>
+                                {{ "+" if whale_stats.net_flow_m > 0 else "" }}{{ whale_stats.net_flow_m }}M
                             </div>
-                            
-                            <p class="text-gray-300 text-sm mt-3 leading-relaxed border-t border-gray-700/50 pt-3">
-                                {{ sig.reasoning }}
-                            </p>
-
-                            {% if sig.target_price %}
-                            <div class="mt-3 flex items-center gap-2">
-                                <span class="text-[10px] bg-gray-700 px-2 py-1 rounded text-gray-300">🎯 Target: {{ sig.target_price }}</span>
-                                {% if sig.upside_percentage > 0 %}
-                                <span class="text-[10px] text-green-400 font-mono">+{{ sig.upside_percentage }}% Upside</span>
-                                {% endif %}
-                                <span class="text-[10px] text-gray-500 ml-auto">Risk: {{ sig.risk_score }}/10</span>
-                            </div>
-                            {% endif %}
+                        </div>
+                        <div class="text-right text-xs text-gray-500">
+                            <span class="text-green-400">Buy ${{whale_stats.buy_vol_m}}M</span> | <span
+                                class="text-red-400">Sell ${{whale_stats.sell_vol_m}}M</span>
                         </div>
                     </div>
-                    {% endfor %}
-                </div>
-                {% else %}
-                <div class="bg-gray-800/50 rounded-xl p-8 text-center border border-gray-700 border-dashed text-gray-500">
-                    <span class="text-3xl block mb-2">💤</span>
-                    No active signals.
-                </div>
-                {% endif %}
-            </div>
-
-            <!-- Assets List (Right 6 Cols) -->
-            <div class="col-span-1 md:col-span-5">
-                <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                    <span>🎒 Portfolio Assets</span>
-                </h3>
-                
-                <div class="bg-gray-800 rounded-xl border border-gray-700 shadow-lg overflow-hidden">
-                    {% if portfolio %}
-                    <table class="w-full text-sm text-left">
-                        <thead class="text-xs text-gray-500 uppercase bg-gray-900/50">
-                            <tr>
-                                <th class="px-4 py-3">Asset</th>
-                                <th class="px-4 py-3 text-right">Value</th>
-                                <th class="px-4 py-3 text-right">P/L</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-700/50">
-                            {% for item in portfolio %}
-                            <tr class="hover:bg-gray-700/30 transition">
-                                <td class="px-4 py-3">
-                                    <div class="font-bold text-white">{{ item.ticker }}</div>
-                                    <div class="text-[10px] text-gray-500">{{ item.quantity }} units</div>
-                                </td>
-                                <td class="px-4 py-3 text-right font-mono text-gray-300">
-                                    €{{ "{:,.0f}".format(item.live_value_eur|default(0)) }}
-                                </td>
-                                <td class="px-4 py-3 text-right font-mono font-bold
-                                    {% if item.pnl_eur >= 0 %}text-green-400{% else %}text-red-400{% endif %}">
-                                    {{ "{:+.1f}".format(item.pnl_percent) }}%
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
                     {% else %}
-                    <div class="p-8 text-center text-gray-500">No assets found.</div>
+                    <div class="text-center py-2 text-gray-600 text-sm">Offline</div>
                     {% endif %}
                 </div>
-            </div>
 
-            <!-- ROW 4: HISTORY (Footer) -->
-            <div class="col-span-1 md:col-span-12 mt-4">
-                 <div class="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-lg">
-                    <h2 class="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                        <span>📜 Trade History</span>
-                    </h2>
-                    {% if history %}
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-sm text-left border-collapse">
+                <!-- 3. Market Sentiment -->
+                <div
+                    class="col-span-1 md:col-span-4 bg-gray-800 rounded-xl p-5 border border-gray-700 shadow-lg relative overflow-hidden group hover:border-gray-600 transition">
+                    <div class="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition"><span
+                            class="text-6xl">🎭</span></div>
+                    <div class="card-header">
+                        <span class="card-title">🧠 Market Mood</span>
+                    </div>
+                    {% if market_mood %}
+                    <div class="flex items-center justify-between mt-2">
+                        <div>
+                            <div class="text-3xl font-black text-white font-mono">{{ market_mood.crypto.value }}</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-lg font-bold
+                            {% if " FEAR" in market_mood.overall %}text-red-400{% elif "GREED" in market_mood.overall
+                                %}text-green-400{% else %}text-gray-300{% endif %}">
+                                {{ market_mood.overall }}
+                            </div>
+                            <div class="text-[10px] text-gray-500">Sentiment Score</div>
+                        </div>
+                    </div>
+                    <!-- Mini Bar -->
+                    <div class="w-full bg-gray-700 h-1 mt-3 rounded-full overflow-hidden">
+                        <div class="h-1 rounded-full {{ " bg-red-500" if "FEAR" in market_mood.overall else
+                            ("bg-green-500" if "GREED" in market_mood.overall else "bg-gray-400" ) }}"
+                            style="width: {{ market_mood.crypto.value }}%"></div>
+                    </div>
+                    {% endif %}
+                </div>
+
+
+                <!-- ROW 2: PERFORMANCE (The Core) -->
+
+                <!-- Portfolio Chart (Left 8 Cols) -->
+                <div class="col-span-1 md:col-span-8 bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-lg">
+                    <div class="flex justify-between items-start mb-6">
+                        <div>
+                            <div class="text-xs text-gray-500 uppercase tracking-widest">Net Worth</div>
+                            <div class="text-4xl font-bold text-white mt-1">€{{ "{:,.2f}".format(total_value_eur) }}
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-xs text-gray-500 uppercase tracking-widest">Total P/L</div>
+                            <div class="text-2xl font-bold font-mono 
+                            {% if total_pl_eur >= 0 %}text-green-400{% else %}text-red-400{% endif %}">
+                                {% if total_pl_eur >= 0 %}+{% endif %}€{{ "{:,.2f}".format(total_pl_eur) }}
+                            </div>
+                            <div
+                                class="text-sm font-mono opacity-75 {% if total_pl_eur >= 0 %}text-green-400{% else %}text-red-400{% endif %}">
+                                ({% if total_pl_eur >= 0 %}+{% endif %}{{ "{:,.2f}".format(total_pl_percent) }}%)
+                            </div>
+                        </div>
+                    </div>
+                    <div class="relative h-64 w-full">
+                        <div id="portfolioChart" class="w-full h-full"></div>
+                    </div>
+                </div>
+
+                <!-- AI Scorecard (Right 4 Cols) -->
+                <div
+                    class="col-span-1 md:col-span-4 bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-lg flex flex-col justify-center relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl -mr-10 -mt-10">
+                    </div>
+
+                    <h2 class="card-title mb-6"><span class="text-indigo-400">🤖 AI Accuracy</span></h2>
+
+                    <div class="flex items-center justify-center relative w-40 h-40 mx-auto">
+                        <svg class="transform -rotate-90 w-full h-full">
+                            <circle cx="80" cy="80" r="70" stroke="currentColor" stroke-width="12" fill="transparent"
+                                class="text-gray-700" />
+                            <circle cx="80" cy="80" r="70" stroke="currentColor" stroke-width="12" fill="transparent"
+                                class="text-indigo-500" stroke-dasharray="440"
+                                stroke-dashoffset="{{ 440 - (440 * (audit_stats.win_rate / 100)) }}" />
+                        </svg>
+                        <div class="absolute text-center">
+                            <span class="text-3xl font-bold text-white">{{ audit_stats.win_rate }}%</span>
+                            <span class="block text-[10px] text-gray-400 uppercase">Win Rate</span>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-center gap-6 mt-6 text-center">
+                        <div>
+                            <div class="text-xl font-bold text-green-400">{{ audit_stats.wins }}</div>
+                            <div class="text-[10px] text-gray-500">WINS</div>
+                        </div>
+                        <div>
+                            <div class="text-xl font-bold text-red-400">{{ audit_stats.losses }}</div>
+                            <div class="text-[10px] text-gray-500">LOSSES</div>
+                        </div>
+                        <div>
+                            <div class="text-xl font-bold text-white">{{ audit_stats.open }}</div>
+                            <div class="text-[10px] text-gray-500">ACTIVE</div>
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- ROW 3: ACTION (The Feed) -->
+
+                <!-- Latest Signals (Left 6 Cols) -->
+                <div class="col-span-1 md:col-span-7 space-y-4">
+                    <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                        <span>📡 Live Signals</span>
+                        <span class="text-xs font-normal text-gray-500 bg-gray-800 px-2 py-1 rounded-full">{{
+                            signals|length }} active</span>
+                    </h3>
+
+                    {% if signals %}
+                    <div class="space-y-4">
+                        {% for sig in signals %}
+                        <div
+                            class="bg-gray-800 rounded-lg p-5 border border-gray-700 shadow-md hover:border-gray-500 transition group relative overflow-hidden">
+                            <!-- Left Stripe -->
+                            <div class="absolute left-0 top-0 bottom-0 w-1 
+                            {% if sig.sentiment in [" BUY", "ACCUMULATE" ] %}bg-green-500 {% elif sig.sentiment in
+                                ["SELL", "PANIC SELL" ] %}bg-red-500 {% else %}bg-gray-500{% endif %}">
+                            </div>
+
+                            <div class="pl-3">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-lg font-bold text-white">{{ sig.ticker }}</span>
+                                            <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase
+                                            {% if sig.sentiment in [" BUY", "ACCUMULATE" ] %}bg-green-900/30
+                                                text-green-400 border border-green-800 {% elif sig.sentiment in
+                                                ["SELL", "PANIC SELL" ] %}bg-red-900/30 text-red-400 border
+                                                border-red-800 {% else %}bg-gray-700 text-gray-300 border
+                                                border-gray-600{% endif %}">
+                                                {{ sig.sentiment }}
+                                            </span>
+                                        </div>
+                                        <div class="text-xs text-gray-500 mt-1 local-time"
+                                            data-iso="{{ sig.created_at }}"></div>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="text-xl font-bold text-white">{{ (sig.confidence_score * 100)|int
+                                            }}%</div>
+                                        <div class="text-[9px] text-gray-500 uppercase">Conf</div>
+                                    </div>
+                                </div>
+
+                                <p class="text-gray-300 text-sm mt-3 leading-relaxed border-t border-gray-700/50 pt-3">
+                                    {{ sig.reasoning }}
+                                </p>
+
+                                {% if sig.target_price %}
+                                <div class="mt-3 flex items-center gap-2">
+                                    <span class="text-[10px] bg-gray-700 px-2 py-1 rounded text-gray-300">🎯 Target: {{
+                                        sig.target_price }}</span>
+                                    {% if sig.upside_percentage > 0 %}
+                                    <span class="text-[10px] text-green-400 font-mono">+{{ sig.upside_percentage }}%
+                                        Upside</span>
+                                    {% endif %}
+                                    <span class="text-[10px] text-gray-500 ml-auto">Risk: {{ sig.risk_score }}/10</span>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div
+                        class="bg-gray-800/50 rounded-xl p-8 text-center border border-gray-700 border-dashed text-gray-500">
+                        <span class="text-3xl block mb-2">💤</span>
+                        No active signals.
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Assets List (Right 6 Cols) -->
+                <div class="col-span-1 md:col-span-5">
+                    <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                        <span>🎒 Portfolio Assets</span>
+                    </h3>
+
+                    <div class="bg-gray-800 rounded-xl border border-gray-700 shadow-lg overflow-hidden">
+                        {% if portfolio %}
+                        <table class="w-full text-sm text-left">
                             <thead class="text-xs text-gray-500 uppercase bg-gray-900/50">
                                 <tr>
-                                    <th class="px-4 py-3 rounded-tl-lg">Status</th>
-                                    <th class="px-4 py-3">Ticker</th>
-                                    <th class="px-4 py-3 text-right">Date</th>
-                                    <th class="px-4 py-3 text-right">Entry</th>
-                                    <th class="px-4 py-3 text-right">Exit</th>
-                                    <th class="px-4 py-3 text-right rounded-tr-lg">P/L</th>
+                                    <th class="px-4 py-3">Asset</th>
+                                    <th class="px-4 py-3 text-right">Value</th>
+                                    <th class="px-4 py-3 text-right">P/L</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-gray-700">
-                                {% for trade in history %}
-                                <tr class="hover:bg-gray-700/30 transition-colors">
+                            <tbody class="divide-y divide-gray-700/50">
+                                {% for item in portfolio %}
+                                <tr class="hover:bg-gray-700/30 transition">
                                     <td class="px-4 py-3">
-                                        <span class="px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider
-                                            {% if trade.status == "WIN" %}bg-green-900/30 text-green-400 border border-green-800
-                                            {% elif trade.status == "LOSS" %}bg-red-900/30 text-red-400 border border-red-800
-                                            {% else %}bg-gray-700 text-gray-400{% endif %}">
-                                            {{ trade.status }}
-                                        </span>
+                                        <div class="font-bold text-white">{{ item.ticker }}</div>
+                                        <div class="text-[10px] text-gray-500">{{ item.quantity }} units</div>
                                     </td>
-                                    <td class="px-4 py-3 font-bold text-white">{{ trade.ticker }}</td>
-                                    <td class="px-4 py-3 text-right text-gray-400 font-mono text-xs">{{ trade.updated_at_fmt }}</td>
-                                    <td class="px-4 py-3 text-right font-mono text-gray-400">${{ "{:,.2f}".format(trade.entry_price) }}</td>
-                                    <td class="px-4 py-3 text-right font-mono text-white">${{ "{:,.2f}".format(trade.current_price) }}</td>
-                                    <td class="px-4 py-3 text-right font-bold font-mono 
+                                    <td class="px-4 py-3 text-right font-mono text-gray-300">
+                                        €{{ "{:,.0f}".format(item.live_value_eur|default(0)) }}
+                                    </td>
+                                    <td class="px-4 py-3 text-right font-mono font-bold
+                                    {% if item.pnl_eur >= 0 %}text-green-400{% else %}text-red-400{% endif %}">
+                                        {{ "{:+.1f}".format(item.pnl_percent) }}%
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        {% else %}
+                        <div class="p-8 text-center text-gray-500">No assets found.</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- ROW 4: HISTORY (Footer) -->
+                <div class="col-span-1 md:col-span-12 mt-4">
+                    <div class="bg-gray-800 rounded-xl p-6 border border-gray-700 shadow-lg">
+                        <h2
+                            class="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                            <span>📜 Trade History</span>
+                        </h2>
+                        {% if history %}
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm text-left border-collapse">
+                                <thead class="text-xs text-gray-500 uppercase bg-gray-900/50">
+                                    <tr>
+                                        <th class="px-4 py-3 rounded-tl-lg">Status</th>
+                                        <th class="px-4 py-3">Ticker</th>
+                                        <th class="px-4 py-3 text-right">Date</th>
+                                        <th class="px-4 py-3 text-right">Entry</th>
+                                        <th class="px-4 py-3 text-right">Exit</th>
+                                        <th class="px-4 py-3 text-right rounded-tr-lg">P/L</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-700">
+                                    {% for trade in history %}
+                                    <tr class="hover:bg-gray-700/30 transition-colors">
+                                        <td class="px-4 py-3">
+                                            <span class="px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider
+                                            {% if trade.status == " WIN" %}bg-green-900/30 text-green-400 border
+                                                border-green-800 {% elif trade.status=="LOSS" %}bg-red-900/30
+                                                text-red-400 border border-red-800 {% else %}bg-gray-700 text-gray-400{%
+                                                endif %}">
+                                                {{ trade.status }}
+                                            </span>
+                                        </td>
+                                        <td class="px-4 py-3 font-bold text-white">{{ trade.ticker }}</td>
+                                        <td class="px-4 py-3 text-right text-gray-400 font-mono text-xs">{{
+                                            trade.updated_at_fmt }}</td>
+                                        <td class="px-4 py-3 text-right font-mono text-gray-400">${{
+                                            "{:,.2f}".format(trade.entry_price) }}</td>
+                                        <td class="px-4 py-3 text-right font-mono text-white">${{
+                                            "{:,.2f}".format(trade.current_price) }}</td>
+                                        <td
+                                            class="px-4 py-3 text-right font-bold font-mono 
                                         {% if trade.pnl_percent > 0 %}text-green-400{% elif trade.pnl_percent < 0 %}text-red-400{% else %}text-gray-400{% endif %}">
-                                        {{ "{:+.2f}".format(trade.pnl_percent) }}%
+                                            {{ "{:+.2f}".format(trade.pnl_percent) }}%
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="text-center py-4 text-gray-500 text-xs">No closed trades yet. history will appear
+                            here.</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+            </div> <!-- End Grid -->
+        </div>
+
+        <!-- PAPER TRADING TAB -->
+        <div id="tab-paper" class="hidden">
+            <div class="bg-gray-800/50 rounded-xl p-8 text-center border border-gray-700 border-dashed">
+                <h2 class="text-2xl font-bold text-indigo-400 mb-2">🧪 Zero-Cost Laboratory</h2>
+                <p class="text-gray-400 mb-8">Simulation Environment - No Real Money Risk</p>
+
+                {% if paper_portfolio %}
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
+                    <!-- Paper Stats -->
+                    <div class="bg-gray-800 rounded-xl p-6 border border-gray-600">
+                        <div class="text-xs text-gray-500 uppercase tracking-widest">Simulated Net Worth</div>
+                        <div class="text-3xl font-bold text-white mt-1">€{{ "{:,.2f}".format(paper_total_value) }}</div>
+                    </div>
+
+                    <!-- Paper Holdings List -->
+                    <div class="col-span-2 bg-gray-800 rounded-xl p-6 border border-gray-600">
+                        <table class="w-full text-left text-sm text-gray-400">
+                            <thead class="bg-indigo-900/20 uppercase text-xs font-bold text-indigo-300">
+                                <tr>
+                                    <th class="px-4 py-3">Ticker</th>
+                                    <th class="px-4 py-3">Qty</th>
+                                    <th class="px-4 py-3">Avg Price</th>
+                                    <th class="px-4 py-3">Current</th>
+                                    <th class="px-4 py-3">PnL</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for p in paper_portfolio %}
+                                <tr class="border-b border-gray-700">
+                                    <td class="px-4 py-3 font-bold text-white">{{ p.ticker }}</td>
+                                    <td class="px-4 py-3">{{ "{:.4f}".format(p.quantity) }}</td>
+                                    <td class="px-4 py-3">€{{ "{:.2f}".format(p.avg_price) }}</td>
+                                    <td class="px-4 py-3">€{{ "{:.2f}".format(p.current_price) }}</td>
+                                    <td
+                                        class="px-4 py-3 font-mono font-bold {% if p.pnl >= 0 %}text-green-400{% else %}text-red-400{% endif %}">
+                                        {{ "{:+.2f}".format(p.pnl) }}%
                                     </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
                         </table>
                     </div>
-                    {% else %}
-                    <div class="text-center py-4 text-gray-500 text-xs">No closed trades yet. history will appear here.</div>
-                    {% endif %}
                 </div>
+                {% else %}
+                <div class="text-gray-500 italic">No Active Paper Positions yet. Waiting for signals...</div>
+                {% endif %}
             </div>
+        </div>
 
-        </div> <!-- End Grid -->
-    </div>
-
-    <!-- Scripts -->
-    <script src="https://unpkg.com/lightweight-charts@4.0.1/dist/lightweight-charts.standalone.production.js"></script>
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
-             // 1. Timezone Fix
-            document.querySelectorAll(".local-time").forEach(el => {
-                const iso = el.getAttribute("data-iso");
-                if (iso && iso !== "None") {
-                    const date = new Date(iso.includes("Z") ? iso : iso + "Z");
-                    if (!isNaN(date)) el.textContent = date.toLocaleString("it-IT", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
-                }
-            });
-
-            // 2. Chart Init
-            const chartContainer = document.getElementById("portfolioChart");
-            if (chartContainer) {
-                const chart = LightweightCharts.createChart(chartContainer, {
-                    layout: { background: { type: "solid", color: "transparent" }, textColor: "#9ca3af" },
-                    grid: { vertLines: { visible: false }, horzLines: { color: "rgba(55, 65, 81, 0.2)" } },
-                    rightPriceScale: { borderVisible: false, scaleMargins: { top: 0.2, bottom: 0.1 } },
-                    timeScale: { borderVisible: false, fixLeftEdge: true, fixRightEdge: true },
-                    crosshair: { vertLine: { labelBackgroundColor: "#22c55e" }, horzLine: { labelBackgroundColor: "#22c55e" } }
+        <!-- Scripts -->
+        <script
+            src="https://unpkg.com/lightweight-charts@4.0.1/dist/lightweight-charts.standalone.production.js"></script>
+        <script>
+            document.addEventListener("DOMContentLoaded", () => {
+                // 1. Timezone Fix
+                document.querySelectorAll(".local-time").forEach(el => {
+                    const iso = el.getAttribute("data-iso");
+                    if (iso && iso !== "None") {
+                        const date = new Date(iso.includes("Z") ? iso : iso + "Z");
+                        if (!isNaN(date)) el.textContent = date.toLocaleString("it-IT", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+                    }
                 });
 
-                const areaSeries = chart.addAreaSeries({
-                    topColor: "rgba(34, 197, 94, 0.4)",
-                    bottomColor: "rgba(34, 197, 94, 0.0)",
-                    lineColor: "#22c55e",
-                    lineWidth: 2,
-                });
+                // 2. Chart Init
+                const chartContainer = document.getElementById("portfolioChart");
+                if (chartContainer) {
+                    const chart = LightweightCharts.createChart(chartContainer, {
+                        layout: { background: { type: "solid", color: "transparent" }, textColor: "#9ca3af" },
+                        grid: { vertLines: { visible: false }, horzLines: { color: "rgba(55, 65, 81, 0.2)" } },
+                        rightPriceScale: { borderVisible: false, scaleMargins: { top: 0.2, bottom: 0.1 } },
+                        timeScale: { borderVisible: false, fixLeftEdge: true, fixRightEdge: true },
+                        crosshair: { vertLine: { labelBackgroundColor: "#22c55e" }, horzLine: { labelBackgroundColor: "#22c55e" } }
+                    });
 
-                // Inject Data
-                const dates = {{ chart_labels | tojson }};
-                const values = {{ chart_data | safe }}; // safe because json.dumps used in python
-                
-                if (dates && values && dates.length === values.length) {
-                    const data = dates.map((d, i) => ({ time: d, value: values[i] }));
-                    areaSeries.setData(data);
-                    chart.timeScale().fitContent();
+                    const areaSeries = chart.addAreaSeries({
+                        topColor: "rgba(34, 197, 94, 0.4)",
+                        bottomColor: "rgba(34, 197, 94, 0.0)",
+                        lineColor: "#22c55e",
+                        lineWidth: 2,
+                    });
+
+                    // Inject Data
+                    // Inject Data
+                    const dates = {{ chart_labels | tojson
                 }
-                
-                // Resize Observer
-                new ResizeObserver(entries => {
-                    if (entries.length === 0 || entries[0].target !== chartContainer) { return; }
-                    const newRect = entries[0].contentRect;
-                    chart.applyOptions({ width: newRect.width, height: newRect.height });
-                }).observe(chartContainer);
+            };
+            const values = {{ chart_data | safe }}; // safe because json.dumps used in python
+
+            if (dates && values && dates.length === values.length) {
+                const data = dates.map((d, i) => ({ time: d, value: values[i] }));
+                areaSeries.setData(data);
+                chart.timeScale().fitContent();
+            }
+
+            // Resize Observer
+            new ResizeObserver(entries => {
+                if (entries.length === 0 || entries[0].target !== chartContainer) { return; }
+                const newRect = entries[0].contentRect;
+                chart.applyOptions({ width: newRect.width, height: newRect.height });
+            }).observe(chartContainer);
             }
         });
-    </script>
+        </script>
 </body>
+
 </html>
