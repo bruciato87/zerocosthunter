@@ -121,14 +121,24 @@ class MarketData:
             
         return None
 
-    def get_smart_price_eur(self, candidate_ticker):
+    def get_smart_price_eur(self, candidate_ticker, include_change=False):
         """
         Centralized Smart Pricing Logic (Single Source of Truth).
         Attempts to find a price for the ticker trying multiple suffixes.
         Prioritizes EUR markets (DE, MI, F, PA) for Stocks.
         Handles Crypto (-USD) separately and converts to EUR.
-        Returns: (price_in_eur, found_ticker_suffix_or_alias) or (0.0, None)
+        Returns: 
+           - If include_change=False (default): (price_in_eur, found_ticker_suffix_or_alias)
+           - If include_change=True: (price_in_eur, found_ticker_suffix_or_alias, change_percent_24h)
         """
+        change_pct = 0.0
+        
+        # Helper to extract change
+        def extract_change(ticker_obj):
+             # Try info first
+             if 'regularMarketChangePercent' in ticker_obj.info:
+                 return ticker_obj.info['regularMarketChangePercent'] * 100 # usually float 0.05
+             return 0.0
         # Note: Fetch EUR/USD rate dynamically or fallback
         eur_usd_rate = 1.09
         try:
@@ -155,24 +165,41 @@ class MarketData:
             # 1. Try CoinGecko First (Most reliable for Crypto)
             cg_price, _ = self.get_crypto_data_coingecko(base + "-USD")
             if cg_price and cg_price > 0:
-                return cg_price / eur_usd_rate, base + "-USD" # Convert USD to EUR
+                # CG doesn't give change here easily without another call. 
+                # Let's rely on YF for change if CG provides price, OR just return 0 change for speed.
+                # Actually, YF is better for Change%.
+                if include_change:
+                     try:
+                         # Quick check YF for change
+                         yt = yf.Ticker(base + "-USD")
+                         change_pct = extract_change(yt) 
+                     except: pass
+                
+                result = (cg_price / eur_usd_rate, base + "-USD")
+                return (*result, change_pct) if include_change else result
 
             # 2. Try EUR Pair first (e.g. BTC-EUR) - Most accurate for EU users
             try:
-                hist = yf.Ticker(f"{base}-EUR").history(period="1d")
+                t_obj = yf.Ticker(f"{base}-EUR")
+                hist = t_obj.history(period="1d")
                 if not hist.empty:
-                    return hist['Close'].iloc[-1], f"{base}-EUR"
+                    if include_change: change_pct = extract_change(t_obj)
+                    result = (hist['Close'].iloc[-1], f"{base}-EUR")
+                    return (*result, change_pct) if include_change else result
             except: pass
 
             # 3. Try USD Pair (e.g. BTC-USD) - Fallback
             try:
-                hist = yf.Ticker(f"{base}-USD").history(period="1d")
+                t_obj = yf.Ticker(f"{base}-USD")
+                hist = t_obj.history(period="1d")
                 if not hist.empty:
                      price = hist['Close'].iloc[-1]
-                     return price / eur_usd_rate, f"{base}-USD"
+                     if include_change: change_pct = extract_change(t_obj)
+                     result = (price / eur_usd_rate, f"{base}-USD")
+                     return (*result, change_pct) if include_change else result
             except: pass
             
-            return 0.0, None
+            return (0.0, None, 0.0) if include_change else (0.0, None)
 
         # 1. Try Explicit EUR Suffixes first (Trade Republic common markets)
         suffixes_eur = ['.DE', '.F', '.MI', '.PA', '.MC', '.AS']
@@ -184,19 +211,24 @@ class MarketData:
         
         for t_test in initial_candidates:
             try:
-                hist = yf.Ticker(t_test).history(period="1d")
+                t_obj = yf.Ticker(t_test)
+                hist = t_obj.history(period="1d")
                 if not hist.empty:
                     # If it's a raw ticker (no dot) and not crypto, assumed USD?
                     # Usually stocks without suffix on Yahoo are US Stocks (USD).
                     # If ticker had suffix (e.g. .DE), price is EUR.
                     price = hist['Close'].iloc[-1]
+                    if include_change: change_pct = extract_change(t_obj)
+                    
                     if '.' in t_test: 
-                         return price, t_test # EUR
+                         result = (price, t_test) # EUR
                     else:
-                         return price / eur_usd_rate, t_test # Convert USD (heuristic)
+                         result = (price / eur_usd_rate, t_test) # Convert USD (heuristic)
+                         
+                    return (*result, change_pct) if include_change else result
             except: pass
-        
-        return 0.0, None
+            
+        return (0.0, None, 0.0) if include_change else (0.0, None)
 
     def get_technical_summary(self, ticker: str) -> str:
         """
