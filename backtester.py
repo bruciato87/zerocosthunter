@@ -182,6 +182,87 @@ class Backtester:
         
         return self._save_result(ticker, period_days, df, cash, holdings, trades_count, wins, f"BB_{window}_{std_dev}")
 
+    def run_ema_crossover_backtest(self, ticker: str, period_days: int = 90, fast=9, slow=21):
+        """EMA Crossover: Buy when fast EMA crosses above slow, Sell when crosses below."""
+        logger.info(f"🧪 Starting EMA Crossover Backtest for {ticker} ({period_days}d)...")
+        
+        df = self._fetch_data(ticker, period_days)
+        if df is None or df.empty:
+            return None
+        
+        # Calculate EMAs
+        df['EMA_Fast'] = df['Close'].ewm(span=fast, adjust=False).mean()
+        df['EMA_Slow'] = df['Close'].ewm(span=slow, adjust=False).mean()
+        
+        # Simulate
+        cash, holdings, trades_count, wins, entry_price = self.start_balance, 0.0, 0, 0, 0.0
+        
+        for i in range(1, len(df)):
+            price = self._safe_float(df.iloc[i]['Close'])
+            fast_ema = self._safe_float(df.iloc[i]['EMA_Fast'])
+            slow_ema = self._safe_float(df.iloc[i]['EMA_Slow'])
+            prev_fast = self._safe_float(df.iloc[i-1]['EMA_Fast'])
+            prev_slow = self._safe_float(df.iloc[i-1]['EMA_Slow'])
+            
+            # Golden Cross: Fast EMA crosses above Slow EMA
+            if prev_fast <= prev_slow and fast_ema > slow_ema and cash > 0:
+                holdings = cash / price
+                cash = 0
+                entry_price = price
+            # Death Cross: Fast EMA crosses below Slow EMA
+            elif prev_fast >= prev_slow and fast_ema < slow_ema and holdings > 0:
+                pnl = (price - entry_price) / entry_price * 100
+                cash = holdings * price
+                holdings = 0
+                trades_count += 1
+                if pnl > 0: wins += 1
+        
+        return self._save_result(ticker, period_days, df, cash, holdings, trades_count, wins, f"EMA_{fast}_{slow}")
+
+    def run_rsi_macd_confluence_backtest(self, ticker: str, period_days: int = 90, rsi_threshold=40):
+        """
+        RSI + MACD Confluence: Buy ONLY when BOTH conditions are met.
+        - RSI < 40 (oversold-ish) AND MACD histogram crosses positive.
+        Historically proven to reduce false positives.
+        """
+        logger.info(f"🧪 Starting RSI+MACD Confluence Backtest for {ticker} ({period_days}d)...")
+        
+        df = self._fetch_data(ticker, period_days)
+        if df is None or df.empty:
+            return None
+        
+        # Calculate RSI
+        rsi_indicator = RSIIndicator(close=df['Close'], window=14)
+        df['RSI'] = rsi_indicator.rsi()
+        
+        # Calculate MACD
+        macd = MACD(close=df['Close'], window_slow=26, window_fast=12, window_sign=9)
+        df['MACD_Hist'] = macd.macd_diff()
+        
+        # Simulate
+        cash, holdings, trades_count, wins, entry_price = self.start_balance, 0.0, 0, 0, 0.0
+        
+        for i in range(1, len(df)):
+            price = self._safe_float(df.iloc[i]['Close'])
+            rsi = self._safe_float(df.iloc[i]['RSI'])
+            hist = self._safe_float(df.iloc[i]['MACD_Hist'])
+            prev_hist = self._safe_float(df.iloc[i-1]['MACD_Hist'])
+            
+            # BUY: RSI is in oversold territory AND MACD confirms upward momentum
+            if rsi < rsi_threshold and prev_hist < 0 and hist > 0 and cash > 0:
+                holdings = cash / price
+                cash = 0
+                entry_price = price
+            # SELL: RSI > 60 (overbought-ish) AND MACD confirms downward momentum
+            elif rsi > 60 and prev_hist > 0 and hist < 0 and holdings > 0:
+                pnl = (price - entry_price) / entry_price * 100
+                cash = holdings * price
+                holdings = 0
+                trades_count += 1
+                if pnl > 0: wins += 1
+        
+        return self._save_result(ticker, period_days, df, cash, holdings, trades_count, wins, f"RSI_MACD_Confluence")
+
     def run_all_strategies(self, ticker: str, period_days: int = 90):
         """Run all available strategies for a ticker."""
         logger.info(f"🚀 Running ALL strategies for {ticker}...")
@@ -189,6 +270,8 @@ class Backtester:
         results.append(self.run_rsi_backtest(ticker, period_days))
         results.append(self.run_macd_backtest(ticker, period_days))
         results.append(self.run_bollinger_backtest(ticker, period_days))
+        results.append(self.run_ema_crossover_backtest(ticker, period_days))
+        results.append(self.run_rsi_macd_confluence_backtest(ticker, period_days))
         return [r for r in results if r is not None]
 
 if __name__ == "__main__":
