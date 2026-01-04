@@ -197,6 +197,7 @@ async def setup_bot_commands(bot):
         BotCommand("recall", "🧠 Memoria Storica (es. /recall BTC)"),
         BotCommand("learn", "🎓 Lezioni dagli Errori"),
         BotCommand("benchmark", "📊 Portfolio vs S&P500/BTC"),
+        BotCommand("report", "📑 Weekly Report Completo"),
         BotCommand("dbstatus", "📦 Stato Storage DB"),
         BotCommand("help", "❓ Lista Comandi"),
         BotCommand("setprice", "💶 Correggi Prezzo"),
@@ -236,7 +237,8 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "• `/reset`: Cancella TUTTO il portafoglio.\n"
         "• `/dbstatus`: Stato storage database (500MB limit).\n\n"
         "📊 **Reports:**\n"
-        "• `/benchmark`: Confronta portfolio vs S&P500, BTC.\n\n"
+        "• `/benchmark`: Confronta portfolio vs S&P500, BTC.\n"
+        "• `/report`: Report completo con top movers e signals.\n\n"
         "⚙️ `/settings`: Configura filtri AI.\n\n"
         "📸 **Caricamento:**\nBasta inviare una foto! Se vuoi forzare il ticker, scrivilo nella **didascalia**."
     )
@@ -765,6 +767,15 @@ def dashboard():
         logger.error(f"Backtest Fetch Error: {e}")
         backtest_results = []
 
+    # 11. Benchmark Data (Phase 17)
+    try:
+        from benchmark import Benchmark
+        bench = Benchmark()
+        benchmark_data = bench.compare_vs_benchmarks(30)
+    except Exception as e:
+        logger.error(f"Benchmark Fetch Error: {e}")
+        benchmark_data = {}
+
     return render_template('dashboard.html', 
                            signals=signals, 
                            portfolio=portfolio, 
@@ -785,7 +796,8 @@ def dashboard():
                            whale_stats=whale_stats,
                            paper_portfolio=paper_portfolio_enriched,
                            paper_total_value=paper_total_value,
-                           backtest_results=backtest_results)
+                           backtest_results=backtest_results,
+                           benchmark_data=benchmark_data)
 
 @app.route('/api/webhook', methods=['POST'])
 def webhook():
@@ -817,6 +829,7 @@ def webhook():
                 bot_app.add_handler(CommandHandler("learn", learn_command))
                 bot_app.add_handler(CommandHandler("dbstatus", dbstatus_command))
                 bot_app.add_handler(CommandHandler("benchmark", benchmark_command))
+                bot_app.add_handler(CommandHandler("report", report_command))
                 bot_app.add_handler(CommandHandler("backtest", backtest_command))
                 bot_app.add_handler(CommandHandler("analyze", analyze_command))
                 bot_app.add_handler(CommandHandler("settings", settings_command))
@@ -1082,6 +1095,78 @@ async def benchmark_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         logger.error(f"Benchmark command error: {e}")
         await update.message.reply_text(f"❌ Errore nel calcolo benchmark: {e}")
+
+async def report_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Generate a comprehensive weekly report with benchmarks, signals, and top movers."""
+    await update.message.reply_text("📑 **Generazione Report Settimanale...**", parse_mode="Markdown")
+    
+    try:
+        from benchmark import Benchmark
+        from db_handler import DBHandler
+        
+        bench = Benchmark()
+        db = DBHandler()
+        
+        # Get benchmark comparison (7 days for weekly)
+        comparison = bench.compare_vs_benchmarks(7)
+        movers = bench.get_top_movers(5)
+        
+        # Get recent signals
+        signals = db.supabase.table("signal_tracking") \
+            .select("ticker, sentiment, confidence, detected_at") \
+            .order("detected_at", desc=True) \
+            .limit(10) \
+            .execute().data or []
+        
+        # Build report
+        report = "📑 **WEEKLY REPORT**\n"
+        report += "━" * 20 + "\n\n"
+        
+        # Portfolio Summary
+        if "portfolio" in comparison:
+            p = comparison["portfolio"]
+            port_emoji = "🟢" if p.get("return_pct", 0) >= 0 else "🔴"
+            report += f"{port_emoji} **Portfolio:** {p.get('return_pct', 0):+.2f}%\n"
+            report += f"💰 Valore: €{p.get('current_value', 0):,.2f}\n\n"
+        
+        # Benchmark Comparison
+        report += "📈 **vs Benchmarks (7d):**\n"
+        for name, data in comparison.get("benchmarks", {}).items():
+            ret = data.get("return_pct", 0)
+            emoji = "🟢" if ret >= 0 else "🔴"
+            report += f"  {emoji} {name}: {ret:+.2f}%\n"
+        
+        beating = comparison.get("beating", [])
+        if beating:
+            report += f"\n🏆 **Batti:** {', '.join(beating)}\n"
+        
+        # Top Movers
+        report += "\n🚀 **Top Gainers:**\n"
+        for g in movers.get("gainers", [])[:3]:
+            report += f"  • {g['ticker']}: {g['pnl_pct']:+.1f}%\n"
+        
+        report += "\n📉 **Top Losers:**\n"
+        for l in movers.get("losers", [])[:3]:
+            report += f"  • {l['ticker']}: {l['pnl_pct']:+.1f}%\n"
+        
+        # Recent Signals
+        if signals:
+            report += "\n📡 **Recent Signals:**\n"
+            for s in signals[:5]:
+                sentiment = s.get("sentiment", "N/A")
+                ticker = s.get("ticker", "?")
+                conf = s.get("confidence", 0)
+                emoji = "🟢" if sentiment in ["BUY", "ACCUMULATE"] else "🔴" if sentiment in ["SELL", "PANIC SELL"] else "⚪"
+                report += f"  {emoji} {ticker}: {sentiment} ({int(conf*100)}%)\n"
+        
+        report += "\n━" * 20
+        report += f"\n_Generato: {datetime.now().strftime('%Y-%m-%d %H:%M')}_"
+        
+        await update.message.reply_text(report, parse_mode="Markdown")
+        
+    except Exception as e:
+        logger.error(f"Report command error: {e}")
+        await update.message.reply_text(f"❌ Errore generazione report: {e}")
 
 async def backtest_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Runs the best historical strategy backtest for a given ticker."""
