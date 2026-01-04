@@ -209,6 +209,8 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = (
         "🛠 **Lista Comandi Disponibili:**\n\n"
         "📊 `/portfolio`\nVisualizza il valore attuale del tuo portafoglio in tempo reale.\n\n"
+        "🔬 `/analyze <TICKER>`\nAnalisi AI approfondita con news, technicals, e backtest storici.\n\n"
+        "📈 `/backtest <TICKER>`\nEsegue un backtest storico con la miglior strategia per l'asset.\n\n"
         "🏛 `/macro`\nVisualizza il contesto Macro Economico (VIX, Tassi, FED).\n\n"
         "🐋 `/whale`\nVisualizza movimenti On-Chain (Balene).\n\n"
         "🔔 **Allarmi Prezzo:**\n"
@@ -800,8 +802,9 @@ def webhook():
                 bot_app.add_handler(CommandHandler("alert", alert_command))
                 bot_app.add_handler(CommandHandler("alerts", my_alerts_command))
                 bot_app.add_handler(CommandHandler("paper", paper_command))
-                bot_app.add_handler(CommandHandler("settings", settings_command))
+                bot_app.add_handler(CommandHandler("backtest", backtest_command))
                 bot_app.add_handler(CommandHandler("analyze", analyze_command))
+                bot_app.add_handler(CommandHandler("settings", settings_command))
                 bot_app.add_handler(CommandHandler("macro", macro_command))
                 bot_app.add_handler(CommandHandler("whale", whale_command))
                 bot_app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
@@ -931,6 +934,48 @@ async def paper_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.error(f"Paper command error: {e}")
         await update.message.reply_text("❌ Errore Paper Trader.")
 
+async def backtest_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Runs the best historical strategy backtest for a given ticker."""
+    args = context.args
+    if not args:
+        await update.message.reply_text("⚠️ Uso: `/backtest <TICKER>` (es. `/backtest BTC-USD`)", parse_mode="Markdown")
+        return
+    
+    ticker = args[0].upper()
+    
+    # Add -USD suffix for crypto if missing
+    if ticker in ["BTC", "ETH", "SOL", "XRP", "DOGE", "ADA", "DOT", "AVAX", "LINK"]:
+        ticker = f"{ticker}-USD"
+    
+    await update.message.reply_text(f"📈 **Esecuzione Backtest su {ticker}...**\n_(Usando la miglior strategia storica)_", parse_mode="Markdown")
+    
+    try:
+        from backtester import Backtester
+        bt = Backtester()
+        
+        result = bt.run_best_strategy(ticker, 90)
+        
+        if result:
+            emoji = "🟢" if result['pnl_percent'] >= 0 else "🔴"
+            msg = (
+                f"📊 **Backtest Completato: {ticker}**\n\n"
+                f"📅 Periodo: {result['period_days']} giorni\n"
+                f"🎯 Strategia: `{result['strategy_version']}`\n\n"
+                f"{emoji} **P/L: {result['pnl_percent']:+.2f}%**\n"
+                f"📈 Trades: {result['total_trades']}\n"
+                f"🏆 Win Rate: {result['win_rate']:.0f}%\n\n"
+                f"💰 Bilancio Iniziale: €{result['starting_balance']:,.0f}\n"
+                f"💵 Bilancio Finale: €{result['ending_balance']:,.0f}\n\n"
+                f"_Risultato salvato in Dashboard → Laboratory_"
+            )
+            await update.message.reply_text(msg, parse_mode="Markdown")
+        else:
+            await update.message.reply_text(f"❌ Nessun dato trovato per **{ticker}**. Verifica il ticker.", parse_mode="Markdown")
+    
+    except Exception as e:
+        logger.error(f"Backtest command error: {e}")
+        await update.message.reply_text(f"❌ Errore durante il backtest: {e}")
+
 async def analyze_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     args = context.args
     if not args:
@@ -1017,9 +1062,29 @@ async def analyze_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"PnL: €{(live_val - (qty*avg)):.2f}."
             )
 
-        # 5. Generate Report
+        # 5. Backtest Context (Historical Strategy Performance)
+        backtest_context = ""
+        try:
+            from backtester import Backtester
+            bt = Backtester()
+            result = bt.run_best_strategy(ticker, 90)
+            if result:
+                backtest_context = (
+                    f"BACKTEST RESULTS (90d, best strategy): "
+                    f"Strategy={result['strategy_version']}, "
+                    f"PnL={result['pnl_percent']:+.2f}%, "
+                    f"Trades={result['total_trades']}, "
+                    f"WinRate={result['win_rate']:.0f}%. "
+                    f"This historical simulation used the best-performing strategy for this asset type."
+                )
+                logger.info(f"Analyze: Backtest context added for {ticker}")
+        except Exception as e:
+            logger.warning(f"Analyze: Backtest failed for {ticker}: {e}")
+            backtest_context = "BACKTEST: Not available for this ticker."
+
+        # 6. Generate Report (with backtest context)
         logger.info(f"Analyze: Generating AI Report for {ticker}...")
-        report = brain.generate_deep_dive(ticker, news_items, technical_summary, portfolio_context)
+        report = brain.generate_deep_dive(ticker, news_items, technical_summary, portfolio_context, backtest_context)
         
         # 6. Send Report (Split if too long, though unlikely for this prompt)
         # Telegram limit is 4096 chars.

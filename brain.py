@@ -543,7 +543,7 @@ class Brain:
         # as long as the news source covers them.
         pass
 
-    def generate_deep_dive(self, ticker: str, news_list: list, technical_data: str, portfolio_context: str = None):
+    def generate_deep_dive(self, ticker: str, news_list: list, technical_data: str, portfolio_context: str = None, backtest_context: str = None):
         """
         Generates a Strategic Analysis Report (Path B).
         """
@@ -559,6 +559,7 @@ class Brain:
         **INPUT DATA:**
         - **Technical Context:** {technical_data}
         - **Portfolio Context:** {portfolio_context or "Not owned"}
+        - **Historical Backtest (90d):** {backtest_context or "Not available"}
         - **Recent News (Full Text):**
         {news_text}
 
