@@ -913,8 +913,8 @@ async def paper_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         pt = PaperTrader()
         market = MarketData()
         
-        chat_id = update.effective_chat.id
-        portfolio = pt.get_portfolio(chat_id)
+        # Single-user mode: read all paper positions (chat_id not used)
+        portfolio = pt.get_portfolio()
         
         if not portfolio:
              await update.message.reply_text("🧪 Il tuo portafoglio simulato è vuoto.\nAttendi i prossimi segnali automatici!")
