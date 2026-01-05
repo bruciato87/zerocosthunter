@@ -198,6 +198,7 @@ async def setup_bot_commands(bot):
         BotCommand("learn", "🎓 Lezioni dagli Errori"),
         BotCommand("benchmark", "📊 Portfolio vs S&P500/BTC"),
         BotCommand("report", "📑 Weekly Report Completo"),
+        BotCommand("rebalance", "⚖️ Analisi Ribilanciamento"),
         BotCommand("dbstatus", "📦 Stato Storage DB"),
         BotCommand("help", "❓ Lista Comandi"),
         BotCommand("setprice", "💶 Correggi Prezzo"),
@@ -214,9 +215,12 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await setup_bot_commands(context.bot)
     msg = (
         "🛠 **Lista Comandi Disponibili:**\n\n"
+        "🏹 `/hunt`\nAvvia la caccia ai segnali di trading (analisi news + AI).\n\n"
         "📊 `/portfolio`\nVisualizza il valore attuale del tuo portafoglio in tempo reale.\n\n"
+        "📱 `/dashboard`\nApri la dashboard web interattiva.\n\n"
         "🔬 `/analyze <TICKER>`\nAnalisi AI approfondita con news, technicals, e backtest storici.\n\n"
         "📈 `/backtest <TICKER>`\nEsegue un backtest storico con la miglior strategia per l'asset.\n\n"
+        "⚖️ `/rebalance`\nAnalisi ribilanciamento portafoglio con suggerimenti AI.\n\n"
         "🧠 **Memory (Neuro-Link):**\n"
         "• `/recall <TICKER>`: Perché abbiamo comprato/venduto questo asset?\n"
         "• `/learn`: Lezioni apprese dagli errori recenti.\n\n"
