@@ -130,7 +130,7 @@ class SignalIntelligence:
             if not yf_ticker.endswith('-USD') and ticker in ['BTC', 'ETH', 'SOL', 'XRP']:
                 yf_ticker = f"{ticker}-USD"
             
-            data = yf.download(yf_ticker, period="30d", progress=False)
+            data = yf.download(yf_ticker, period="30d", progress=False, auto_adjust=True)
             
             if data.empty or len(data) < 10:
                 return {"is_good_entry": False, "reason": "Insufficient data"}
@@ -307,7 +307,7 @@ class SignalIntelligence:
             
             # Get VIX
             try:
-                vix_data = yf.download("^VIX", period="5d", progress=False)
+                vix_data = yf.download("^VIX", period="5d", progress=False, auto_adjust=True)
                 if not vix_data.empty:
                     if hasattr(vix_data.columns, 'levels'):
                         vix = float(vix_data['Close'].iloc[-1, 0]) if vix_data['Close'].ndim > 1 else float(vix_data['Close'].iloc[-1])
@@ -331,7 +331,7 @@ class SignalIntelligence:
             
             # Get S&P500 trend (price vs 200 SMA)
             try:
-                sp_data = yf.download("^GSPC", period="1y", progress=False)
+                sp_data = yf.download("^GSPC", period="1y", progress=False, auto_adjust=True)
                 if not sp_data.empty and len(sp_data) > 200:
                     if hasattr(sp_data.columns, 'levels'):
                         close = sp_data['Close'].iloc[:, 0] if sp_data['Close'].ndim > 1 else sp_data['Close']
