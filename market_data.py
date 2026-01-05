@@ -135,10 +135,18 @@ class MarketData:
         
         # Helper to extract change
         def extract_change(ticker_obj):
-             # Try info first
-             if 'regularMarketChangePercent' in ticker_obj.info:
-                 return ticker_obj.info['regularMarketChangePercent'] * 100 # usually float 0.05
-             return 0.0
+            try:
+                # regularMarketChangePercent is already a percentage (e.g. -5.5 for -5.5%)
+                # Do NOT multiply by 100!
+                if hasattr(ticker_obj, 'info') and 'regularMarketChangePercent' in ticker_obj.info:
+                    change = ticker_obj.info['regularMarketChangePercent']
+                    # Some APIs return as decimal (0.05), some as percent (5.0)
+                    # Yahoo returns as percent already, so just return it
+                    if change is not None:
+                        return float(change)
+            except Exception as e:
+                logger.warning(f"Could not extract change: {e}")
+            return 0.0
         # Note: Fetch EUR/USD rate dynamically or fallback
         eur_usd_rate = 1.09
         try:
