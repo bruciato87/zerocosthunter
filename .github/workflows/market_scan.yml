@@ -2,14 +2,30 @@ name: Market Scan & Hunter 🏹
 
 on:
   schedule:
-    # Run every hour from 6:00 UTC to 23:00 UTC (Approx 7AM - Midnight CET)
-    - cron: '0 6-23 * * *'
+    # Run every hour from 7:00 UTC to 23:00 UTC (Approx 8AM - Midnight CET)
+    - cron: '0 7-23 * * *'
+    # Daily Rebalancing at 6:00 UTC (7:00 AM CET)
+    - cron: '0 6 * * *'
+    # Weekly Summary on Sunday at 19:00 UTC (20:00 CET)
+    - cron: '0 19 * * 0'
   # Allow manual trigger from GitHub UI
   workflow_dispatch:
+    inputs:
+      job_type:
+        description: 'Job to run'
+        required: true
+        default: 'hunt'
+        type: choice
+        options:
+          - hunt
+          - rebalance
+          - weekly_summary
 
 jobs:
   hunt:
     runs-on: ubuntu-latest
+    # Run on hourly schedule (7-23 UTC) or manual with hunt selected
+    if: github.event.schedule == '0 7-23 * * *' || (github.event_name == 'workflow_dispatch' && github.event.inputs.job_type == 'hunt')
     
     steps:
     - name: Check out code
@@ -32,6 +48,64 @@ jobs:
         SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-        # Optional: Add DASHBOARD_PASSWORD/FLASK_SECRET_KEY if utilized in main.py (unlikely for pure pipeline)
       run: |
         python main.py
+
+  rebalance:
+    runs-on: ubuntu-latest
+    # Run at 6:00 UTC daily or manual with rebalance selected
+    if: github.event.schedule == '0 6 * * *' || (github.event_name == 'workflow_dispatch' && github.event.inputs.job_type == 'rebalance')
+    
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+    - name: Run Daily Rebalancing
+      env:
+        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      run: |
+        python rebalancer.py
+
+  weekly_summary:
+    runs-on: ubuntu-latest
+    # Run Sunday at 19:00 UTC or manual with weekly_summary selected
+    if: github.event.schedule == '0 19 * * 0' || (github.event_name == 'workflow_dispatch' && github.event.inputs.job_type == 'weekly_summary')
+    
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+    - name: Send Weekly Summary
+      env:
+        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      run: |
+        python -c "import asyncio; from benchmark import Benchmark; asyncio.run(Benchmark().send_weekly_summary())"
+

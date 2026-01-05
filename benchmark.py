@@ -278,6 +278,181 @@ class Benchmark:
                 report += f"  • {l['ticker']}: {l['pnl_pct']:+.1f}%\n"
         
         return report
+    
+    def generate_weekly_summary(self) -> str:
+        """
+        Generate comprehensive weekly portfolio summary.
+        Includes all assets, sector breakdown, and AI outlook.
+        """
+        import os
+        from datetime import datetime
+        
+        try:
+            portfolio = self.db.get_portfolio()
+            if not portfolio:
+                return "📑 **Weekly Summary**\n\n❌ Portafoglio vuoto."
+            
+            # Calculate all asset values
+            assets = []
+            sector_values = {}
+            total_value = 0.0
+            total_cost = 0.0
+            
+            for p in portfolio:
+                ticker = p.get('ticker', 'UNKNOWN')
+                qty = float(p.get('quantity', 0))
+                avg_price = float(p.get('avg_price', 0))
+                
+                current_price, _ = self.market.get_smart_price_eur(ticker)
+                if current_price <= 0:
+                    current_price = avg_price
+                
+                value = qty * current_price
+                cost = qty * avg_price
+                total_value += value
+                total_cost += cost
+                
+                pnl_pct = ((value - cost) / cost * 100) if cost > 0 else 0
+                
+                # Get sector
+                from advisor import Advisor
+                adv = Advisor()
+                sector = adv.get_sector(ticker)
+                sector_values[sector] = sector_values.get(sector, 0.0) + value
+                
+                assets.append({
+                    "ticker": ticker,
+                    "value": value,
+                    "pnl_pct": pnl_pct,
+                    "allocation": 0,  # Calculate after total
+                    "sector": sector
+                })
+            
+            # Calculate allocations
+            for asset in assets:
+                asset["allocation"] = (asset["value"] / total_value * 100) if total_value > 0 else 0
+            
+            # Sort by value
+            assets.sort(key=lambda x: -x["value"])
+            
+            # Build report
+            total_pnl = ((total_value - total_cost) / total_cost * 100) if total_cost > 0 else 0
+            pnl_emoji = "🟢" if total_pnl >= 0 else "🔴"
+            
+            report = "📑 **WEEKLY PORTFOLIO SUMMARY**\n"
+            report += "━" * 28 + "\n\n"
+            
+            # Overview
+            report += f"💰 **Valore Totale:** €{total_value:,.0f}\n"
+            report += f"{pnl_emoji} **P/L Totale:** {total_pnl:+.2f}%\n\n"
+            
+            # All Assets
+            report += "📦 **Tutti gli Asset:**\n"
+            for asset in assets:
+                emoji = "🟢" if asset["pnl_pct"] >= 0 else "🔴"
+                report += f"  {emoji} **{asset['ticker']}**: €{asset['value']:.0f} ({asset['allocation']:.1f}%) | {asset['pnl_pct']:+.1f}%\n"
+            
+            # Sector Breakdown
+            report += "\n📊 **Settori:**\n"
+            sector_pcts = {s: (v / total_value * 100) if total_value > 0 else 0 for s, v in sector_values.items()}
+            for sector, pct in sorted(sector_pcts.items(), key=lambda x: -x[1]):
+                report += f"  • {sector}: {pct:.1f}%\n"
+            
+            # Benchmarks comparison (7 days)
+            report += "\n📈 **vs Benchmarks (7d):**\n"
+            benchmarks = self.get_benchmark_performance(7)
+            for name, data in benchmarks.items():
+                ret = data.get("return_pct", 0)
+                vs = "✅" if total_pnl > ret else "❌"
+                report += f"  {vs} {name}: {ret:+.2f}%\n"
+            
+            # AI Outlook
+            ai_outlook = self._get_ai_weekly_outlook(assets, sector_pcts, total_pnl)
+            if ai_outlook:
+                report += f"\n🔮 **Outlook Settimanale:**\n{ai_outlook}\n"
+            
+            report += "\n" + "━" * 28
+            report += f"\n_Generato: {datetime.now().strftime('%Y-%m-%d %H:%M')}_"
+            
+            return report
+            
+        except Exception as e:
+            logger.error(f"Weekly summary failed: {e}")
+            return f"⚠️ Errore generazione summary: {e}"
+    
+    def _get_ai_weekly_outlook(self, assets: List[Dict], sectors: Dict, total_pnl: float) -> Optional[str]:
+        """Generate AI weekly outlook."""
+        import os
+        
+        api_key = os.environ.get("GEMINI_API_KEY")
+        if not api_key:
+            return None
+        
+        try:
+            from google import genai
+            
+            client = genai.Client(api_key=api_key)
+            
+            # Prepare context
+            top_assets = "\n".join([
+                f"- {a['ticker']}: {a['pnl_pct']:+.1f}%, {a['allocation']:.0f}% allocation"
+                for a in assets[:5]
+            ])
+            
+            sector_str = "\n".join([f"- {s}: {p:.0f}%" for s, p in sectors.items()])
+            
+            prompt = f"""
+            Sei un consulente finanziario. Scrivi un BREVE outlook settimanale (MAX 3 righe) per questo portfolio.
+            
+            Performance Totale: {total_pnl:+.1f}%
+            
+            Top Asset:
+            {top_assets}
+            
+            Settori:
+            {sector_str}
+            
+            Regole:
+            - MAX 3 righe
+            - Italiano
+            - Sii specifico sui singoli asset
+            - Menziona rischi e opportunità
+            """
+            
+            response = client.models.generate_content(
+                model='gemini-2.0-flash',
+                contents=prompt
+            )
+            
+            return response.text.strip()
+            
+        except Exception as e:
+            logger.warning(f"AI outlook failed: {e}")
+            return None
+    
+    async def send_weekly_summary(self):
+        """
+        Send weekly summary to Telegram.
+        Called by GitHub Actions on Sunday.
+        """
+        from telegram_bot import TelegramNotifier
+        
+        logger.info("Generating weekly summary...")
+        
+        try:
+            report = self.generate_weekly_summary()
+            
+            notifier = TelegramNotifier()
+            await notifier.send_alert(report)
+            
+            # Log to DB
+            self.db.log_system_event("INFO", "Benchmark", "Weekly summary sent")
+            
+            logger.info("Weekly summary sent successfully")
+            
+        except Exception as e:
+            logger.error(f"Weekly summary failed: {e}")
+            self.db.log_system_event("ERROR", "Benchmark", f"Weekly summary failed: {e}")
 
 
 if __name__ == "__main__":
@@ -299,3 +474,4 @@ if __name__ == "__main__":
     
     report = bench.format_benchmark_report(30)
     print(report)
+

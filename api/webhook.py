@@ -835,6 +835,7 @@ def webhook():
                 bot_app.add_handler(CommandHandler("settings", settings_command))
                 bot_app.add_handler(CommandHandler("macro", macro_command))
                 bot_app.add_handler(CommandHandler("whale", whale_command))
+                bot_app.add_handler(CommandHandler("rebalance", rebalance_command))
                 bot_app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
                 bot_app.add_handler(CallbackQueryHandler(handle_callback))
                 
@@ -1095,6 +1096,28 @@ async def benchmark_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         logger.error(f"Benchmark command error: {e}")
         await update.message.reply_text(f"❌ Errore nel calcolo benchmark: {e}")
+
+async def rebalance_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Show portfolio rebalancing analysis and suggestions."""
+    await update.message.reply_text("📊 **Analisi Ribilanciamento Portfolio...**", parse_mode="Markdown")
+    
+    try:
+        from rebalancer import Rebalancer
+        rebalancer = Rebalancer()
+        
+        report = rebalancer.format_rebalance_report()
+        
+        # Split if too long
+        if len(report) > 4000:
+            parts = [report[i:i+4000] for i in range(0, len(report), 4000)]
+            for part in parts:
+                await update.message.reply_text(part, parse_mode="Markdown")
+        else:
+            await update.message.reply_text(report, parse_mode="Markdown")
+        
+    except Exception as e:
+        logger.error(f"Rebalance command error: {e}")
+        await update.message.reply_text(f"❌ Errore nel calcolo ribilanciamento: {e}")
 
 async def report_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Generate a comprehensive weekly report with benchmarks, signals, and top movers."""
