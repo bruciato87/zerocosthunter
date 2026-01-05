@@ -222,7 +222,8 @@ class Brain:
                 model='gemini-3-flash-preview',
                 contents=prompt,
                 config=types.GenerateContentConfig(
-                    response_mime_type="application/json"
+                    response_mime_type="application/json",
+                    temperature=0.3  # Low temp for consistent trading signals
                 )
             )
             
