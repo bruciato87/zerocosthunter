@@ -78,39 +78,58 @@ def favicon_png():
 IS_HUNTING = False
 
 async def hunt_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    global IS_HUNTING
+    """Trigger hunt via GitHub Actions to bypass Vercel timeout limits."""
+    import httpx
+    
     chat_id = update.effective_chat.id
     
-    # 1. Local Check (Fast)
-    if IS_HUNTING:
-        logger.info("Request blocked (Local Lock): Hunt already in progress.")
-        await update.message.reply_text("⏳ **Caccia già in corso...** (Istanza Locale)")
-        return
-
-    # 2. Distributed Check (DB) - Idempotency Key (update_id)
-    # Allows manual retries (New ID) but blocks Vercel/Telegram retries (Same ID)
-    request_id = str(update.update_id)
-    db = DBHandler()
-    if not db.acquire_hunt_lock(request_id=request_id, expiry_minutes=2):
-        logger.info(f"Request blocked (DB Lock/Idempotency): {request_id}")
-        return
-
-    try:
-        IS_HUNTING = True
-        await update.message.reply_text("🏹 **Caccia Iniziata!**\nAnalizzo le news... (Attendi report)")
-        
-        # Execute Pipeline Synchronously (logs will be visible)
-        await run_async_pipeline()
-        
-        # Send Completion
-        await update.message.reply_text("✅ **Caccia Completata.**\nSe ho trovato segnali validi, li hai ricevuti.")
+    # Get GitHub token from environment
+    github_token = os.environ.get("GITHUB_TOKEN")
+    github_repo = os.environ.get("GITHUB_REPO", "bruciato87/zerocosthunter")
     
+    if not github_token:
+        # Fallback: Try to run locally (will likely timeout)
+        logger.warning("GITHUB_TOKEN not set - falling back to inline execution (may timeout)")
+        await update.message.reply_text("🏹 **Caccia Iniziata!**\n⚠️ Esecuzione locale (potrebbe essere lenta)...")
+        try:
+            await run_async_pipeline()
+            await update.message.reply_text("✅ **Caccia Completata.**")
+        except Exception as e:
+            await update.message.reply_text(f"❌ **Errore:** {str(e)[:200]}")
+        return
+    
+    # Trigger GitHub Actions workflow
+    await update.message.reply_text(
+        "🏹 **Caccia Avviata!**\n"
+        "Ho triggerato l'analisi completa su GitHub Actions.\n"
+        "Riceverai i segnali entro 2-3 minuti. 🚀"
+    )
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"https://api.github.com/repos/{github_repo}/actions/workflows/market_scan.yml/dispatches",
+                headers={
+                    "Authorization": f"Bearer {github_token}",
+                    "Accept": "application/vnd.github.v3+json",
+                    "X-GitHub-Api-Version": "2022-11-28"
+                },
+                json={
+                    "ref": "main",
+                    "inputs": {"job_type": "hunt"}
+                },
+                timeout=10
+            )
+            
+            if response.status_code == 204:
+                logger.info(f"GitHub Actions workflow triggered successfully for chat {chat_id}")
+            else:
+                logger.error(f"GitHub Actions trigger failed: {response.status_code} - {response.text}")
+                await update.message.reply_text(f"⚠️ Trigger fallito: {response.status_code}")
+                
     except Exception as e:
-        logger.error(f"Pipeline Failed: {e}")
-        await update.message.reply_text(f"❌ **Errore:** {str(e)}")
-    finally:
-        IS_HUNTING = False
-        db.release_hunt_lock(request_id=request_id)
+        logger.error(f"GitHub Actions trigger error: {e}")
+        await update.message.reply_text(f"⚠️ Errore trigger: {str(e)[:100]}")
 
 async def dashboard_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     app_url = os.environ.get("APP_URL", "https://zerocosthunter.vercel.app")
