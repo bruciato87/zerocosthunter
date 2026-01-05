@@ -1233,10 +1233,14 @@ async def analyze_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # 2. Fetch Technicals
         technical_summary = market.get_technical_summary(ticker)
         
-        # 3. Validation
-        if not news_items and "Unknown" in technical_summary:
-             await update.message.reply_text(f"❌ Impossibile analizzare **{ticker}**. Ticker non valido o nessuna news trovata.")
-             return # This return was missing in the original snippet, but implied by the context.
+        # 3. Validation - Handle missing news BEFORE calling brain
+        if not news_items:
+             await update.message.reply_text(f"❌ Non ho trovato notizie recenti rilevanti per **{ticker}**.\n\n📊 _Dati Tecnici:_\n{technical_summary}", parse_mode="Markdown")
+             return
+        
+        if "Unknown" in technical_summary:
+             await update.message.reply_text(f"❌ Impossibile analizzare **{ticker}**. Ticker non valido o dati tecnici non disponibili.", parse_mode="Markdown")
+             return
     
     
 
