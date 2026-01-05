@@ -188,14 +188,17 @@ class MarketData:
                 return (*result, change_pct) if include_change else result
 
             # 2. Try EUR Pair first (e.g. BTC-EUR) - Most accurate for EU users
-            try:
-                t_obj = yf.Ticker(f"{base}-EUR")
-                hist = t_obj.history(period="1d")
-                if not hist.empty:
-                    if include_change: change_pct = extract_change(t_obj)
-                    result = (hist['Close'].iloc[-1], f"{base}-EUR")
-                    return (*result, change_pct) if include_change else result
-            except: pass
+            # SKIP for cryptos without EUR pair on Yahoo (causes errors)
+            CRYPTO_NO_EUR = {'RENDER', 'SHIB', 'PEPE', 'MATIC'}  # Add more as discovered
+            if base.upper() not in CRYPTO_NO_EUR:
+                try:
+                    t_obj = yf.Ticker(f"{base}-EUR")
+                    hist = t_obj.history(period="1d")
+                    if not hist.empty:
+                        if include_change: change_pct = extract_change(t_obj)
+                        result = (hist['Close'].iloc[-1], f"{base}-EUR")
+                        return (*result, change_pct) if include_change else result
+                except: pass
 
             # 3. Try USD Pair (e.g. BTC-USD) - Fallback
             try:
