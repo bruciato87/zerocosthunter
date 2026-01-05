@@ -194,26 +194,21 @@ async def run_async_pipeline():
                 
                 tech_summary = market.get_technical_summary(fetch_ticker)
                 
-                
-                # PnL Calculation for Synthetic
-                current_price = 0.0
-                try:
-                    match = re.search(r'Price:\s*\$?([\d,]+\.?\d*)', tech_summary)
-                    if match:
-                        current_price = float(match.group(1).replace(',', ''))
-                except: pass
-
+                # PnL Calculation for Synthetic - USE EUR PRICING (consistent with real news enrichment)
                 pnl_str = ""
-                if current_price > 0 and holding['avg_price'] > 0:
-                    pnl_pct = ((current_price - holding['avg_price']) / holding['avg_price']) * 100
+                current_price_eur, _ = market.get_smart_price_eur(fetch_ticker)
+                
+                if current_price_eur > 0 and holding['avg_price'] > 0:
+                    pnl_pct = ((current_price_eur - holding['avg_price']) / holding['avg_price']) * 100
                     sign = "+" if pnl_pct >= 0 else ""
                     pnl_str = f" | PnL: {sign}{pnl_pct:.2f}%"
+                    logger.info(f"Synthetic PnL for {fetch_ticker}: €{current_price_eur:.4f} vs avg €{holding['avg_price']:.4f} = {pnl_pct:.2f}%")
 
                 # 2. Create Synthetic Item
                 synthetic_item = {
                     "title": f"PORTFOLIO CHECK: {fetch_ticker}",
                     "link": f"https://finance.yahoo.com/quote/{fetch_ticker}",
-                    "summary": f"Routine technical check for owned asset. {tech_summary}. [Portfolio: OWNED {holding['quantity']} @ ${holding['avg_price']}{pnl_str}]",
+                    "summary": f"Routine technical check for owned asset. {tech_summary}. [Portfolio: OWNED {holding['quantity']} @ €{holding['avg_price']:.2f}{pnl_str}]",
                     "published": "Just Now",
                     "ticker": fetch_ticker, # Use Normalized
                     "synthetic": True,
