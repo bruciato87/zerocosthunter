@@ -302,14 +302,19 @@ async def run_async_pipeline():
     # -----------------------------------------
 
     logger.info("Analyzing news with Gemini...")
-    predictions = brain.analyze_news_batch(
-        unique_news_items, 
-        performance_context=performance_context, 
-        insider_context=insider_context,
-        portfolio_context=advisor_analysis,
-        macro_context=macro_context,
-        whale_context=whale_context
-    )
+    try:
+        predictions = brain.analyze_news_batch(
+            unique_news_items, 
+            performance_context=performance_context, 
+            insider_context=insider_context,
+            portfolio_context=advisor_analysis,
+            macro_context=macro_context,
+            whale_context=whale_context
+        )
+        logger.info(f"Gemini analysis complete. Received {len(predictions)} predictions.")
+    except Exception as e:
+        logger.error(f"CRITICAL: Gemini analysis FAILED: {e}")
+        predictions = []
 
     processed_count = 0
     
@@ -354,6 +359,7 @@ async def run_async_pipeline():
         try:
             from signal_intelligence import SignalIntelligence
             si = SignalIntelligence()
+            logger.info(f"Signal Intelligence: Analyzing {ticker} ({sentiment} @ {confidence:.2f})")
             si_analysis = si.analyze_signal(ticker, sentiment, confidence)
             
             # Apply adjustments
@@ -366,6 +372,10 @@ async def run_async_pipeline():
                 logger.info(f"Signal Intelligence [{ticker}]: {action}")
                 reasoning += f" [SI: {action}]"
             
+            # Log warnings too
+            for warning in si_analysis.get('warnings', []):
+                logger.info(f"Signal Intelligence [{ticker}] WARNING: {warning}")
+            
             # Re-check confidence after adjustment
             if confidence < min_conf:
                 logger.info(f"Skipped {ticker}: SI adjusted confidence {confidence:.2f} < Threshold {min_conf}")
@@ -375,6 +385,8 @@ async def run_async_pipeline():
             if sentiment in ['WAIT', 'HOLD'] and original_sentiment in ['BUY', 'ACCUMULATE']:
                 logger.info(f"Downgraded {ticker}: {original_sentiment} -> {sentiment} (not notifying)")
                 continue
+            
+            logger.info(f"Signal Intelligence [{ticker}]: PASSED - {sentiment} @ {confidence:.2f}")
                 
         except Exception as e:
             logger.warning(f"Signal Intelligence failed for {ticker}: {e}")
