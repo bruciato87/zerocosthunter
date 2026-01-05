@@ -494,7 +494,7 @@ async def run_async_pipeline():
                 reasoning=reasoning,
                 sentiment=sentiment,
                 confidence=confidence,
-                target_price=float(target_price.replace('$', '').replace('€', '')) if target_price else None,
+                target_price=float(target_price.replace('$', '').replace('€', '').replace(',', '')) if target_price else None,
                 risk_score=risk_score,
                 signal_id=signal_id,
                 source=source
