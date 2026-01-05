@@ -358,8 +358,8 @@ async def run_async_pipeline():
             logger.info(f"Skipped {ticker}: Portfolio Mode ON and asset not owned.")
             continue
 
-        # FILTER 3: Logic Check (Cannot SELL/HOLD what you don't own)
-        if sentiment in ["SELL", "PANIC SELL", "HOLD"] and ticker not in portfolio_map:
+        # FILTER 3: Logic Check (Cannot SELL/HOLD/ACCUMULATE what you don't own)
+        if sentiment in ["SELL", "PANIC SELL", "HOLD", "ACCUMULATE"] and ticker not in portfolio_map:
             logger.warning(f"Skipped {ticker}: Ignored {sentiment} signal for unowned asset.")
             continue
 
