@@ -147,6 +147,15 @@ async def run_async_pipeline():
             tech_summary = market.get_technical_summary(detected_ticker)
             extras.append(f"Technical: {tech_summary}")
             
+            # 2.5 Signal Intelligence Context (NEW)
+            try:
+                from signal_intelligence import SignalIntelligence
+                si = SignalIntelligence()
+                si_context = si.generate_context_for_ai(detected_ticker)
+                extras.append(si_context)
+            except Exception as e:
+                logger.warning(f"Signal Intelligence failed for {detected_ticker}: {e}")
+            
             # 3. Portfolio
             if detected_ticker in portfolio_map:
                 holding = portfolio_map[detected_ticker]
@@ -339,6 +348,37 @@ async def run_async_pipeline():
         # Check if recently analyzed (Same Ticker + Same Sentiment = SPAM)
         if db.check_if_analyzed_recently(ticker, sentiment):
             continue
+        
+        # --- SIGNAL INTELLIGENCE LAYER (NEW) ---
+        # Apply advanced filtering and adjustments
+        try:
+            from signal_intelligence import SignalIntelligence
+            si = SignalIntelligence()
+            si_analysis = si.analyze_signal(ticker, sentiment, confidence)
+            
+            # Apply adjustments
+            original_sentiment = sentiment
+            sentiment = si_analysis.get('adjusted_sentiment', sentiment)
+            confidence = si_analysis.get('adjusted_confidence', confidence)
+            
+            # Log any actions taken
+            for action in si_analysis.get('actions', []):
+                logger.info(f"Signal Intelligence [{ticker}]: {action}")
+                reasoning += f" [SI: {action}]"
+            
+            # Re-check confidence after adjustment
+            if confidence < min_conf:
+                logger.info(f"Skipped {ticker}: SI adjusted confidence {confidence:.2f} < Threshold {min_conf}")
+                continue
+            
+            # If sentiment changed to WAIT/HOLD, skip notification
+            if sentiment in ['WAIT', 'HOLD'] and original_sentiment in ['BUY', 'ACCUMULATE']:
+                logger.info(f"Downgraded {ticker}: {original_sentiment} -> {sentiment} (not notifying)")
+                continue
+                
+        except Exception as e:
+            logger.warning(f"Signal Intelligence failed for {ticker}: {e}")
+        # -----------------------------------------
 
         risk_score = pred.get("risk_score", 5)
         target_price = pred.get("target_price")

@@ -1,0 +1,584 @@
+"""
+Signal Intelligence Module - Enhanced Trading Logic
+====================================================
+Provides advanced signal filtering and enhancement based on:
+1. Portfolio Correlation - Avoid overconcentration
+2. DCA on Pullback - Optimal entry timing
+3. Trailing Take-Profit - Lock in gains
+4. Market Regime Detection - Adjust for macro conditions
+5. Earnings Calendar - Event risk management
+"""
+
+import logging
+import yfinance as yf
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional, Tuple
+
+logger = logging.getLogger("SignalIntelligence")
+
+
+class SignalIntelligence:
+    """
+    Enhanced signal processing with multiple intelligence layers.
+    Called before final signal generation to adjust confidence and actions.
+    """
+    
+    def __init__(self):
+        from db_handler import DBHandler
+        from market_data import MarketData
+        from advisor import Advisor
+        
+        self.db = DBHandler()
+        self.market = MarketData()
+        self.advisor = Advisor()
+        
+        # Cache for expensive lookups
+        self._vix_cache = None
+        self._sp500_trend_cache = None
+        self._earnings_cache = {}
+    
+    # =========================================================================
+    # 1. PORTFOLIO CORRELATION CHECK
+    # =========================================================================
+    
+    def check_portfolio_correlation(self, ticker: str, sentiment: str) -> Dict:
+        """
+        Check if adding this asset would overconcentrate the portfolio.
+        
+        Returns:
+            {
+                "should_downgrade": True/False,
+                "reason": "Crypto sector already at 45%",
+                "sector": "Crypto",
+                "current_allocation": 45.0
+            }
+        """
+        if sentiment not in ["BUY", "ACCUMULATE"]:
+            return {"should_downgrade": False}
+        
+        try:
+            portfolio = self.db.get_portfolio()
+            if not portfolio:
+                return {"should_downgrade": False}
+            
+            # Get sector of new asset
+            new_sector = self.advisor.get_sector(ticker)
+            
+            # Calculate current sector allocations
+            sector_values = {}
+            total_value = 0.0
+            
+            for item in portfolio:
+                qty = float(item.get('quantity', 0))
+                avg = float(item.get('avg_price', 0))
+                value = qty * avg  # Use cost basis as proxy
+                total_value += value
+                
+                s = self.advisor.get_sector(item.get('ticker', ''))
+                sector_values[s] = sector_values.get(s, 0.0) + value
+            
+            if total_value <= 0:
+                return {"should_downgrade": False}
+            
+            # Current allocation of the target sector
+            current_alloc = (sector_values.get(new_sector, 0) / total_value) * 100
+            
+            # Threshold: 40% max per sector
+            if current_alloc >= 40:
+                return {
+                    "should_downgrade": True,
+                    "reason": f"{new_sector} sector already at {current_alloc:.1f}% (max 40%)",
+                    "sector": new_sector,
+                    "current_allocation": current_alloc,
+                    "action": "Downgrade BUY to WAIT"
+                }
+            
+            # Warning zone: 30-40%
+            if current_alloc >= 30:
+                return {
+                    "should_downgrade": False,
+                    "warning": f"{new_sector} sector at {current_alloc:.1f}% - approaching limit",
+                    "sector": new_sector,
+                    "current_allocation": current_alloc
+                }
+            
+            return {"should_downgrade": False, "sector": new_sector, "current_allocation": current_alloc}
+            
+        except Exception as e:
+            logger.warning(f"Portfolio correlation check failed: {e}")
+            return {"should_downgrade": False, "error": str(e)}
+    
+    # =========================================================================
+    # 2. DCA ON PULLBACK LOGIC
+    # =========================================================================
+    
+    def check_dca_opportunity(self, ticker: str) -> Dict:
+        """
+        Check if current price is a good DCA entry (pullback from recent high).
+        
+        Returns:
+            {
+                "is_good_entry": True/False,
+                "pullback_pct": -15.5,
+                "rsi": 35.2,
+                "reason": "Price down 15% from 30d high, RSI oversold"
+            }
+        """
+        try:
+            # Fetch 30-day history
+            yf_ticker = self.market.TICKER_ALIASES.get(ticker, ticker)
+            if not yf_ticker.endswith('-USD') and ticker in ['BTC', 'ETH', 'SOL', 'XRP']:
+                yf_ticker = f"{ticker}-USD"
+            
+            data = yf.download(yf_ticker, period="30d", progress=False)
+            
+            if data.empty or len(data) < 10:
+                return {"is_good_entry": False, "reason": "Insufficient data"}
+            
+            # Handle MultiIndex columns
+            if hasattr(data.columns, 'levels'):
+                close = data['Close'].iloc[:, 0] if data['Close'].ndim > 1 else data['Close']
+            else:
+                close = data['Close']
+            
+            current_price = float(close.iloc[-1])
+            high_30d = float(close.max())
+            
+            # Calculate pullback percentage
+            pullback_pct = ((current_price - high_30d) / high_30d) * 100
+            
+            # Calculate RSI
+            delta = close.diff()
+            gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
+            loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+            rs = gain / loss
+            rsi = 100 - (100 / (1 + rs))
+            current_rsi = float(rsi.iloc[-1]) if not rsi.empty else 50
+            
+            # Good entry conditions:
+            # 1. Price down at least 10% from 30d high
+            # 2. RSI < 45 (not overbought)
+            is_good_entry = pullback_pct <= -10 and current_rsi < 45
+            
+            # Excellent entry (for higher confidence boost)
+            is_excellent = pullback_pct <= -20 and current_rsi < 35
+            
+            reason = []
+            if pullback_pct <= -10:
+                reason.append(f"Price down {abs(pullback_pct):.1f}% from 30d high")
+            if current_rsi < 40:
+                reason.append(f"RSI oversold ({current_rsi:.0f})")
+            
+            return {
+                "is_good_entry": is_good_entry,
+                "is_excellent_entry": is_excellent,
+                "pullback_pct": pullback_pct,
+                "rsi": current_rsi,
+                "high_30d": high_30d,
+                "current_price": current_price,
+                "reason": " | ".join(reason) if reason else "No pullback detected"
+            }
+            
+        except Exception as e:
+            logger.warning(f"DCA check failed for {ticker}: {e}")
+            return {"is_good_entry": False, "error": str(e)}
+    
+    # =========================================================================
+    # 3. TRAILING TAKE-PROFIT
+    # =========================================================================
+    
+    def check_take_profit(self, ticker: str) -> Dict:
+        """
+        Check if a position should trim profits.
+        
+        Returns:
+            {
+                "should_take_profit": True/False,
+                "pnl_pct": 55.2,
+                "allocation_pct": 18.5,
+                "rsi": 75.3,
+                "reason": "Up 55%, 18% of portfolio, RSI overbought"
+            }
+        """
+        try:
+            portfolio = self.db.get_portfolio()
+            if not portfolio:
+                return {"should_take_profit": False}
+            
+            # Find the asset in portfolio
+            asset_data = None
+            total_value = 0.0
+            
+            for item in portfolio:
+                qty = float(item.get('quantity', 0))
+                price, _ = self.market.get_smart_price_eur(item.get('ticker', ''))
+                if price <= 0:
+                    price = float(item.get('avg_price', 0))
+                value = qty * price
+                total_value += value
+                
+                # Normalize ticker comparison
+                item_ticker = item.get('ticker', '').upper().replace('-USD', '')
+                check_ticker = ticker.upper().replace('-USD', '')
+                
+                if item_ticker == check_ticker:
+                    asset_data = item
+                    asset_data['current_value'] = value
+            
+            if not asset_data or total_value <= 0:
+                return {"should_take_profit": False}
+            
+            qty = float(asset_data.get('quantity', 0))
+            avg_price = float(asset_data.get('avg_price', 0))
+            current_value = asset_data['current_value']
+            
+            # Calculate PnL
+            cost_basis = qty * avg_price
+            pnl_pct = ((current_value - cost_basis) / cost_basis * 100) if cost_basis > 0 else 0
+            
+            # Calculate allocation
+            allocation_pct = (current_value / total_value) * 100
+            
+            # Get RSI
+            dca_check = self.check_dca_opportunity(ticker)
+            rsi = dca_check.get('rsi', 50)
+            
+            # Take profit conditions:
+            # 1. PnL > 40%
+            # 2. Allocation > 15% of portfolio
+            # 3. RSI > 65 (approaching overbought)
+            conditions_met = 0
+            reasons = []
+            
+            if pnl_pct >= 40:
+                conditions_met += 1
+                reasons.append(f"Up {pnl_pct:.1f}%")
+            
+            if allocation_pct >= 15:
+                conditions_met += 1
+                reasons.append(f"{allocation_pct:.1f}% of portfolio")
+            
+            if rsi >= 65:
+                conditions_met += 1
+                reasons.append(f"RSI high ({rsi:.0f})")
+            
+            # Suggest take profit if at least 2 conditions met
+            should_take = conditions_met >= 2 and pnl_pct >= 30
+            
+            return {
+                "should_take_profit": should_take,
+                "pnl_pct": pnl_pct,
+                "allocation_pct": allocation_pct,
+                "rsi": rsi,
+                "conditions_met": conditions_met,
+                "reason": " | ".join(reasons) if reasons else "No take-profit trigger",
+                "suggested_trim": "20%" if should_take else None
+            }
+            
+        except Exception as e:
+            logger.warning(f"Take profit check failed for {ticker}: {e}")
+            return {"should_take_profit": False, "error": str(e)}
+    
+    # =========================================================================
+    # 4. MARKET REGIME DETECTION
+    # =========================================================================
+    
+    def get_market_regime(self) -> Dict:
+        """
+        Detect current market regime based on VIX and S&P500 trend.
+        
+        Returns:
+            {
+                "regime": "RISK_ON" | "RISK_OFF" | "NEUTRAL",
+                "vix": 18.5,
+                "vix_level": "LOW" | "ELEVATED" | "HIGH" | "EXTREME",
+                "sp500_trend": "BULLISH" | "BEARISH" | "NEUTRAL",
+                "confidence_adjustment": 0.0 | -0.1 | -0.2
+            }
+        """
+        try:
+            result = {
+                "regime": "NEUTRAL",
+                "vix": None,
+                "vix_level": "UNKNOWN",
+                "sp500_trend": "UNKNOWN",
+                "confidence_adjustment": 0.0
+            }
+            
+            # Get VIX
+            try:
+                vix_data = yf.download("^VIX", period="5d", progress=False)
+                if not vix_data.empty:
+                    if hasattr(vix_data.columns, 'levels'):
+                        vix = float(vix_data['Close'].iloc[-1, 0]) if vix_data['Close'].ndim > 1 else float(vix_data['Close'].iloc[-1])
+                    else:
+                        vix = float(vix_data['Close'].iloc[-1])
+                    
+                    result["vix"] = vix
+                    
+                    if vix < 15:
+                        result["vix_level"] = "LOW"
+                    elif vix < 20:
+                        result["vix_level"] = "NORMAL"
+                    elif vix < 30:
+                        result["vix_level"] = "ELEVATED"
+                    elif vix < 40:
+                        result["vix_level"] = "HIGH"
+                    else:
+                        result["vix_level"] = "EXTREME"
+            except Exception as e:
+                logger.warning(f"VIX fetch failed: {e}")
+            
+            # Get S&P500 trend (price vs 200 SMA)
+            try:
+                sp_data = yf.download("^GSPC", period="1y", progress=False)
+                if not sp_data.empty and len(sp_data) > 200:
+                    if hasattr(sp_data.columns, 'levels'):
+                        close = sp_data['Close'].iloc[:, 0] if sp_data['Close'].ndim > 1 else sp_data['Close']
+                    else:
+                        close = sp_data['Close']
+                    
+                    current = float(close.iloc[-1])
+                    sma200 = float(close.rolling(200).mean().iloc[-1])
+                    
+                    if current > sma200 * 1.02:  # 2% above
+                        result["sp500_trend"] = "BULLISH"
+                    elif current < sma200 * 0.98:  # 2% below
+                        result["sp500_trend"] = "BEARISH"
+                    else:
+                        result["sp500_trend"] = "NEUTRAL"
+            except Exception as e:
+                logger.warning(f"S&P500 trend fetch failed: {e}")
+            
+            # Determine regime and confidence adjustment
+            vix = result.get("vix", 20)
+            
+            if result["vix_level"] in ["HIGH", "EXTREME"]:
+                result["regime"] = "RISK_OFF"
+                result["confidence_adjustment"] = -0.15  # Stricter threshold
+            elif result["vix_level"] == "ELEVATED" or result["sp500_trend"] == "BEARISH":
+                result["regime"] = "CAUTIOUS"
+                result["confidence_adjustment"] = -0.10
+            elif result["vix_level"] == "LOW" and result["sp500_trend"] == "BULLISH":
+                result["regime"] = "RISK_ON"
+                result["confidence_adjustment"] = 0.05  # Slightly more lenient
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Market regime detection failed: {e}")
+            return {"regime": "NEUTRAL", "confidence_adjustment": 0.0}
+    
+    # =========================================================================
+    # 5. EARNINGS CALENDAR
+    # =========================================================================
+    
+    def check_earnings_risk(self, ticker: str) -> Dict:
+        """
+        Check if ticker has earnings coming up (high volatility event).
+        
+        Returns:
+            {
+                "has_upcoming_earnings": True/False,
+                "earnings_date": "2026-01-15",
+                "days_until": 5,
+                "risk_level": "HIGH" | "MEDIUM" | "LOW" | "NONE"
+            }
+        """
+        # Skip for crypto (no earnings)
+        if ticker.upper().replace('-USD', '') in ['BTC', 'ETH', 'SOL', 'XRP', 'DOGE', 'ADA', 'DOT', 'AVAX', 'LINK', 'RENDER', 'RNDR']:
+            return {"has_upcoming_earnings": False, "risk_level": "NONE", "reason": "Crypto - no earnings"}
+        
+        try:
+            # Check cache first
+            cache_key = f"{ticker}_{datetime.now().strftime('%Y-%m-%d')}"
+            if cache_key in self._earnings_cache:
+                return self._earnings_cache[cache_key]
+            
+            yf_ticker = self.market.TICKER_ALIASES.get(ticker, ticker)
+            t = yf.Ticker(yf_ticker)
+            
+            # Get earnings dates
+            try:
+                earnings = t.calendar
+                if earnings is None or earnings.empty:
+                    result = {"has_upcoming_earnings": False, "risk_level": "NONE"}
+                    self._earnings_cache[cache_key] = result
+                    return result
+                
+                # earnings is typically a DataFrame with 'Earnings Date' row
+                if 'Earnings Date' in earnings.index:
+                    next_earnings = earnings.loc['Earnings Date', 0]
+                    if isinstance(next_earnings, str):
+                        next_earnings = datetime.strptime(next_earnings, '%Y-%m-%d')
+                    
+                    days_until = (next_earnings - datetime.now()).days
+                    
+                    if days_until < 0:
+                        result = {"has_upcoming_earnings": False, "risk_level": "NONE"}
+                    elif days_until <= 3:
+                        result = {
+                            "has_upcoming_earnings": True,
+                            "earnings_date": next_earnings.strftime('%Y-%m-%d'),
+                            "days_until": days_until,
+                            "risk_level": "HIGH",
+                            "action": "Downgrade BUY to WAIT"
+                        }
+                    elif days_until <= 7:
+                        result = {
+                            "has_upcoming_earnings": True,
+                            "earnings_date": next_earnings.strftime('%Y-%m-%d'),
+                            "days_until": days_until,
+                            "risk_level": "MEDIUM",
+                            "warning": "Earnings in 1 week - elevated volatility"
+                        }
+                    else:
+                        result = {"has_upcoming_earnings": False, "risk_level": "LOW", "days_until": days_until}
+                    
+                    self._earnings_cache[cache_key] = result
+                    return result
+                    
+            except Exception as e:
+                logger.debug(f"No earnings data for {ticker}: {e}")
+            
+            result = {"has_upcoming_earnings": False, "risk_level": "NONE"}
+            self._earnings_cache[cache_key] = result
+            return result
+            
+        except Exception as e:
+            logger.warning(f"Earnings check failed for {ticker}: {e}")
+            return {"has_upcoming_earnings": False, "error": str(e)}
+    
+    # =========================================================================
+    # MAIN INTELLIGENCE LAYER
+    # =========================================================================
+    
+    def analyze_signal(self, ticker: str, sentiment: str, confidence: float) -> Dict:
+        """
+        Run all intelligence checks on a potential signal.
+        
+        Returns comprehensive analysis with adjusted sentiment/confidence.
+        """
+        result = {
+            "original_sentiment": sentiment,
+            "original_confidence": confidence,
+            "adjusted_sentiment": sentiment,
+            "adjusted_confidence": confidence,
+            "checks": {},
+            "warnings": [],
+            "actions": []
+        }
+        
+        # 1. Portfolio Correlation
+        correlation = self.check_portfolio_correlation(ticker, sentiment)
+        result["checks"]["correlation"] = correlation
+        if correlation.get("should_downgrade"):
+            result["adjusted_sentiment"] = "WAIT"
+            result["actions"].append(f"Downgraded to WAIT: {correlation['reason']}")
+        elif correlation.get("warning"):
+            result["warnings"].append(correlation["warning"])
+        
+        # 2. DCA Opportunity (for BUY/ACCUMULATE)
+        if sentiment in ["BUY", "ACCUMULATE"]:
+            dca = self.check_dca_opportunity(ticker)
+            result["checks"]["dca"] = dca
+            if dca.get("is_excellent_entry"):
+                result["adjusted_confidence"] += 0.1
+                result["actions"].append(f"Confidence boosted: Excellent DCA entry ({dca['reason']})")
+            elif dca.get("is_good_entry"):
+                result["adjusted_confidence"] += 0.05
+                result["actions"].append(f"Good DCA entry: {dca['reason']}")
+            elif dca.get("pullback_pct", 0) > -5:
+                result["warnings"].append(f"No pullback from highs - consider waiting for dip")
+        
+        # 3. Take Profit Check (for owned assets)
+        take_profit = self.check_take_profit(ticker)
+        result["checks"]["take_profit"] = take_profit
+        if take_profit.get("should_take_profit") and sentiment in ["HOLD", "ACCUMULATE"]:
+            result["adjusted_sentiment"] = "SELL"
+            result["actions"].append(f"Suggest TRIM {take_profit['suggested_trim']}: {take_profit['reason']}")
+        
+        # 4. Market Regime
+        regime = self.get_market_regime()
+        result["checks"]["market_regime"] = regime
+        result["adjusted_confidence"] += regime.get("confidence_adjustment", 0)
+        if regime.get("regime") == "RISK_OFF":
+            result["warnings"].append(f"RISK_OFF regime (VIX={regime.get('vix', '?')}). Extra caution advised.")
+            if sentiment == "BUY":
+                result["adjusted_sentiment"] = "WAIT"
+                result["actions"].append("Downgraded to WAIT due to high market risk")
+        
+        # 5. Earnings Calendar (for stocks)
+        earnings = self.check_earnings_risk(ticker)
+        result["checks"]["earnings"] = earnings
+        if earnings.get("risk_level") == "HIGH" and sentiment == "BUY":
+            result["adjusted_sentiment"] = "WAIT"
+            result["actions"].append(f"Earnings in {earnings.get('days_until', '?')} days - high volatility risk")
+        elif earnings.get("risk_level") == "MEDIUM":
+            result["warnings"].append(f"Earnings on {earnings.get('earnings_date')} - elevated volatility")
+        
+        # Clamp confidence
+        result["adjusted_confidence"] = max(0.0, min(1.0, result["adjusted_confidence"]))
+        
+        return result
+    
+    def generate_context_for_ai(self, ticker: str) -> str:
+        """
+        Generate a context string to inject into AI prompt for smarter decisions.
+        """
+        lines = [f"[SIGNAL INTELLIGENCE for {ticker}]"]
+        
+        # Correlation
+        corr = self.check_portfolio_correlation(ticker, "BUY")
+        if corr.get("current_allocation"):
+            lines.append(f"- Sector ({corr.get('sector', '?')}): {corr['current_allocation']:.1f}% of portfolio")
+            if corr.get("should_downgrade"):
+                lines.append(f"  ⚠️ OVERWEIGHT: Do not add more to this sector!")
+        
+        # DCA
+        dca = self.check_dca_opportunity(ticker)
+        if dca.get("pullback_pct"):
+            lines.append(f"- Pullback: {dca['pullback_pct']:.1f}% from 30d high, RSI: {dca.get('rsi', '?'):.0f}")
+            if dca.get("is_good_entry"):
+                lines.append("  ✅ GOOD DCA ENTRY: Price has pulled back")
+        
+        # Take Profit
+        tp = self.check_take_profit(ticker)
+        if tp.get("pnl_pct") and tp.get("pnl_pct") > 20:
+            lines.append(f"- Current PnL: +{tp['pnl_pct']:.1f}%, Allocation: {tp.get('allocation_pct', 0):.1f}%")
+            if tp.get("should_take_profit"):
+                lines.append(f"  💰 CONSIDER TRIM: High gains + high allocation")
+        
+        # Market Regime
+        regime = self.get_market_regime()
+        lines.append(f"- Market: {regime.get('regime', 'NEUTRAL')} (VIX: {regime.get('vix', '?')}, S&P: {regime.get('sp500_trend', '?')})")
+        
+        # Earnings
+        earn = self.check_earnings_risk(ticker)
+        if earn.get("has_upcoming_earnings"):
+            lines.append(f"- ⚠️ EARNINGS in {earn.get('days_until', '?')} days ({earn.get('earnings_date', '?')})")
+        
+        return "\n".join(lines)
+
+
+# CLI test
+if __name__ == "__main__":
+    import logging
+    logging.basicConfig(level=logging.INFO)
+    
+    si = SignalIntelligence()
+    
+    # Test with BTC
+    print("=" * 50)
+    print("Testing Signal Intelligence for BTC")
+    print("=" * 50)
+    
+    analysis = si.analyze_signal("BTC", "BUY", 0.85)
+    print(f"Original: {analysis['original_sentiment']} @ {analysis['original_confidence']:.2f}")
+    print(f"Adjusted: {analysis['adjusted_sentiment']} @ {analysis['adjusted_confidence']:.2f}")
+    print(f"Actions: {analysis['actions']}")
+    print(f"Warnings: {analysis['warnings']}")
+    
+    print("\n" + "=" * 50)
+    print("AI Context:")
+    print(si.generate_context_for_ai("BTC"))
