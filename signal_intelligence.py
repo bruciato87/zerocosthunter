@@ -83,18 +83,18 @@ class SignalIntelligence:
             # Current allocation of the target sector
             current_alloc = (sector_values.get(new_sector, 0) / total_value) * 100
             
-            # Threshold: 40% max per sector
-            if current_alloc >= 40:
+            # Threshold: 50% max per sector (relaxed from 40%)
+            if current_alloc >= 50:
                 return {
                     "should_downgrade": True,
-                    "reason": f"{new_sector} sector already at {current_alloc:.1f}% (max 40%)",
+                    "reason": f"{new_sector} sector already at {current_alloc:.1f}% (max 50%)",
                     "sector": new_sector,
                     "current_allocation": current_alloc,
                     "action": "Downgrade BUY to WAIT"
                 }
             
-            # Warning zone: 30-40%
-            if current_alloc >= 30:
+            # Warning zone: 40-50%
+            if current_alloc >= 40:
                 return {
                     "should_downgrade": False,
                     "warning": f"{new_sector} sector at {current_alloc:.1f}% - approaching limit",
@@ -350,15 +350,15 @@ class SignalIntelligence:
             except Exception as e:
                 logger.warning(f"S&P500 trend fetch failed: {e}")
             
-            # Determine regime and confidence adjustment
+            # Determine regime and confidence adjustment (RELAXED penalties)
             vix = result.get("vix", 20)
             
             if result["vix_level"] in ["HIGH", "EXTREME"]:
                 result["regime"] = "RISK_OFF"
-                result["confidence_adjustment"] = -0.15  # Stricter threshold
+                result["confidence_adjustment"] = -0.05  # Reduced from -0.15
             elif result["vix_level"] == "ELEVATED" or result["sp500_trend"] == "BEARISH":
                 result["regime"] = "CAUTIOUS"
-                result["confidence_adjustment"] = -0.10
+                result["confidence_adjustment"] = -0.03  # Reduced from -0.10
             elif result["vix_level"] == "LOW" and result["sp500_trend"] == "BULLISH":
                 result["regime"] = "RISK_ON"
                 result["confidence_adjustment"] = 0.05  # Slightly more lenient
@@ -504,9 +504,7 @@ class SignalIntelligence:
         result["adjusted_confidence"] += regime.get("confidence_adjustment", 0)
         if regime.get("regime") == "RISK_OFF":
             result["warnings"].append(f"RISK_OFF regime (VIX={regime.get('vix', '?')}). Extra caution advised.")
-            if sentiment == "BUY":
-                result["adjusted_sentiment"] = "WAIT"
-                result["actions"].append("Downgraded to WAIT due to high market risk")
+            # Don't downgrade to WAIT - just warn (user can decide)
         
         # 5. Earnings Calendar (for stocks)
         earnings = self.check_earnings_risk(ticker)
