@@ -222,7 +222,8 @@ class MarketData:
             'AMD', 'INTC', 'SPY', 'QQQ', 'NFLX', 'UBER', 'COIN', 'HOOD',
             'BA', 'JPM', 'GS', 'V', 'MA', 'DIS', 'WMT', 'JNJ', 'PG',
             'KO', 'PEP', 'MCD', 'NKE', 'SBUX', 'HD', 'LOW', 'TGT',
-            'CVX', 'XOM', 'COP', 'PYPL', 'SQ', 'SHOP', 'PLTR', 'SNOW'
+            'CVX', 'XOM', 'COP', 'PYPL', 'SQ', 'SHOP', 'PLTR', 'SNOW',
+            'MU', 'AVGO', 'QCOM', 'COST', 'ADBE', 'CRM', 'ORCL', 'CSCO'
         }
         
         # If start_ticker already has a suffix, try it directly first

@@ -359,7 +359,18 @@ async def run_async_pipeline():
             continue
 
         # FILTER 3: Logic Check (Cannot SELL/HOLD/ACCUMULATE what you don't own)
-        if sentiment in ["SELL", "PANIC SELL", "HOLD", "ACCUMULATE"] and ticker not in portfolio_map:
+        # Use flexible matching for -USD variants (RENDER-USD matches RENDER)
+        def is_owned(t, pmap):
+            if t in pmap:
+                return True
+            base = t.replace('-USD', '').replace('-EUR', '')
+            if base in pmap:
+                return True
+            if f"{t}-USD" in pmap:
+                return True
+            return False
+        
+        if sentiment in ["SELL", "PANIC SELL", "HOLD", "ACCUMULATE"] and not is_owned(ticker, portfolio_map):
             logger.warning(f"Skipped {ticker}: Ignored {sentiment} signal for unowned asset.")
             continue
 
