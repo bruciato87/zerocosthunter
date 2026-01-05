@@ -12,7 +12,10 @@ class Advisor:
             "BTC-USD": "Crypto",
             "ETH-USD": "Crypto",
             "SOL-USD": "Crypto",
+            "SOL": "Crypto",           # Solana (no suffix)
             "USDT-USD": "Crypto",
+            "XRP": "Crypto",           # Ripple
+            "XRP-USD": "Crypto",
             "SPY": "ETF",
             "QQQ": "ETF",
             "NVDA": "Technology",
@@ -25,14 +28,21 @@ class Advisor:
             "CVX": "Energy",
             # Manual Overrides for Portfolio Assets (Fixing 'Unknown' Sector)
             "ICGA.FRA": "ETF",
-            "3CP": "Technology",
-            "EUNL.DE": "ETF",      # iShares Core MSCI World
-            "RBOT.MI": "ETF",      # Automation & Robotics
-            "AIAI.MI": "ETF",      # Artificial Intelligence ETF
-            "TCEHY": "Technology", # Tencent
+            "3CP": "Technology",        # Xiaomi (Frankfurt)
+            "3XC": "Technology",        # Xiaomi (Frankfurt alt)
+            "EUNL.DE": "ETF",           # iShares Core MSCI World
+            "RBOT.MI": "ETF",           # Automation & Robotics
+            "AIAI.MI": "ETF",           # Artificial Intelligence ETF
+            "TCEHY": "Technology",      # Tencent ADR
+            "TCT": "Technology",        # Tencent (Frankfurt)
+            "NNnD.F": "Technology",     # Tencent Frankfurt
             "BYD": "Consumer Cyclical", # BYD Co
+            "BYDDF": "Consumer Cyclical", # BYD OTC
+            "NUKL": "ETF",              # Global X Uranium ETF
+            "NUKL.DE": "ETF",
             "RNDR-USD": "Crypto",
-            "RENDER-USD": "Crypto"
+            "RENDER-USD": "Crypto",
+            "RENDER": "Crypto",         # Render Token (no suffix)
         }
         from market_data import MarketData
         self.market = MarketData()
