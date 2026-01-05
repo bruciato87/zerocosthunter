@@ -51,6 +51,7 @@ class MarketData:
             "RNDR-USD": "RENDER-USD", # Rebranding fallback
             "RENDER": "RENDER-USD",   # Naked ticker support
             "BYD": "BY6.F",           # User owns BYD EV (Frankfurt), not Boyd Gaming (NYSE)
+            "BYDDF": "BY6.F",         # BYD OTC -> Frankfurt (faster)
             "TCT": "NNnD.F",          # Tencent Frankfurt
             "3XC": "3CP.F",           # Xiaomi Frankfurt
             "NUKL": "NUKL.DE"         # Global X Uranium
@@ -212,10 +213,24 @@ class MarketData:
         # 1. Try Explicit EUR Suffixes first (Trade Republic common markets)
         suffixes_eur = ['.DE', '.F', '.MI', '.PA', '.MC', '.AS']
         
+        # OPTIMIZATION: Known US Stocks - skip EU suffix attempts
+        US_STOCKS = {
+            'NVDA', 'AAPL', 'GOOGL', 'GOOG', 'MSFT', 'AMZN', 'META', 'TSLA', 
+            'AMD', 'INTC', 'SPY', 'QQQ', 'NFLX', 'UBER', 'COIN', 'HOOD',
+            'BA', 'JPM', 'GS', 'V', 'MA', 'DIS', 'WMT', 'JNJ', 'PG',
+            'KO', 'PEP', 'MCD', 'NKE', 'SBUX', 'HD', 'LOW', 'TGT',
+            'CVX', 'XOM', 'COP', 'PYPL', 'SQ', 'SHOP', 'PLTR', 'SNOW'
+        }
+        
         # If start_ticker already has a suffix, try it directly first
         initial_candidates = [start_ticker]
+        
         if '.' not in start_ticker:
-             initial_candidates = [start_ticker + s for s in suffixes_eur] + [start_ticker]
+            # For US stocks, skip EU suffixes entirely
+            if start_ticker in US_STOCKS:
+                initial_candidates = [start_ticker]  # Only try US ticker
+            else:
+                initial_candidates = [start_ticker + s for s in suffixes_eur] + [start_ticker]
         
         for t_test in initial_candidates:
             try:
