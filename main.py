@@ -531,6 +531,15 @@ async def run_async_pipeline():
 
     db.log_system_event("INFO", "Hunter", "Pipeline Finished")
     logger.info(f"Pipeline finished. Processed {processed_count} actionable signals.")
+    
+    # Send completion notification to Telegram
+    try:
+        if processed_count > 0:
+            await notifier.send_alert(f"✅ **Caccia Completata!**\n📊 Processati {processed_count} segnali validi.")
+        else:
+            await notifier.send_alert("✅ **Caccia Completata!**\n🔍 Nessun nuovo segnale significativo trovato.\n(I duplicati e quelli sotto la soglia sono stati filtrati)")
+    except Exception as e:
+        logger.warning(f"Failed to send completion notification: {e}")
 
 if __name__ == "__main__":
     # Scheduled / Manual CLI Execution
