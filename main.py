@@ -156,10 +156,23 @@ async def run_async_pipeline():
             except Exception as e:
                 logger.warning(f"Signal Intelligence failed for {detected_ticker}: {e}")
             
-            # 3. Portfolio
-            if detected_ticker in portfolio_map:
-                holding = portfolio_map[detected_ticker]
-                
+            # 3. Portfolio - with flexible matching
+            # Helper: find portfolio entry with ticker variants
+            def find_portfolio_entry(ticker, portfolio):
+                """Match ticker to portfolio considering -USD variants."""
+                if ticker in portfolio:
+                    return ticker, portfolio[ticker]
+                # Try without -USD suffix
+                base = ticker.replace('-USD', '').replace('-EUR', '')
+                if base in portfolio:
+                    return base, portfolio[base]
+                # Try with -USD suffix
+                if f"{ticker}-USD" in portfolio:
+                    return f"{ticker}-USD", portfolio[f"{ticker}-USD"]
+                return None, None
+            
+            portfolio_ticker, holding = find_portfolio_entry(detected_ticker, portfolio_map)
+            if holding:
                 # Use MarketData for consistent EUR pricing (avg_price is stored in EUR)
                 current_price_eur, _ = market.get_smart_price_eur(detected_ticker)
                 
