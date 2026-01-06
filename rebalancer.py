@@ -87,6 +87,16 @@ class Rebalancer:
             sector = self.advisor.get_sector(ticker)
             sector_values[sector] = sector_values.get(sector, 0.0) + value
             
+            # Get RSI (for AI context)
+            rsi = None
+            try:
+                tech_data = self.market.get_technical_summary(ticker)
+                if "RSI:" in tech_data:
+                    rsi_str = tech_data.split("RSI:")[1].split(",")[0].strip()
+                    rsi = float(rsi_str) if rsi_str != "N/A" else None
+            except:
+                pass
+            
             assets.append({
                 "ticker": ticker,
                 "quantity": qty,
@@ -94,7 +104,8 @@ class Rebalancer:
                 "current_price": current_price,
                 "value": value,
                 "pnl_pct": pnl_pct,
-                "sector": sector
+                "sector": sector,
+                "rsi": rsi
             })
         
         # Calculate allocations and deviations
@@ -178,9 +189,15 @@ class Rebalancer:
             
             client = genai.Client(api_key=self.api_key)
             
-            # 1. Portfolio summary
+            # 1. Portfolio summary with RSI
+            def rsi_label(rsi):
+                if rsi is None: return ""
+                if rsi > 70: return f", RSI: {rsi:.0f} ⚠️OVERBOUGHT"
+                if rsi < 30: return f", RSI: {rsi:.0f} 🔥OVERSOLD"
+                return f", RSI: {rsi:.0f}"
+            
             assets_summary = "\n".join([
-                f"- {a['ticker']}: €{a['value']:.0f} ({a['allocation']:.1f}%), PnL: {a['pnl_pct']:+.1f}%, Sector: {a['sector']}"
+                f"- {a['ticker']}: €{a['value']:.0f} ({a['allocation']:.1f}%), PnL: {a['pnl_pct']:+.1f}%, Sector: {a['sector']}{rsi_label(a.get('rsi'))}"
                 for a in analysis["assets"][:10]
             ])
             
