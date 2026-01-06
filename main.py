@@ -419,6 +419,27 @@ async def run_async_pipeline():
         risk_score = pred.get("risk_score", 5)
         target_price = pred.get("target_price")
         upside_percentage = pred.get("upside_percentage", 0.0)
+        
+        # --- TARGET PRICE VALIDATION ---
+        # If AI returns absurd target (>100% above current price), recalculate from upside
+        try:
+            if target_price and upside_percentage > 0:
+                clean_tp = re.sub(r'[^\d.]', '', str(target_price))
+                tp_float = float(clean_tp) if clean_tp else 0
+                
+                # Get current price for validation
+                current_price, _ = market.get_smart_price_eur(ticker)
+                
+                if current_price > 0 and tp_float > 0:
+                    # Check if target is absurdly high (>100% gain)
+                    implied_gain = (tp_float - current_price) / current_price * 100
+                    if implied_gain > 100:  # More than 100% gain is suspicious
+                        # Recalculate from upside percentage
+                        corrected_tp = current_price * (1 + upside_percentage / 100)
+                        target_price = f"€{corrected_tp:.2f}"
+                        logger.warning(f"Target price corrected for {ticker}: {tp_float} -> {corrected_tp:.2f} (used upside {upside_percentage}%)")
+        except Exception as e:
+            logger.warning(f"Target price validation failed for {ticker}: {e}")
 
         # 5. Log to DB and Notify
         signal_id = db.log_prediction(ticker, sentiment, reasoning, reasoning, confidence, source, risk_score, target_price, upside_percentage)
