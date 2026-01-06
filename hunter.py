@@ -165,10 +165,16 @@ class NewsHunter:
             known_crypto = ["BTC", "ETH", "SOL", "XRP", "ADA", "DOGE", "DOT", "LINK", "AVAX"]
             
             # Ticker aliases for news search (different names in news vs ticker)
+            # YF uses different tickers than CoinGecko/Trade Republic
             NEWS_ALIASES = {
                 "RENDER": ["RNDR", "RENDER-USD", "RNDR-USD"],
                 "RENDER-USD": ["RNDR", "RENDER", "RNDR-USD"],
                 "RNDR": ["RENDER", "RENDER-USD", "RNDR-USD"],
+                # Add more common aliases
+                "SOL": ["SOL-USD", "SOLANA"],
+                "ETH": ["ETH-USD", "ETHEREUM"],
+                "BTC": ["BTC-USD", "BITCOIN"],
+                "XRP": ["XRP-USD", "RIPPLE"],
             }
             
             original_ticker = ticker
