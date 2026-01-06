@@ -10,39 +10,47 @@ class Advisor:
         # In a real app, this should be in DB (assets table)
         self.sector_cache = {
             "BTC-USD": "Crypto",
+            "BTC": "Crypto",
             "ETH-USD": "Crypto",
+            "ETH": "Crypto",
             "SOL-USD": "Crypto",
             "SOL": "Crypto",           # Solana (no suffix)
             "USDT-USD": "Crypto",
             "XRP": "Crypto",           # Ripple
             "XRP-USD": "Crypto",
+            "RNDR": "Crypto",          # Render Token
+            "RNDR-USD": "Crypto",
+            "RENDER": "Crypto",
+            "RENDER-USD": "Crypto",
+            # ETFs
             "SPY": "ETF",
             "QQQ": "ETF",
+            "EUNL.DE": "ETF",           # iShares Core MSCI World
+            "RBOT.MI": "ETF",           # Automation & Robotics
+            "AIAI.MI": "ETF",           # Artificial Intelligence ETF
+            "NUKL": "ETF",              # Global X Uranium ETF
+            "NUKL.DE": "ETF",
+            "ICGA.FRA": "ETF",
+            # Technology
             "NVDA": "Technology",
             "AAPL": "Technology",
             "MSFT": "Technology",
             "GOOGL": "Technology",
-            "TSLA": "Consumer Cyclical",
-            "AMZN": "Consumer Cyclical",
-            "XOM": "Energy",
-            "CVX": "Energy",
-            # Manual Overrides for Portfolio Assets (Fixing 'Unknown' Sector)
-            "ICGA.FRA": "ETF",
+            "META": "Technology",
+            "AMD": "Technology",
             "3CP": "Technology",        # Xiaomi (Frankfurt)
             "3XC": "Technology",        # Xiaomi (Frankfurt alt)
-            "EUNL.DE": "ETF",           # iShares Core MSCI World
-            "RBOT.MI": "ETF",           # Automation & Robotics
-            "AIAI.MI": "ETF",           # Artificial Intelligence ETF
             "TCEHY": "Technology",      # Tencent ADR
             "TCT": "Technology",        # Tencent (Frankfurt)
             "NNnD.F": "Technology",     # Tencent Frankfurt
+            # Consumer Cyclical
+            "TSLA": "Consumer Cyclical",
+            "AMZN": "Consumer Cyclical",
             "BYD": "Consumer Cyclical", # BYD Co
             "BYDDF": "Consumer Cyclical", # BYD OTC
-            "NUKL": "ETF",              # Global X Uranium ETF
-            "NUKL.DE": "ETF",
-            "RNDR-USD": "Crypto",
-            "RENDER-USD": "Crypto",
-            "RENDER": "Crypto",         # Render Token (no suffix)
+            # Energy
+            "XOM": "Energy",
+            "CVX": "Energy",
         }
         from market_data import MarketData
         self.market = MarketData()
