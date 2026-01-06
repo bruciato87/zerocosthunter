@@ -226,6 +226,42 @@ class NewsHunter:
                     "link": link
                 })
             
+            # 4. FALLBACK: If still no news, search RSS feeds (same as /hunt)
+            if not processed_news:
+                logger.info(f"YF has no news for {original_ticker}, searching RSS feeds...")
+                search_terms = [original_ticker.upper()]
+                # Add common name variants
+                if original_ticker.upper() in ["RENDER", "RENDER-USD", "RNDR"]:
+                    search_terms.extend(["RENDER", "RNDR", "RENDER NETWORK"])
+                
+                import feedparser
+                for feed_url in self.rss_feeds[:8]:  # Check first 8 feeds (crypto focused)
+                    try:
+                        feed = feedparser.parse(feed_url)
+                        for entry in feed.entries[:5]:
+                            title = entry.get('title', '')
+                            summary = entry.get('summary', entry.get('description', ''))
+                            combined = f"{title} {summary}".upper()
+                            
+                            # Check if any search term is mentioned
+                            if any(term in combined for term in search_terms):
+                                processed_news.append({
+                                    "source": feed.feed.get('title', feed_url),
+                                    "title": title,
+                                    "summary": summary[:1000],
+                                    "link": entry.get('link', '')
+                                })
+                                if len(processed_news) >= limit:
+                                    break
+                    except Exception as e:
+                        logger.warning(f"RSS feed error for {feed_url}: {e}")
+                    
+                    if len(processed_news) >= limit:
+                        break
+                
+                if processed_news:
+                    logger.info(f"Found {len(processed_news)} news from RSS feeds for {original_ticker}")
+            
             return processed_news
             
         except Exception as e:
