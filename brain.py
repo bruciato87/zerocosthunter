@@ -547,11 +547,13 @@ class Brain:
     def generate_deep_dive(self, ticker: str, news_list: list, technical_data: str, portfolio_context: str = None, backtest_context: str = None):
         """
         Generates a Strategic Analysis Report (Path B).
+        Now works even without news - uses technical data!
         """
-        if not news_list:
-            return f"❌ Non ho trovato notizie recenti rilevanti per **{ticker}**."
-
-        news_text = "\n\n".join([f"Source: {item['source']}\nTitle: {item['title']}\nContent: {item['summary']}" for item in news_list])
+        # Build news text if available, otherwise note no news
+        if news_list:
+            news_text = "\n\n".join([f"Source: {item['source']}\nTitle: {item['title']}\nContent: {item['summary']}" for item in news_list])
+        else:
+            news_text = "Nessuna news recente trovata. Analizzare basandosi solo sui dati tecnici."
         
         prompt = f"""
         **SYSTEM ROLE:**

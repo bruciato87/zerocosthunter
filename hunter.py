@@ -30,10 +30,13 @@ class NewsHunter:
             "https://www.artificialintelligence-news.com/feed/", # AI News
             "http://news.mit.edu/rss/topic/artificial-intelligence2", # MIT AI Research
             
-            # --- CRYPTO ---
+            # --- CRYPTO (Extended for Altcoins) ---
             "https://cointelegraph.com/rss",
             "https://www.coindesk.com/arc/outboundfeeds/rss/",
             "https://decrypt.co/feed",
+            "https://www.theblock.co/rss.xml",  # The Block - Deep crypto coverage
+            "https://cryptoslate.com/feed/",    # CryptoSlate - Altcoin coverage
+            "https://cryptopotato.com/feed/",   # CryptoPotato - Altcoin news
             
             # --- GREEN ENERGY ---
             "https://www.renewableenergyworld.com/feed/",
