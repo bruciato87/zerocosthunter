@@ -161,8 +161,16 @@ class NewsHunter:
         logger.info(f"Fetching deep-dive news for {ticker}...")
         
         try:
-            # 1. AUTO-FIX: Known Cryptos
+            # 1. AUTO-FIX: Known Cryptos and Aliases
             known_crypto = ["BTC", "ETH", "SOL", "XRP", "ADA", "DOGE", "DOT", "LINK", "AVAX"]
+            
+            # Ticker aliases for news search (different names in news vs ticker)
+            NEWS_ALIASES = {
+                "RENDER": ["RNDR", "RENDER-USD", "RNDR-USD"],
+                "RENDER-USD": ["RNDR", "RENDER", "RNDR-USD"],
+                "RNDR": ["RENDER", "RENDER-USD", "RNDR-USD"],
+            }
+            
             original_ticker = ticker
             
             if ticker.upper() in known_crypto:
@@ -171,7 +179,16 @@ class NewsHunter:
             t = yf.Ticker(ticker)
             yf_news = t.news
             
-            # 2. FALLBACK: If no news and no suffix, try adding -USD (General Crypto Fallback)
+            # 2. FALLBACK: Try aliases if no news found
+            if not yf_news and original_ticker.upper() in NEWS_ALIASES:
+                for alt_ticker in NEWS_ALIASES[original_ticker.upper()]:
+                    logger.info(f"No news for {original_ticker}, trying {alt_ticker}...")
+                    t_retry = yf.Ticker(alt_ticker)
+                    yf_news = t_retry.news
+                    if yf_news:
+                        break
+            
+            # 3. FALLBACK: If still no news and no suffix, try adding -USD
             if not yf_news and '-' not in original_ticker:
                  logger.info(f"No news for {original_ticker}, trying {original_ticker}-USD...")
                  t_retry = yf.Ticker(f"{original_ticker}-USD")
