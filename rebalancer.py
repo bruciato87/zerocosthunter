@@ -216,9 +216,9 @@ class Rebalancer:
                 whale = WhaleWatcher()
                 
                 macro = eco.get_macro_summary()
-                whale_data = whale.get_whale_activity()
+                whale_data = whale.get_dashboard_stats()
                 
-                market_context = f"VIX: {macro.get('vix', 'N/A')}, Fed: {macro.get('fed_sentiment', 'N/A')}, Whale: {whale_data.get('strategy_hint', 'N/A')}"
+                market_context = f"VIX: {macro.get('vix', 'N/A')}, Fed: {macro.get('fed_sentiment', 'N/A')}, Whale: {whale_data.get('status', 'N/A')}"
             except Exception as e:
                 logger.warning(f"Market context failed: {e}")
             
