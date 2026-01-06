@@ -37,6 +37,11 @@ class NewsHunter:
             "https://www.theblock.co/rss.xml",  # The Block - Deep crypto coverage
             "https://cryptoslate.com/feed/",    # CryptoSlate - Altcoin coverage
             "https://cryptopotato.com/feed/",   # CryptoPotato - Altcoin news
+            "https://u.today/rss",              # U.Today - Altcoin focused
+            "https://bitcoinist.com/feed/",    # Bitcoinist - Crypto news
+            "https://beincrypto.com/feed/",    # BeInCrypto - DeFi/Altcoins
+            "https://www.newsbtc.com/feed/",   # NewsBTC - Altcoin analysis
+            "https://dailycoin.com/feed/",     # DailyCoin - Crypto news
             
             # --- GREEN ENERGY ---
             "https://www.renewableenergyworld.com/feed/",
