@@ -490,6 +490,74 @@ class DBHandler:
             logger.error(f"Error saving backtest result: {e}")
             return False
 
+    # --- TRANSACTION TRACKING ---
+    def log_transaction(self, ticker: str, action: str, quantity: float, price_per_unit: float, 
+                        realized_pnl: float = None, notes: str = None):
+        """
+        Log a BUY or SELL transaction.
+        
+        Args:
+            ticker: Asset ticker (e.g., 'RENDER', 'BTC-USD')
+            action: 'BUY' or 'SELL'
+            quantity: Number of units traded
+            price_per_unit: Price per unit in EUR
+            realized_pnl: (Optional) Realized P&L for SELL transactions
+            notes: (Optional) User notes
+        """
+        try:
+            total_value = quantity * price_per_unit
+            data = {
+                "ticker": ticker.upper(),
+                "action": action.upper(),
+                "quantity": quantity,
+                "price_per_unit": price_per_unit,
+                "total_value": total_value,
+                "realized_pnl": realized_pnl,
+                "notes": notes,
+                "created_at": datetime.utcnow().isoformat()
+            }
+            response = self.supabase.table("transactions").insert(data).execute()
+            logger.info(f"💰 Transaction logged: {action} {quantity} {ticker} @ €{price_per_unit:.2f}")
+            return response.data[0] if response.data else None
+        except Exception as e:
+            logger.error(f"Error logging transaction: {e}")
+            return None
+
+    def get_transactions(self, ticker: str = None, action: str = None, limit: int = 50):
+        """
+        Fetch transactions, optionally filtered by ticker and/or action.
+        
+        Args:
+            ticker: Filter by specific ticker
+            action: Filter by 'BUY' or 'SELL'
+            limit: Max number of results
+        """
+        try:
+            query = self.supabase.table("transactions").select("*")
+            if ticker:
+                query = query.eq("ticker", ticker.upper())
+            if action:
+                query = query.eq("action", action.upper())
+            query = query.order("created_at", desc=True).limit(limit)
+            response = query.execute()
+            return response.data
+        except Exception as e:
+            logger.error(f"Error fetching transactions: {e}")
+            return []
+
+    def get_total_realized_pnl(self):
+        """Calculate total realized P&L from all SELL transactions."""
+        try:
+            response = self.supabase.table("transactions") \
+                .select("realized_pnl") \
+                .eq("action", "SELL") \
+                .execute()
+            total = sum(t.get("realized_pnl", 0) or 0 for t in response.data)
+            return round(total, 2)
+        except Exception as e:
+            logger.error(f"Error calculating realized P&L: {e}")
+            return 0.0
+
 if __name__ == "__main__":
     # Test connection
     try:

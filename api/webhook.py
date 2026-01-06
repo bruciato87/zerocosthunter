@@ -218,6 +218,7 @@ async def setup_bot_commands(bot):
         BotCommand("benchmark", "📊 Portfolio vs S&P500/BTC"),
         BotCommand("report", "📑 Weekly Report Completo"),
         BotCommand("rebalance", "⚖️ Analisi Ribilanciamento"),
+        BotCommand("sell", "💸 Registra Vendita"),
         BotCommand("dbstatus", "📦 Stato Storage DB"),
         BotCommand("help", "❓ Lista Comandi"),
         BotCommand("setprice", "💶 Correggi Prezzo"),
@@ -240,6 +241,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "🔬 `/analyze <TICKER>`\nAnalisi AI approfondita con news, technicals, e backtest storici.\n\n"
         "📈 `/backtest <TICKER>`\nEsegue un backtest storico con la miglior strategia per l'asset.\n\n"
         "⚖️ `/rebalance`\nAnalisi ribilanciamento portafoglio con suggerimenti AI.\n\n"
+        "💸 `/sell TICKER QTY PREZZO`\nRegistra una vendita (es. /sell RENDER 100 2.50).\n\n"
         "🧠 **Memory (Neuro-Link):**\n"
         "• `/recall <TICKER>`: Perché abbiamo comprato/venduto questo asset?\n"
         "• `/learn`: Lezioni apprese dagli errori recenti.\n\n"
@@ -859,6 +861,7 @@ def webhook():
                 bot_app.add_handler(CommandHandler("macro", macro_command))
                 bot_app.add_handler(CommandHandler("whale", whale_command))
                 bot_app.add_handler(CommandHandler("rebalance", rebalance_command))
+                bot_app.add_handler(CommandHandler("sell", sell_command))
                 bot_app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
                 bot_app.add_handler(CallbackQueryHandler(handle_callback))
                 
@@ -1141,6 +1144,93 @@ async def rebalance_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         logger.error(f"Rebalance command error: {e}")
         await update.message.reply_text(f"❌ Errore nel calcolo ribilanciamento: {e}")
+
+async def sell_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Track a sell transaction.
+    Usage: /sell TICKER QUANTITY PRICE
+    Example: /sell RENDER 100 2.50
+    """
+    try:
+        args = context.args
+        if len(args) < 3:
+            await update.message.reply_text(
+                "❌ **Formato corretto:**\n"
+                "`/sell TICKER QTY PREZZO`\n\n"
+                "**Esempio:**\n"
+                "`/sell RENDER 100 2.50`\n"
+                "(Venduto 100 RENDER a €2.50 ciascuno)",
+                parse_mode="Markdown"
+            )
+            return
+        
+        ticker = args[0].upper()
+        try:
+            quantity = float(args[1])
+            price = float(args[2])
+        except ValueError:
+            await update.message.reply_text("❌ Quantità e prezzo devono essere numeri validi.")
+            return
+        
+        if quantity <= 0 or price <= 0:
+            await update.message.reply_text("❌ Quantità e prezzo devono essere positivi.")
+            return
+        
+        # Fetch portfolio to validate and calculate P&L
+        from db_handler import DBHandler
+        db = DBHandler()
+        portfolio = db.get_portfolio()
+        
+        # Find the asset in portfolio
+        asset = next((p for p in portfolio if p['ticker'].upper() == ticker or 
+                      p['ticker'].upper().replace('-USD', '') == ticker or
+                      ticker + '-USD' == p['ticker'].upper()), None)
+        
+        if not asset:
+            await update.message.reply_text(
+                f"⚠️ **{ticker}** non trovato nel portfolio.\n"
+                f"Registro comunque la transazione.",
+                parse_mode="Markdown"
+            )
+            avg_price = price  # Use sell price as reference if not in portfolio
+            realized_pnl = 0
+        else:
+            avg_price = asset.get('avg_price', price)
+            # Calculate realized P&L
+            realized_pnl = (price - avg_price) * quantity
+        
+        total_value = quantity * price
+        pnl_percent = ((price - avg_price) / avg_price * 100) if avg_price > 0 else 0
+        
+        # Log the transaction
+        result = db.log_transaction(
+            ticker=ticker,
+            action="SELL",
+            quantity=quantity,
+            price_per_unit=price,
+            realized_pnl=realized_pnl
+        )
+        
+        if result:
+            pnl_emoji = "🟢" if realized_pnl >= 0 else "🔴"
+            pnl_sign = "+" if realized_pnl >= 0 else ""
+            
+            msg = (
+                f"✅ **Vendita Registrata**\n\n"
+                f"📊 **{ticker}**\n"
+                f"├ Quantità: {quantity}\n"
+                f"├ Prezzo: €{price:.4f}\n"
+                f"├ Totale: €{total_value:.2f}\n"
+                f"└ Prezzo medio: €{avg_price:.4f}\n\n"
+                f"{pnl_emoji} **P&L Realizzato:** {pnl_sign}€{realized_pnl:.2f} ({pnl_sign}{pnl_percent:.1f}%)"
+            )
+            await update.message.reply_text(msg, parse_mode="Markdown")
+        else:
+            await update.message.reply_text("❌ Errore nel salvataggio della transazione.")
+            
+    except Exception as e:
+        logger.error(f"Sell command error: {e}")
+        await update.message.reply_text(f"❌ Errore: {e}")
 
 async def report_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Generate a comprehensive weekly report with benchmarks, signals, and top movers."""
