@@ -262,10 +262,13 @@ class Rebalancer:
             
             2. Poi aggiungi UNA strategia sintetica (1 frase) per €500 di capitale fresco.
             
-            **REGOLE:**
+            **REGOLE CRITICHE:**
+            - **TICKER VALIDI:** Puoi suggerire SOLO questi ticker: {', '.join([a['ticker'] for a in analysis['assets']])}
+            - **NON INVENTARE TICKER** come VEEV, BFH, LMT - non sono nel portfolio!
+            - Per capitale fresco, suggerisci SETTORI (es. "50% Tech, 30% Crypto") non ticker specifici esterni
             - Considera tasse italiane 2026 (Crypto 33%)
             - NON suggerire SELL totale (solo TRIM parziale)
-            - PRIORIZZA asset con segnali BUY recenti
+            - PRIORIZZA asset sottopesati (Technology) e con RSI basso
             - Se ETF > 40%, suggerisci redistribuzione
             
             Rispondi SOLO con le azioni, senza preamboli.
