@@ -1279,11 +1279,8 @@ async def analyze_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # 2. Fetch Technicals
         technical_summary = market.get_technical_summary(ticker)
         
-        # 3. Validation - Handle missing news BEFORE calling brain
-        if not news_items:
-             await update.message.reply_text(f"❌ Non ho trovato notizie recenti rilevanti per **{ticker}**.\n\n📊 _Dati Tecnici:_\n{technical_summary}", parse_mode="Markdown")
-             return
-        
+        # 3. Validation - Only block if technicals are unknown (invalid ticker)
+        # News is now optional - AI can analyze based on technicals alone
         if "Unknown" in technical_summary:
              await update.message.reply_text(f"❌ Impossibile analizzare **{ticker}**. Ticker non valido o dati tecnici non disponibili.", parse_mode="Markdown")
              return
