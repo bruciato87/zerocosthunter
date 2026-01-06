@@ -59,13 +59,19 @@ class Advisor:
         """
         Returns the sector of the asset.
         """
-        # 1. Check Cache
-        clean_ticker = ticker.upper().replace("-USD", "")
-        if "-USD" in ticker.upper() or ticker.upper() in ["BTC", "ETH", "SOL"]:
+        # 1. Crypto detection via suffix
+        ticker_upper = ticker.upper()
+        if "-USD" in ticker_upper or "-EUR" in ticker_upper:
             return "Crypto"
         
-        if ticker.upper() in self.sector_cache:
-            return self.sector_cache[ticker.upper()]
+        # 2. Direct cache lookup
+        if ticker_upper in self.sector_cache:
+            return self.sector_cache[ticker_upper]
+        
+        # 3. Clean ticker lookup (strip suffix)
+        clean_ticker = ticker_upper.replace("-USD", "").replace("-EUR", "")
+        if clean_ticker in self.sector_cache:
+            return self.sector_cache[clean_ticker]
         
         # 2. Fetch from Yahoo (Slow) - Use Alias from MarketData
         try:
