@@ -588,11 +588,14 @@ class Brain:
         - **Catalyst:** Cosa stiamo aspettando? (e.g. Earnings date, FDA approval)
 
         **PORTFOLIO STRATEGY RULES (CRITICAL):**
-        1. **Position Sizing:** Check the "Portfolio Context".
-           - **Small Position (< 5% of Total):** Do NOT suggest "Take Profit" or "Trim" for small gains (e.g. +10%). It is pointless. Suggest "HOLD" or "ACCUMULATE" to ride the trend.
+        1. **ACCUMULATE vs BUY:**
+           - **If Portfolio Context says "Not owned":** You CANNOT use "ACCUMULATE" (you can't accumulate what you don't own). Use "BUY" instead.
+           - **If Portfolio Context shows ownership:** You CAN use "ACCUMULATE" to add to an existing position.
+        2. **Position Sizing:** Check the "Portfolio Context".
+           - **Small Position (< 5% of Total):** Do NOT suggest "Take Profit" or "Trim" for small gains. Suggest "HOLD" or "ACCUMULATE" to ride the trend.
            - **Large Position (> 20% of Total):** Be defensive. Suggest "Trim" if risk is high.
-        2. **Objective:** MAXIMIZE PROFIT. Do not sell winners too early.
-        3. **Contextual Verdict:** Your decision MUST account for the specific quantity and value owned.
+        3. **Objective:** MAXIMIZE PROFIT. Do not sell winners too early.
+        4. **Contextual Verdict:** Your decision MUST account for the specific quantity and value owned.
 
         **TONE:** Professional, Direct, No Fluff. Use Markdown.
         """
