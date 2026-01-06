@@ -42,6 +42,9 @@ class NewsHunter:
             "https://beincrypto.com/feed/",    # BeInCrypto - DeFi/Altcoins
             "https://www.newsbtc.com/feed/",   # NewsBTC - Altcoin analysis
             "https://dailycoin.com/feed/",     # DailyCoin - Crypto news
+            "https://www.fxstreet.com/cryptocurrencies/feed",  # FXStreet Crypto - Price forecasts
+            "https://ambcrypto.com/feed/",     # AMBCrypto - Altcoin analysis
+            "https://cryptonews.com/news/feed/", # CryptoNews - General crypto
             
             # --- GREEN ENERGY ---
             "https://www.renewableenergyworld.com/feed/",
@@ -235,7 +238,7 @@ class NewsHunter:
                     search_terms.extend(["RENDER", "RNDR", "RENDER NETWORK"])
                 
                 import feedparser
-                for feed_url in self.rss_feeds[:8]:  # Check first 8 feeds (crypto focused)
+                for feed_url in self.rss_feeds[:14]:  # Check all 14 crypto feeds
                     try:
                         feed = feedparser.parse(feed_url)
                         for entry in feed.entries[:5]:
