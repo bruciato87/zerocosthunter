@@ -265,6 +265,44 @@ class NewsHunter:
                 if processed_news:
                     logger.info(f"Found {len(processed_news)} news from RSS feeds for {original_ticker}")
             
+            # 5. FINAL FALLBACK: Google News RSS (aggregates all sources)
+            if not processed_news:
+                logger.info(f"RSS feeds have no news, trying Google News for {original_ticker}...")
+                import feedparser
+                import urllib.parse
+                
+                # Build search query based on asset type
+                if original_ticker.upper() in ["RENDER", "RENDER-USD", "RNDR"]:
+                    query = "RNDR OR Render Network crypto"
+                elif "-USD" in original_ticker.upper():
+                    base = original_ticker.replace("-USD", "")
+                    query = f"{base} cryptocurrency"
+                else:
+                    query = f"{original_ticker} stock OR crypto"
+                
+                encoded_query = urllib.parse.quote(query)
+                google_news_url = f"https://news.google.com/rss/search?q={encoded_query}&hl=en-US&gl=US&ceid=US:en"
+                
+                try:
+                    feed = feedparser.parse(google_news_url)
+                    for entry in feed.entries[:limit]:
+                        title = entry.get('title', '')
+                        # Google News summary often contains source info, extract it
+                        source = entry.get('source', {}).get('title', 'Google News')
+                        link = entry.get('link', '')
+                        
+                        processed_news.append({
+                            "source": source,
+                            "title": title,
+                            "summary": title,  # Google News doesn't provide full summary in RSS
+                            "link": link
+                        })
+                    
+                    if processed_news:
+                        logger.info(f"Found {len(processed_news)} news from Google News for {original_ticker}")
+                except Exception as e:
+                    logger.warning(f"Google News error for {original_ticker}: {e}")
+            
             return processed_news
             
         except Exception as e:
