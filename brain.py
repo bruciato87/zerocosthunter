@@ -178,10 +178,10 @@ class Brain:
             - 4-7: Medium Risk
             - 8-10: High Risk (Crypto, RSI > 80, Speculative, Macro High)
         2.  **Target Price (Short Term):**
-            - Extract from the news (e.g., "Analyst sets $150 target").
+            - Extract from the news and CONVERT TO EUR.
             - **VALIDATE against Current Price.**
             - If no analyst target or target invalid, estimate a logical resistance (+10-20%).
-            - **Format:** String with currency (e.g. "$150" or "€140").
+            - **Format:** String with EUR currency (e.g. "€140"). ALWAYS USE EURO €.
         3.  **Upside Percentage:**
             - Numeric value of potential gain (e.g. 15.5 for +15.5%).
             - Return 0.0 if unknown/negative.
@@ -583,7 +583,7 @@ class Brain:
         
         ## 🔮 The Verdict
         - **Decisione:** [BUY / HOLD / SELL / WAIT]
-        - **Target Price (Est):** [Price or "N/A"]
+        - **Target Price (Est):** [Price in EUR - ALWAYS use € symbol]
         - **Risk Score:** [1-10]
         - **Catalyst:** Cosa stiamo aspettando? (e.g. Earnings date, FDA approval)
 
