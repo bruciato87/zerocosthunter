@@ -8,7 +8,7 @@ Runs daily at 7:00 AM CET before market open.
 import logging
 import os
 from typing import Dict, List, Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 
 logger = logging.getLogger("Rebalancer")
 
@@ -170,18 +170,18 @@ class Rebalancer:
     
     def _get_ai_suggestion(self, analysis: Dict) -> Optional[str]:
         """
-        Get AI-generated suggestion based on portfolio analysis.
+        Get AI-generated ACTIONABLE rebalancing strategy.
+        Returns specific trade recommendations.
         """
         try:
             from google import genai
-            from google.genai import types
             
             client = genai.Client(api_key=self.api_key)
             
-            # Prepare context
+            # 1. Portfolio summary
             assets_summary = "\n".join([
                 f"- {a['ticker']}: €{a['value']:.0f} ({a['allocation']:.1f}%), PnL: {a['pnl_pct']:+.1f}%, Sector: {a['sector']}"
-                for a in analysis["assets"][:10]  # Top 10 by value
+                for a in analysis["assets"][:10]
             ])
             
             sector_summary = "\n".join([
@@ -189,24 +189,69 @@ class Rebalancer:
                 for s, a in analysis["sector_allocation"].items()
             ])
             
+            # 2. Get recent signals from DB
+            signals_text = "Nessun segnale recente."
+            try:
+                recent = self.db.supabase.table("predictions") \
+                    .select("ticker, sentiment, confidence_score, target_price") \
+                    .gte("created_at", (datetime.now() - timedelta(days=7)).isoformat()) \
+                    .order("created_at", desc=True) \
+                    .limit(10) \
+                    .execute()
+                if recent.data:
+                    signals_text = "\n".join([
+                        f"- {s['ticker']}: {s['sentiment']} (Conf: {s['confidence_score']:.0%}, Target: {s.get('target_price', 'N/A')})"
+                        for s in recent.data
+                    ])
+            except Exception as e:
+                logger.warning(f"Could not fetch signals: {e}")
+            
+            # 3. Market context
+            market_context = "N/A"
+            try:
+                from economist import Economist
+                from whale_watcher import WhaleWatcher
+                
+                eco = Economist()
+                whale = WhaleWatcher()
+                
+                macro = eco.get_macro_summary()
+                whale_data = whale.get_whale_activity()
+                
+                market_context = f"VIX: {macro.get('vix', 'N/A')}, Fed: {macro.get('fed_sentiment', 'N/A')}, Whale: {whale_data.get('strategy_hint', 'N/A')}"
+            except Exception as e:
+                logger.warning(f"Market context failed: {e}")
+            
             prompt = f"""
-            Sei un consulente finanziario italiano. Analizza questo portafoglio e dai UN SOLO suggerimento pratico di ribilanciamento.
+            Sei un Portfolio Manager italiano. Genera un PIANO DI RIBILANCIAMENTO concreto.
             
-            **Valore Totale:** €{analysis['total_value']:.0f}
-            
-            **Asset:**
+            **PORTAFOGLIO ATTUALE:** €{analysis['total_value']:.0f}
             {assets_summary}
             
-            **Allocazione Settori:**
+            **ALLOCAZIONE SETTORI:**
             {sector_summary}
             
-            **Regole:**
-            - MAX 2 frasi
-            - Sii specifico (menziona ticker)
-            - Focus su rischio/rendimento
-            - Considera tasse italiane 2026 (Crypto 33%, ETF siloed)
+            **SEGNALI RECENTI (ultimi 7gg):**
+            {signals_text}
             
-            Rispondi SOLO con il suggerimento, senza preamboli.
+            **CONTESTO MERCATO:**
+            {market_context}
+            
+            **ISTRUZIONI:**
+            1. Genera MAX 3 azioni concrete nel formato:
+               🟢 BUY €XXX TICKER - Motivo breve
+               🟡 HOLD TICKER - Motivo breve
+               🔴 TRIM XX% TICKER - Motivo breve
+            
+            2. Poi aggiungi UNA strategia sintetica (1 frase) per €500 di capitale fresco.
+            
+            **REGOLE:**
+            - Considera tasse italiane 2026 (Crypto 33%)
+            - NON suggerire SELL totale (solo TRIM parziale)
+            - PRIORIZZA asset con segnali BUY recenti
+            - Se ETF > 40%, suggerisci redistribuzione
+            
+            Rispondi SOLO con le azioni, senza preamboli.
             """
             
             response = client.models.generate_content(
@@ -214,7 +259,7 @@ class Rebalancer:
                 contents=prompt
             )
             
-            return f"🤖 {response.text.strip()}"
+            return response.text.strip()
             
         except Exception as e:
             logger.warning(f"AI suggestion failed: {e}")
@@ -225,18 +270,23 @@ class Rebalancer:
         Generate formatted rebalancing report for Telegram.
         """
         analysis = self.get_portfolio_analysis()
-        suggestions = self.generate_rebalance_suggestions(analysis)
         
         if analysis["total_value"] == 0:
             return "📊 **Portfolio Rebalancing**\n\n❌ Portafoglio vuoto."
         
-        report = "📊 **Portfolio Rebalancing Report**\n"
-        report += "━" * 25 + "\n\n"
+        report = "📊 **Portfolio Rebalancing Strategy**\n"
+        report += "━" * 28 + "\n\n"
         
         # Total value
         report += f"💰 **Valore Totale:** €{analysis['total_value']:,.0f}\n\n"
         
-        # Sector allocation
+        # AI Strategy (FIRST - most important)
+        ai_strategy = self._get_ai_suggestion(analysis)
+        if ai_strategy:
+            report += "🎯 **PIANO D'AZIONE:**\n"
+            report += ai_strategy + "\n\n"
+        
+        # Sector allocation (compact)
         report += "📈 **Allocazione Settori:**\n"
         for sector, alloc in sorted(analysis["sector_allocation"].items(), key=lambda x: -x[1]):
             target = self.DEFAULT_TARGETS.get(sector, 10)
@@ -251,12 +301,14 @@ class Rebalancer:
             pnl_emoji = "🟢" if asset["pnl_pct"] >= 0 else "🔴"
             report += f"  {pnl_emoji} **{asset['ticker']}**: €{asset['value']:.0f} ({asset['allocation']:.1f}%) | {asset['pnl_pct']:+.1f}%\n"
         
-        # Suggestions
-        report += "\n💡 **Suggerimenti:**\n"
-        for s in suggestions:
-            report += f"{s}\n"
+        # Rule-based suggestions (secondary)
+        suggestions = self.generate_rebalance_suggestions(analysis)
+        if suggestions and suggestions[0] != "✅ Portfolio is well-balanced. No rebalancing needed.":
+            report += "\n💡 **Note Aggiuntive:**\n"
+            for s in suggestions[:3]:  # Max 3
+                report += f"{s}\n"
         
-        report += "\n" + "━" * 25
+        report += "\n" + "━" * 28
         report += f"\n_Generato: {datetime.now().strftime('%Y-%m-%d %H:%M')}_"
         
         return report
