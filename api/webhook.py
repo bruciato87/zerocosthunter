@@ -1212,6 +1212,22 @@ async def sell_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         
         if result:
+            # UPDATE PORTFOLIO QUANTITY
+            if asset:
+                current_qty = float(asset.get('quantity', 0))
+                new_qty = current_qty - quantity
+                
+                if new_qty <= 0:
+                    # Fully sold - delete asset
+                    db.delete_asset(update.effective_chat.id, asset['ticker'])
+                    portfolio_update_msg = "\n\n🗑️ Asset rimosso dal portfolio (vendita totale)"
+                else:
+                    # Partial sell - update quantity
+                    db.update_asset_quantity(update.effective_chat.id, asset['ticker'], new_qty)
+                    portfolio_update_msg = f"\n\n📉 Portfolio aggiornato: {new_qty:.6f} unità rimanenti"
+            else:
+                portfolio_update_msg = ""
+            
             pnl_emoji = "🟢" if realized_pnl >= 0 else "🔴"
             pnl_sign = "+" if realized_pnl >= 0 else ""
             
@@ -1223,6 +1239,7 @@ async def sell_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"├ Totale: €{total_value:.2f}\n"
                 f"└ Prezzo medio: €{avg_price:.4f}\n\n"
                 f"{pnl_emoji} **P&L Realizzato:** {pnl_sign}€{realized_pnl:.2f} ({pnl_sign}{pnl_percent:.1f}%)"
+                f"{portfolio_update_msg}"
             )
             await update.message.reply_text(msg, parse_mode="Markdown")
         else:

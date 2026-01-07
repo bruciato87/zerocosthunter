@@ -123,6 +123,20 @@ class DBHandler:
             logger.error(f"Error deleting asset {ticker}: {e}")
             return False
 
+    def update_asset_quantity(self, chat_id: int, ticker: str, new_quantity: float):
+        """Update quantity of a specific asset after partial sell."""
+        try:
+            self.supabase.table("portfolio") \
+                .update({"quantity": new_quantity}) \
+                .eq("chat_id", chat_id) \
+                .eq("ticker", ticker) \
+                .execute()
+            logger.info(f"Updated {ticker} quantity to {new_quantity}")
+            return True
+        except Exception as e:
+            logger.error(f"Error updating quantity for {ticker}: {e}")
+            return False
+
     def delete_portfolio(self, chat_id: int):
         """Delete ALL assets for a user (Reset)."""
         try:
