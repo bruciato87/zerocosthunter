@@ -130,11 +130,13 @@ class Brain:
             🇪🇺 EU Stocks: {market_status['eu_stocks']}
             ₿ Crypto: {market_status['crypto']}
             
-            **MARKET HOURS RULES:**
-            - If US/EU CLOSED: Stock signals should be marked 'WAIT until market opens'
-            - If WEEKEND: Stock recommendations are for NEXT WEEK review
-            - Crypto signals are ALWAYS actionable (24/7 market)
-            - Do NOT recommend immediate stock BUY if market is closed
+            **CRITICAL MARKET HOURS RULES (MANDATORY):**
+            - If US market is 🔴 CLOSED: You MUST output 'SKIP' sentiment for ALL US stocks (AAPL, META, NVDA, GOOGL, MSFT, TSLA, etc.)
+            - If EU market is 🔴 CLOSED: You MUST output 'SKIP' sentiment for ALL EU stocks (ETFs like EUNL.DE, RBOT.MI, AIAI.MI, etc.)
+            - If WEEKEND: 'SKIP' ALL stock signals - they are NOT actionable now
+            - ONLY Crypto assets (BTC, ETH, SOL, XRP, RENDER, etc.) are ALWAYS actionable 24/7
+            - DO NOT suggest BUY/ACCUMULATE for stocks when their market is CLOSED
+            - If you must mention a stock during closed hours, set sentiment to 'WAIT' with note 'Market closed - review at open'
             """
         except Exception as e:
             logger.warning(f"Market hours context failed: {e}")
