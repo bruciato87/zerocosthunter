@@ -197,7 +197,7 @@ class Brain:
         - **Sentiment**: ONE of: ["BUY", "SELL", "ACCUMULATE", "PANIC SELL", "HOLD", "WAIT"].
         - **Required:** Your reasoning MUST cite the specific data point (Macro or Whale) if it influenced the decision.
         
-        **CRITICAL FILTERS:**
+        **CRITICAL FILTERS & BOOSTS:**
         1.  **Trade Republic Friendly Only:** Focus ONLY on major High-Cap Stocks and Major Cryptocurrencies.
         2.  **Ignore:** Penny stocks, low volume altcoins, obscure companies.
         3.  **OWNERSHIP RULE (CRITICAL):**
@@ -212,6 +212,42 @@ class Brain:
                 -   **MUST NOT** use "SELL" or "PANIC SELL" (Cannot sell what is not owned).
                 -   If news is negative, strictly **OMIT/SKIP** the signal.
         
+        4.  **SENTIMENT TREND BOOST:**
+            - You will see previous history tags (e.g. `[History: WIN (3/0) - Last: BUY]`).
+            - **IF RECENT HISTORY IS BULLISH (e.g. Last was BUY/ACCUMULATE):**
+                - **BOOST CONFIDENCE +0.05.** Momentum is real.
+            - **IF RECENT HISTORY WAS LOSS:**
+                - **BE EXTRA CAUTIOUS.** Penalize confidence.
+
+        5.  **BREAKING NEWS PRIORITY:**
+            - Check the `published` date. 
+            - **IF NEWS < 30 MIN OLD:**
+                - **BOOST CONFIDENCE +0.10.** Speed matters.
+                - Mark reasoning with **"⚠️ BREAKING NEWS"**.
+        
+        **ADVANCED EXTRACTION RULES:**
+        6.  **DYNAMIC TICKER EXTRACTION (IMPROVEMENT 3):**
+            - Do not just rely on the title. Scan the `summary` or `full_text` for tickers.
+            - If news mentions "Google", extract **GOOGL**. If "Facebook", **META**. If "Coca-Cola", **KO**.
+            - **CRITICAL:** If news is about a whole sector (e.g. "Semiconductors rally"), extract the **LEADER** (e.g. **NVDA**) if it's explicitly named, or the Sector ETF (**SOXX/SMH**).
+        
+        7.  **SECTOR CORRELATION (IMPROVEMENT 8):**
+            - If news is about a competitor, check if it affects the tracked asset.
+            - Example: "AMD releases new chip" -> Is this BAD for **NVDA** (Competition) or GOOD (Sector Rally)?
+            - **Reasoning:** Explicitly mention "Sector Correlation" if relevant.
+
+        8.  **EARNINGS CALENDAR SAFETY (IMPROVEMENT 7):**
+            - If news mentions "Earnings this week" or "Reporting tomorrow":
+            - **FORBID BUY SIGNALS** unless you are 99% confident.
+            - **ACTION:** Suggest "WAIT" or "HOLD" through the event volatility.
+            - **REASONING:** "High risk ahead of earnings."
+
+        9.  **NEWS QUALITY SCORE (IMPROVEMENT 9):**
+            - Check the `Source` of the news.
+            - **TIER 1 (High Reliability):** WSJ, Bloomberg, Reuters, CNBC, Financial Times, CoinDesk, The Block. -> **Normal Confidence.**
+            - **TIER 2 (Medium):** Yahoo Finance, Decrypt, Cointelegraph. -> **Normal Confidence.**
+            - **TIER 3 (Low/Blog):** Unknown blogs, "DailyCoin", "AmbCrypto". -> **PENALIZE CONFIDENCE -0.10.** treat as speculation.
+
         **QUANTITATIVE ANALYSIS (NEW):**
         For every signal, you MUST estimate:
         1.  **Risk Score (1-10):**
