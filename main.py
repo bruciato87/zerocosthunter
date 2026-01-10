@@ -374,6 +374,37 @@ async def run_async_pipeline():
             logger.warning(f"Skipped {ticker}: Ignored {sentiment} signal for unowned asset.")
             continue
 
+        # FILTER 4: Market Hours (Stock signals blocked when market closed)
+        def is_crypto(t):
+            """Check if ticker is a crypto asset (always tradeable 24/7)"""
+            crypto_indicators = ['BTC', 'ETH', 'SOL', 'XRP', 'ADA', 'DOGE', 'RENDER', 'MATIC', 'DOT', 'AVAX', 'LINK']
+            t_upper = t.upper()
+            for c in crypto_indicators:
+                if c in t_upper:
+                    return True
+            if '-USD' in t_upper or '-EUR' in t_upper:
+                return True
+            return False
+        
+        if not is_crypto(ticker):
+            # It's a stock - check if market is open
+            try:
+                from economist import Economist
+                eco = Economist()
+                market_status = eco.get_market_status()
+                
+                # Check if this is a US stock (most common) or EU stock
+                is_eu_stock = ticker.endswith('.DE') or ticker.endswith('.MI') or ticker.endswith('.FRA')
+                
+                if is_eu_stock and '🔴' in market_status['eu_stocks']:
+                    logger.info(f"Skipped {ticker}: EU market closed - no stock signals when closed")
+                    continue
+                elif not is_eu_stock and '🔴' in market_status['us_stocks']:
+                    logger.info(f"Skipped {ticker}: US market closed - no stock signals when closed")
+                    continue
+            except Exception as e:
+                logger.warning(f"Market hours check failed for {ticker}: {e}")
+
         # Check if recently analyzed (Same Ticker + Same Sentiment = SPAM)
         if db.check_if_analyzed_recently(ticker, sentiment):
             continue
