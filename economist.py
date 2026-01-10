@@ -2,13 +2,16 @@ import logging
 import datetime
 from datetime import timedelta
 import yfinance as yf
+from zoneinfo import ZoneInfo
 
 logger = logging.getLogger("Economist")
 
 class Economist:
     def __init__(self):
+        # Italy timezone
+        self.ITALY_TZ = ZoneInfo("Europe/Rome")
+        
         # 2026 FOMC Meeting Schedule (Critical Dates)
-        # Dates are the LAST DAY of the meeting (when Rate Decision is announced)
         self.FED_MEETINGS_2026 = [
             datetime.date(2026, 1, 28),
             datetime.date(2026, 3, 18),
@@ -19,6 +22,70 @@ class Economist:
             datetime.date(2026, 10, 28),
             datetime.date(2026, 12, 9)
         ]
+        
+        # US Market Holidays 2026 (NYSE closed)
+        self.US_HOLIDAYS_2026 = [
+            datetime.date(2026, 1, 1),   # New Year's Day
+            datetime.date(2026, 1, 19),  # MLK Day
+            datetime.date(2026, 2, 16),  # Presidents Day
+            datetime.date(2026, 4, 3),   # Good Friday
+            datetime.date(2026, 5, 25),  # Memorial Day
+            datetime.date(2026, 7, 3),   # Independence Day (observed)
+            datetime.date(2026, 9, 7),   # Labor Day
+            datetime.date(2026, 11, 26), # Thanksgiving
+            datetime.date(2026, 12, 25), # Christmas
+        ]
+    
+    def get_market_status(self):
+        """
+        Returns current market status for Italy timezone.
+        US Markets: 15:30-22:00 CET (9:30-16:00 EST)
+        EU Markets: 9:00-17:30 CET
+        Crypto: 24/7
+        """
+        now = datetime.datetime.now(self.ITALY_TZ)
+        today = now.date()
+        current_hour = now.hour
+        current_minute = now.minute
+        weekday = now.weekday()  # 0=Monday, 6=Sunday
+        
+        status = {
+            "crypto": "🟢 OPEN (24/7)",
+            "us_stocks": "🔴 CLOSED",
+            "eu_stocks": "🔴 CLOSED",
+            "is_weekend": weekday >= 5,
+            "is_us_holiday": today in self.US_HOLIDAYS_2026,
+            "current_time_italy": now.strftime("%H:%M CET")
+        }
+        
+        # Weekend check
+        if weekday >= 5:
+            status["us_stocks"] = "🔴 CLOSED (Weekend)"
+            status["eu_stocks"] = "🔴 CLOSED (Weekend)"
+            return status
+        
+        # US Holiday check
+        if today in self.US_HOLIDAYS_2026:
+            status["us_stocks"] = "🔴 CLOSED (Holiday)"
+        
+        # EU Market Hours (9:00-17:30 CET)
+        if 9 <= current_hour < 17 or (current_hour == 17 and current_minute < 30):
+            status["eu_stocks"] = "🟢 OPEN"
+        elif current_hour < 9:
+            status["eu_stocks"] = f"🟡 Opens at 9:00 CET"
+        else:
+            status["eu_stocks"] = "🔴 CLOSED"
+        
+        # US Market Hours (15:30-22:00 CET)
+        if today not in self.US_HOLIDAYS_2026:
+            if (current_hour == 15 and current_minute >= 30) or (16 <= current_hour < 22):
+                status["us_stocks"] = "🟢 OPEN"
+            elif current_hour < 15 or (current_hour == 15 and current_minute < 30):
+                status["us_stocks"] = f"🟡 Opens at 15:30 CET"
+            else:
+                status["us_stocks"] = "🔴 CLOSED"
+        
+        return status
         
     def check_risk_level(self):
         """
@@ -127,8 +194,16 @@ class Economist:
         except: 
             fg_context = "N/A"
         
+        # Get Market Status
+        market_status = self.get_market_status()
+        
         summary = f"""
         [MACRO STRATEGIST CONTEXT]
+        
+        🕐 {market_status['current_time_italy']} (Italy)
+        🇺🇸 US Stocks: {market_status['us_stocks']}
+        🇪🇺 EU Stocks: {market_status['eu_stocks']}
+        ₿ Crypto: {market_status['crypto']}
         
         📊 Risk Level: {risk}
         📋 Reason: {reason if reason else "Normal Market Conditions"}
@@ -142,11 +217,11 @@ class Economist:
         
         🎯 STRATEGY: {'⚠️ CAUTION: Do NOT Buy volatile assets.' if risk == 'HIGH' else '🟡 MODERATE: Be selective.' if risk == 'MEDIUM' else '✅ GREEN LIGHT: Macro environment stable.'}
         
-        **MACRO RULES:**
+        **MARKET RULES:**
+        - If US/EU CLOSED: Only Crypto signals are actionable now
+        - If Weekend: Stock signals are for next week's review
         - If DXY RISING: Avoid Crypto/Gold, favor USD assets
-        - If DXY FALLING: Crypto/Gold may outperform
         - If Fear & Greed < 25: "Buy the Dip" opportunity
-        - If Fear & Greed > 75: Take profits, avoid FOMO
         """
         return summary
 
