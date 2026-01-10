@@ -234,13 +234,19 @@ class Rebalancer:
                 
                 macro = eco.get_dashboard_stats()
                 whale_data = whale.get_dashboard_stats()
+                market_status = eco.get_market_status()
                 
                 market_context = f"VIX: {macro.get('vix', 'N/A')}, Macro Risk: {macro.get('risk_level', 'N/A')}, Whale: {whale_data.get('status', 'N/A')}"
+                market_hours = f"🇺🇸 US: {market_status['us_stocks']}, 🇪🇺 EU: {market_status['eu_stocks']}, ₿ Crypto: {market_status['crypto']}"
             except Exception as e:
                 logger.warning(f"Market context failed: {e}")
+                market_hours = "N/A"
             
             prompt = f"""
             Sei un Portfolio Manager italiano. Genera un PIANO DI RIBILANCIAMENTO concreto.
+            
+            **ORARI MERCATO ({market_status.get('current_time_italy', 'N/A')}):**
+            {market_hours}
             
             **PORTAFOGLIO ATTUALE:** €{analysis['total_value']:.0f}
             {assets_summary}

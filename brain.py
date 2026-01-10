@@ -117,6 +117,28 @@ class Brain:
                 - Confirm BULLISH signals with higher confidence.
             """
 
+        # [MARKET HOURS CONTEXT - ITALY TIMEZONE]
+        market_hours_bg = ""
+        try:
+            from economist import Economist
+            eco = Economist()
+            market_status = eco.get_market_status()
+            
+            market_hours_bg = f"""
+            [MARKET HOURS - ITALY ({market_status['current_time_italy']})]
+            🇺🇸 US Stocks: {market_status['us_stocks']}
+            🇪🇺 EU Stocks: {market_status['eu_stocks']}
+            ₿ Crypto: {market_status['crypto']}
+            
+            **MARKET HOURS RULES:**
+            - If US/EU CLOSED: Stock signals should be marked 'WAIT until market opens'
+            - If WEEKEND: Stock recommendations are for NEXT WEEK review
+            - Crypto signals are ALWAYS actionable (24/7 market)
+            - Do NOT recommend immediate stock BUY if market is closed
+            """
+        except Exception as e:
+            logger.warning(f"Market hours context failed: {e}")
+
         # Prepare the prompt
         news_text = "\n\n".join([f"Source: {item['source']}\nTitle: {item['title']}\nSummary: {item['summary']}" for item in news_list])
         
@@ -126,6 +148,7 @@ class Brain:
         {sentiment_bg}
         {macro_bg}
         {whale_bg}
+        {market_hours_bg}
         
         **SYSTEM ROLE:**
         You are a Senior Investment Analyst & Quantitative Trader.
