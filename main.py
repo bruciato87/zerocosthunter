@@ -12,8 +12,9 @@ from market_data import MarketData
 from brain import Brain
 from telegram_bot import TelegramNotifier
 from auditor import Auditor
-from auditor import Auditor
 from economist import Economist
+from advisor import Advisor
+from signal_intelligence import SignalIntelligence
 from sentinel import Sentinel
 from paper_trader import PaperTrader
 import re
@@ -48,6 +49,8 @@ async def run_async_pipeline():
         notifier = TelegramNotifier()
         market = MarketData()
         auditor = Auditor(market_instance=market)
+        adv = Advisor(market_instance=market)
+        si = SignalIntelligence(market_instance=market, advisor_instance=adv)
         economist = Economist()
         sentinel = Sentinel()
         paper_trader = PaperTrader()
@@ -113,21 +116,8 @@ async def run_async_pipeline():
     for p_ticker in portfolio_map.keys():
         MONITORED_TICKERS[p_ticker] = p_ticker
 
-    # Initialize Signal Intelligence ONCE (Dependency Injection)
-    try:
-        from signal_intelligence import SignalIntelligence
-        si = SignalIntelligence(market_instance=market, advisor_instance=Advisor(market_instance=market)) 
-        # Note: Advisor creates its own simple init if not passed, but we can pass market to be safe or 
-        # just reuse logical instances if architected. Here passing market to fresh Advisor or reuse 
-        # existing 'adv' if available? 'adv' is created later. 
-        # Better:
-        # si = SignalIntelligence(market_instance=market) # Internal Advisor init will handle itself or we fix SI init in prev step
-        # Checked SignalIntelligence: init(self, market_instance=None, advisor_instance=None)
-        # So:
-        si = SignalIntelligence(market_instance=market)
-    except Exception as e:
-        logger.warning(f"Failed to init SignalIntelligence: {e}")
-        si = None
+    # Signal Intelligence is already initialized at start
+    pass
 
     for item in news_items:
         text_content = (item.get('title', '') + " " + item.get('summary', '')).upper()
@@ -283,8 +273,7 @@ async def run_async_pipeline():
             logger.info(f"Insider: Market Mood is {market_mood.get('overall')} ({market_mood.get('crypto',{}).get('value')})")
 
     # [ADVISOR] Portfolio Health Analysis
-    from advisor import Advisor
-    adv = Advisor(market_instance=market)
+    # Advisor initialized at start: adv
     # Fetch current portfolio from DB for analysis
     # We use portfolio_map values (loaded earlier)
     portfolio_list = list(portfolio_map.values()) if portfolio_map else []
