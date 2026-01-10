@@ -41,6 +41,22 @@ class Brain:
                     memories += f"NOTE: {ticker} -> High Success Rate ({stats['win_rate']}% wins). Your past logic works well here.\n"
                 else:
                     memories += f"INFO: {ticker} -> Neutral/Insufficient history.\n"
+        
+        # [LESSONS LEARNED INJECTION - AI LEARNS FROM MISTAKES]
+        try:
+            from memory import Memory
+            mem = Memory()
+            lessons = mem.get_lessons_learned(limit=3)
+            if lessons:
+                memories += "\n[LESSONS LEARNED FROM PAST ERRORS]\n"
+                for l in lessons:
+                    ticker = l.get('ticker', 'N/A')
+                    lesson = l.get('lessons_learned', '')
+                    outcome = l.get('actual_outcome', 0)
+                    memories += f"❌ {ticker} ({outcome:+.1f}%): {lesson}\n"
+                memories += "**RULE: Apply these lessons to avoid repeating the same mistakes.**\n"
+        except Exception as e:
+            logger.warning(f"Could not load lessons: {e}")
 
         # [INSIDER SENTIMENT INJECTION]
         sentiment_bg = ""
