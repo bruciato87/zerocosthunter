@@ -1470,9 +1470,37 @@ async def analyze_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             logger.warning(f"Analyze: Backtest failed for {ticker}: {e}")
             backtest_context = "BACKTEST: Not available for this ticker."
 
-        # 6. Generate Report (with backtest context)
+        # 6. Fetch Macro Context (VIX, Yields, DXY, Fear&Greed)
+        macro_context = None
+        try:
+            from economist import Economist
+            eco = Economist()
+            macro_context = eco.get_macro_summary()
+            logger.info(f"Analyze: Macro context fetched ({len(macro_context)} chars)")
+        except Exception as e:
+            logger.warning(f"Analyze: Macro context failed: {e}")
+
+        # 7. Fetch Whale Context (On-Chain Flows)
+        whale_context = None
+        try:
+            from whale_watcher import WhaleWatcher
+            ww = WhaleWatcher()
+            whale_context = ww.analyze_flow()
+            logger.info(f"Analyze: Whale context fetched ({len(whale_context)} chars)")
+        except Exception as e:
+            logger.warning(f"Analyze: Whale context failed: {e}")
+
+        # 8. Generate Report (with ALL context: backtest, macro, whale)
         logger.info(f"Analyze: Generating AI Report for {ticker}...")
-        report = brain.generate_deep_dive(ticker, news_items, technical_summary, portfolio_context, backtest_context)
+        report = brain.generate_deep_dive(
+            ticker, 
+            news_items, 
+            technical_summary, 
+            portfolio_context, 
+            backtest_context,
+            macro_context,
+            whale_context
+        )
         
         # 6. Send Report (Split if too long, though unlikely for this prompt)
         # Telegram limit is 4096 chars.
