@@ -123,6 +123,36 @@ class Auditor:
                 if new_status != "OPEN":
                     updates.append(f"{ticker}: {new_status} ({pnl_pct:+.2f}%)")
                     logger.info(f"Auditor: Signal Closed - {ticker} is {new_status}")
+                    
+                    # AUTO-LEARN: Generate lesson for LOSS signals
+                    if new_status == "LOSS":
+                        try:
+                            from memory import Memory
+                            mem = Memory()
+                            
+                            # Get original reasoning from memory (if it exists)
+                            original_reasoning = "Segnale BUY originale - nessun dettaglio disponibile"
+                            memories = mem.recall_memory(ticker, limit=1)
+                            if memories and memories[0].get('reasoning'):
+                                original_reasoning = memories[0]['reasoning']
+                            
+                            # Generate AI lesson
+                            lesson = mem.generate_lesson(ticker, pnl_pct, original_reasoning)
+                            
+                            if lesson:
+                                # Save lesson to memory table
+                                mem.save_memory(
+                                    ticker=ticker,
+                                    event_type="lesson",
+                                    reasoning=f"Trade chiuso in perdita: {pnl_pct:+.1f}%",
+                                    signal_id=sig.get('signal_id'),
+                                    source="auto_auditor"
+                                )
+                                # Update with lesson
+                                mem.update_outcome(sig.get('signal_id'), pnl_pct, lesson)
+                                logger.info(f"📚 Lesson generated for {ticker}: {lesson[:50]}...")
+                        except Exception as lesson_err:
+                            logger.warning(f"Lesson generation failed for {ticker}: {lesson_err}")
 
             return updates
 
