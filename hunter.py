@@ -128,8 +128,11 @@ class NewsHunter:
                 feed = feedparser.parse(url)
                 
                 if feed.bozo:
-                    logger.warning(f"Feed malformed or error for {url}: {feed.bozo_exception}")
-                    return []
+                    if not feed.entries:
+                        logger.warning(f"Feed malformed or error for {url}: {feed.bozo_exception}")
+                        return []
+                    else:
+                        logger.debug(f"Feed had minor issues (parsed {len(feed.entries)} items): {url} - {feed.bozo_exception}")
 
                 # Limit to top 3 per feed
                 for entry in feed.entries[:3]: 

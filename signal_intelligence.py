@@ -372,9 +372,10 @@ class SignalIntelligence:
                 "risk_level": "HIGH" | "MEDIUM" | "LOW" | "NONE"
             }
         """
-        # Skip for crypto (no earnings)
-        if ticker.upper().replace('-USD', '') in ['BTC', 'ETH', 'SOL', 'XRP', 'DOGE', 'ADA', 'DOT', 'AVAX', 'LINK', 'RENDER', 'RNDR']:
-            return {"has_upcoming_earnings": False, "risk_level": "NONE", "reason": "Crypto - no earnings"}
+        # Skip for crypto and ETFs/Indices (no earnings)
+        if ticker.upper().replace('-USD', '') in ['BTC', 'ETH', 'SOL', 'XRP', 'DOGE', 'ADA', 'DOT', 'AVAX', 'LINK', 'RENDER', 'RNDR'] \
+           or ticker in ['SPY', 'QQQ', 'DIA', 'IWM', 'EUNL.DE', 'GSPC', 'VIX']:
+            return {"has_upcoming_earnings": False, "risk_level": "NONE", "reason": "Asset type has no earnings"}
         
         try:
             # Check cache first
