@@ -5,7 +5,7 @@ import yfinance as yf
 logger = logging.getLogger("Advisor")
 
 class Advisor:
-    def __init__(self):
+    def __init__(self, market_instance=None):
         # Cache for sector lookups to avoid slow yfinance calls every time
         # In a real app, this should be in DB (assets table)
         self.sector_cache = {
@@ -53,7 +53,7 @@ class Advisor:
             "CVX": "Energy",
         }
         from market_data import MarketData
-        self.market = MarketData()
+        self.market = market_instance if market_instance else MarketData()
 
     def get_sector(self, ticker):
         """

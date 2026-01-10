@@ -7,9 +7,9 @@ from datetime import datetime, timezone
 logger = logging.getLogger("Auditor")
 
 class Auditor:
-    def __init__(self):
+    def __init__(self, market_instance=None):
         self.db = DBHandler()
-        self.market = MarketData()
+        self.market = market_instance if market_instance else MarketData()
         # Configuration
         self.TAKE_PROFIT_PCT = 15.0  # +15%
         self.STOP_LOSS_PCT = -10.0   # -10%

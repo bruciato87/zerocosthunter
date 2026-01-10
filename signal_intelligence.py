@@ -23,14 +23,14 @@ class SignalIntelligence:
     Called before final signal generation to adjust confidence and actions.
     """
     
-    def __init__(self):
+    def __init__(self, market_instance=None, advisor_instance=None):
         from db_handler import DBHandler
         from market_data import MarketData
         from advisor import Advisor
         
         self.db = DBHandler()
-        self.market = MarketData()
-        self.advisor = Advisor()
+        self.market = market_instance if market_instance else MarketData()
+        self.advisor = advisor_instance if advisor_instance else Advisor()
         
         # Cache for expensive lookups
         self._vix_cache = None

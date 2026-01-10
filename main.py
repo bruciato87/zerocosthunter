@@ -47,8 +47,7 @@ async def run_async_pipeline():
         brain = Brain()
         notifier = TelegramNotifier()
         market = MarketData()
-        auditor = Auditor()
-        auditor = Auditor()
+        auditor = Auditor(market_instance=market)
         economist = Economist()
         sentinel = Sentinel()
         paper_trader = PaperTrader()
@@ -114,6 +113,22 @@ async def run_async_pipeline():
     for p_ticker in portfolio_map.keys():
         MONITORED_TICKERS[p_ticker] = p_ticker
 
+    # Initialize Signal Intelligence ONCE (Dependency Injection)
+    try:
+        from signal_intelligence import SignalIntelligence
+        si = SignalIntelligence(market_instance=market, advisor_instance=Advisor(market_instance=market)) 
+        # Note: Advisor creates its own simple init if not passed, but we can pass market to be safe or 
+        # just reuse logical instances if architected. Here passing market to fresh Advisor or reuse 
+        # existing 'adv' if available? 'adv' is created later. 
+        # Better:
+        # si = SignalIntelligence(market_instance=market) # Internal Advisor init will handle itself or we fix SI init in prev step
+        # Checked SignalIntelligence: init(self, market_instance=None, advisor_instance=None)
+        # So:
+        si = SignalIntelligence(market_instance=market)
+    except Exception as e:
+        logger.warning(f"Failed to init SignalIntelligence: {e}")
+        si = None
+
     for item in news_items:
         text_content = (item.get('title', '') + " " + item.get('summary', '')).upper()
         
@@ -148,13 +163,12 @@ async def run_async_pipeline():
             extras.append(f"Technical: {tech_summary}")
             
             # 2.5 Signal Intelligence Context (NEW)
-            try:
-                from signal_intelligence import SignalIntelligence
-                si = SignalIntelligence()
-                si_context = si.generate_context_for_ai(detected_ticker)
-                extras.append(si_context)
-            except Exception as e:
-                logger.warning(f"Signal Intelligence failed for {detected_ticker}: {e}")
+            if si:
+                try:
+                    si_context = si.generate_context_for_ai(detected_ticker)
+                    extras.append(si_context)
+                except Exception as e:
+                    logger.warning(f"Signal Intelligence failed for {detected_ticker}: {e}")
             
             # 3. Portfolio - with flexible matching
             # Helper: find portfolio entry with ticker variants
@@ -270,7 +284,7 @@ async def run_async_pipeline():
 
     # [ADVISOR] Portfolio Health Analysis
     from advisor import Advisor
-    adv = Advisor()
+    adv = Advisor(market_instance=market)
     # Fetch current portfolio from DB for analysis
     # We use portfolio_map values (loaded earlier)
     portfolio_list = list(portfolio_map.values()) if portfolio_map else []
