@@ -389,7 +389,6 @@ async def run_async_pipeline():
         if not is_crypto(ticker):
             # It's a stock - check if market is open
             try:
-                from economist import Economist
                 eco = Economist()
                 market_status = eco.get_market_status()
                 
