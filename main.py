@@ -414,8 +414,7 @@ async def run_async_pipeline():
         # --- SIGNAL INTELLIGENCE LAYER (NEW) ---
         # Apply advanced filtering and adjustments
         try:
-            from signal_intelligence import SignalIntelligence
-            si = SignalIntelligence()
+            if not si: raise Exception("SignalIntelligence disabled or failed init")
             logger.info(f"Signal Intelligence: Analyzing {ticker} ({sentiment} @ {confidence:.2f})")
             si_analysis = si.analyze_signal(ticker, sentiment, confidence)
             
