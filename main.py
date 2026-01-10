@@ -155,7 +155,8 @@ async def run_async_pipeline():
             # 2.5 Signal Intelligence Context (NEW)
             if si:
                 try:
-                    si_context = si.generate_context_for_ai(detected_ticker)
+                    p_context = list(portfolio_map.values()) if portfolio_map else []
+                    si_context = si.generate_context_for_ai(detected_ticker, portfolio_context=p_context)
                     extras.append(si_context)
                 except Exception as e:
                     logger.warning(f"Signal Intelligence failed for {detected_ticker}: {e}")
@@ -416,7 +417,9 @@ async def run_async_pipeline():
         try:
             if not si: raise Exception("SignalIntelligence disabled or failed init")
             logger.info(f"Signal Intelligence: Analyzing {ticker} ({sentiment} @ {confidence:.2f})")
-            si_analysis = si.analyze_signal(ticker, sentiment, confidence)
+            
+            p_context = list(portfolio_map.values()) if portfolio_map else []
+            si_analysis = si.analyze_signal(ticker, sentiment, confidence, portfolio_context=p_context)
             
             # Apply adjustments
             original_sentiment = sentiment

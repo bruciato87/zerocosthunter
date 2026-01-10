@@ -41,23 +41,17 @@ class SignalIntelligence:
     # 1. PORTFOLIO CORRELATION CHECK
     # =========================================================================
     
-    def check_portfolio_correlation(self, ticker: str, sentiment: str) -> Dict:
+    def check_portfolio_correlation(self, ticker: str, sentiment: str, portfolio_context: List = None) -> Dict:
         """
         Check if adding this asset would overconcentrate the portfolio.
-        
-        Returns:
-            {
-                "should_downgrade": True/False,
-                "reason": "Crypto sector already at 45%",
-                "sector": "Crypto",
-                "current_allocation": 45.0
-            }
+        Accepts optional portfolio_context (list of dicts) to avoid DB calls.
         """
         if sentiment not in ["BUY", "ACCUMULATE"]:
             return {"should_downgrade": False}
         
         try:
-            portfolio = self.db.get_portfolio()
+            # Use cached context if provided, otherwise fetch from DB (fallback)
+            portfolio = portfolio_context if portfolio_context is not None else self.db.get_portfolio()
             if not portfolio:
                 return {"should_downgrade": False}
             
@@ -187,21 +181,14 @@ class SignalIntelligence:
     # 3. TRAILING TAKE-PROFIT
     # =========================================================================
     
-    def check_take_profit(self, ticker: str) -> Dict:
+    def check_take_profit(self, ticker: str, portfolio_context: List = None) -> Dict:
         """
         Check if a position should trim profits.
-        
-        Returns:
-            {
-                "should_take_profit": True/False,
-                "pnl_pct": 55.2,
-                "allocation_pct": 18.5,
-                "rsi": 75.3,
-                "reason": "Up 55%, 18% of portfolio, RSI overbought"
-            }
+        Accepts optional portfolio_context to avoid DB calls.
         """
         try:
-            portfolio = self.db.get_portfolio()
+            # Use cached context if provided, otherwise fetch
+            portfolio = portfolio_context if portfolio_context is not None else self.db.get_portfolio()
             if not portfolio:
                 return {"should_take_profit": False}
             
@@ -453,11 +440,10 @@ class SignalIntelligence:
     # MAIN INTELLIGENCE LAYER
     # =========================================================================
     
-    def analyze_signal(self, ticker: str, sentiment: str, confidence: float) -> Dict:
+    def analyze_signal(self, ticker: str, sentiment: str, confidence: float, portfolio_context: List = None) -> Dict:
         """
         Run all intelligence checks on a potential signal.
-        
-        Returns comprehensive analysis with adjusted sentiment/confidence.
+        Accepts portfolio_context to avoid repeated DB calls.
         """
         result = {
             "original_sentiment": sentiment,
@@ -470,7 +456,7 @@ class SignalIntelligence:
         }
         
         # 1. Portfolio Correlation
-        correlation = self.check_portfolio_correlation(ticker, sentiment)
+        correlation = self.check_portfolio_correlation(ticker, sentiment, portfolio_context)
         result["checks"]["correlation"] = correlation
         if correlation.get("should_downgrade"):
             result["adjusted_sentiment"] = "WAIT"
@@ -492,7 +478,7 @@ class SignalIntelligence:
                 result["warnings"].append(f"No pullback from highs - consider waiting for dip")
         
         # 3. Take Profit Check (for owned assets)
-        take_profit = self.check_take_profit(ticker)
+        take_profit = self.check_take_profit(ticker, portfolio_context)
         result["checks"]["take_profit"] = take_profit
         if take_profit.get("should_take_profit") and sentiment in ["HOLD", "ACCUMULATE"]:
             result["adjusted_sentiment"] = "SELL"
@@ -520,14 +506,14 @@ class SignalIntelligence:
         
         return result
     
-    def generate_context_for_ai(self, ticker: str) -> str:
+    def generate_context_for_ai(self, ticker: str, portfolio_context: List = None) -> str:
         """
         Generate a context string to inject into AI prompt for smarter decisions.
         """
         lines = [f"[SIGNAL INTELLIGENCE for {ticker}]"]
         
         # Correlation
-        corr = self.check_portfolio_correlation(ticker, "BUY")
+        corr = self.check_portfolio_correlation(ticker, "BUY", portfolio_context)
         if corr.get("current_allocation"):
             lines.append(f"- Sector ({corr.get('sector', '?')}): {corr['current_allocation']:.1f}% of portfolio")
             if corr.get("should_downgrade"):
@@ -541,7 +527,7 @@ class SignalIntelligence:
                 lines.append("  ✅ GOOD DCA ENTRY: Price has pulled back")
         
         # Take Profit
-        tp = self.check_take_profit(ticker)
+        tp = self.check_take_profit(ticker, portfolio_context)
         if tp.get("pnl_pct") and tp.get("pnl_pct") > 20:
             lines.append(f"- Current PnL: +{tp['pnl_pct']:.1f}%, Allocation: {tp.get('allocation_pct', 0):.1f}%")
             if tp.get("should_take_profit"):
