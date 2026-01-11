@@ -621,6 +621,79 @@ class Brain:
         # as long as the news source covers them.
         pass
 
+    def parse_sale_from_image(self, image_path: str) -> dict:
+        """
+        Uses Gemini Vision to extract sale transaction data from a Trade Republic screenshot.
+        Extracts: quantity, price, imposta (tax), commissione (fee), netto ricevuto (net total).
+        """
+        logger.info(f"Parsing sale screenshot: {image_path}...")
+        
+        if not os.path.exists(image_path):
+            raise FileNotFoundError(f"Image not found: {image_path}")
+
+        ext = os.path.splitext(image_path)[1].lower()
+        mime_type = "image/png" if ext == ".png" else "image/jpeg"
+
+        with open(image_path, "rb") as f:
+            image_bytes = f.read()
+
+        prompt = """
+        **SYSTEM ROLE:**
+        You are a Financial Transaction Extraction Assistant for Trade Republic screenshots.
+
+        **INSTRUCTIONS:**
+        This is a SALE CONFIRMATION screenshot from Trade Republic (Italian version).
+        Extract ALL the following data:
+
+        1. **Strumento** (Asset name, e.g., "Render", "Bitcoin")
+        2. **Transazione** (Quantity × Price, e.g., "98,7 × 2,15 €")
+           - Extract: quantity (e.g., 98.7), price (e.g., 2.15)
+        3. **Imposta** (Tax amount, e.g., "21,89 €")
+        4. **Commissione** (Commission, usually "1,00 €")
+        5. **Totale** or "Hai ricevuto" (Net amount received, e.g., "189,43 €")
+        6. **Guadagno** or **Utile** (Profit amount and percentage, e.g., "+65,59 €" and "▲ 44,7 %")
+
+        **NUMBER FORMAT:**
+        - Convert European format to decimal: "1.000,50" → 1000.50
+        - "21,89" → 21.89
+        - "98,7" → 98.7
+
+        **OUTPUT FORMAT:**
+        Return strictly a JSON object:
+        {
+            "asset_name": "Render",
+            "quantity": 98.7,
+            "price_per_unit": 2.15,
+            "gross_total": 212.21,
+            "tax_amount": 21.89,
+            "commission": 1.00,
+            "net_received": 189.43,
+            "profit_amount": 65.59,
+            "profit_percent": 44.7
+        }
+        
+        If a field is not visible, return null for that field.
+        """
+
+        try:
+            response = self.client.models.generate_content(
+                model='gemini-3-flash-preview',
+                contents=[
+                    prompt,
+                    types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
+                ],
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json"
+                )
+            )
+            result = json.loads(response.text)
+            logger.info(f"Sale data extracted: {result}")
+            return result
+
+        except Exception as e:
+            logger.error(f"Error parsing sale image: {e}")
+            return {"error": str(e)}
+
     def generate_deep_dive(self, ticker: str, news_list: list, technical_data: str, portfolio_context: str = None, backtest_context: str = None, macro_context: str = None, whale_context: str = None, l1_context: str = None):
         """
         Generates a Strategic Analysis Report (Path B).

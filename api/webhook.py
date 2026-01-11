@@ -1231,14 +1231,48 @@ async def sell_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             pnl_emoji = "🟢" if realized_pnl >= 0 else "🔴"
             pnl_sign = "+" if realized_pnl >= 0 else ""
             
+            # Trade Republic Fees & Italian Crypto Tax
+            TR_COMMISSION = 1.00  # €1 per trade
+            CRYPTO_TAX_RATE = 0.33  # 33% Italian capital gains tax on crypto
+            
+            # Determine if crypto (for tax calculation)
+            crypto_tickers = ['BTC', 'ETH', 'SOL', 'XRP', 'RENDER', 'ADA', 'AVAX', 'DOT', 'LINK', 'DOGE']
+            is_crypto = any(c in ticker.upper() for c in crypto_tickers)
+            
+            # Calculate net P&L
+            if realized_pnl > 0:
+                tax_amount = realized_pnl * CRYPTO_TAX_RATE if is_crypto else 0
+            else:
+                tax_amount = 0  # No tax on losses
+            
+            net_pnl = realized_pnl - tax_amount - TR_COMMISSION
+            net_total = total_value - tax_amount - TR_COMMISSION
+            net_pnl_percent = ((net_total - (quantity * avg_price)) / (quantity * avg_price) * 100) if avg_price > 0 else 0
+            
+            net_emoji = "🟢" if net_pnl >= 0 else "🔴"
+            net_sign = "+" if net_pnl >= 0 else ""
+            
+            # Build detailed message
             msg = (
                 f"✅ **Vendita Registrata**\n\n"
                 f"📊 **{ticker}**\n"
                 f"├ Quantità: {quantity}\n"
                 f"├ Prezzo: €{price:.4f}\n"
-                f"├ Totale: €{total_value:.2f}\n"
+                f"├ Lordo: €{total_value:.2f}\n"
+            )
+            
+            # Add fee breakdown
+            if is_crypto and realized_pnl > 0:
+                msg += f"├ Commissione TR: -€{TR_COMMISSION:.2f}\n"
+                msg += f"├ Imposta Crypto (33%): -€{tax_amount:.2f}\n"
+            else:
+                msg += f"├ Commissione TR: -€{TR_COMMISSION:.2f}\n"
+            
+            msg += (
+                f"├ **Netto Ricevuto:** €{net_total:.2f}\n"
                 f"└ Prezzo medio: €{avg_price:.4f}\n\n"
-                f"{pnl_emoji} **P&L Realizzato:** {pnl_sign}€{realized_pnl:.2f} ({pnl_sign}{pnl_percent:.1f}%)"
+                f"{pnl_emoji} **P&L Lordo:** {pnl_sign}€{realized_pnl:.2f} ({pnl_sign}{pnl_percent:.1f}%)\n"
+                f"{net_emoji} **P&L Netto:** {net_sign}€{net_pnl:.2f} ({net_sign}{net_pnl_percent:.1f}%)"
                 f"{portfolio_update_msg}"
             )
             await update.message.reply_text(msg, parse_mode="Markdown")
@@ -1248,6 +1282,177 @@ async def sell_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         logger.error(f"Sell command error: {e}")
         await update.message.reply_text(f"❌ Errore: {e}")
+
+async def handle_sell_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Handle sale screenshot from Trade Republic.
+    Usage: Send a photo with caption "/sell TICKER" or just "/sell"
+    The system will extract: quantity, price, imposta, commissione, netto from OCR.
+    """
+    try:
+        # Check if message has photo
+        if not update.message.photo:
+            return  # Not a photo message
+        
+        caption = update.message.caption or ""
+        if not caption.lower().startswith("/sell"):
+            return  # Not a sell command
+        
+        # Extract ticker from caption (e.g., "/sell RENDER")
+        parts = caption.split()
+        ticker = parts[1].upper() if len(parts) > 1 else None
+        
+        await update.message.reply_text("📸 **Analizzo lo screenshot di vendita...**", parse_mode="Markdown")
+        
+        # Download photo
+        user_id = update.effective_user.id
+        photo = update.message.photo[-1]
+        file_obj = await photo.get_file()
+        file_path = f"/tmp/sell_{user_id}.jpg"
+        await file_obj.download_to_drive(file_path)
+        
+        # OCR extraction
+        from brain import Brain
+        brain = Brain()
+        sale_data = brain.parse_sale_from_image(file_path)
+        
+        if "error" in sale_data:
+            await update.message.reply_text(f"❌ Errore OCR: {sale_data['error']}")
+            return
+        
+        # Use extracted data or override with ticker from caption
+        asset_name = sale_data.get('asset_name', 'UNKNOWN')
+        if ticker:
+            asset_name = ticker
+        
+        quantity = sale_data.get('quantity', 0)
+        price = sale_data.get('price_per_unit', 0)
+        tax = sale_data.get('tax_amount', 0) or 0
+        commission = sale_data.get('commission', 1.0) or 1.0
+        net_received = sale_data.get('net_received', 0)
+        profit = sale_data.get('profit_amount', 0) or 0
+        profit_pct = sale_data.get('profit_percent', 0) or 0
+        gross_total = sale_data.get('gross_total', quantity * price)
+        
+        # Store pending sale for confirmation
+        context.user_data['pending_sell'] = {
+            'ticker': asset_name,
+            'quantity': quantity,
+            'price': price,
+            'tax': tax,
+            'commission': commission,
+            'net_received': net_received,
+            'profit': profit,
+            'profit_pct': profit_pct,
+            'gross_total': gross_total
+        }
+        
+        # Show confirmation
+        from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+        
+        pnl_emoji = "🟢" if profit >= 0 else "🔴"
+        
+        confirm_msg = (
+            f"📋 **Conferma Vendita (da Screenshot)**\n\n"
+            f"📊 **{asset_name}**\n"
+            f"├ Quantità: {quantity}\n"
+            f"├ Prezzo: €{price:.2f}\n"
+            f"├ Lordo: €{gross_total:.2f}\n"
+            f"├ Imposta (TR): -€{tax:.2f}\n"
+            f"├ Commissione: -€{commission:.2f}\n"
+            f"├ **Netto Ricevuto: €{net_received:.2f}**\n\n"
+            f"{pnl_emoji} P&L Netto: +€{profit:.2f} (+{profit_pct:.1f}%)\n\n"
+            f"⚠️ **Confermi questa vendita?**"
+        )
+        
+        keyboard = [
+            [
+                InlineKeyboardButton("✅ Conferma", callback_data="confirm_sell"),
+                InlineKeyboardButton("❌ Annulla", callback_data="cancel_sell")
+            ]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        await update.message.reply_text(confirm_msg, parse_mode="Markdown", reply_markup=reply_markup)
+        
+    except Exception as e:
+        logger.error(f"Sell photo handler error: {e}")
+        await update.message.reply_text(f"❌ Errore: {e}")
+
+async def handle_sell_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle confirmation/cancellation of pending sell from screenshot."""
+    query = update.callback_query
+    await query.answer()
+    
+    action = query.data
+    
+    if action == "cancel_sell":
+        context.user_data.pop('pending_sell', None)
+        await query.edit_message_text("❌ Vendita annullata.")
+        return
+    
+    if action == "confirm_sell":
+        pending = context.user_data.get('pending_sell')
+        if not pending:
+            await query.edit_message_text("❌ Nessuna vendita in attesa.")
+            return
+        
+        # Execute the sale
+        from db_handler import DBHandler
+        db = DBHandler()
+        
+        ticker = pending['ticker']
+        quantity = pending['quantity']
+        price = pending['price']
+        net_received = pending['net_received']
+        profit = pending['profit']
+        tax = pending['tax']
+        commission = pending['commission']
+        
+        # Fetch portfolio to update
+        portfolio = db.get_portfolio()
+        asset = next((p for p in portfolio if p['ticker'].upper() == ticker.upper() or 
+                     ticker.upper() in p['ticker'].upper()), None)
+        
+        # Log transaction with real net values
+        result = db.log_transaction(
+            ticker=ticker,
+            action="SELL",
+            quantity=quantity,
+            price_per_unit=price,
+            realized_pnl=profit
+        )
+        
+        if result and asset:
+            # Update portfolio quantity
+            current_qty = float(asset.get('quantity', 0))
+            new_qty = current_qty - quantity
+            
+            if new_qty <= 0:
+                db.delete_asset(query.from_user.id, asset['ticker'])
+                portfolio_msg = "\n\n🗑️ Asset rimosso dal portfolio (vendita totale)"
+            else:
+                db.update_asset_quantity(query.from_user.id, asset['ticker'], new_qty)
+                portfolio_msg = f"\n\n📉 Portfolio aggiornato: {new_qty:.6f} unità rimanenti"
+        else:
+            portfolio_msg = ""
+        
+        pnl_emoji = "🟢" if profit >= 0 else "🔴"
+        
+        final_msg = (
+            f"✅ **Vendita Confermata!**\n\n"
+            f"📊 **{ticker}**\n"
+            f"├ Quantità: {quantity}\n"
+            f"├ Prezzo: €{price:.2f}\n"
+            f"├ Imposta: -€{tax:.2f}\n"
+            f"├ Commissione: -€{commission:.2f}\n"
+            f"├ **Netto Ricevuto: €{net_received:.2f}**\n\n"
+            f"{pnl_emoji} **P&L Netto:** +€{profit:.2f}"
+            f"{portfolio_msg}"
+        )
+        
+        context.user_data.pop('pending_sell', None)
+        await query.edit_message_text(final_msg, parse_mode="Markdown")
 
 async def report_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Generate a comprehensive weekly report with benchmarks, signals, and top movers."""
