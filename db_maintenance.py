@@ -29,12 +29,11 @@ class DBMaintenance:
         # Cleanup policies: (table, max_age_days, priority)
         # Priority: 1 = clean first, 5 = clean last
         self.cleanup_policies = [
-            ("system_log", 7, 1),           # Logs older than 7 days - clean first
+            ("logs", 7, 1),           # Logs older than 7 days - clean first
             ("memory", 90, 2),              # Memory older than 90 days
             ("backtest_results", 60, 2),    # Backtest results older than 60 days
             ("signal_tracking", 180, 3),    # Signals older than 180 days
             ("paper_trades", 90, 3),        # Paper trades older than 90 days
-            ("news_seen", 30, 4),           # News tracking older than 30 days
         ]
     
     def get_database_size_mb(self) -> Optional[float]:
@@ -48,9 +47,9 @@ class DBMaintenance:
             
             # Method 2: Query individual table sizes
             tables = [
-                "portfolio", "signal_tracking", "system_log", 
+                "portfolio", "signal_tracking", "logs", 
                 "alerts", "paper_portfolio", "paper_trades",
-                "backtest_results", "memory", "news_seen", "user_settings"
+                "backtest_results", "memory", "user_settings"
             ]
             
             total_rows = 0
@@ -85,9 +84,9 @@ class DBMaintenance:
         """Get row counts for all tables."""
         stats = {}
         tables = [
-            "portfolio", "signal_tracking", "system_log", 
+            "portfolio", "signal_tracking", "logs", 
             "alerts", "paper_portfolio", "paper_trades",
-            "backtest_results", "memory", "news_seen", "user_settings"
+            "backtest_results", "memory", "user_settings"
         ]
         
         for table in tables:
