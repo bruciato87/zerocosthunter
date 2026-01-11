@@ -230,6 +230,7 @@ class MarketRegimeClassifier:
             "strategy_suggestion": self._get_educational_suggestion(regime),
             "volatility_state": vol_state,
             "confidence_multiplier": confidence_multiplier,
+            "recommended_min_confidence": max(0.6, min(0.9, 0.75 / confidence_multiplier)), # Adjusted threshold
             "indicators": {
                 "spy": spy if "error" not in spy else None,
                 "btc": btc if "error" not in btc else None,
