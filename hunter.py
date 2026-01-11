@@ -166,9 +166,9 @@ class NewsHunter:
                 logger.error(f"Error fetching {url}: {e}")
             return feed_items
 
-        # Execute in Parallel
+        # Execute in Parallel (Reduced workers to prevent curl_cffi segfault on GitHub Actions)
         import concurrent.futures
-        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
             future_to_url = {executor.submit(process_feed, url): url for url in self.rss_feeds}
             for future in concurrent.futures.as_completed(future_to_url):
                 try:
