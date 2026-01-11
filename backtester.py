@@ -30,7 +30,7 @@ class Backtester:
         logger.info(f"📊 Fetching data for {ticker} (resolved to: {yf_ticker})")
         
         try:
-            df = yf.download(yf_ticker, start=start_date, end=end_date, progress=False)
+            df = yf.download(yf_ticker, start=start_date, end=end_date, progress=False, auto_adjust=True)
             if df.empty:
                 logger.error(f"❌ No data found for {yf_ticker}")
                 return None
