@@ -435,6 +435,44 @@ async def run_async_pipeline():
             for warning in si_analysis.get('warnings', []):
                 logger.info(f"Signal Intelligence [{ticker}] WARNING: {warning}")
             
+            # --- PREDICTIVE SYSTEM L1: TECHNICAL CONFLUENCE ---
+            try:
+                confluence = si.check_technical_confluence(ticker, sentiment)
+                confluence_multiplier = confluence.get('multiplier', 1.0)
+                confidence = min(1.0, confidence * confluence_multiplier)
+                if confluence.get('alignment', 0) >= 2:
+                    logger.info(f"L1 Confluence [{ticker}]: {confluence.get('alignment')}/3 aligned → confidence boost {confluence_multiplier:.2f}")
+                    reasoning += f" [Confluence: {confluence.get('reason', 'N/A')}]"
+            except Exception as e:
+                logger.warning(f"L1 Confluence failed for {ticker}: {e}")
+            
+            # --- PREDICTIVE SYSTEM L1: MULTI-TIMEFRAME ---
+            try:
+                mtf = market.get_multi_timeframe_trend(ticker)
+                mtf_boost = mtf.get('confidence_boost', 1.0)
+                if mtf.get('direction') == 'mixed':
+                    confidence *= mtf_boost  # Penalize mixed signals
+                    logger.info(f"L1 MTF [{ticker}]: Mixed timeframes → penalty {mtf_boost:.2f}")
+                elif mtf.get('direction') in ['bullish', 'bearish']:
+                    confidence = min(1.0, confidence * mtf_boost)
+                    logger.info(f"L1 MTF [{ticker}]: {mtf.get('direction')} ({mtf.get('alignment')}/3) → boost {mtf_boost:.2f}")
+                    reasoning += f" [MTF: {mtf.get('direction')} {mtf.get('alignment')}/3]"
+            except Exception as e:
+                logger.warning(f"L1 MTF failed for {ticker}: {e}")
+            
+            # --- PREDICTIVE SYSTEM L1: SENTIMENT ADJUSTMENT ---
+            try:
+                from sentiment_aggregator import SentimentAggregator
+                sentiment_agg = SentimentAggregator()
+                adjusted_conf = sentiment_agg.adjust_confidence(confidence, sentiment)
+                if adjusted_conf != confidence:
+                    logger.info(f"L1 Sentiment [{ticker}]: Adjusted confidence {confidence:.2f} → {adjusted_conf:.2f}")
+                    confidence = adjusted_conf
+                    mkt_score = sentiment_agg.get_score()
+                    reasoning += f" [Mkt Sentiment: {mkt_score}]"
+            except Exception as e:
+                logger.warning(f"L1 Sentiment failed for {ticker}: {e}")
+            
             # Re-check confidence after adjustment
             if confidence < min_conf:
                 logger.info(f"Skipped {ticker}: SI adjusted confidence {confidence:.2f} < Threshold {min_conf}")
@@ -570,6 +608,59 @@ async def run_async_pipeline():
             logger.warning(f"Memory save failed for {ticker}: {e}")
         
         processed_count += 1
+
+    # --- PREDICTIVE SYSTEM L1: CORRELATION PROPAGATION ---
+    # After processing all signals, propagate strong signals to correlated assets
+    try:
+        from correlation_engine import CorrelationEngine
+        corr_engine = CorrelationEngine()
+        
+        # Collect tickers that already received signals to avoid duplicates
+        already_signaled = [p.get('ticker') for p in predictions if p.get('confidence', 0) >= min_conf]
+        
+        propagated_count = 0
+        for pred in predictions:
+            ticker = pred.get('ticker')
+            sentiment = pred.get('sentiment')
+            confidence = float(pred.get('confidence', 0))
+            
+            # Only propagate strong actionable signals
+            if confidence >= 0.80 and sentiment in ['BUY', 'ACCUMULATE', 'SELL']:
+                propagated_signals = corr_engine.propagate(ticker, sentiment, confidence, already_signaled)
+                
+                for prop_signal in propagated_signals:
+                    prop_ticker = prop_signal['ticker']
+                    prop_sentiment = prop_signal['sentiment']
+                    prop_conf = prop_signal['confidence']
+                    prop_reasoning = prop_signal['reasoning']
+                    
+                    # Skip if below threshold
+                    if prop_conf < min_conf:
+                        continue
+                    
+                    # Check if we should notify (not in portfolio && not owned check)
+                    already_signaled.append(prop_ticker)
+                    
+                    # Log propagated signal
+                    logger.info(f"L1 Correlation: {ticker} → {prop_ticker} ({prop_sentiment} @ {prop_conf:.0%})")
+                    
+                    # Send notification for propagated signal
+                    icon = "🔗" if prop_signal.get('is_propagated') else "🟢"
+                    alert_msg = (
+                        f"{icon} **Correlated Signal: {prop_ticker}**\n"
+                        f"**Action:** {prop_sentiment}\n"
+                        f"**Confidence:** {int(prop_conf * 100)}%\n\n"
+                        f"**Reasoning:** {prop_reasoning}\n"
+                        f"**Source:** Correlation Engine (from {ticker})"
+                    )
+                    await notifier.send_alert(alert_msg)
+                    propagated_count += 1
+        
+        if propagated_count > 0:
+            logger.info(f"L1 Correlation: Generated {propagated_count} propagated signals")
+    except Exception as e:
+        logger.warning(f"L1 Correlation propagation failed: {e}")
+    # -----------------------------------------------------
 
     # --- AUDIT PHASE ---
     logger.info("Running Auditor Checkup...")
