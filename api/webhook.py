@@ -291,6 +291,13 @@ async def whale_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ Errore Whale Watcher.")
 
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Check if we are waiting for a SELL screenshot
+    if context.user_data.get('expecting_sell_screenshot'):
+        await handle_sell_photo(update, context)
+        # Clear flag after handling (or handle_sell_photo deals with state)
+        # We'll let handle_sell_photo manage the flow
+        return
+
     user_id = update.effective_user.id
     chat_id = update.effective_chat.id
     await update.message.reply_text("👀 Analizzo l'immagine...")
@@ -1211,73 +1218,24 @@ async def sell_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             realized_pnl=realized_pnl
         )
         
-        if result:
-            # UPDATE PORTFOLIO QUANTITY
-            if asset:
-                current_qty = float(asset.get('quantity', 0))
-                new_qty = current_qty - quantity
-                
-                if new_qty <= 0:
-                    # Fully sold - delete asset
-                    db.delete_asset(update.effective_chat.id, asset['ticker'])
-                    portfolio_update_msg = "\n\n🗑️ Asset rimosso dal portfolio (vendita totale)"
-                else:
-                    # Partial sell - update quantity
-                    db.update_asset_quantity(update.effective_chat.id, asset['ticker'], new_qty)
-                    portfolio_update_msg = f"\n\n📉 Portfolio aggiornato: {new_qty:.6f} unità rimanenti"
-            else:
-                portfolio_update_msg = ""
-            
-            pnl_emoji = "🟢" if realized_pnl >= 0 else "🔴"
-            pnl_sign = "+" if realized_pnl >= 0 else ""
-            
-            # Trade Republic Fees & Italian Crypto Tax
-            TR_COMMISSION = 1.00  # €1 per trade
-            CRYPTO_TAX_RATE = 0.33  # 33% Italian capital gains tax on crypto
-            
-            # Determine if crypto (for tax calculation)
-            crypto_tickers = ['BTC', 'ETH', 'SOL', 'XRP', 'RENDER', 'ADA', 'AVAX', 'DOT', 'LINK', 'DOGE']
-            is_crypto = any(c in ticker.upper() for c in crypto_tickers)
-            
-            # Calculate net P&L
-            if realized_pnl > 0:
-                tax_amount = realized_pnl * CRYPTO_TAX_RATE if is_crypto else 0
-            else:
-                tax_amount = 0  # No tax on losses
-            
-            net_pnl = realized_pnl - tax_amount - TR_COMMISSION
-            net_total = total_value - tax_amount - TR_COMMISSION
-            net_pnl_percent = ((net_total - (quantity * avg_price)) / (quantity * avg_price) * 100) if avg_price > 0 else 0
-            
-            net_emoji = "🟢" if net_pnl >= 0 else "🔴"
-            net_sign = "+" if net_pnl >= 0 else ""
-            
-            # Build detailed message
-            msg = (
-                f"✅ **Vendita Registrata**\n\n"
-                f"📊 **{ticker}**\n"
-                f"├ Quantità: {quantity}\n"
-                f"├ Prezzo: €{price:.4f}\n"
-                f"├ Lordo: €{total_value:.2f}\n"
-            )
-            
-            # Add fee breakdown
-            if is_crypto and realized_pnl > 0:
-                msg += f"├ Commissione TR: -€{TR_COMMISSION:.2f}\n"
-                msg += f"├ Imposta Crypto (33%): -€{tax_amount:.2f}\n"
-            else:
-                msg += f"├ Commissione TR: -€{TR_COMMISSION:.2f}\n"
-            
-            msg += (
-                f"├ **Netto Ricevuto:** €{net_total:.2f}\n"
-                f"└ Prezzo medio: €{avg_price:.4f}\n\n"
-                f"{pnl_emoji} **P&L Lordo:** {pnl_sign}€{realized_pnl:.2f} ({pnl_sign}{pnl_percent:.1f}%)\n"
-                f"{net_emoji} **P&L Netto:** {net_sign}€{net_pnl:.2f} ({net_sign}{net_pnl_percent:.1f}%)"
-                f"{portfolio_update_msg}"
-            )
-            await update.message.reply_text(msg, parse_mode="Markdown")
-        else:
-            await update.message.reply_text("❌ Errore nel salvataggio della transazione.")
+        
+        from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+        keyboard = [
+            [InlineKeyboardButton("✅ Conferma Manuale", callback_data="confirm_sell_manual")],
+            [InlineKeyboardButton("❌ Annulla", callback_data="cancel_sell")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        msg = (
+            f"📊 **Vendita Iniziata: {ticker}**\n"
+            f"├ Quantità: {quantity}\n"
+            f"├ Prezzo: €{price:.4f}\n"
+            f"└ Totale Stimato: €{total_value:.2f}\n\n"
+            f"📸 **Invia ORA lo screenshot di Trade Republic** per calcolare Tasse e Commissioni esatte.\n"
+            f"_(Oppure clicca Conferma per procedere con stime standard)_"
+        )
+        
+        await update.message.reply_text(msg, parse_mode="Markdown", reply_markup=reply_markup)
             
     except Exception as e:
         logger.error(f"Sell command error: {e}")
@@ -1391,7 +1349,7 @@ async def handle_sell_callback(update: Update, context: ContextTypes.DEFAULT_TYP
         await query.edit_message_text("❌ Vendita annullata.")
         return
     
-    if action == "confirm_sell":
+    if action == "confirm_sell" or action == "confirm_sell_manual":
         pending = context.user_data.get('pending_sell')
         if not pending:
             await query.edit_message_text("❌ Nessuna vendita in attesa.")
@@ -1404,10 +1362,33 @@ async def handle_sell_callback(update: Update, context: ContextTypes.DEFAULT_TYP
         ticker = pending['ticker']
         quantity = pending['quantity']
         price = pending['price']
-        net_received = pending['net_received']
-        profit = pending['profit']
-        tax = pending['tax']
-        commission = pending['commission']
+        
+        # Determine values based on source (manual vs screenshot)
+        if action == "confirm_sell_manual":
+             # Calculate estimates for manual confirm
+             avg_price = pending.get('avg_price', 0)
+             gross_total = quantity * price
+             realized_pnl = (price - avg_price) * quantity
+             
+             TR_COMMISSION = 1.00
+             CRYPTO_TAX_RATE = 0.33
+             crypto_tickers = ['BTC', 'ETH', 'SOL', 'XRP', 'RENDER', 'ADA', 'AVAX', 'DOT', 'LINK', 'DOGE']
+             is_crypto = any(c in ticker.upper() for c in crypto_tickers)
+             
+             if realized_pnl > 0 and is_crypto:
+                 tax = realized_pnl * CRYPTO_TAX_RATE
+             else:
+                 tax = 0.0
+                 
+             commission = TR_COMMISSION
+             profit = realized_pnl
+             net_received = gross_total - tax - commission
+        else:
+             # Use precise OCR values
+             net_received = pending['net_received']
+             profit = pending['profit']
+             tax = pending['tax']
+             commission = pending['commission']
         
         # Fetch portfolio to update
         portfolio = db.get_portfolio()
