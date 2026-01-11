@@ -242,6 +242,29 @@ class Rebalancer:
                 logger.warning(f"Market context failed: {e}")
                 market_hours = "N/A"
             
+            # 4. L2 Predictive Context: Sector Rotation + Market Regime
+            l2_context = ""
+            try:
+                from sector_rotation import SectorRotationTracker
+                from market_regime import MarketRegimeClassifier
+                
+                # Sector Rotation
+                rotation = SectorRotationTracker().analyze()
+                rotation_text = f"Signal: {rotation.get('rotation_signal')} ({rotation.get('confidence'):.0%}). Leading: {', '.join(rotation.get('leading', []))}. Lagging: {', '.join(rotation.get('lagging', []))}"
+                
+                # Market Regime
+                regime = MarketRegimeClassifier().classify()
+                regime_text = f"{regime.get('regime')} ({regime.get('confidence'):.0%}) - {regime.get('recommendation')}"
+                
+                l2_context = f"""
+**L2 PREDICTIVE (Auto-Updated):**
+- Sector Rotation: {rotation_text}
+- Market Regime: {regime_text}
+"""
+                logger.info(f"Rebalance: L2 context added - {rotation.get('rotation_signal')}, {regime.get('regime')}")
+            except Exception as e:
+                logger.warning(f"L2 context failed for rebalance: {e}")
+            
             prompt = f"""
             Sei un Portfolio Manager italiano focalizzato sulla MASSIMIZZAZIONE DEI PROFITTI.
             

@@ -341,6 +341,31 @@ async def run_async_pipeline():
     only_portfolio = user_settings.get("only_portfolio", False)
     logger.info(f"Smart Filters Active: Min Confidence={min_conf}, Only Portfolio={only_portfolio}")
 
+    # --- L2 PREDICTIVE: MARKET REGIME ---
+    # Adjust strategy aggressiveness based on market regime
+    market_regime_data = None
+    try:
+        from market_regime import MarketRegimeClassifier
+        regime_classifier = MarketRegimeClassifier()
+        market_regime_data = regime_classifier.classify()
+        
+        regime = market_regime_data.get("regime", "NEUTRAL")
+        regime_conf = market_regime_data.get("confidence", 0.5)
+        recommendation = market_regime_data.get("recommendation", "normal")
+        
+        # Adjust min_confidence based on regime
+        original_min_conf = min_conf
+        if recommendation == "aggressive" and regime in ["BULL", "ACCUMULATION"]:
+            min_conf = max(0.65, min_conf - 0.05)  # Lower threshold in bull market
+            logger.info(f"L2 Regime [{regime}]: Aggressive mode - min_conf {original_min_conf} → {min_conf}")
+        elif recommendation == "defensive" and regime in ["BEAR", "DISTRIBUTION"]:
+            min_conf = min(0.85, min_conf + 0.05)  # Higher threshold in bear market
+            logger.info(f"L2 Regime [{regime}]: Defensive mode - min_conf {original_min_conf} → {min_conf}")
+        else:
+            logger.info(f"L2 Regime [{regime}]: Normal mode ({regime_conf:.0%})")
+    except Exception as e:
+        logger.warning(f"L2 Market Regime failed: {e}")
+
     # 4. Process Predictions
     for pred in predictions:
         ticker = pred.get("ticker")
@@ -472,6 +497,30 @@ async def run_async_pipeline():
                     reasoning += f" [Mkt Sentiment: {mkt_score}]"
             except Exception as e:
                 logger.warning(f"L1 Sentiment failed for {ticker}: {e}")
+            
+            # --- PREDICTIVE SYSTEM L2: DIVERGENCE DETECTOR ---
+            try:
+                divergence = si.check_divergence(ticker)
+                if divergence.get('has_divergence'):
+                    div_type = divergence.get('type')
+                    div_boost = divergence.get('confidence_boost', 1.0)
+                    
+                    # Bullish divergence on BUY signal = boost
+                    if div_type == 'bullish' and sentiment in ['BUY', 'ACCUMULATE']:
+                        confidence = min(1.0, confidence * div_boost)
+                        logger.info(f"L2 Divergence [{ticker}]: Bullish divergence → boost {div_boost:.2f}")
+                        reasoning += f" [L2: Bullish Divergence {divergence.get('strength'):.0%}]"
+                    # Bearish divergence on BUY signal = warning
+                    elif div_type == 'bearish' and sentiment in ['BUY', 'ACCUMULATE']:
+                        confidence *= 0.90  # Penalize
+                        logger.info(f"L2 Divergence [{ticker}]: Bearish divergence on BUY → penalty")
+                        reasoning += " [L2: Bearish Divergence - Caution]"
+                    # Bearish divergence on SELL signal = boost
+                    elif div_type == 'bearish' and sentiment in ['SELL', 'TRIM']:
+                        confidence = min(1.0, confidence * div_boost)
+                        logger.info(f"L2 Divergence [{ticker}]: Bearish divergence on SELL → boost")
+            except Exception as e:
+                logger.warning(f"L2 Divergence failed for {ticker}: {e}")
             
             # Re-check confidence after adjustment
             if confidence < min_conf:

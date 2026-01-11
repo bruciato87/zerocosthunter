@@ -1537,7 +1537,42 @@ async def analyze_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             logger.warning(f"Analyze: L1 context failed: {e}")
             l1_context = "L1 Predictive: Not available"
 
-        # 9. Generate Report (with ALL context: backtest, macro, whale, L1)
+        # 9. L2 Predictive System - Support/Resistance + Divergence
+        l2_context = ""
+        try:
+            from support_resistance import SupportResistanceAI
+            from signal_intelligence import SignalIntelligence
+            
+            # 9.1 Support/Resistance Levels
+            sr_ai = SupportResistanceAI()
+            sr_context = sr_ai.format_for_ai(ticker)
+            logger.info(f"Analyze L2: S/R levels added")
+            
+            # 9.2 Divergence Detection
+            si = SignalIntelligence()
+            divergence = si.check_divergence(ticker)
+            div_context = ""
+            if divergence.get('has_divergence'):
+                div_context = f"\nDivergence: {divergence.get('type').upper()} divergence detected (strength: {divergence.get('strength'):.0%})"
+                logger.info(f"Analyze L2: {divergence.get('type')} divergence detected")
+            
+            # 9.3 Market Regime (for context)
+            from market_regime import MarketRegimeClassifier
+            regime = MarketRegimeClassifier().classify()
+            regime_context = f"\nMarket Regime: {regime.get('regime')} ({regime.get('confidence'):.0%}) - {regime.get('recommendation')}"
+            
+            l2_context = f"""
+**L2 PREDICTIVE ANALYSIS:**
+{sr_context}
+{div_context}
+{regime_context}
+"""
+            logger.info(f"Analyze: L2 context added")
+        except Exception as e:
+            logger.warning(f"Analyze: L2 context failed: {e}")
+            l2_context = "L2 Predictive: Not available"
+
+        # 10. Generate Report (with ALL context: backtest, macro, whale, L1, L2)
         logger.info(f"Analyze: Generating AI Report for {ticker}...")
         report = brain.generate_deep_dive(
             ticker, 
@@ -1547,7 +1582,7 @@ async def analyze_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             backtest_context,
             macro_context,
             whale_context,
-            l1_context  # NEW: L1 predictive context
+            l1_context + "\n" + l2_context  # Combined L1+L2 predictive context
         )
         
         # 6. Send Report (Split if too long, though unlikely for this prompt)

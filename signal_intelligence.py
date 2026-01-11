@@ -222,6 +222,118 @@ class SignalIntelligence:
             return {"alignment": 0, "multiplier": 1.0, "error": str(e)}
     
     # =========================================================================
+    # L2: DIVERGENCE DETECTOR (NEW)
+    # =========================================================================
+    
+    def check_divergence(self, ticker: str, lookback_days: int = 20) -> Dict:
+        """
+        Detect RSI divergence - early reversal signals.
+        
+        Bullish Divergence: Price makes lower low, RSI makes higher low
+        Bearish Divergence: Price makes higher high, RSI makes lower high
+        
+        Returns:
+            {
+                "has_divergence": True/False,
+                "type": "bullish" | "bearish" | None,
+                "strength": 0.0-1.0,
+                "confidence_boost": 1.0-1.20
+            }
+        """
+        try:
+            yf_ticker = self.market.TICKER_ALIASES.get(ticker, ticker)
+            
+            # Handle crypto
+            crypto_list = ['BTC', 'ETH', 'SOL', 'XRP', 'ADA', 'AVAX', 'DOT', 'LINK', 'RENDER', 'DOGE']
+            base = ticker.replace('-USD', '').replace('-EUR', '')
+            if base in crypto_list and not yf_ticker.endswith('-USD'):
+                yf_ticker = f"{base}-USD"
+            
+            data = yf.download(yf_ticker, period=f"{lookback_days + 14}d", progress=False, auto_adjust=True)
+            
+            if data.empty or len(data) < lookback_days:
+                return {"has_divergence": False, "type": None, "strength": 0, "confidence_boost": 1.0}
+            
+            # Handle MultiIndex
+            if hasattr(data.columns, 'levels'):
+                close = data['Close'].iloc[:, 0] if data['Close'].ndim > 1 else data['Close']
+            else:
+                close = data['Close']
+            
+            # Calculate RSI
+            delta = close.diff()
+            gain = delta.where(delta > 0, 0).rolling(14).mean()
+            loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
+            rs = gain / loss
+            rsi = 100 - (100 / (1 + rs))
+            
+            # Get recent data
+            recent_close = close.iloc[-lookback_days:]
+            recent_rsi = rsi.iloc[-lookback_days:]
+            
+            # Find local minima/maxima
+            price_min_idx = recent_close.idxmin()
+            price_max_idx = recent_close.idxmax()
+            
+            # Split into two halves for comparison
+            half = lookback_days // 2
+            first_half_close = close.iloc[-lookback_days:-half]
+            second_half_close = close.iloc[-half:]
+            first_half_rsi = rsi.iloc[-lookback_days:-half]
+            second_half_rsi = rsi.iloc[-half:]
+            
+            has_divergence = False
+            div_type = None
+            strength = 0.0
+            
+            # Check Bullish Divergence: Price lower low, RSI higher low
+            first_min_price = float(first_half_close.min())
+            second_min_price = float(second_half_close.min())
+            first_min_rsi = float(first_half_rsi.min())
+            second_min_rsi = float(second_half_rsi.min())
+            
+            if second_min_price < first_min_price and second_min_rsi > first_min_rsi:
+                has_divergence = True
+                div_type = "bullish"
+                # Strength based on how far apart the divergence is
+                price_diff = (first_min_price - second_min_price) / first_min_price
+                rsi_diff = (second_min_rsi - first_min_rsi) / 100
+                strength = min(1.0, (price_diff + rsi_diff) * 5)
+                logger.info(f"Bullish divergence detected for {ticker}: Price ↓{price_diff:.1%}, RSI ↑{rsi_diff:.1%}")
+            
+            # Check Bearish Divergence: Price higher high, RSI lower high
+            first_max_price = float(first_half_close.max())
+            second_max_price = float(second_half_close.max())
+            first_max_rsi = float(first_half_rsi.max())
+            second_max_rsi = float(second_half_rsi.max())
+            
+            if second_max_price > first_max_price and second_max_rsi < first_max_rsi:
+                has_divergence = True
+                div_type = "bearish"
+                price_diff = (second_max_price - first_max_price) / first_max_price
+                rsi_diff = (first_max_rsi - second_max_rsi) / 100
+                strength = min(1.0, (price_diff + rsi_diff) * 5)
+                logger.info(f"Bearish divergence detected for {ticker}: Price ↑{price_diff:.1%}, RSI ↓{rsi_diff:.1%}")
+            
+            # Confidence boost based on divergence
+            if has_divergence:
+                confidence_boost = 1.0 + (strength * 0.15)  # Max +15%
+            else:
+                confidence_boost = 1.0
+            
+            return {
+                "has_divergence": has_divergence,
+                "type": div_type,
+                "strength": round(strength, 2),
+                "confidence_boost": round(confidence_boost, 2),
+                "lookback_days": lookback_days
+            }
+            
+        except Exception as e:
+            logger.warning(f"Divergence check failed for {ticker}: {e}")
+            return {"has_divergence": False, "type": None, "strength": 0, "confidence_boost": 1.0, "error": str(e)}
+    
+    # =========================================================================
     # 2. DCA ON PULLBACK LOGIC
     # =========================================================================
     
