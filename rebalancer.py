@@ -243,7 +243,7 @@ class Rebalancer:
                 market_hours = "N/A"
             
             prompt = f"""
-            Sei un Portfolio Manager italiano. Genera un PIANO DI RIBILANCIAMENTO concreto.
+            Sei un Portfolio Manager italiano focalizzato sulla MASSIMIZZAZIONE DEI PROFITTI.
             
             **ORARI MERCATO ({market_status.get('current_time_italy', 'N/A')}):**
             {market_hours}
@@ -254,11 +254,13 @@ class Rebalancer:
             **ALLOCAZIONE SETTORI:**
             {sector_summary}
             
-            **SEGNALI RECENTI (ultimi 7gg):**
+            **SEGNALI RECENTI (ultimi 7gg) - PRIORITÀ ALTA:**
             {signals_text}
             
             **CONTESTO MERCATO:**
             {market_context}
+            
+            **OBIETTIVO PRINCIPALE: MASSIMIZZARE I PROFITTI**
             
             **ISTRUZIONI:**
             1. Genera MAX 3 azioni concrete nel formato:
@@ -268,14 +270,16 @@ class Rebalancer:
             
             2. Poi aggiungi UNA strategia sintetica (1 frase) per €500 di capitale fresco.
             
-            **REGOLE CRITICHE:**
-            - **TICKER VALIDI:** Puoi suggerire SOLO questi ticker: {', '.join([a['ticker'] for a in analysis['assets']])}
-            - **NON INVENTARE TICKER** come VEEV, BFH, LMT - non sono nel portfolio!
-            - Per capitale fresco, suggerisci SETTORI (es. "50% Tech, 30% Crypto") non ticker specifici esterni
-            - Considera tasse italiane 2026 (Crypto 33%)
-            - NON suggerire SELL totale (solo TRIM parziale)
-            - PRIORIZZA asset sottopesati (Technology) e con RSI basso
-            - Se ETF > 40%, suggerisci redistribuzione
+            **REGOLE CRITICHE PER MASSIMIZZARE PROFITTI:**
+            - **PRIORITÀ 1:** Segui i SEGNALI RECENTI ad alta confidenza (BUY/ACCUMULATE ≥75%)
+            - **PRIORITÀ 2:** Accumula asset con RSI OVERSOLD (<30) - sono opportunità
+            - **PRIORITÀ 3:** Trimma asset con RSI OVERBOUGHT (>70) e PnL alto per prendere profitto
+            - **PRIORITÀ 4:** (Solo dopo) Considera il bilanciamento settoriale
+            
+            - **TICKER SUGGERIBILI:** Asset nel portfolio: {', '.join([a['ticker'] for a in analysis['assets']])}
+            - **ECCEZIONE:** Se un segnale recente (BUY ≥80% conf) è per un ticker NON nel portfolio, suggeriscilo comunque indicando "(NUOVO)"
+            - Per capitale fresco, indica asset specifici se ci sono segnali forti, altrimenti settori
+            - NON suggerire SELL totale (solo TRIM parziale per prendere profitti)
             
             Rispondi SOLO con le azioni, senza preamboli.
             """
