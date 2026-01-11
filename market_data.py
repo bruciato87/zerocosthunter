@@ -257,6 +257,102 @@ class MarketData:
             
         return (0.0, None, 0.0) if include_change else (0.0, None)
 
+    # =========================================================================
+    # MULTI-TIMEFRAME ANALYSIS (NEW - Predictive System L1)
+    # =========================================================================
+    
+    def get_multi_timeframe_trend(self, ticker: str) -> dict:
+        """
+        Analyze trend across multiple timeframes (Daily, Weekly, Monthly).
+        
+        Returns:
+            {
+                "alignment": 0-3 (how many timeframes agree),
+                "direction": "bullish" / "bearish" / "mixed",
+                "timeframes": {"1d": "bullish", "1w": "neutral", "1mo": "bearish"},
+                "confidence_boost": 0.85-1.15
+            }
+        """
+        try:
+            yf_ticker = self.TICKER_ALIASES.get(ticker, ticker)
+            
+            # Handle crypto
+            crypto_list = ['BTC', 'ETH', 'SOL', 'XRP', 'ADA', 'AVAX', 'DOT', 'LINK', 'RENDER', 'DOGE']
+            base = ticker.replace('-USD', '').replace('-EUR', '')
+            if base in crypto_list and not yf_ticker.endswith('-USD'):
+                yf_ticker = f"{base}-USD"
+            
+            trends = {}
+            bullish_count = 0
+            bearish_count = 0
+            
+            # Analyze each timeframe
+            for period, label in [("5d", "1d"), ("1mo", "1w"), ("3mo", "1mo")]:
+                try:
+                    data = yf.download(yf_ticker, period=period, progress=False, auto_adjust=True)
+                    
+                    if data.empty or len(data) < 3:
+                        trends[label] = "unknown"
+                        continue
+                    
+                    # Handle MultiIndex
+                    if hasattr(data.columns, 'levels'):
+                        close = data['Close'].iloc[:, 0] if data['Close'].ndim > 1 else data['Close']
+                    else:
+                        close = data['Close']
+                    
+                    # Simple trend: compare first third to last third
+                    n = len(close)
+                    first_avg = float(close.iloc[:n//3].mean())
+                    last_avg = float(close.iloc[-n//3:].mean())
+                    
+                    change_pct = ((last_avg - first_avg) / first_avg) * 100
+                    
+                    if change_pct > 2:
+                        trends[label] = "bullish"
+                        bullish_count += 1
+                    elif change_pct < -2:
+                        trends[label] = "bearish"
+                        bearish_count += 1
+                    else:
+                        trends[label] = "neutral"
+                        
+                except Exception as e:
+                    logger.warning(f"MTF analysis failed for {ticker} {label}: {e}")
+                    trends[label] = "unknown"
+            
+            # Determine overall direction
+            if bullish_count >= 2:
+                direction = "bullish"
+                alignment = bullish_count
+            elif bearish_count >= 2:
+                direction = "bearish"
+                alignment = bearish_count
+            else:
+                direction = "mixed"
+                alignment = max(bullish_count, bearish_count)
+            
+            # Confidence boost based on alignment
+            if alignment == 3:
+                confidence_boost = 1.15  # All timeframes agree
+            elif alignment == 2:
+                confidence_boost = 1.05
+            else:
+                confidence_boost = 0.90  # Mixed signals, reduce confidence
+            
+            return {
+                "alignment": alignment,
+                "direction": direction,
+                "timeframes": trends,
+                "bullish_count": bullish_count,
+                "bearish_count": bearish_count,
+                "confidence_boost": confidence_boost
+            }
+            
+        except Exception as e:
+            logger.warning(f"Multi-timeframe analysis failed for {ticker}: {e}")
+            return {"alignment": 0, "direction": "unknown", "confidence_boost": 1.0, "error": str(e)}
+
     def get_technical_summary(self, ticker: str) -> str:
         """
         Fetches price history and calculates RSI and SMA.

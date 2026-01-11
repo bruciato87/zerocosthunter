@@ -103,6 +103,125 @@ class SignalIntelligence:
             return {"should_downgrade": False, "error": str(e)}
     
     # =========================================================================
+    # 1.5 TECHNICAL CONFLUENCE CHECK (NEW - Predictive System L1)
+    # =========================================================================
+    
+    def check_technical_confluence(self, ticker: str, sentiment: str) -> Dict:
+        """
+        Check if multiple technical indicators confirm the signal direction.
+        
+        Checks:
+        1. RSI (oversold for BUY, overbought for SELL)
+        2. Price vs SMA50 (above = bullish, below = bearish)
+        3. Volume spike (>150% of 20d avg = strong conviction)
+        
+        Returns:
+            {
+                "alignment": 0-3 (how many indicators confirm),
+                "multiplier": 0.85-1.15 (confidence adjustment),
+                "indicators": {...detailed breakdown...}
+            }
+        """
+        try:
+            yf_ticker = self.market.TICKER_ALIASES.get(ticker, ticker)
+            
+            # Handle crypto tickers
+            crypto_list = ['BTC', 'ETH', 'SOL', 'XRP', 'ADA', 'AVAX', 'DOT', 'LINK', 'RENDER', 'DOGE']
+            base = ticker.replace('-USD', '').replace('-EUR', '')
+            if base in crypto_list and not yf_ticker.endswith('-USD'):
+                yf_ticker = f"{base}-USD"
+            
+            data = yf.download(yf_ticker, period="60d", progress=False, auto_adjust=True)
+            
+            if data.empty or len(data) < 50:
+                return {"alignment": 0, "multiplier": 1.0, "reason": "Insufficient data"}
+            
+            # Handle MultiIndex columns
+            if hasattr(data.columns, 'levels'):
+                close = data['Close'].iloc[:, 0] if data['Close'].ndim > 1 else data['Close']
+                volume = data['Volume'].iloc[:, 0] if data['Volume'].ndim > 1 else data['Volume']
+            else:
+                close = data['Close']
+                volume = data['Volume']
+            
+            current_price = float(close.iloc[-1])
+            
+            # 1. RSI Calculation
+            delta = close.diff()
+            gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
+            loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+            rs = gain / loss
+            rsi = 100 - (100 / (1 + rs))
+            current_rsi = float(rsi.iloc[-1]) if not rsi.empty else 50
+            
+            # 2. SMA50
+            sma50 = float(close.rolling(window=50).mean().iloc[-1])
+            price_above_sma = current_price > sma50
+            
+            # 3. Volume Spike
+            avg_volume = float(volume.rolling(window=20).mean().iloc[-1])
+            current_volume = float(volume.iloc[-1])
+            volume_ratio = current_volume / avg_volume if avg_volume > 0 else 1.0
+            volume_spike = volume_ratio > 1.5
+            
+            # Determine alignment based on sentiment
+            alignment = 0
+            reasons = []
+            
+            if sentiment in ["BUY", "ACCUMULATE"]:
+                # For BUY: RSI < 45 is good, price above SMA is bullish, volume spike confirms
+                if current_rsi < 45:
+                    alignment += 1
+                    reasons.append(f"RSI {current_rsi:.0f} (not overbought)")
+                if price_above_sma:
+                    alignment += 1
+                    reasons.append("Price > SMA50 (bullish)")
+                if volume_spike:
+                    alignment += 1
+                    reasons.append(f"Volume spike {volume_ratio:.1f}x")
+                    
+            elif sentiment in ["SELL", "TRIM"]:
+                # For SELL: RSI > 70 is overbought (standard), price below SMA is bearish
+                if current_rsi > 70:
+                    alignment += 1
+                    reasons.append(f"RSI {current_rsi:.0f} (overbought)")
+                if not price_above_sma:
+                    alignment += 1
+                    reasons.append("Price < SMA50 (bearish)")
+                if volume_spike:
+                    alignment += 1
+                    reasons.append(f"Volume spike {volume_ratio:.1f}x")
+            
+            # Calculate multiplier
+            if alignment >= 3:
+                multiplier = 1.15  # Strong confluence
+            elif alignment >= 2:
+                multiplier = 1.05  # Moderate confluence
+            elif alignment >= 1:
+                multiplier = 1.0   # Neutral
+            else:
+                multiplier = 0.90  # No confluence, reduce confidence
+            
+            return {
+                "alignment": alignment,
+                "multiplier": multiplier,
+                "indicators": {
+                    "rsi": round(current_rsi, 1),
+                    "sma50": round(sma50, 2),
+                    "price": round(current_price, 2),
+                    "price_vs_sma": "above" if price_above_sma else "below",
+                    "volume_ratio": round(volume_ratio, 2),
+                    "volume_spike": volume_spike
+                },
+                "reasons": reasons,
+                "reason": " | ".join(reasons) if reasons else "No technical confluence"
+            }
+            
+        except Exception as e:
+            logger.warning(f"Technical confluence check failed for {ticker}: {e}")
+            return {"alignment": 0, "multiplier": 1.0, "error": str(e)}
+    
+    # =========================================================================
     # 2. DCA ON PULLBACK LOGIC
     # =========================================================================
     
