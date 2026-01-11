@@ -685,8 +685,18 @@ def dashboard():
                     total_for_date += trends[max(earlier_dates)]
         daily_trend[date] = total_for_date
 
-    total_pl = total_val - total_inv
-    pl_pct = (total_pl/total_inv*100) if total_inv > 0 else 0
+    # Calculate Total P&L (Unrealized + Realized)
+    try:
+        realized_pl = db.get_total_realized_pnl()
+    except: 
+        realized_pl = 0.0
+
+    unrealized_pl = total_val - total_inv
+    total_pl = unrealized_pl + realized_pl
+    
+    # ROI %: Based on currently invested capital (standard for active tracking)
+    # Alternatively could be on Total Capital deployed ever, but current invested is better for 'Active' view.
+    pl_pct = (total_pl / total_inv * 100) if total_inv > 0 else 0
     
     dates = sorted(daily_trend.keys())
     chart_d = [round(daily_trend[d],2) for d in dates]
@@ -808,6 +818,21 @@ def dashboard():
         logger.error(f"Benchmark Fetch Error: {e}")
         benchmark_data = {}
 
+    # 12. Level 2 Predictive Data (Phase 4)
+    try:
+        from market_regime import MarketRegimeClassifier
+        from sector_rotation import SectorRotationTracker
+        
+        regime_classifier = MarketRegimeClassifier()
+        sector_tracker = SectorRotationTracker()
+        
+        market_regime = regime_classifier.classify()
+        sector_rotation = sector_tracker.analyze()
+    except Exception as e:
+        logger.error(f"L2 Data Fetch Error: {e}")
+        market_regime = {}
+        sector_rotation = {}
+
     return render_template('dashboard.html', 
                            signals=signals, 
                            portfolio=portfolio, 
@@ -828,6 +853,8 @@ def dashboard():
                            whale_stats=whale_stats,
                            paper_portfolio=paper_portfolio_enriched,
                            paper_total_value=paper_total_value,
+                           market_regime=market_regime,
+                           sector_rotation=sector_rotation,
                            backtest_results=backtest_results,
                            benchmark_data=benchmark_data)
 

@@ -200,6 +200,81 @@
                     {% endif %}
                 </div>
 
+                <!-- ROW 1.2: L2 PREDICTIVE INTELLIGENCE -->
+
+                <!-- 4. Market Regime (L2) -->
+                <div
+                    class="col-span-1 md:col-span-6 bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-5 border border-indigo-500/30 shadow-lg relative overflow-hidden">
+                    <div class="card-header">
+                        <span class="card-title text-indigo-400">🔮 Market Regime (L2)</span>
+                        {% if market_regime %}
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold border 
+                        {% if market_regime.regime == " BULL" %}bg-green-900/30 text-green-400 border-green-800 {% elif
+                            market_regime.regime=="BEAR" %}bg-red-900/30 text-red-400 border-red-800 {% else
+                            %}bg-yellow-900/30 text-yellow-400 border-yellow-800{% endif %}">
+                            {{ market_regime.regime }}
+                        </span>
+                        {% endif %}
+                    </div>
+                    {% if market_regime %}
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <div class="text-xs text-gray-500 mb-1">Confidence Filter</div>
+                            <div class="text-white font-mono font-bold">{{ (market_regime.recommended_min_confidence *
+                                100)|int }}%</div>
+                            <div class="text-[10px] text-gray-500">Min. req for trade</div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-gray-500 mb-1">Volatility (ATR)</div>
+                            <div class="text-white font-mono">{{ market_regime.volatility_state }}</div>
+                        </div>
+                    </div>
+                    <div class="mt-3 text-[10px] text-gray-400 bg-gray-800/50 p-2 rounded border border-gray-700">
+                        Suggest: <span class="text-indigo-300">{{ market_regime.strategy_suggestion }}</span>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4 text-gray-500 text-xs">Regime data loading...</div>
+                    {% endif %}
+                </div>
+
+                <!-- 5. Sector Rotation (L2) -->
+                <div
+                    class="col-span-1 md:col-span-6 bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-5 border border-indigo-500/30 shadow-lg relative overflow-hidden">
+                    <div class="card-header">
+                        <span class="card-title text-indigo-400">🔄 Sector Rotation</span>
+                        <span class="text-[10px] text-gray-500">1 Week Momentum</span>
+                    </div>
+                    {% if sector_rotation and sector_rotation.ranking %}
+                    <div class="grid grid-cols-2 gap-2 mt-2">
+                        <!-- Leaders -->
+                        <div class="space-y-1">
+                            <div class="text-[9px] text-gray-500 uppercase font-bold text-center mb-1">Leading 🟢</div>
+                            {% for sector in sector_rotation.ranking[:3] %}
+                            <div
+                                class="flex justify-between items-center text-xs bg-gray-800/80 px-2 py-1 rounded border-l-2 border-green-500">
+                                <span class="text-white truncate w-20">{{ sector.sector }}</span>
+                                <span class="text-green-400 font-mono">+{{ "%.1f"|format(sector.momentum_score)
+                                    }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <!-- Laggards -->
+                        <div class="space-y-1">
+                            <div class="text-[9px] text-gray-500 uppercase font-bold text-center mb-1">Lagging 🔴</div>
+                            {% for sector in sector_rotation.ranking[-3:]|reverse %}
+                            <div
+                                class="flex justify-between items-center text-xs bg-gray-800/80 px-2 py-1 rounded border-l-2 border-red-500">
+                                <span class="text-white truncate w-20">{{ sector.sector }}</span>
+                                <span class="text-red-400 font-mono">{{ "%.1f"|format(sector.momentum_score) }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4 text-gray-500 text-xs">Sector data loading...</div>
+                    {% endif %}
+                </div>
+
 
                 <!-- ROW 1.5: BENCHMARK COMPARISON -->
                 {% if benchmark_data and benchmark_data.benchmarks %}
@@ -616,8 +691,10 @@
                     });
 
                     // Inject Data
-                    const dates = {{ chart_labels | tojson }};
-                    const values = {{ chart_data | safe }}; // safe because json.dumps used in python
+                    const dates = {{ chart_labels | tojson
+                }
+            };
+            const values = {{ chart_data | safe }}; // safe because json.dumps used in python
 
             if (dates && values && dates.length === values.length) {
                 const data = dates.map((d, i) => ({ time: d, value: values[i] }));

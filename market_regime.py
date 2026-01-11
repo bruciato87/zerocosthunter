@@ -212,11 +212,23 @@ class MarketRegimeClassifier:
             recommendation = "normal"
             confidence_multiplier = 1.0
         
+        # Determine volatility state
+        if vix < self.VIX_LOW:
+            vol_state = "LOW (Complacent)"
+        elif vix < self.VIX_HIGH:
+            vol_state = "NORMAL"
+        elif vix < self.VIX_EXTREME:
+            vol_state = "HIGH (Fear)"
+        else:
+            vol_state = "EXTREME (Panic)"
+
         result = {
             "regime": regime,
             "confidence": round(confidence, 2),
             "signals": signals,
             "recommendation": recommendation,
+            "strategy_suggestion": self._get_educational_suggestion(regime),
+            "volatility_state": vol_state,
             "confidence_multiplier": confidence_multiplier,
             "indicators": {
                 "spy": spy if "error" not in spy else None,
@@ -235,6 +247,19 @@ class MarketRegimeClassifier:
         logger.info(f"Market Regime: {regime} ({confidence:.0%}) - {recommendation}")
         return result
     
+    def _get_educational_suggestion(self, regime: str) -> str:
+        """Get an educational tip for the dashboard."""
+        if regime == "BULL":
+            return "Momentum is strong. Look for breakouts and buy dips in leaders."
+        elif regime == "BEAR":
+            return "Trend is down. Preserve capital. Cash is a position."
+        elif regime == "ACCUMULATION":
+            return "Smart money is buying. Look for divergence and volume bottoms."
+        elif regime == "DISTRIBUTION":
+            return "Smart money is selling. Tighten stops and take profits."
+        else:
+            return "Market is chopping. Trade ranges or wait for a clear trend."
+
     def get_regime(self) -> str:
         """Shortcut to get just the regime name."""
         return self.classify()["regime"]

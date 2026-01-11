@@ -130,12 +130,19 @@ class SectorRotationTracker:
             rotation_signal = "NEUTRAL"
             confidence = 0.5
         
+        # Create ranking list for dashboard
+        ranking_list = [
+            {"sector": s[0], "momentum_score": s[1]} 
+            for s in sorted_sectors
+        ]
+
         result = {
             "leading": leading,
             "lagging": lagging,
             "rotation_signal": rotation_signal,
             "confidence": round(confidence, 2),
             "sector_performance": performances,
+            "ranking": ranking_list,
             "risk_on_score": round(risk_on_perf, 2),
             "risk_off_score": round(risk_off_perf, 2),
             "period": period,
