@@ -621,11 +621,11 @@ class Brain:
         # as long as the news source covers them.
         pass
 
-    def generate_deep_dive(self, ticker: str, news_list: list, technical_data: str, portfolio_context: str = None, backtest_context: str = None, macro_context: str = None, whale_context: str = None):
+    def generate_deep_dive(self, ticker: str, news_list: list, technical_data: str, portfolio_context: str = None, backtest_context: str = None, macro_context: str = None, whale_context: str = None, l1_context: str = None):
         """
         Generates a Strategic Analysis Report (Path B).
         Now works even without news - uses technical data!
-        Enhanced with macro and whale context for comprehensive analysis.
+        Enhanced with macro, whale, and L1 predictive context for comprehensive analysis.
         """
         # Build news text if available, otherwise note no news
         if news_list:
@@ -643,6 +643,7 @@ class Brain:
         - **Historical Backtest (90d):** {backtest_context or "Not available"}
         - **Macro Context:** {macro_context or "Not available"}
         - **Whale Activity (On-Chain):** {whale_context or "Not available"}
+        - **L1 Predictive Analysis:** {l1_context or "Not available"}
         - **Recent News (Full Text):**
         {news_text}
 

@@ -1490,7 +1490,54 @@ async def analyze_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception as e:
             logger.warning(f"Analyze: Whale context failed: {e}")
 
-        # 8. Generate Report (with ALL context: backtest, macro, whale)
+        # 8. L1 Predictive System - Unified with /hunt
+        l1_context = ""
+        try:
+            from signal_intelligence import SignalIntelligence
+            from sentiment_aggregator import SentimentAggregator
+            
+            si = SignalIntelligence()
+            
+            # 8.1 Technical Confluence (RSI + SMA50 + Volume)
+            confluence = si.check_technical_confluence(ticker, "BUY")  # Check BUY alignment
+            confluence_text = f"Confluence: {confluence.get('alignment', 0)}/3"
+            if confluence.get('reasons'):
+                confluence_text += f" ({', '.join(confluence.get('reasons', [])[:2])})"
+            logger.info(f"Analyze L1: {confluence_text}")
+            
+            # 8.2 Multi-Timeframe Analysis
+            mtf = market.get_multi_timeframe_trend(ticker)
+            mtf_text = f"MTF: {mtf.get('direction', 'unknown')} ({mtf.get('alignment', 0)}/3 timeframes aligned)"
+            logger.info(f"Analyze L1: {mtf_text}")
+            
+            # 8.3 Sentiment Aggregator
+            sentiment_agg = SentimentAggregator()
+            agg_result = sentiment_agg.get_aggregated_score()
+            sentiment_text = f"Market Sentiment: {agg_result.get('score', 50)}/100 ({agg_result.get('label', 'Neutral')}) → {agg_result.get('recommendation', 'HOLD')}"
+            logger.info(f"Analyze L1: {sentiment_text}")
+            
+            # 8.4 Correlated Assets Info
+            from correlation_engine import CorrelationEngine
+            corr_engine = CorrelationEngine()
+            correlated = corr_engine.get_correlated_assets(ticker)
+            corr_text = ""
+            if correlated:
+                top_corr = correlated[:3]
+                corr_text = f"Correlated: " + ", ".join([f"{c[0]} ({c[1]:.0%})" for c in top_corr])
+            
+            l1_context = f"""
+**L1 PREDICTIVE ANALYSIS:**
+- {confluence_text}
+- {mtf_text} (Timeframes: {mtf.get('timeframes', {})})
+- {sentiment_text}
+- {corr_text}
+"""
+            logger.info(f"Analyze: L1 context added")
+        except Exception as e:
+            logger.warning(f"Analyze: L1 context failed: {e}")
+            l1_context = "L1 Predictive: Not available"
+
+        # 9. Generate Report (with ALL context: backtest, macro, whale, L1)
         logger.info(f"Analyze: Generating AI Report for {ticker}...")
         report = brain.generate_deep_dive(
             ticker, 
@@ -1499,7 +1546,8 @@ async def analyze_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             portfolio_context, 
             backtest_context,
             macro_context,
-            whale_context
+            whale_context,
+            l1_context  # NEW: L1 predictive context
         )
         
         # 6. Send Report (Split if too long, though unlikely for this prompt)
