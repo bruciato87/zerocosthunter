@@ -421,16 +421,27 @@ class MarketData:
             elif rsi < 30:
                 rsi_status = "OVERSOLD (<30)"
 
-            # ATH (All-Time High) Check - approximate from loaded period or max
-            # Since we only fetch 6mo of data above, we might miss true ATH.
-            # Let's fetch max history for strictly ATH check is expensive? 
-            # Compromise: High of last 6mo (52w High approx)
+            # ATH (All-Time High) Check
             period_high = df['High'].max()
             dist_from_high = ((price - period_high) / period_high) * 100
             
+            # [CRITICAL UPDATE] Force Price to EUR using Smart Logic
+            # This ensures AI sees the same price as the user's portfolio
+            price_eur, _, smart_change = self.get_smart_price_eur(ticker, include_change=True)
+            
+            if price_eur > 0:
+                display_price = price_eur
+                display_sym = "€"
+                # If we have a smart change, use it (it might be more accurate/recent)
+                if smart_change != 0:
+                    change_pct = smart_change
+            else:
+                display_price = price
+                display_sym = "$" # Fallback
+            
             # 4. Format Summary
             summary = (
-                f"Price: ${price:.2f} ({change_pct:+.2f}%), "
+                f"Price: {display_sym}{display_price:.4f} ({change_pct:+.2f}%), "
                 f"RSI: {rsi:.1f} ({rsi_status}), "
                 f"Trend: {trend}, "
                 f"Diff from 6m High: {dist_from_high:.1f}%"
