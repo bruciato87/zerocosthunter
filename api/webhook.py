@@ -402,7 +402,54 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     db = DBHandler()
     chat_id = update.effective_chat.id
-    if query.data == "confirm_save":
+    
+    # --- SELL CALLBACKS ---
+    if query.data == "confirm_sell_manual":
+        try:
+            # Parse message to identify asset and quantity
+            # Format: "📊 Vendita Iniziata: TICKER\n├ Quantità: 100..."
+            lines = query.message.text.split('\n')
+            ticker_line = next((l for l in lines if "Vendita Iniziata:" in l), None)
+            qty_line = next((l for l in lines if "Quantità:" in l), None)
+            
+            if not ticker_line or not qty_line:
+                await query.edit_message_text("❌ Errore parsing dati messaggio.")
+                return
+                
+            ticker = ticker_line.split(":")[1].strip()
+            quantity = float(qty_line.split(":")[1].strip())
+            
+            # Update Portfolio
+            portfolio = db.get_portfolio(chat_id)
+            asset = next((p for p in portfolio if p['ticker'] == ticker), None)
+            
+            if asset:
+                current_qty = asset['quantity']
+                new_qty = current_qty - quantity
+                
+                if new_qty > 0:
+                    if db.update_asset_quantity(chat_id, ticker, new_qty):
+                        await query.edit_message_text(f"✅ **Vendita Confermata!**\n\n📉 {ticker}: Quantità aggiornata a {new_qty:.4f}.")
+                    else:
+                        await query.edit_message_text("❌ Errore aggiornamento DB.")
+                else:
+                    # Fully sold
+                    if db.delete_asset(chat_id, ticker):
+                        await query.edit_message_text(f"✅ **Vendita Totale Confermata!**\n\n🗑️ {ticker} rimosso dal portafoglio.")
+                    else:
+                        await query.edit_message_text("❌ Errore eliminazione asset.")
+            else:
+                 await query.edit_message_text(f"⚠️ {ticker} non trovato in portafoglio (già venduto?).")
+                 
+        except Exception as e:
+            logger.error(f"Sell Confirm Error: {e}")
+            await query.edit_message_text(f"❌ Errore: {e}")
+
+    elif query.data == "cancel_sell":
+        await query.edit_message_text("❌ Operazione di vendita annullata.")
+
+    # --- PORTFOLIO CALLBACKS ---
+    elif query.data == "confirm_save":
         try:
             db.confirm_portfolio(chat_id)
             await query.edit_message_text(text="🚀 **Portafoglio Aggiornato!**")
