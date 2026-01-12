@@ -142,6 +142,35 @@ class Brain:
         except Exception as e:
             logger.warning(f"Market hours context failed: {e}")
 
+        # [FX RATE CONTEXT]
+        fx_bg = ""
+        try:
+            # Fetch simple EUR/USD rate
+            try:
+                import yfinance as yf
+                t = yf.Ticker("EURUSD=X")
+                data = t.history(period="1d")
+                if not data.empty:
+                    eur_usd = data['Close'].iloc[-1]
+                else:
+                    eur_usd = 1.08 # Fallback
+            except:
+                eur_usd = 1.08
+
+            fx_bg = f"""
+            [FX RATES - REAL TIME]
+            EUR/USD Exchange Rate: {eur_usd:.4f} (1 EUR = {eur_usd:.4f} USD)
+            
+            **CURRENCY CONVERSION RULE (MANDATORY):**
+            - News often cites USD ($) targets.
+            - You MUST convert them to EUR (€) for the report.
+            - FORMULA: Target_EUR = Target_USD / {eur_usd:.4f}
+            - Example: Analyst says "$200". Math: 200 / {eur_usd:.4f} = €{200/eur_usd:.2f}.
+            - DO NOT just change the symbol. DO THE MATH.
+            """
+        except Exception as e:
+            logger.warning(f"FX context failed: {e}")
+
         # Prepare the prompt
         news_text = "\n\n".join([f"Source: {item['source']}\nTitle: {item['title']}\nSummary: {item['summary']}" for item in news_list])
         
@@ -152,6 +181,7 @@ class Brain:
         {macro_bg}
         {whale_bg}
         {market_hours_bg}
+        {fx_bg}
         
         **SYSTEM ROLE:**
         You are a Senior Investment Analyst & Quantitative Trader.
