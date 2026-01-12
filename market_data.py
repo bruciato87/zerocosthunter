@@ -23,6 +23,12 @@ logger = logging.getLogger(__name__)
 class MarketData:
     def __init__(self):
         logger.info("MarketData Class Loaded (v2.1 - Smart Price Enabled)")
+        
+        # [PERFORMANCE] Session-level cache to avoid redundant API calls
+        self._price_cache = {}      # ticker -> (price, source, change_pct, timestamp)
+        self._technical_cache = {}  # ticker -> (summary, timestamp)
+        self._cache_ttl = 60        # Cache TTL in seconds (1 minute)
+        
         self.COINGECKO_MAP = {
             "BTC-USD": "bitcoin",
             "ETH-USD": "ethereum",
@@ -132,6 +138,17 @@ class MarketData:
            - If include_change=False (default): (price_in_eur, found_ticker_suffix_or_alias)
            - If include_change=True: (price_in_eur, found_ticker_suffix_or_alias, change_percent_24h)
         """
+        import time
+        cache_key = candidate_ticker.upper()
+        
+        # [PERFORMANCE] Check cache first
+        if cache_key in self._price_cache:
+            cached = self._price_cache[cache_key]
+            if time.time() - cached['ts'] < self._cache_ttl:
+                if include_change:
+                    return (cached['price'], cached['source'], cached['change'])
+                return (cached['price'], cached['source'])
+        
         change_pct = 0.0
         
         # Helper to extract change
@@ -251,7 +268,12 @@ class MarketData:
                          result = (price, t_test) # EUR
                     else:
                          result = (price / eur_usd_rate, t_test) # Convert USD (heuristic)
-                         
+                    
+                    # [PERFORMANCE] Store in cache
+                    self._price_cache[cache_key] = {
+                        'price': result[0], 'source': result[1], 
+                        'change': change_pct, 'ts': time.time()
+                    }
                     return (*result, change_pct) if include_change else result
             except: pass
             
@@ -358,6 +380,15 @@ class MarketData:
         Fetches price history and calculates RSI and SMA.
         Returns a human-readable summary string.
         """
+        import time
+        cache_key = f"tech_{ticker.upper()}"
+        
+        # [PERFORMANCE] Check cache first
+        if cache_key in self._technical_cache:
+            cached = self._technical_cache[cache_key]
+            if time.time() - cached['ts'] < self._cache_ttl:
+                return cached['summary']
+        
         try:
             ticker = ticker.upper().strip()
             # Apply Alias Mapping for Technical Analysis
@@ -446,11 +477,17 @@ class MarketData:
                 f"Trend: {trend}, "
                 f"Diff from 6m High: {dist_from_high:.1f}%"
             )
+            
+            # [PERFORMANCE] Store in cache
+            self._technical_cache[cache_key] = {'summary': summary, 'ts': time.time()}
             return summary
-
+        
         except Exception as e:
-            logger.error(f"Error fetching technicals for {ticker}: {e}")
-            return "Technical Analysis Failed"
+            logger.warning(f"Technical summary failed for {ticker}: {e}")
+            error_summary = f"Technical: Unknown (Error for {ticker})"
+            # Cache error too to avoid retrying immediately
+            self._technical_cache[cache_key] = {'summary': error_summary, 'ts': time.time()}
+            return error_summary
 
 if __name__ == "__main__":
     # Test
