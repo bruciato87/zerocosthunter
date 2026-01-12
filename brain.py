@@ -171,6 +171,50 @@ class Brain:
         except Exception as e:
             logger.warning(f"FX context failed: {e}")
 
+        # [PATTERN RECOGNITION CONTEXT - LEVEL 3]
+        pattern_bg = ""
+        try:
+            from pattern_recognition import PatternRecognizer
+            pr = PatternRecognizer()
+            
+            # Extract unique tickers from news items
+            tickers_in_news = set()
+            for item in news_list:
+                # Try to extract ticker if present in the item
+                if 'ticker' in item:
+                    tickers_in_news.add(item['ticker'])
+            
+            # If we have performance context, add those tickers too
+            if performance_context:
+                for ticker in list(performance_context.keys())[:5]:  # Top 5
+                    tickers_in_news.add(ticker)
+            
+            # Generate pattern summaries for each ticker
+            pattern_lines = []
+            for ticker in list(tickers_in_news)[:5]:  # Limit to 5 to avoid prompt bloat
+                summary = pr.get_pattern_summary(ticker)
+                if "No significant" not in summary:
+                    pattern_lines.append(summary)
+            
+            if pattern_lines:
+                pattern_bg = f"""
+            [CHART PATTERN ANALYSIS - LEVEL 3]
+            Visual pattern detection has identified the following formations:
+            
+            {"".join(pattern_lines)}
+            
+            **PATTERN INTEGRATION RULES:**
+            - If a BULLISH pattern (Inverse H&S, Double Bottom, Bull Flag, Descending Wedge) is detected:
+              → BOOST confidence for BUY/ACCUMULATE signals (+5-10%)
+              → Add pattern to reasoning: "Chart shows [pattern] formation"
+            - If a BEARISH pattern (H&S, Double Top, Bear Flag, Ascending Wedge) is detected:
+              → REDUCE confidence for BUY signals OR suggest WAIT/HOLD
+              → For SELL signals: BOOST confidence
+            - Pattern Target Move % can inform your Target Price estimation
+            """
+        except Exception as e:
+            logger.warning(f"Pattern context failed: {e}")
+
         # Prepare the prompt
         news_text = "\n\n".join([f"Source: {item['source']}\nTitle: {item['title']}\nSummary: {item['summary']}" for item in news_list])
         
@@ -182,6 +226,7 @@ class Brain:
         {whale_bg}
         {market_hours_bg}
         {fx_bg}
+        {pattern_bg}
         
         **SYSTEM ROLE:**
         You are a Senior Investment Analyst & Quantitative Trader.

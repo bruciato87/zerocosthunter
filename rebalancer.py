@@ -265,6 +265,33 @@ class Rebalancer:
             except Exception as e:
                 logger.warning(f"L2 context failed for rebalance: {e}")
             
+            # 5. L3 Pattern Recognition for portfolio assets
+            l3_context = ""
+            try:
+                from pattern_recognition import PatternRecognizer
+                pr = PatternRecognizer()
+                
+                pattern_findings = []
+                for asset in analysis["assets"][:5]:  # Top 5 by value
+                    ticker = asset['ticker']
+                    bias, modifier = pr.get_pattern_bias(ticker)
+                    if bias != "NEUTRAL":
+                        patterns = pr.detect_patterns(ticker)
+                        if patterns:
+                            top_pattern = patterns[0]
+                            pattern_findings.append(
+                                f"- {ticker}: {top_pattern.pattern_type.value} ({bias}, {int(top_pattern.confidence*100)}% conf) → Target: {top_pattern.target_move_pct:+.1f}%"
+                            )
+                
+                if pattern_findings:
+                    l3_context = f"""
+**L3 PATTERN RECOGNITION:**
+{chr(10).join(pattern_findings)}
+"""
+                    logger.info(f"Rebalance: L3 patterns found for {len(pattern_findings)} assets")
+            except Exception as e:
+                logger.warning(f"L3 context failed for rebalance: {e}")
+            
             prompt = f"""
             Sei un Portfolio Manager italiano focalizzato sulla MASSIMIZZAZIONE DEI PROFITTI.
             
@@ -282,6 +309,10 @@ class Rebalancer:
             
             **CONTESTO MERCATO:**
             {market_context}
+            
+            {l2_context}
+            
+            {l3_context}
             
             **OBIETTIVO PRINCIPALE: MASSIMIZZARE I PROFITTI**
             

@@ -1832,7 +1832,27 @@ async def analyze_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             logger.warning(f"Analyze: L2 context failed: {e}")
             l2_context = "L2 Predictive: Not available"
 
-        # 10. Generate Report (with ALL context: backtest, macro, whale, L1, L2)
+        # 10. L3 Pattern Recognition (NEW)
+        l3_context = ""
+        try:
+            from pattern_recognition import PatternRecognizer
+            pr = PatternRecognizer()
+            pattern_summary = pr.get_pattern_summary(ticker)
+            
+            if "No significant" not in pattern_summary:
+                l3_context = f"""
+**L3 PATTERN RECOGNITION:**
+{pattern_summary}
+"""
+                logger.info(f"Analyze: L3 pattern context added for {ticker}")
+            else:
+                l3_context = "L3 Pattern: No significant chart patterns detected."
+                logger.info(f"Analyze: No patterns detected for {ticker}")
+        except Exception as e:
+            logger.warning(f"Analyze: L3 pattern context failed: {e}")
+            l3_context = "L3 Pattern: Not available"
+
+        # 11. Generate Report (with ALL context: backtest, macro, whale, L1, L2, L3)
         logger.info(f"Analyze: Generating AI Report for {ticker}...")
         report = brain.generate_deep_dive(
             ticker, 
@@ -1842,7 +1862,7 @@ async def analyze_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             backtest_context,
             macro_context,
             whale_context,
-            l1_context + "\n" + l2_context  # Combined L1+L2 predictive context
+            l1_context + "\n" + l2_context + "\n" + l3_context  # Combined L1+L2+L3 predictive context
         )
         
         # 6. Send Report (Split if too long, though unlikely for this prompt)
