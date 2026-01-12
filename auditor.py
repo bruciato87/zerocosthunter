@@ -24,6 +24,7 @@ class Auditor:
     def audit_open_signals(self):
         """
         Updates PnL and Status for all OPEN signals.
+        [OPTIMIZED] Collects all updates first, then batches them.
         """
         try:
             # 1. Fetch OPEN signals
@@ -35,6 +36,7 @@ class Auditor:
                 return []
 
             updates = []
+            pending_updates = []  # [PERFORMANCE] Collect updates to batch at end
             
             for sig in open_signals:
                 ticker = sig['ticker']
@@ -110,7 +112,7 @@ class Auditor:
                     elif age_hours > (self.MAX_AGE_DAYS * 24):
                         new_status = "EXPIRED"
 
-                # 5. Update DB
+                # 5. Queue Update (instead of immediate DB call)
                 update_data = {
                     "current_price": live_price,
                     "pnl_percent": round(pnl_pct, 2),
@@ -118,41 +120,54 @@ class Auditor:
                     "updated_at": "now()"
                 }
                 
-                self.db.supabase.table("signal_tracking").update(update_data).eq("id", sig['id']).execute()
+                pending_updates.append({
+                    "id": sig['id'],
+                    "data": update_data,
+                    "ticker": ticker,
+                    "new_status": new_status,
+                    "pnl_pct": pnl_pct,
+                    "sig": sig
+                })
                 
                 if new_status != "OPEN":
                     updates.append(f"{ticker}: {new_status} ({pnl_pct:+.2f}%)")
                     logger.info(f"Auditor: Signal Closed - {ticker} is {new_status}")
+            
+            # 6. [PERFORMANCE] Batch all updates at once
+            if pending_updates:
+                logger.info(f"Auditor: Batching {len(pending_updates)} updates...")
+                for pu in pending_updates:
+                    self.db.supabase.table("signal_tracking").update(pu["data"]).eq("id", pu["id"]).execute()
                     
-                    # AUTO-LEARN: Generate lesson for LOSS signals
-                    if new_status == "LOSS":
+                    # AUTO-LEARN: Generate lesson for LOSS signals (still sequential for now)
+                    if pu["new_status"] == "LOSS":
                         try:
                             from memory import Memory
                             mem = Memory()
                             
                             # Get original reasoning from memory (if it exists)
                             original_reasoning = "Segnale BUY originale - nessun dettaglio disponibile"
-                            memories = mem.recall_memory(ticker, limit=1)
+                            memories = mem.recall_memory(pu["ticker"], limit=1)
                             if memories and memories[0].get('reasoning'):
                                 original_reasoning = memories[0]['reasoning']
                             
                             # Generate AI lesson
-                            lesson = mem.generate_lesson(ticker, pnl_pct, original_reasoning)
+                            lesson = mem.generate_lesson(pu["ticker"], pu["pnl_pct"], original_reasoning)
                             
                             if lesson:
                                 # Save lesson to memory table
                                 mem.save_memory(
-                                    ticker=ticker,
+                                    ticker=pu["ticker"],
                                     event_type="lesson",
-                                    reasoning=f"Trade chiuso in perdita: {pnl_pct:+.1f}%",
-                                    signal_id=sig.get('signal_id'),
+                                    reasoning=f"Trade chiuso in perdita: {pu['pnl_pct']:+.1f}%",
+                                    signal_id=pu["sig"].get('signal_id'),
                                     source="auto_auditor"
                                 )
                                 # Update with lesson
-                                mem.update_outcome(sig.get('signal_id'), pnl_pct, lesson)
-                                logger.info(f"📚 Lesson generated for {ticker}: {lesson[:50]}...")
+                                mem.update_outcome(pu["sig"].get('signal_id'), pu["pnl_pct"], lesson)
+                                logger.info(f"📚 Lesson generated for {pu['ticker']}: {lesson[:50]}...")
                         except Exception as lesson_err:
-                            logger.warning(f"Lesson generation failed for {ticker}: {lesson_err}")
+                            logger.warning(f"Lesson generation failed for {pu['ticker']}: {lesson_err}")
 
             return updates
 
