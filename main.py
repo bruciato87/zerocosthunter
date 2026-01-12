@@ -119,6 +119,33 @@ async def run_async_pipeline():
     # Signal Intelligence is already initialized at start
     pass
 
+    # [PERFORMANCE] Pre-warm cache: Extract unique tickers and fetch technicals once
+    logger.info("Pre-warming cache with unique tickers...")
+    unique_tickers = set()
+    for item in news_items:
+        text_content = (item.get('title', '') + " " + item.get('summary', '')).upper()
+        for key, symbol in MONITORED_TICKERS.items():
+            if re.search(r'\b' + re.escape(key) + r'\b', text_content):
+                norm_ticker = CANONICAL_MAP.get(symbol, symbol)
+                if f"{norm_ticker}-USD" in portfolio_map:
+                    norm_ticker = f"{norm_ticker}-USD"
+                unique_tickers.add(norm_ticker)
+                break
+    
+    # Also add portfolio tickers
+    for p_ticker in portfolio_map.keys():
+        unique_tickers.add(p_ticker)
+    
+    # Pre-fetch all unique tickers (this populates the cache)
+    logger.info(f"Pre-warming {len(unique_tickers)} unique tickers...")
+    for ticker in unique_tickers:
+        try:
+            market.get_technical_summary(ticker)  # Populates cache
+            market.get_smart_price_eur(ticker)    # Populates cache
+        except Exception:
+            pass
+    logger.info(f"Cache pre-warmed. Starting enrichment...")
+
     for item in news_items:
         text_content = (item.get('title', '') + " " + item.get('summary', '')).upper()
         
