@@ -1218,13 +1218,23 @@ async def rebalance_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if len(report) > 4000:
             parts = [report[i:i+4000] for i in range(0, len(report), 4000)]
             for part in parts:
-                await update.message.reply_text(part, parse_mode="Markdown")
+                try:
+                    await update.message.reply_text(part, parse_mode="Markdown")
+                except Exception:
+                    # Markdown parse error - fallback to plain text
+                    await update.message.reply_text(part)
         else:
-            await update.message.reply_text(report, parse_mode="Markdown")
+            try:
+                await update.message.reply_text(report, parse_mode="Markdown")
+            except Exception as md_err:
+                # Markdown parse error - fallback to plain text
+                logger.warning(f"Rebalance markdown failed, sending plain text: {md_err}")
+                await update.message.reply_text(report)
         
     except Exception as e:
         logger.error(f"Rebalance command error: {e}")
         await update.message.reply_text(f"❌ Errore nel calcolo ribilanciamento: {e}")
+
 
 async def sell_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
