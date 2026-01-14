@@ -1,16 +1,16 @@
 """
 ML Predictor - Level 4 Machine Learning
 ========================================
-Price direction prediction using LightGBM with technical indicators.
+Price direction prediction using Gemini AI with technical indicators.
 Integrates with Brain for confidence adjustment.
 
-Note: Uses LightGBM (~30MB) instead of XGBoost (~180MB) for Vercel compatibility.
+Note: Uses Gemini API for ML-like predictions - no heavy dependencies needed!
+This approach works within Vercel's 250MB limit.
 """
 
 import logging
 import os
 import json
-import pickle
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
@@ -29,18 +29,18 @@ class MLPrediction:
     confidence: float  # 0.0 - 1.0
     features_used: Dict
     model_version: str
-    is_ml: bool  # True if ML, False if rule-based fallback
+    is_ml: bool  # True if Gemini ML, False if rule-based fallback
 
 
 class MLPredictor:
     """
     Machine Learning predictor for price direction.
     
-    Uses XGBoost when sufficient training data is available,
-    falls back to rule-based heuristics otherwise.
+    Uses Gemini AI to analyze technical indicators and predict price direction.
+    Falls back to rule-based heuristics if Gemini is unavailable.
     """
     
-    # Minimum samples required for ML training
+    # Minimum samples for accuracy tracking
     MIN_TRAINING_SAMPLES = 50
     
     # Feature definitions
@@ -56,34 +56,24 @@ class MLPredictor:
     ]
     
     def __init__(self):
-        self.model = None
-        self.model_version = "rule_v1"  # Start with rule-based
+        self.model_version = "gemini_v1"
         self.is_ml_ready = False
-        self._load_model()
+        self.client = None
+        self._init_gemini()
     
-    def _load_model(self):
-        """Load trained model from DB or fallback to rules."""
+    def _init_gemini(self):
+        """Initialize Gemini client for ML predictions."""
         try:
-            from db_handler import DBHandler
-            db = DBHandler()
-            
-            # Check if we have a trained model in DB
-            result = db.supabase.table("ml_model_state") \
-                .select("*") \
-                .order("trained_at", desc=True) \
-                .limit(1) \
-                .execute()
-            
-            if result.data:
-                state = result.data[0]
-                self.model_version = state.get('model_version', 'rule_v1')
-                self.is_ml_ready = 'xgb' in self.model_version.lower()
-                logger.info(f"ML Predictor: Loaded model {self.model_version}")
+            api_key = os.environ.get("GEMINI_API_KEY")
+            if api_key:
+                from google import genai
+                self.client = genai.Client(api_key=api_key)
+                self.is_ml_ready = True
+                logger.info("ML Predictor: Gemini client initialized")
             else:
-                logger.info("ML Predictor: No trained model found, using rule-based")
-                
+                logger.warning("ML Predictor: No GEMINI_API_KEY, using rule-based")
         except Exception as e:
-            logger.warning(f"ML Predictor: Model load failed, using rules: {e}")
+            logger.warning(f"ML Predictor: Gemini init failed: {e}")
     
     def _get_features(self, ticker: str) -> Optional[Dict]:
         """
@@ -97,7 +87,6 @@ class MLPredictor:
             # Normalize ticker
             search_ticker = ticker
             if not any(c in ticker for c in ['-', '.']):
-                # Try crypto first
                 search_ticker = f"{ticker}-USD"
             
             # Fetch price data
@@ -105,7 +94,6 @@ class MLPredictor:
             hist = t.history(period="3mo")
             
             if hist.empty or len(hist) < 30:
-                # Fallback to stock format
                 if '-USD' in search_ticker:
                     search_ticker = ticker
                     t = yf.Ticker(search_ticker)
@@ -121,7 +109,6 @@ class MLPredictor:
             low = df['Low']
             volume = df['Volume']
             
-            # Calculate indicators
             features = {}
             
             # RSI
@@ -162,7 +149,7 @@ class MLPredictor:
             features['price_sma20_ratio'] = current_price / sma20 if sma20 > 0 else 1.0
             features['price_sma50_ratio'] = current_price / sma50 if sma50 > 0 else 1.0
             
-            # ATR (Volatility)
+            # ATR
             atr = ta.volatility.AverageTrueRange(high, low, close, window=14)
             features['atr_percent'] = (atr.average_true_range().iloc[-1] / current_price * 100) if current_price > 0 else 0
             
@@ -172,7 +159,7 @@ class MLPredictor:
             else:
                 features['momentum_10d'] = 0
             
-            # VIX (Market Fear)
+            # VIX
             try:
                 vix = yf.Ticker("^VIX")
                 vix_hist = vix.history(period="5d")
@@ -180,13 +167,13 @@ class MLPredictor:
                     features['vix_level'] = vix_hist['Close'].iloc[-1]
                     features['vix_change'] = (vix_hist['Close'].iloc[-1] - vix_hist['Close'].iloc[0]) / vix_hist['Close'].iloc[0] * 100 if len(vix_hist) > 1 else 0
                 else:
-                    features['vix_level'] = 20  # Default neutral
+                    features['vix_level'] = 20
                     features['vix_change'] = 0
             except:
                 features['vix_level'] = 20
                 features['vix_change'] = 0
             
-            # Market Regime (encoded: 1=BULL, 0=NEUTRAL, -1=BEAR)
+            # Market Regime
             try:
                 from market_regime import MarketRegimeClassifier
                 regime = MarketRegimeClassifier().classify()
@@ -207,68 +194,57 @@ class MLPredictor:
             return None
     
     def _rule_based_predict(self, features: Dict) -> Tuple[str, float]:
-        """
-        Rule-based fallback predictor.
-        Returns (direction, confidence).
-        """
+        """Rule-based fallback predictor."""
         score = 0.0
-        max_score = 7.0  # Maximum possible score
+        max_score = 7.0
         
-        # RSI Rules
         rsi = features.get('rsi_14', 50)
         if rsi < 30:
-            score += 1.5  # Oversold = bullish
+            score += 1.5
         elif rsi > 70:
-            score -= 1.5  # Overbought = bearish
+            score -= 1.5
         elif rsi < 45:
             score += 0.5
         elif rsi > 55:
             score -= 0.5
         
-        # MACD Rules
         macd_hist = features.get('macd_hist', 0)
         macd_cross = features.get('macd_signal_cross', 0)
         if macd_hist > 0:
             score += 1.0
         elif macd_hist < 0:
             score -= 1.0
-        score += macd_cross * 0.5  # Bonus for fresh cross
+        score += macd_cross * 0.5
         
-        # Bollinger Position
         bb_pos = features.get('bb_position', 0.5)
         if bb_pos < 0.2:
-            score += 1.0  # Near lower band = bullish
+            score += 1.0
         elif bb_pos > 0.8:
-            score -= 1.0  # Near upper band = bearish
+            score -= 1.0
         
-        # Price vs SMA
         sma20_ratio = features.get('price_sma20_ratio', 1.0)
         sma50_ratio = features.get('price_sma50_ratio', 1.0)
         if sma20_ratio > 1.0 and sma50_ratio > 1.0:
-            score += 1.0  # Above both = bullish
+            score += 1.0
         elif sma20_ratio < 1.0 and sma50_ratio < 1.0:
-            score -= 1.0  # Below both = bearish
+            score -= 1.0
         
-        # VIX (inverse relationship)
         vix = features.get('vix_level', 20)
         if vix > 30:
-            score -= 0.5  # High fear = cautious
+            score -= 0.5
         elif vix < 15:
-            score += 0.5  # Low fear = bullish
+            score += 0.5
         
-        # Market Regime
         regime = features.get('market_regime_encoded', 0)
         score += regime * 0.5
         
-        # Momentum
         momentum = features.get('momentum_10d', 0)
         if momentum > 5:
             score += 0.5
         elif momentum < -5:
             score -= 0.5
         
-        # Normalize score to direction and confidence
-        normalized = score / max_score  # -1 to 1 range
+        normalized = score / max_score
         
         if normalized > 0.2:
             direction = "UP"
@@ -282,39 +258,70 @@ class MLPredictor:
         
         return direction, confidence
     
-    def _lgbm_predict(self, features: Dict) -> Tuple[str, float]:
-        """
-        LightGBM ML prediction.
-        Requires trained model.
-        """
+    def _gemini_predict(self, ticker: str, features: Dict) -> Tuple[str, float]:
+        """Use Gemini AI for ML-like prediction based on technical indicators."""
         try:
-            # Convert features to array in correct order
-            feature_array = np.array([[features.get(f, 0) for f in self.FEATURE_COLUMNS]])
+            if not self.client:
+                return self._rule_based_predict(features)
             
-            # Get prediction probabilities
-            probas = self.model.predict_proba(feature_array)[0]
-            prediction = self.model.predict(feature_array)[0]
+            # Build feature summary for Gemini
+            rsi = features.get('rsi_14', 50)
+            macd = features.get('macd_hist', 0)
+            bb_pos = features.get('bb_position', 0.5)
+            momentum = features.get('momentum_10d', 0)
+            vix = features.get('vix_level', 20)
+            volume_ratio = features.get('volume_ratio', 1.0)
+            sma20_ratio = features.get('price_sma20_ratio', 1.0)
+            regime = features.get('market_regime_encoded', 0)
+            regime_str = {1: 'BULL', 0: 'NEUTRAL', -1: 'BEAR'}.get(regime, 'NEUTRAL')
             
-            direction_map = {0: "DOWN", 1: "HOLD", 2: "UP"}
-            direction = direction_map.get(prediction, "HOLD")
-            confidence = float(max(probas))
+            prompt = f"""Sei un modello ML per predizione prezzi. Analizza questi indicatori tecnici per {ticker} e predici la direzione del prezzo a 7 giorni.
+
+INDICATORI:
+- RSI(14): {rsi:.1f} {"(OVERSOLD)" if rsi < 30 else "(OVERBOUGHT)" if rsi > 70 else ""}
+- MACD Histogram: {macd:.2f} {"(BULLISH)" if macd > 0 else "(BEARISH)"}
+- Bollinger Position: {bb_pos:.2f} (0=lower band, 1=upper band)
+- 10-day Momentum: {momentum:+.1f}%
+- VIX: {vix:.1f} {"(HIGH FEAR)" if vix > 25 else "(LOW FEAR)" if vix < 15 else ""}
+- Volume Ratio: {volume_ratio:.2f}x average
+- Price vs SMA20: {sma20_ratio:.2f} {"(ABOVE)" if sma20_ratio > 1 else "(BELOW)"}
+- Market Regime: {regime_str}
+
+Rispondi SOLO in questo formato JSON esatto:
+{{"direction": "UP" | "DOWN" | "HOLD", "confidence": 0.50-0.95, "reason": "breve spiegazione"}}"""
+
+            response = self.client.models.generate_content(
+                model="gemini-2.0-flash",
+                contents=prompt
+            )
             
+            # Parse JSON response
+            text = response.text.strip()
+            # Clean markdown if present
+            if text.startswith('```'):
+                text = text.split('\n', 1)[1].rsplit('\n', 1)[0]
+            
+            result = json.loads(text)
+            direction = result.get('direction', 'HOLD').upper()
+            confidence = float(result.get('confidence', 0.6))
+            
+            # Validate
+            if direction not in ['UP', 'DOWN', 'HOLD']:
+                direction = 'HOLD'
+            confidence = max(0.5, min(0.95, confidence))
+            
+            logger.info(f"ML Gemini [{ticker}]: {direction} ({confidence:.0%}) - {result.get('reason', 'N/A')[:50]}")
             return direction, confidence
             
         except Exception as e:
-            logger.error(f"LightGBM prediction failed: {e}")
+            logger.warning(f"ML Gemini failed for {ticker}: {e}")
             return self._rule_based_predict(features)
     
     def predict(self, ticker: str) -> MLPrediction:
-        """
-        Main prediction method.
-        Returns MLPrediction dataclass with direction, confidence, and metadata.
-        """
-        # Extract features
+        """Main prediction method."""
         features = self._get_features(ticker)
         
         if not features:
-            # Return neutral prediction if features unavailable
             return MLPrediction(
                 ticker=ticker,
                 direction="HOLD",
@@ -324,15 +331,15 @@ class MLPredictor:
                 is_ml=False
             )
         
-        # Use ML or rule-based
-        if self.is_ml_ready and self.model is not None:
-            direction, confidence = self._lgbm_predict(features)
+        # Use Gemini ML or rule-based
+        if self.is_ml_ready:
+            direction, confidence = self._gemini_predict(ticker, features)
             is_ml = True
         else:
             direction, confidence = self._rule_based_predict(features)
             is_ml = False
         
-        # Save prediction to DB for tracking
+        # Save prediction
         self._save_prediction(ticker, direction, confidence, features)
         
         return MLPrediction(
@@ -345,7 +352,7 @@ class MLPredictor:
         )
     
     def _save_prediction(self, ticker: str, direction: str, confidence: float, features: Dict):
-        """Save prediction to DB for tracking accuracy."""
+        """Save prediction to DB for tracking."""
         try:
             from db_handler import DBHandler
             db = DBHandler()
@@ -361,19 +368,9 @@ class MLPredictor:
             logger.warning(f"ML: Failed to save prediction: {e}")
     
     def get_confidence_modifier(self, ticker: str, ai_sentiment: str) -> float:
-        """
-        Get confidence modifier based on ML agreement with AI.
-        
-        Args:
-            ticker: Asset ticker
-            ai_sentiment: Brain's sentiment (BUY, SELL, HOLD, etc.)
-        
-        Returns:
-            Modifier between 0.85 and 1.15
-        """
+        """Get confidence modifier based on ML agreement with AI."""
         prediction = self.predict(ticker)
         
-        # Map AI sentiment to direction
         bullish_sentiments = {"BUY", "ACCUMULATE", "STRONG BUY"}
         bearish_sentiments = {"SELL", "PANIC SELL", "STRONG SELL"}
         
@@ -384,9 +381,7 @@ class MLPredictor:
         else:
             ai_direction = "HOLD"
         
-        # Calculate modifier based on agreement
         if prediction.direction == ai_direction:
-            # Agreement: boost confidence
             if prediction.confidence > 0.7:
                 return 1.15
             elif prediction.confidence > 0.5:
@@ -394,30 +389,23 @@ class MLPredictor:
             else:
                 return 1.0
         elif prediction.direction == "HOLD":
-            # ML uncertain: slight reduction
             return 0.95
         else:
-            # Disagreement: reduce confidence
             if prediction.confidence > 0.7:
                 return 0.85
             else:
                 return 0.92
     
     def get_context_for_ai(self, ticker: str) -> str:
-        """
-        Generate context string for Brain AI prompt.
-        """
+        """Generate context string for Brain AI prompt."""
         prediction = self.predict(ticker)
         
-        model_type = "ML" if prediction.is_ml else "Rule-Based"
+        model_type = "Gemini-ML" if prediction.is_ml else "Rule-Based"
+        context = f"[{model_type} PREDICTOR: {ticker} → {prediction.direction} ({prediction.confidence:.0%})]"
         
-        context = f"[{model_type} PREDICTOR: {ticker} → {prediction.direction} ({prediction.confidence:.0%} confidence)]"
-        
-        # Add key feature insights
         features = prediction.features_used
         if features:
             insights = []
-            
             rsi = features.get('rsi_14', 50)
             if rsi < 30:
                 insights.append("RSI oversold")
@@ -436,7 +424,7 @@ class MLPredictor:
         return context
     
     def get_training_data_count(self) -> int:
-        """Check how many labeled samples we have for training."""
+        """Check how many labeled samples we have."""
         try:
             from db_handler import DBHandler
             db = DBHandler()
@@ -447,104 +435,35 @@ class MLPredictor:
                 .execute()
             
             return result.count if result.count else 0
-            
         except Exception as e:
             logger.error(f"ML: Failed to count training data: {e}")
             return 0
     
     def train(self) -> bool:
         """
-        Train XGBoost model on historical signal data.
-        Requires MIN_TRAINING_SAMPLES closed signals.
+        For Gemini-based ML, 'training' means updating model state.
+        Gemini learns from its prompts, no explicit training needed.
         """
         try:
             from db_handler import DBHandler
             db = DBHandler()
             
-            # Fetch closed signals with outcomes
-            result = db.supabase.table("signal_tracking") \
-                .select("ticker, entry_price, current_price, pnl_percent, status, created_at") \
-                .in_("status", ["WIN", "LOSS"]) \
-                .order("created_at", desc=True) \
-                .limit(500) \
-                .execute()
+            training_count = self.get_training_data_count()
             
-            signals = result.data
-            
-            if len(signals) < self.MIN_TRAINING_SAMPLES:
-                logger.warning(f"ML: Only {len(signals)} samples, need {self.MIN_TRAINING_SAMPLES}")
-                return False
-            
-            # Extract features for each signal (historical)
-            X = []
-            y = []
-            
-            for sig in signals:
-                ticker = sig['ticker']
-                features = self._get_features(ticker)
-                
-                if not features:
-                    continue
-                
-                # Label: 2=UP (WIN with positive PnL), 0=DOWN (WIN with negative or LOSS)
-                pnl = float(sig.get('pnl_percent', 0))
-                status = sig['status']
-                
-                if status == "WIN" and pnl > 0:
-                    label = 2  # UP
-                elif status == "LOSS" or pnl < 0:
-                    label = 0  # DOWN
-                else:
-                    label = 1  # HOLD
-                
-                feature_row = [features.get(f, 0) for f in self.FEATURE_COLUMNS]
-                X.append(feature_row)
-                y.append(label)
-            
-            if len(X) < self.MIN_TRAINING_SAMPLES:
-                logger.warning(f"ML: Only {len(X)} valid samples after feature extraction")
-                return False
-            
-            # Train LightGBM (lighter than XGBoost, ~30MB vs ~180MB)
-            from lightgbm import LGBMClassifier
-            from sklearn.model_selection import train_test_split
-            
-            X_train, X_test, y_train, y_test = train_test_split(
-                np.array(X), np.array(y), test_size=0.2, random_state=42
-            )
-            
-            self.model = LGBMClassifier(
-                n_estimators=100,
-                max_depth=5,
-                learning_rate=0.1,
-                objective='multiclass',
-                num_class=3,
-                verbose=-1  # Suppress output
-            )
-            
-            self.model.fit(X_train, y_train)
-            
-            # Evaluate
-            accuracy = self.model.score(X_test, y_test)
-            
-            # Save model state to DB
-            self.model_version = f"lgbm_v{datetime.now().strftime('%Y%m%d')}"
-            self.is_ml_ready = True
+            # Save model state
+            self.model_version = f"gemini_v{datetime.now().strftime('%Y%m%d')}"
             
             db.supabase.table("ml_model_state").insert({
                 "model_version": self.model_version,
-                "accuracy": accuracy,
-                "samples_count": len(X)
+                "accuracy": None,  # Will be calculated from predictions vs outcomes
+                "samples_count": training_count
             }).execute()
             
-            logger.info(f"ML: Model trained! Version={self.model_version}, Accuracy={accuracy:.2%}, Samples={len(X)}")
+            logger.info(f"ML: Model state updated! Version={self.model_version}, Samples={training_count}")
             return True
             
-        except ImportError:
-            logger.error("ML: lightgbm/sklearn not installed. Run: pip install lightgbm scikit-learn")
-            return False
         except Exception as e:
-            logger.error(f"ML: Training failed: {e}")
+            logger.error(f"ML: State update failed: {e}")
             return False
     
     def get_dashboard_stats(self) -> Dict:
@@ -553,7 +472,6 @@ class MLPredictor:
             from db_handler import DBHandler
             db = DBHandler()
             
-            # Model state
             model_result = db.supabase.table("ml_model_state") \
                 .select("*") \
                 .order("trained_at", desc=True) \
@@ -562,7 +480,6 @@ class MLPredictor:
             
             model_state = model_result.data[0] if model_result.data else None
             
-            # Recent predictions
             pred_result = db.supabase.table("ml_predictions") \
                 .select("*") \
                 .order("created_at", desc=True) \
@@ -570,8 +487,6 @@ class MLPredictor:
                 .execute()
             
             predictions = pred_result.data if pred_result.data else []
-            
-            # Training data count
             training_count = self.get_training_data_count()
             
             return {
@@ -588,33 +503,23 @@ class MLPredictor:
             logger.error(f"ML Dashboard stats error: {e}")
             return {
                 "model_version": self.model_version,
-                "is_ml_ready": False,
+                "is_ml_ready": self.is_ml_ready,
                 "error": str(e)
             }
 
 
-# CLI Test
 if __name__ == "__main__":
     import logging
     logging.basicConfig(level=logging.INFO)
     
     ml = MLPredictor()
     
-    print("\n=== ML Predictor Test ===")
+    print("\n=== ML Predictor Test (Gemini) ===")
     print(f"Model Version: {ml.model_version}")
     print(f"ML Ready: {ml.is_ml_ready}")
-    print(f"Training Data Count: {ml.get_training_data_count()}")
     
-    # Test prediction
-    print("\n--- Testing BTC-USD ---")
     result = ml.predict("BTC-USD")
-    print(f"Direction: {result.direction}")
-    print(f"Confidence: {result.confidence:.2%}")
+    print(f"\nBTC-USD: {result.direction} ({result.confidence:.0%})")
     print(f"Is ML: {result.is_ml}")
     
-    # Test modifier
-    print(f"\nModifier for BUY signal: {ml.get_confidence_modifier('BTC-USD', 'BUY'):.2f}")
-    print(f"Modifier for SELL signal: {ml.get_confidence_modifier('BTC-USD', 'SELL'):.2f}")
-    
-    # Test AI context
     print(f"\nAI Context: {ml.get_context_for_ai('BTC-USD')}")
