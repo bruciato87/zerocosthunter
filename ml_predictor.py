@@ -1,22 +1,25 @@
 """
 ML Predictor - Level 4 Machine Learning
 ========================================
-Price direction prediction using Gemini AI with technical indicators.
-Integrates with Brain for confidence adjustment.
+Pure Python/NumPy Gradient Boosting for price direction prediction.
+No heavy dependencies - works within Vercel 250MB limit.
 
-Note: Uses Gemini API for ML-like predictions - no heavy dependencies needed!
-This approach works within Vercel's 250MB limit.
+This implements a real ML model that:
+- Learns from historical signal data
+- Trains directly on Vercel (no local setup)
+- Stores model weights in Supabase
+- Gets better with more data
 """
 
 import logging
 import os
 import json
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 logger = logging.getLogger("MLPredictor")
 
@@ -29,21 +32,187 @@ class MLPrediction:
     confidence: float  # 0.0 - 1.0
     features_used: Dict
     model_version: str
-    is_ml: bool  # True if Gemini ML, False if rule-based fallback
+    is_ml: bool  # True if ML model, False if rule-based fallback
+
+
+class DecisionStump:
+    """Simple decision stump for gradient boosting."""
+    def __init__(self):
+        self.feature_idx = 0
+        self.threshold = 0.0
+        self.left_value = 0.0
+        self.right_value = 0.0
+    
+    def fit(self, X: np.ndarray, residuals: np.ndarray):
+        """Find best split for this stump."""
+        n_samples, n_features = X.shape
+        best_gain = -np.inf
+        
+        for feature_idx in range(n_features):
+            thresholds = np.unique(X[:, feature_idx])
+            
+            for threshold in thresholds:
+                left_mask = X[:, feature_idx] <= threshold
+                right_mask = ~left_mask
+                
+                if left_mask.sum() < 2 or right_mask.sum() < 2:
+                    continue
+                
+                left_value = residuals[left_mask].mean()
+                right_value = residuals[right_mask].mean()
+                
+                # Calculate gain (reduction in variance)
+                predictions = np.where(left_mask, left_value, right_value)
+                gain = -np.mean((residuals - predictions) ** 2)
+                
+                if gain > best_gain:
+                    best_gain = gain
+                    self.feature_idx = feature_idx
+                    self.threshold = threshold
+                    self.left_value = left_value
+                    self.right_value = right_value
+    
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        """Make predictions."""
+        return np.where(
+            X[:, self.feature_idx] <= self.threshold,
+            self.left_value,
+            self.right_value
+        )
+    
+    def to_dict(self) -> Dict:
+        return {
+            'feature_idx': int(self.feature_idx),
+            'threshold': float(self.threshold),
+            'left_value': float(self.left_value),
+            'right_value': float(self.right_value)
+        }
+    
+    @classmethod
+    def from_dict(cls, d: Dict) -> 'DecisionStump':
+        stump = cls()
+        stump.feature_idx = d['feature_idx']
+        stump.threshold = d['threshold']
+        stump.left_value = d['left_value']
+        stump.right_value = d['right_value']
+        return stump
+
+
+class PureGradientBoosting:
+    """
+    Pure Python/NumPy Gradient Boosting Classifier.
+    Lightweight implementation for serverless deployment.
+    """
+    
+    def __init__(self, n_estimators: int = 50, learning_rate: float = 0.1):
+        self.n_estimators = n_estimators
+        self.learning_rate = learning_rate
+        self.stumps: List[List[DecisionStump]] = []  # One list per class
+        self.classes_ = None
+        self.initial_predictions = None
+        self.is_fitted = False
+    
+    def fit(self, X: np.ndarray, y: np.ndarray):
+        """Train the model."""
+        self.classes_ = np.unique(y)
+        n_classes = len(self.classes_)
+        n_samples = len(y)
+        
+        # One-vs-all encoding
+        Y = np.zeros((n_samples, n_classes))
+        for i, c in enumerate(self.classes_):
+            Y[:, i] = (y == c).astype(float)
+        
+        # Initial predictions (log-odds)
+        self.initial_predictions = np.log(Y.mean(axis=0) + 1e-10)
+        
+        # Initialize predictions
+        F = np.tile(self.initial_predictions, (n_samples, 1))
+        
+        self.stumps = [[] for _ in range(n_classes)]
+        
+        for _ in range(self.n_estimators):
+            # Compute probabilities via softmax
+            exp_F = np.exp(F - F.max(axis=1, keepdims=True))
+            probs = exp_F / exp_F.sum(axis=1, keepdims=True)
+            
+            # Compute residuals for each class
+            residuals = Y - probs
+            
+            for class_idx in range(n_classes):
+                stump = DecisionStump()
+                stump.fit(X, residuals[:, class_idx])
+                self.stumps[class_idx].append(stump)
+                
+                # Update predictions
+                F[:, class_idx] += self.learning_rate * stump.predict(X)
+        
+        self.is_fitted = True
+        logger.info(f"Model trained with {self.n_estimators} estimators")
+    
+    def predict_proba(self, X: np.ndarray) -> np.ndarray:
+        """Predict class probabilities."""
+        if not self.is_fitted:
+            raise ValueError("Model not fitted")
+        
+        n_samples = X.shape[0]
+        n_classes = len(self.classes_)
+        
+        # Start with initial predictions
+        F = np.tile(self.initial_predictions, (n_samples, 1))
+        
+        # Add contributions from all stumps
+        for class_idx in range(n_classes):
+            for stump in self.stumps[class_idx]:
+                F[:, class_idx] += self.learning_rate * stump.predict(X)
+        
+        # Softmax
+        exp_F = np.exp(F - F.max(axis=1, keepdims=True))
+        probs = exp_F / exp_F.sum(axis=1, keepdims=True)
+        
+        return probs
+    
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        """Predict classes."""
+        probs = self.predict_proba(X)
+        return self.classes_[np.argmax(probs, axis=1)]
+    
+    def score(self, X: np.ndarray, y: np.ndarray) -> float:
+        """Calculate accuracy."""
+        predictions = self.predict(X)
+        return (predictions == y).mean()
+    
+    def to_json(self) -> str:
+        """Serialize model to JSON for storage."""
+        return json.dumps({
+            'n_estimators': self.n_estimators,
+            'learning_rate': self.learning_rate,
+            'classes': self.classes_.tolist() if self.classes_ is not None else None,
+            'initial_predictions': self.initial_predictions.tolist() if self.initial_predictions is not None else None,
+            'stumps': [[s.to_dict() for s in class_stumps] for class_stumps in self.stumps],
+            'is_fitted': self.is_fitted
+        })
+    
+    @classmethod
+    def from_json(cls, json_str: str) -> 'PureGradientBoosting':
+        """Deserialize model from JSON."""
+        d = json.loads(json_str)
+        model = cls(n_estimators=d['n_estimators'], learning_rate=d['learning_rate'])
+        model.classes_ = np.array(d['classes']) if d['classes'] else None
+        model.initial_predictions = np.array(d['initial_predictions']) if d['initial_predictions'] else None
+        model.stumps = [[DecisionStump.from_dict(s) for s in class_stumps] for class_stumps in d['stumps']]
+        model.is_fitted = d['is_fitted']
+        return model
 
 
 class MLPredictor:
     """
-    Machine Learning predictor for price direction.
-    
-    Uses Gemini AI to analyze technical indicators and predict price direction.
-    Falls back to rule-based heuristics if Gemini is unavailable.
+    ML Predictor using Pure Python Gradient Boosting.
+    Learns from historical data, runs entirely on Vercel.
     """
     
-    # Minimum samples for accuracy tracking
-    MIN_TRAINING_SAMPLES = 50
+    MIN_TRAINING_SAMPLES = 30  # Reduced from 50 for faster start
     
-    # Feature definitions
     FEATURE_COLUMNS = [
         'rsi_14', 'rsi_slope', 
         'macd_hist', 'macd_signal_cross',
@@ -56,40 +225,46 @@ class MLPredictor:
     ]
     
     def __init__(self):
-        self.model_version = "gemini_v1"
+        self.model: Optional[PureGradientBoosting] = None
+        self.model_version = "pure_gb_v1"
         self.is_ml_ready = False
-        self.client = None
-        self._init_gemini()
+        self._load_model()
     
-    def _init_gemini(self):
-        """Initialize Gemini client for ML predictions."""
+    def _load_model(self):
+        """Load trained model from Supabase."""
         try:
-            api_key = os.environ.get("GEMINI_API_KEY")
-            if api_key:
-                from google import genai
-                self.client = genai.Client(api_key=api_key)
-                self.is_ml_ready = True
-                logger.info("ML Predictor: Gemini client initialized")
+            from db_handler import DBHandler
+            db = DBHandler()
+            
+            # Check for stored model
+            result = db.supabase.table("ml_model_state") \
+                .select("model_version, model_weights") \
+                .order("trained_at", desc=True) \
+                .limit(1) \
+                .execute()
+            
+            if result.data and result.data[0].get('model_weights'):
+                state = result.data[0]
+                self.model = PureGradientBoosting.from_json(state['model_weights'])
+                self.model_version = state.get('model_version', 'pure_gb_v1')
+                self.is_ml_ready = self.model.is_fitted
+                logger.info(f"ML Predictor: Loaded model {self.model_version}")
             else:
-                logger.warning("ML Predictor: No GEMINI_API_KEY, using rule-based")
+                logger.info("ML Predictor: No trained model found, using rule-based")
+                
         except Exception as e:
-            logger.warning(f"ML Predictor: Gemini init failed: {e}")
+            logger.warning(f"ML Predictor: Model load failed: {e}")
     
     def _get_features(self, ticker: str) -> Optional[Dict]:
-        """
-        Extract features for prediction.
-        Returns dict of feature values or None if insufficient data.
-        """
+        """Extract features for prediction."""
         try:
             import yfinance as yf
             import ta
             
-            # Normalize ticker
             search_ticker = ticker
             if not any(c in ticker for c in ['-', '.']):
                 search_ticker = f"{ticker}-USD"
             
-            # Fetch price data
             t = yf.Ticker(search_ticker)
             hist = t.history(period="3mo")
             
@@ -100,7 +275,6 @@ class MLPredictor:
                     hist = t.history(period="3mo")
                     
             if hist.empty or len(hist) < 30:
-                logger.warning(f"ML: Insufficient data for {ticker}")
                 return None
             
             df = hist.copy()
@@ -209,12 +383,10 @@ class MLPredictor:
             score -= 0.5
         
         macd_hist = features.get('macd_hist', 0)
-        macd_cross = features.get('macd_signal_cross', 0)
         if macd_hist > 0:
             score += 1.0
         elif macd_hist < 0:
             score -= 1.0
-        score += macd_cross * 0.5
         
         bb_pos = features.get('bb_position', 0.5)
         if bb_pos < 0.2:
@@ -223,10 +395,9 @@ class MLPredictor:
             score -= 1.0
         
         sma20_ratio = features.get('price_sma20_ratio', 1.0)
-        sma50_ratio = features.get('price_sma50_ratio', 1.0)
-        if sma20_ratio > 1.0 and sma50_ratio > 1.0:
+        if sma20_ratio > 1.02:
             score += 1.0
-        elif sma20_ratio < 1.0 and sma50_ratio < 1.0:
+        elif sma20_ratio < 0.98:
             score -= 1.0
         
         vix = features.get('vix_level', 20)
@@ -234,9 +405,6 @@ class MLPredictor:
             score -= 0.5
         elif vix < 15:
             score += 0.5
-        
-        regime = features.get('market_regime_encoded', 0)
-        score += regime * 0.5
         
         momentum = features.get('momentum_10d', 0)
         if momentum > 5:
@@ -258,63 +426,25 @@ class MLPredictor:
         
         return direction, confidence
     
-    def _gemini_predict(self, ticker: str, features: Dict) -> Tuple[str, float]:
-        """Use Gemini AI for ML-like prediction based on technical indicators."""
+    def _ml_predict(self, features: Dict) -> Tuple[str, float]:
+        """ML model prediction."""
         try:
-            if not self.client:
-                return self._rule_based_predict(features)
+            # Convert features to array
+            feature_array = np.array([[features.get(f, 0) for f in self.FEATURE_COLUMNS]])
             
-            # Build feature summary for Gemini
-            rsi = features.get('rsi_14', 50)
-            macd = features.get('macd_hist', 0)
-            bb_pos = features.get('bb_position', 0.5)
-            momentum = features.get('momentum_10d', 0)
-            vix = features.get('vix_level', 20)
-            volume_ratio = features.get('volume_ratio', 1.0)
-            sma20_ratio = features.get('price_sma20_ratio', 1.0)
-            regime = features.get('market_regime_encoded', 0)
-            regime_str = {1: 'BULL', 0: 'NEUTRAL', -1: 'BEAR'}.get(regime, 'NEUTRAL')
+            # Get predictions
+            probs = self.model.predict_proba(feature_array)[0]
+            prediction = self.model.predict(feature_array)[0]
             
-            prompt = f"""Sei un modello ML per predizione prezzi. Analizza questi indicatori tecnici per {ticker} e predici la direzione del prezzo a 7 giorni.
-
-INDICATORI:
-- RSI(14): {rsi:.1f} {"(OVERSOLD)" if rsi < 30 else "(OVERBOUGHT)" if rsi > 70 else ""}
-- MACD Histogram: {macd:.2f} {"(BULLISH)" if macd > 0 else "(BEARISH)"}
-- Bollinger Position: {bb_pos:.2f} (0=lower band, 1=upper band)
-- 10-day Momentum: {momentum:+.1f}%
-- VIX: {vix:.1f} {"(HIGH FEAR)" if vix > 25 else "(LOW FEAR)" if vix < 15 else ""}
-- Volume Ratio: {volume_ratio:.2f}x average
-- Price vs SMA20: {sma20_ratio:.2f} {"(ABOVE)" if sma20_ratio > 1 else "(BELOW)"}
-- Market Regime: {regime_str}
-
-Rispondi SOLO in questo formato JSON esatto:
-{{"direction": "UP" | "DOWN" | "HOLD", "confidence": 0.50-0.95, "reason": "breve spiegazione"}}"""
-
-            response = self.client.models.generate_content(
-                model="gemini-2.0-flash",
-                contents=prompt
-            )
+            direction_map = {0: "DOWN", 1: "HOLD", 2: "UP"}
+            direction = direction_map.get(int(prediction), "HOLD")
+            confidence = float(max(probs))
             
-            # Parse JSON response
-            text = response.text.strip()
-            # Clean markdown if present
-            if text.startswith('```'):
-                text = text.split('\n', 1)[1].rsplit('\n', 1)[0]
-            
-            result = json.loads(text)
-            direction = result.get('direction', 'HOLD').upper()
-            confidence = float(result.get('confidence', 0.6))
-            
-            # Validate
-            if direction not in ['UP', 'DOWN', 'HOLD']:
-                direction = 'HOLD'
-            confidence = max(0.5, min(0.95, confidence))
-            
-            logger.info(f"ML Gemini [{ticker}]: {direction} ({confidence:.0%}) - {result.get('reason', 'N/A')[:50]}")
+            logger.info(f"ML Prediction: {direction} ({confidence:.0%})")
             return direction, confidence
             
         except Exception as e:
-            logger.warning(f"ML Gemini failed for {ticker}: {e}")
+            logger.error(f"ML prediction failed: {e}")
             return self._rule_based_predict(features)
     
     def predict(self, ticker: str) -> MLPrediction:
@@ -331,9 +461,9 @@ Rispondi SOLO in questo formato JSON esatto:
                 is_ml=False
             )
         
-        # Use Gemini ML or rule-based
-        if self.is_ml_ready:
-            direction, confidence = self._gemini_predict(ticker, features)
+        # Use ML model if available, otherwise rule-based
+        if self.is_ml_ready and self.model is not None:
+            direction, confidence = self._ml_predict(features)
             is_ml = True
         else:
             direction, confidence = self._rule_based_predict(features)
@@ -352,7 +482,7 @@ Rispondi SOLO in questo formato JSON esatto:
         )
     
     def _save_prediction(self, ticker: str, direction: str, confidence: float, features: Dict):
-        """Save prediction to DB for tracking."""
+        """Save prediction to DB."""
         try:
             from db_handler import DBHandler
             db = DBHandler()
@@ -363,68 +493,38 @@ Rispondi SOLO in questo formato JSON esatto:
                 "ml_confidence": confidence,
                 "features": json.dumps({k: round(v, 4) if isinstance(v, float) else v for k, v in features.items()})
             }).execute()
-            
         except Exception as e:
-            logger.warning(f"ML: Failed to save prediction: {e}")
+            logger.warning(f"Failed to save prediction: {e}")
     
     def get_confidence_modifier(self, ticker: str, ai_sentiment: str) -> float:
         """Get confidence modifier based on ML agreement with AI."""
         prediction = self.predict(ticker)
         
-        bullish_sentiments = {"BUY", "ACCUMULATE", "STRONG BUY"}
-        bearish_sentiments = {"SELL", "PANIC SELL", "STRONG SELL"}
+        bullish = {"BUY", "ACCUMULATE", "STRONG BUY"}
+        bearish = {"SELL", "PANIC SELL", "STRONG SELL"}
         
-        if ai_sentiment.upper() in bullish_sentiments:
-            ai_direction = "UP"
-        elif ai_sentiment.upper() in bearish_sentiments:
-            ai_direction = "DOWN"
+        if ai_sentiment.upper() in bullish:
+            ai_dir = "UP"
+        elif ai_sentiment.upper() in bearish:
+            ai_dir = "DOWN"
         else:
-            ai_direction = "HOLD"
+            ai_dir = "HOLD"
         
-        if prediction.direction == ai_direction:
-            if prediction.confidence > 0.7:
-                return 1.15
-            elif prediction.confidence > 0.5:
-                return 1.08
-            else:
-                return 1.0
+        if prediction.direction == ai_dir:
+            return 1.15 if prediction.confidence > 0.7 else 1.08
         elif prediction.direction == "HOLD":
             return 0.95
         else:
-            if prediction.confidence > 0.7:
-                return 0.85
-            else:
-                return 0.92
+            return 0.85 if prediction.confidence > 0.7 else 0.92
     
     def get_context_for_ai(self, ticker: str) -> str:
-        """Generate context string for Brain AI prompt."""
-        prediction = self.predict(ticker)
-        
-        model_type = "Gemini-ML" if prediction.is_ml else "Rule-Based"
-        context = f"[{model_type} PREDICTOR: {ticker} → {prediction.direction} ({prediction.confidence:.0%})]"
-        
-        features = prediction.features_used
-        if features:
-            insights = []
-            rsi = features.get('rsi_14', 50)
-            if rsi < 30:
-                insights.append("RSI oversold")
-            elif rsi > 70:
-                insights.append("RSI overbought")
-            
-            bb_pos = features.get('bb_position', 0.5)
-            if bb_pos < 0.2:
-                insights.append("near lower Bollinger")
-            elif bb_pos > 0.8:
-                insights.append("near upper Bollinger")
-            
-            if insights:
-                context += f" Key: {', '.join(insights)}"
-        
-        return context
+        """Generate context for AI prompt."""
+        pred = self.predict(ticker)
+        model_type = "Pure-ML" if pred.is_ml else "Rule-Based"
+        return f"[{model_type} PREDICTOR: {ticker} → {pred.direction} ({pred.confidence:.0%})]"
     
     def get_training_data_count(self) -> int:
-        """Check how many labeled samples we have."""
+        """Count available training samples."""
         try:
             from db_handler import DBHandler
             db = DBHandler()
@@ -435,39 +535,96 @@ Rispondi SOLO in questo formato JSON esatto:
                 .execute()
             
             return result.count if result.count else 0
-        except Exception as e:
-            logger.error(f"ML: Failed to count training data: {e}")
+        except:
             return 0
     
     def train(self) -> bool:
-        """
-        For Gemini-based ML, 'training' means updating model state.
-        Gemini learns from its prompts, no explicit training needed.
-        """
+        """Train the ML model on historical data."""
         try:
             from db_handler import DBHandler
             db = DBHandler()
             
-            training_count = self.get_training_data_count()
+            # Fetch closed signals
+            result = db.supabase.table("signal_tracking") \
+                .select("ticker, entry_price, current_price, pnl_percent, status, created_at") \
+                .in_("status", ["WIN", "LOSS"]) \
+                .order("created_at", desc=True) \
+                .limit(500) \
+                .execute()
             
-            # Save model state
-            self.model_version = f"gemini_v{datetime.now().strftime('%Y%m%d')}"
+            signals = result.data
+            
+            if len(signals) < self.MIN_TRAINING_SAMPLES:
+                logger.warning(f"Only {len(signals)} samples, need {self.MIN_TRAINING_SAMPLES}")
+                return False
+            
+            # Build training data
+            X = []
+            y = []
+            
+            for sig in signals:
+                ticker = sig['ticker']
+                features = self._get_features(ticker)
+                
+                if not features:
+                    continue
+                
+                pnl = float(sig.get('pnl_percent', 0))
+                status = sig['status']
+                
+                if status == "WIN" and pnl > 0:
+                    label = 2  # UP
+                elif status == "LOSS" or pnl < 0:
+                    label = 0  # DOWN
+                else:
+                    label = 1  # HOLD
+                
+                feature_row = [features.get(f, 0) for f in self.FEATURE_COLUMNS]
+                X.append(feature_row)
+                y.append(label)
+            
+            if len(X) < self.MIN_TRAINING_SAMPLES:
+                logger.warning(f"Only {len(X)} valid samples")
+                return False
+            
+            # Convert to numpy
+            X = np.array(X)
+            y = np.array(y)
+            
+            # Split (simple 80/20)
+            split_idx = int(len(X) * 0.8)
+            X_train, X_test = X[:split_idx], X[split_idx:]
+            y_train, y_test = y[:split_idx], y[split_idx:]
+            
+            # Train model
+            self.model = PureGradientBoosting(n_estimators=50, learning_rate=0.1)
+            self.model.fit(X_train, y_train)
+            
+            # Evaluate
+            accuracy = self.model.score(X_test, y_test)
+            
+            # Save model to Supabase
+            self.model_version = f"pure_gb_v{datetime.now().strftime('%Y%m%d_%H%M')}"
+            self.is_ml_ready = True
             
             db.supabase.table("ml_model_state").insert({
                 "model_version": self.model_version,
-                "accuracy": None,  # Will be calculated from predictions vs outcomes
-                "samples_count": training_count
+                "accuracy": accuracy,
+                "samples_count": len(X),
+                "model_weights": self.model.to_json()
             }).execute()
             
-            logger.info(f"ML: Model state updated! Version={self.model_version}, Samples={training_count}")
+            logger.info(f"Model trained! Version={self.model_version}, Accuracy={accuracy:.2%}")
             return True
             
         except Exception as e:
-            logger.error(f"ML: State update failed: {e}")
+            logger.error(f"Training failed: {e}")
+            import traceback
+            traceback.print_exc()
             return False
     
     def get_dashboard_stats(self) -> Dict:
-        """Get ML stats for dashboard display."""
+        """Get ML stats for dashboard."""
         try:
             from db_handler import DBHandler
             db = DBHandler()
@@ -498,28 +655,20 @@ Rispondi SOLO in questo formato JSON esatto:
                 "available_samples": training_count,
                 "recent_predictions": predictions
             }
-            
         except Exception as e:
-            logger.error(f"ML Dashboard stats error: {e}")
-            return {
-                "model_version": self.model_version,
-                "is_ml_ready": self.is_ml_ready,
-                "error": str(e)
-            }
+            logger.error(f"Dashboard stats error: {e}")
+            return {"model_version": self.model_version, "is_ml_ready": False}
 
 
 if __name__ == "__main__":
-    import logging
     logging.basicConfig(level=logging.INFO)
     
     ml = MLPredictor()
-    
-    print("\n=== ML Predictor Test (Gemini) ===")
-    print(f"Model Version: {ml.model_version}")
+    print(f"\n=== Pure Python ML Test ===")
+    print(f"Model: {ml.model_version}")
     print(f"ML Ready: {ml.is_ml_ready}")
+    print(f"Training Samples: {ml.get_training_data_count()}")
     
     result = ml.predict("BTC-USD")
     print(f"\nBTC-USD: {result.direction} ({result.confidence:.0%})")
     print(f"Is ML: {result.is_ml}")
-    
-    print(f"\nAI Context: {ml.get_context_for_ai('BTC-USD')}")

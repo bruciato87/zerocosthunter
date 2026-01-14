@@ -15,12 +15,13 @@ CREATE TABLE IF NOT EXISTS ml_predictions (
 CREATE INDEX IF NOT EXISTS idx_ml_predictions_ticker ON ml_predictions(ticker);
 CREATE INDEX IF NOT EXISTS idx_ml_predictions_created ON ml_predictions(created_at DESC);
 
--- ML Model State: Track model versions and accuracy
+-- ML Model State: Track model versions, accuracy, and weights
 CREATE TABLE IF NOT EXISTS ml_model_state (
     id SERIAL PRIMARY KEY,
     model_version VARCHAR(50) NOT NULL,
     accuracy FLOAT,
     samples_count INT,
+    model_weights TEXT,  -- Serialized model JSON for Pure Python GB
     trained_at TIMESTAMPTZ DEFAULT NOW()
 );
 

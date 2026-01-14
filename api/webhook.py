@@ -1248,7 +1248,7 @@ async def rebalance_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"❌ Errore nel calcolo ribilanciamento: {e}")
 
 async def trainml_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Show status of the Gemini-powered ML prediction model."""
+    """Show status or train the Pure Python ML model."""
     await update.message.reply_text("🤖 **ML Predictor Status...**", parse_mode="Markdown")
     
     try:
@@ -1259,15 +1259,53 @@ async def trainml_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         stats = ml.get_dashboard_stats()
         is_ready = stats.get('is_ml_ready', False)
         version = stats.get('model_version', 'N/A')
+        accuracy = stats.get('accuracy')
+        training_count = stats.get('available_samples', 0)
         predictions = stats.get('recent_predictions', [])
         
+        # Check if user wants to train
+        if context.args and context.args[0].lower() == 'train':
+            if training_count >= ml.MIN_TRAINING_SAMPLES:
+                await update.message.reply_text("⏳ **Avvio training ML...**\n\nPotrebbe richiedere 1-2 minuti.", parse_mode="Markdown")
+                
+                success = ml.train()
+                
+                if success:
+                    new_stats = ml.get_dashboard_stats()
+                    await update.message.reply_text(
+                        f"✅ **Training Completato!**\n\n"
+                        f"📦 Modello: `{ml.model_version}`\n"
+                        f"📊 Accuracy: {new_stats.get('accuracy', 0):.1%}\n"
+                        f"📈 Samples: {new_stats.get('training_samples', 0)}\n\n"
+                        f"💡 Il modello ora userà ML per le predizioni!",
+                        parse_mode="Markdown"
+                    )
+                else:
+                    await update.message.reply_text("❌ Training fallito. Controlla i logs.")
+                return
+            else:
+                remaining = ml.MIN_TRAINING_SAMPLES - training_count
+                await update.message.reply_text(f"⏳ Servono altri **{remaining}** segnali chiusi.", parse_mode="Markdown")
+                return
+        
+        # Show status
         msg = f"🤖 **ML Predictor Status**\n\n"
         msg += f"📦 **Modello:** `{version}`\n"
-        msg += f"🎯 **ML Attivo:** {'✅ Gemini-powered' if is_ready else '❌ Rule-based (Gemini non disponibile)'}\n"
+        msg += f"🎯 **ML Attivo:** {'✅ Pure Python GB' if is_ready else '❌ Rule-based'}\n"
         
-        if is_ready:
-            msg += f"\n✅ **Come funziona:** Gemini analizza indicatori tecnici (RSI, MACD, Bollinger, VIX) e predice la direzione dei prezzi.\n"
-            msg += f"💡 Non richiede training esplicito - l'AI è già addestrata!\n"
+        if accuracy:
+            msg += f"📊 **Accuracy:** {accuracy:.1%}\n"
+        
+        msg += f"\n📈 **Segnali Disponibili:** {training_count}/{ml.MIN_TRAINING_SAMPLES}\n"
+        
+        if training_count >= ml.MIN_TRAINING_SAMPLES:
+            if is_ready:
+                msg += "✅ Modello addestrato e attivo!\n"
+            else:
+                msg += "💡 Usa `/trainml train` per addestrare il modello.\n"
+        else:
+            remaining = ml.MIN_TRAINING_SAMPLES - training_count
+            msg += f"⏳ Servono altri {remaining} segnali per il training.\n"
         
         if predictions:
             msg += f"\n📊 **Ultime Predizioni:**\n"
