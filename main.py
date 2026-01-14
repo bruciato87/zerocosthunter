@@ -510,7 +510,7 @@ async def run_async_pipeline():
                 confidence = min(1.0, confidence * confluence_multiplier)
                 if confluence.get('alignment', 0) >= 2:
                     logger.info(f"L1 Confluence [{ticker}]: {confluence.get('alignment')}/3 aligned → confidence boost {confluence_multiplier:.2f}")
-                    reasoning += f" [Confluence: {confluence.get('reason', 'N/A')}]"
+                    reasoning += f"\n✅ Confluence: {confluence.get('reason', 'N/A')}"
             except Exception as e:
                 logger.warning(f"L1 Confluence failed for {ticker}: {e}")
             
@@ -537,7 +537,7 @@ async def run_async_pipeline():
                     logger.info(f"L1 Sentiment [{ticker}]: Adjusted confidence {confidence:.2f} → {adjusted_conf:.2f}")
                     confidence = adjusted_conf
                     mkt_score = sentiment_agg.get_score()
-                    reasoning += f" [Mkt Sentiment: {mkt_score}]"
+                    reasoning += f"\n📊 Mkt Sentiment: {mkt_score}"
             except Exception as e:
                 logger.warning(f"L1 Sentiment failed for {ticker}: {e}")
             
@@ -552,12 +552,12 @@ async def run_async_pipeline():
                     if div_type == 'bullish' and sentiment in ['BUY', 'ACCUMULATE']:
                         confidence = min(1.0, confidence * div_boost)
                         logger.info(f"L2 Divergence [{ticker}]: Bullish divergence → boost {div_boost:.2f}")
-                        reasoning += f" [L2: Bullish Divergence {divergence.get('strength'):.0%}]"
+                        reasoning += f"\n📐 Divergence: Bullish ({divergence.get('strength'):.0%})"
                     # Bearish divergence on BUY signal = warning
                     elif div_type == 'bearish' and sentiment in ['BUY', 'ACCUMULATE']:
                         confidence *= 0.90  # Penalize
                         logger.info(f"L2 Divergence [{ticker}]: Bearish divergence on BUY → penalty")
-                        reasoning += " [L2: Bearish Divergence - Caution]"
+                        reasoning += "\n⚠️ Divergence: Bearish (Caution)"
                     # Bearish divergence on SELL signal = boost
                     elif div_type == 'bearish' and sentiment in ['SELL', 'TRIM']:
                         confidence = min(1.0, confidence * div_boost)
@@ -577,9 +577,9 @@ async def run_async_pipeline():
                 if ml_modifier != 1.0:
                     logger.info(f"L4 ML [{ticker}]: {ml_pred.direction} ({ml_pred.confidence:.0%}) → modifier {ml_modifier:.2f}")
                     if ml_modifier > 1.0:
-                        reasoning += f" [L4 ML: {ml_type} agrees ({ml_pred.direction} {ml_pred.confidence:.0%})]"
+                        reasoning += f"\n🤖 ML Check: {ml_type} agrees ({ml_pred.direction} {ml_pred.confidence:.0%})"
                     else:
-                        reasoning += f" [L4 ML: {ml_type} disagrees ({ml_pred.direction})]"
+                        reasoning += f"\n🤖 ML Check: {ml_type} doubtful ({ml_pred.direction})"
             except Exception as e:
                 logger.warning(f"L4 ML failed for {ticker}: {e}")
             
@@ -592,13 +592,13 @@ async def run_async_pipeline():
                     if rsi > 80 and sentiment in ['BUY', 'ACCUMULATE', 'STRONG BUY']:
                         penalty = 0.75  # -25% confidence
                         confidence = min(1.0, confidence * penalty)
-                        reasoning += f" [L5 RSI: OVERBOUGHT ({rsi:.0f}) - caution]"
+                        reasoning += f"\n⚠️ RSI: OVERBOUGHT ({rsi:.0f}) - caution"
                         logger.info(f"L5 RSI [{ticker}]: RSI {rsi:.0f} > 80 → BUY penalty {penalty}")
                     # Penalize SELL when extremely oversold (RSI < 20)
                     elif rsi < 20 and sentiment in ['SELL', 'TRIM', 'PANIC SELL']:
                         penalty = 0.75
                         confidence = min(1.0, confidence * penalty)
-                        reasoning += f" [L5 RSI: OVERSOLD ({rsi:.0f}) - caution]"
+                        reasoning += f"\n⚠️ RSI: OVERSOLD ({rsi:.0f}) - caution"
                         logger.info(f"L5 RSI [{ticker}]: RSI {rsi:.0f} < 20 → SELL penalty {penalty}")
             except Exception as e:
                 logger.warning(f"L5 RSI filter failed for {ticker}: {e}")
