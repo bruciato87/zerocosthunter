@@ -583,6 +583,26 @@ async def run_async_pipeline():
             except Exception as e:
                 logger.warning(f"L4 ML failed for {ticker}: {e}")
             
+            # --- L5: RSI EXTREME FILTER (Align with Analyze) ---
+            try:
+                features = ml_predictor._get_features(ticker)
+                if features:
+                    rsi = features.get('rsi_14', 50)
+                    # Penalize BUY when extremely overbought (RSI > 80)
+                    if rsi > 80 and sentiment in ['BUY', 'ACCUMULATE', 'STRONG BUY']:
+                        penalty = 0.75  # -25% confidence
+                        confidence = min(1.0, confidence * penalty)
+                        reasoning += f" [L5 RSI: OVERBOUGHT ({rsi:.0f}) - caution]"
+                        logger.info(f"L5 RSI [{ticker}]: RSI {rsi:.0f} > 80 → BUY penalty {penalty}")
+                    # Penalize SELL when extremely oversold (RSI < 20)
+                    elif rsi < 20 and sentiment in ['SELL', 'TRIM', 'PANIC SELL']:
+                        penalty = 0.75
+                        confidence = min(1.0, confidence * penalty)
+                        reasoning += f" [L5 RSI: OVERSOLD ({rsi:.0f}) - caution]"
+                        logger.info(f"L5 RSI [{ticker}]: RSI {rsi:.0f} < 20 → SELL penalty {penalty}")
+            except Exception as e:
+                logger.warning(f"L5 RSI filter failed for {ticker}: {e}")
+            
             # Re-check confidence after adjustment
             if confidence < min_conf:
                 logger.info(f"Skipped {ticker}: SI adjusted confidence {confidence:.2f} < Threshold {min_conf}")
