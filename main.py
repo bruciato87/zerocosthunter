@@ -820,12 +820,23 @@ async def run_async_pipeline():
     db.log_system_event("INFO", "Hunter", "Pipeline Finished")
     logger.info(f"Pipeline finished. Processed {processed_count} actionable signals.")
     
+    # --- FLASH REBALANCE CHECK (New L5 Feature) ---
+    flash_tip = ""
+    try:
+        from rebalancer import Rebalancer
+        rb = Rebalancer()
+        tip = rb.get_flash_recommendation()
+        if tip:
+            flash_tip = f"\n\n💡 {tip}"
+    except Exception as e:
+        logger.warning(f"Flash rebalance check failed: {e}")
+    
     # Send completion notification to Telegram
     try:
         if processed_count > 0:
-            await notifier.send_alert(f"✅ **Caccia Completata!**\n📊 Processati {processed_count} segnali validi.")
+            await notifier.send_alert(f"✅ **Caccia Completata!**\n📊 Processati {processed_count} segnali validi.{flash_tip}")
         else:
-            await notifier.send_alert("✅ **Caccia Completata!**\n🔍 Nessun nuovo segnale significativo trovato.\n(I duplicati e quelli sotto la soglia sono stati filtrati)")
+            await notifier.send_alert(f"✅ **Caccia Completata!**\n🔍 Nessun nuovo segnale significativo trovato.{flash_tip}")
     except Exception as e:
         logger.warning(f"Failed to send completion notification: {e}")
 

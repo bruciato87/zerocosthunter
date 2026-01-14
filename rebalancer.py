@@ -30,6 +30,11 @@ class Rebalancer:
     # Deviation threshold for alerts (percentage points)
     DEVIATION_THRESHOLD = 10.0  # Alert if sector is ±10% from target
     
+    # Trade Republic Cost Structure
+    TRADE_FEE = 1.0  # €1 per trade (buy or sell)
+    CAPITAL_GAINS_TAX = 0.26  # 26% Italian capital gains tax on profits
+    MIN_PROFITABLE_TRADE = 50.0  # Minimum trade size where fee is <2% of trade
+    
     def __init__(self):
         from db_handler import DBHandler
         from market_data import MarketData
@@ -97,6 +102,11 @@ class Rebalancer:
             except:
                 pass
             
+            # Calculate unrealized gain and potential tax cost
+            unrealized_gain = value - cost_basis
+            potential_tax = unrealized_gain * self.CAPITAL_GAINS_TAX if unrealized_gain > 0 else 0
+            net_if_sold = value - potential_tax - self.TRADE_FEE  # Net proceeds after selling
+            
             assets.append({
                 "ticker": ticker,
                 "quantity": qty,
@@ -104,6 +114,9 @@ class Rebalancer:
                 "current_price": current_price,
                 "value": value,
                 "pnl_pct": pnl_pct,
+                "pnl_eur": unrealized_gain,
+                "potential_tax": potential_tax,
+                "net_if_sold": net_if_sold,
                 "sector": sector,
                 "rsi": rsi
             })
@@ -189,15 +202,20 @@ class Rebalancer:
             
             client = genai.Client(api_key=self.api_key)
             
-            # 1. Portfolio summary with RSI
+            # 1. Portfolio summary with RSI and cost info
             def rsi_label(rsi):
                 if rsi is None: return ""
                 if rsi > 70: return f", RSI: {rsi:.0f} ⚠️OVERBOUGHT"
                 if rsi < 30: return f", RSI: {rsi:.0f} 🔥OVERSOLD"
                 return f", RSI: {rsi:.0f}"
             
+            def cost_label(a):
+                if a['pnl_eur'] > 0:
+                    return f" [Se vendi: Tax €{a['potential_tax']:.0f} + Fee €1]"
+                return " [Se vendi: Fee €1]"
+            
             assets_summary = "\n".join([
-                f"- {a['ticker']}: €{a['value']:.0f} ({a['allocation']:.1f}%), PnL: {a['pnl_pct']:+.1f}%, Sector: {a['sector']}{rsi_label(a.get('rsi'))}"
+                f"- {a['ticker']}: €{a['value']:.0f} ({a['allocation']:.1f}%), PnL: {a['pnl_pct']:+.1f}% (€{a['pnl_eur']:+.0f}), Sector: {a['sector']}{rsi_label(a.get('rsi'))}{cost_label(a)}"
                 for a in analysis["assets"][:10]
             ])
             
@@ -293,7 +311,13 @@ class Rebalancer:
                 logger.warning(f"L3 context failed for rebalance: {e}")
             
             prompt = f"""
-            Sei un Portfolio Manager italiano focalizzato sulla MASSIMIZZAZIONE DEI PROFITTI.
+            Sei un Portfolio Manager italiano focalizzato sulla MASSIMIZZAZIONE DEI PROFITTI NETTI (Post-Tax & Fees).
+            
+            **STRUTTURA COSTI (Trade Republic Italia):**
+            - Commissione: €1 fisso per ogni ordine (BUY o SELL)
+            - Tasse: 26% sulle plusvalenze (Capital Gains Tax)
+            - Soglia minima convenienza: Un trade deve generare valore NETTO > dei costi.
+            - Esempio: Vendere €100 con €10 gain non conviene (Tasse €2.6 + Fee €1 = €3.6 di costi, 36% del gain eroso).
             
             **ORARI MERCATO ({market_status.get('current_time_italy', 'N/A')}):**
             {market_hours}
@@ -314,20 +338,21 @@ class Rebalancer:
             
             {l3_context}
             
-            **OBIETTIVO PRINCIPALE: MASSIMIZZARE I PROFITTI**
+            **OBIETTIVO PRINCIPALE: MASSIMIZZARE I PROFITTI NETTI**
             
             **ISTRUZIONI:**
             1. Genera MAX 3 azioni concrete nel formato:
                🟢 BUY €XXX TICKER - Motivo breve
                🟡 HOLD TICKER - Motivo breve
-               🔴 TRIM XX% TICKER - Motivo breve
+               🔴 TRIM XX% TICKER - Motivo breve (Net profit after tax/fees: €XX)
             
             2. Poi aggiungi UNA strategia sintetica (1 frase) per €500 di capitale fresco.
             
             **REGOLE CRITICHE PER MASSIMIZZARE PROFITTI:**
+            - **COST CHECK (FONDAMENTALE):** NON suggerire SELL/TRIM se il costo totale (26% Tax + €1 Fee) supera il 50% del profitto, a meno che non sia per stop-loss o rotazione critica.
             - **PRIORITÀ 1:** Segui i SEGNALI RECENTI ad alta confidenza (BUY/ACCUMULATE ≥75%)
-            - **PRIORITÀ 2:** Accumula asset con RSI OVERSOLD (<30) - sono opportunità
-            - **PRIORITÀ 3:** Trimma asset con RSI OVERBOUGHT (>70) e PnL alto per prendere profitto
+            - **PRIORITÀ 2:** Accumula asset con RSI OVERSOLD (<30)
+            - **PRIORITÀ 3:** Trimma asset con RSI OVERBOUGHT (>70) SOLO SE il PnL netto giustifica la tassa.
             - **PRIORITÀ 4:** (Solo dopo) Considera il bilanciamento settoriale
             
             - **TICKER SUGGERIBILI:** Asset nel portfolio: {', '.join([a['ticker'] for a in analysis['assets']])}
@@ -397,6 +422,33 @@ class Rebalancer:
         
         return report
     
+    def get_flash_recommendation(self) -> Optional[str]:
+        """
+        Get a single cost-effective rebalancing tip for the Hunt report.
+        Only returns if there's a strong opportunity covering fees+tax.
+        """
+        try:
+            analysis = self.get_portfolio_analysis()
+            if analysis["total_value"] == 0: return None
+            
+            # Simple rule-based check for obvious opportunities
+            for asset in analysis["assets"]:
+                # Check for Flash TRIM (Profit > €50, RSI > 75)
+                if asset["pnl_eur"] > 50 and asset.get("rsi", 50) > 75:
+                    tax = asset["potential_tax"]
+                    cost = tax + self.TRADE_FEE
+                    net_profit = asset["pnl_eur"] - cost
+                    if net_profit > 20: # Worth doing
+                        return f"📉 **FLASH TRIM Opportunity**: Vendi parte di {asset['ticker']} (RSI {asset.get('rsi'):.0f}). Net Gain: ~€{net_profit:.0f} (dopo fees/tax)."
+            
+            # Check for Flash BUY (Strong signal + Cash available)
+            # This is handled by main hunt logic, so we focus on Portfolio Trim/Rotation here
+            
+            return None
+        except Exception as e:
+            logger.warning(f"Flash recommendation failed: {e}")
+            return None
+
     async def run_daily(self):
         """
         Run daily rebalancing analysis and send to Telegram.
