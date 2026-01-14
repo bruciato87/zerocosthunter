@@ -1248,7 +1248,7 @@ async def rebalance_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"❌ Errore nel calcolo ribilanciamento: {e}")
 
 async def trainml_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Train or check status of the ML prediction model."""
+    """Show status of the Gemini-powered ML prediction model."""
     await update.message.reply_text("🤖 **ML Predictor Status...**", parse_mode="Markdown")
     
     try:
@@ -1257,48 +1257,26 @@ async def trainml_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         # Get stats
         stats = ml.get_dashboard_stats()
-        training_count = stats.get('available_samples', 0)
         is_ready = stats.get('is_ml_ready', False)
         version = stats.get('model_version', 'N/A')
-        accuracy = stats.get('accuracy')
-        last_trained = stats.get('last_trained')
+        predictions = stats.get('recent_predictions', [])
         
         msg = f"🤖 **ML Predictor Status**\n\n"
         msg += f"📦 **Modello:** `{version}`\n"
-        msg += f"🎯 **ML Attivo:** {'✅ Sì' if is_ready else '❌ No (Rule-based)'}\n"
+        msg += f"🎯 **ML Attivo:** {'✅ Gemini-powered' if is_ready else '❌ Rule-based (Gemini non disponibile)'}\n"
         
-        if accuracy:
-            msg += f"📊 **Accuracy:** {accuracy:.1%}\n"
-        if last_trained:
-            msg += f"📅 **Ultimo Training:** {last_trained[:10]}\n"
+        if is_ready:
+            msg += f"\n✅ **Come funziona:** Gemini analizza indicatori tecnici (RSI, MACD, Bollinger, VIX) e predice la direzione dei prezzi.\n"
+            msg += f"💡 Non richiede training esplicito - l'AI è già addestrata!\n"
         
-        msg += f"\n📈 **Segnali Disponibili:** {training_count}\n"
-        
-        if training_count >= ml.MIN_TRAINING_SAMPLES:
-            msg += f"✅ Hai abbastanza dati per il training ML!\n"
-            
-            # Check if user wants to train
-            if context.args and context.args[0].lower() == 'train':
-                await update.message.reply_text("⏳ **Avvio training modello XGBoost...**", parse_mode="Markdown")
-                
-                success = ml.train()
-                
-                if success:
-                    new_stats = ml.get_dashboard_stats()
-                    await update.message.reply_text(
-                        f"✅ **Training Completato!**\n\n"
-                        f"📦 Versione: `{ml.model_version}`\n"
-                        f"📊 Accuracy: {new_stats.get('accuracy', 0):.1%}\n"
-                        f"📈 Samples: {new_stats.get('training_samples', 0)}",
-                        parse_mode="Markdown"
-                    )
-                else:
-                    await update.message.reply_text("❌ Training fallito. Controlla i logs.")
-            else:
-                msg += "\n💡 Usa `/trainml train` per addestrare il modello."
-        else:
-            remaining = ml.MIN_TRAINING_SAMPLES - training_count
-            msg += f"⏳ Servono altri **{remaining}** segnali chiusi per il training ML.\n"
+        if predictions:
+            msg += f"\n📊 **Ultime Predizioni:**\n"
+            for pred in predictions[:3]:
+                ticker = pred.get('ticker', 'N/A')
+                direction = pred.get('predicted_direction', 'N/A')
+                conf = pred.get('ml_confidence', 0)
+                emoji = "🟢" if direction == "UP" else "🔴" if direction == "DOWN" else "⚪"
+                msg += f"  {emoji} {ticker}: {direction} ({conf:.0%})\n"
         
         await update.message.reply_text(msg, parse_mode="Markdown")
         
