@@ -264,6 +264,9 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "📊 **Reports:**\n"
         "• `/benchmark`: Confronta portfolio vs S&P500, BTC.\n"
         "• `/report`: Report completo con top movers e signals.\n\n"
+        "🤖 **Machine Learning:**\n"
+        "• `/trainml`: Stato del modello ML (predizioni, accuracy).\n"
+        "• `/trainml train`: Addestra il modello sui tuoi dati storici.\n\n"
         "⚙️ `/settings`: Configura filtri AI.\n\n"
         "📸 **Caricamento:**\nBasta inviare una foto! Se vuoi forzare il ticker, scrivilo nella **didascalia**."
     )

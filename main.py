@@ -70,6 +70,20 @@ async def run_async_pipeline():
     except Exception as e:
         logger.error(f"Sentinel Failed: {e}")
 
+    # 1.6 Weekly ML Training (Sundays only)
+    from datetime import datetime
+    if datetime.now().weekday() == 6:  # Sunday
+        logger.info("Weekly ML Training Check...")
+        try:
+            ml_predictor = MLPredictor()
+            if not ml_predictor.is_ml_ready or ml_predictor.get_training_data_count() > (ml_predictor.get_dashboard_stats().get('training_samples', 0) + 5):
+                logger.info("ML: New data available, retraining model...")
+                if ml_predictor.train():
+                    logger.info("ML: Weekly training completed successfully!")
+                    await notifier.send_alert("🤖 **ML Training Completato!**\n📊 Il modello è stato aggiornato con i nuovi dati.")
+        except Exception as e:
+            logger.error(f"ML Weekly Training Failed: {e}")
+
     # 2. Fetch News
     news_items = hunter.fetch_news()
     if not news_items:
