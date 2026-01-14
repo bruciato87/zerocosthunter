@@ -11,6 +11,5 @@ gunicorn>=21.0.0
 curl_cffi>=0.6.0
 trafilatura>=1.6.0
 numpy>=1.24.0
-# ML dependencies (install locally for training, too heavy for Vercel):
-# pip install scikit-learn xgboost
-
+lightgbm>=4.0.0
+scikit-learn>=1.3.0

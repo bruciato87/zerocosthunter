@@ -1,8 +1,10 @@
 """
 ML Predictor - Level 4 Machine Learning
 ========================================
-Price direction prediction using XGBoost with technical indicators.
+Price direction prediction using LightGBM with technical indicators.
 Integrates with Brain for confidence adjustment.
+
+Note: Uses LightGBM (~30MB) instead of XGBoost (~180MB) for Vercel compatibility.
 """
 
 import logging
@@ -280,9 +282,9 @@ class MLPredictor:
         
         return direction, confidence
     
-    def _xgb_predict(self, features: Dict) -> Tuple[str, float]:
+    def _lgbm_predict(self, features: Dict) -> Tuple[str, float]:
         """
-        XGBoost ML prediction.
+        LightGBM ML prediction.
         Requires trained model.
         """
         try:
@@ -300,7 +302,7 @@ class MLPredictor:
             return direction, confidence
             
         except Exception as e:
-            logger.error(f"XGBoost prediction failed: {e}")
+            logger.error(f"LightGBM prediction failed: {e}")
             return self._rule_based_predict(features)
     
     def predict(self, ticker: str) -> MLPrediction:
@@ -324,7 +326,7 @@ class MLPredictor:
         
         # Use ML or rule-based
         if self.is_ml_ready and self.model is not None:
-            direction, confidence = self._xgb_predict(features)
+            direction, confidence = self._lgbm_predict(features)
             is_ml = True
         else:
             direction, confidence = self._rule_based_predict(features)
@@ -503,22 +505,21 @@ class MLPredictor:
                 logger.warning(f"ML: Only {len(X)} valid samples after feature extraction")
                 return False
             
-            # Train XGBoost
-            from xgboost import XGBClassifier
+            # Train LightGBM (lighter than XGBoost, ~30MB vs ~180MB)
+            from lightgbm import LGBMClassifier
             from sklearn.model_selection import train_test_split
             
             X_train, X_test, y_train, y_test = train_test_split(
                 np.array(X), np.array(y), test_size=0.2, random_state=42
             )
             
-            self.model = XGBClassifier(
+            self.model = LGBMClassifier(
                 n_estimators=100,
                 max_depth=5,
                 learning_rate=0.1,
-                objective='multi:softprob',
+                objective='multiclass',
                 num_class=3,
-                use_label_encoder=False,
-                eval_metric='mlogloss'
+                verbose=-1  # Suppress output
             )
             
             self.model.fit(X_train, y_train)
@@ -527,7 +528,7 @@ class MLPredictor:
             accuracy = self.model.score(X_test, y_test)
             
             # Save model state to DB
-            self.model_version = f"xgb_v{datetime.now().strftime('%Y%m%d')}"
+            self.model_version = f"lgbm_v{datetime.now().strftime('%Y%m%d')}"
             self.is_ml_ready = True
             
             db.supabase.table("ml_model_state").insert({
@@ -540,7 +541,7 @@ class MLPredictor:
             return True
             
         except ImportError:
-            logger.error("ML: xgboost/sklearn not installed. Run: pip install xgboost scikit-learn")
+            logger.error("ML: lightgbm/sklearn not installed. Run: pip install lightgbm scikit-learn")
             return False
         except Exception as e:
             logger.error(f"ML: Training failed: {e}")
