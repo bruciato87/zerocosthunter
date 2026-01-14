@@ -754,23 +754,21 @@
                     });
 
                     // Inject Data
-                    const dates = {{ chart_labels | tojson
-                }
-            };
-            const values = {{ chart_data | safe }}; // safe because json.dumps used in python
+                    const dates = {{ chart_labels | tojson }};
+                    const values = {{ chart_data | safe }};
 
-            if (dates && values && dates.length === values.length) {
-                const data = dates.map((d, i) => ({ time: d, value: values[i] }));
-                areaSeries.setData(data);
-                chart.timeScale().fitContent();
-            }
+                    if (dates && values && dates.length === values.length) {
+                        const data = dates.map((d, i) => ({ time: d, value: values[i] }));
+                        areaSeries.setData(data);
+                        chart.timeScale().fitContent();
+                    }
 
-            // Resize Observer
-            new ResizeObserver(entries => {
-                if (entries.length === 0 || entries[0].target !== chartContainer) { return; }
-                const newRect = entries[0].contentRect;
-                chart.applyOptions({ width: newRect.width, height: newRect.height });
-            }).observe(chartContainer);
+                    // Resize Observer
+                    new ResizeObserver(entries => {
+                        if (entries.length === 0 || entries[0].target !== chartContainer) { return; }
+                        const newRect = entries[0].contentRect;
+                        chart.applyOptions({ width: newRect.width, height: newRect.height });
+                    }).observe(chartContainer);
                 }
             });
 
