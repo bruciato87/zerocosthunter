@@ -17,6 +17,7 @@ from advisor import Advisor
 from signal_intelligence import SignalIntelligence
 from sentinel import Sentinel
 from paper_trader import PaperTrader
+from ml_predictor import MLPredictor
 import re
 import asyncio
 
@@ -54,6 +55,7 @@ async def run_async_pipeline():
         economist = Economist()
         sentinel = Sentinel()
         paper_trader = PaperTrader()
+        ml_predictor = MLPredictor()
     except Exception as e:
         logger.critical(f"Initialization failed: {e}")
         return
@@ -548,6 +550,24 @@ async def run_async_pipeline():
                         logger.info(f"L2 Divergence [{ticker}]: Bearish divergence on SELL → boost")
             except Exception as e:
                 logger.warning(f"L2 Divergence failed for {ticker}: {e}")
+            
+            # --- PREDICTIVE SYSTEM L4: MACHINE LEARNING ---
+            try:
+                ml_modifier = ml_predictor.get_confidence_modifier(ticker, sentiment)
+                original_conf = confidence
+                confidence = min(1.0, confidence * ml_modifier)
+                
+                ml_pred = ml_predictor.predict(ticker)
+                ml_type = "ML" if ml_pred.is_ml else "Rule"
+                
+                if ml_modifier != 1.0:
+                    logger.info(f"L4 ML [{ticker}]: {ml_pred.direction} ({ml_pred.confidence:.0%}) → modifier {ml_modifier:.2f}")
+                    if ml_modifier > 1.0:
+                        reasoning += f" [L4 ML: {ml_type} agrees ({ml_pred.direction} {ml_pred.confidence:.0%})]"
+                    else:
+                        reasoning += f" [L4 ML: {ml_type} disagrees ({ml_pred.direction})]"
+            except Exception as e:
+                logger.warning(f"L4 ML failed for {ticker}: {e}")
             
             # Re-check confidence after adjustment
             if confidence < min_conf:

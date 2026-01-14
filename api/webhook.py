@@ -880,6 +880,15 @@ def dashboard():
         market_regime = {}
         sector_rotation = {}
 
+    # 13. Level 4 ML Predictor Stats
+    try:
+        from ml_predictor import MLPredictor
+        ml = MLPredictor()
+        ml_stats = ml.get_dashboard_stats()
+    except Exception as e:
+        logger.error(f"ML Stats Fetch Error: {e}")
+        ml_stats = {}
+
     return render_template('dashboard.html', 
                            signals=signals, 
                            portfolio=portfolio, 
@@ -903,7 +912,9 @@ def dashboard():
                            market_regime=market_regime,
                            sector_rotation=sector_rotation,
                            backtest_results=backtest_results,
-                           benchmark_data=benchmark_data)
+                           benchmark_data=benchmark_data,
+                           ml_stats=ml_stats)
+
 
 @app.route('/api/webhook', methods=['POST'])
 def webhook():
@@ -942,6 +953,7 @@ def webhook():
                 bot_app.add_handler(CommandHandler("macro", macro_command))
                 bot_app.add_handler(CommandHandler("whale", whale_command))
                 bot_app.add_handler(CommandHandler("rebalance", rebalance_command))
+                bot_app.add_handler(CommandHandler("trainml", trainml_command))
                 bot_app.add_handler(CommandHandler("sell", sell_command))
                 bot_app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
                 bot_app.add_handler(CallbackQueryHandler(handle_callback))
@@ -1234,6 +1246,65 @@ async def rebalance_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         logger.error(f"Rebalance command error: {e}")
         await update.message.reply_text(f"❌ Errore nel calcolo ribilanciamento: {e}")
+
+async def trainml_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Train or check status of the ML prediction model."""
+    await update.message.reply_text("🤖 **ML Predictor Status...**", parse_mode="Markdown")
+    
+    try:
+        from ml_predictor import MLPredictor
+        ml = MLPredictor()
+        
+        # Get stats
+        stats = ml.get_dashboard_stats()
+        training_count = stats.get('available_samples', 0)
+        is_ready = stats.get('is_ml_ready', False)
+        version = stats.get('model_version', 'N/A')
+        accuracy = stats.get('accuracy')
+        last_trained = stats.get('last_trained')
+        
+        msg = f"🤖 **ML Predictor Status**\n\n"
+        msg += f"📦 **Modello:** `{version}`\n"
+        msg += f"🎯 **ML Attivo:** {'✅ Sì' if is_ready else '❌ No (Rule-based)'}\n"
+        
+        if accuracy:
+            msg += f"📊 **Accuracy:** {accuracy:.1%}\n"
+        if last_trained:
+            msg += f"📅 **Ultimo Training:** {last_trained[:10]}\n"
+        
+        msg += f"\n📈 **Segnali Disponibili:** {training_count}\n"
+        
+        if training_count >= ml.MIN_TRAINING_SAMPLES:
+            msg += f"✅ Hai abbastanza dati per il training ML!\n"
+            
+            # Check if user wants to train
+            if context.args and context.args[0].lower() == 'train':
+                await update.message.reply_text("⏳ **Avvio training modello XGBoost...**", parse_mode="Markdown")
+                
+                success = ml.train()
+                
+                if success:
+                    new_stats = ml.get_dashboard_stats()
+                    await update.message.reply_text(
+                        f"✅ **Training Completato!**\n\n"
+                        f"📦 Versione: `{ml.model_version}`\n"
+                        f"📊 Accuracy: {new_stats.get('accuracy', 0):.1%}\n"
+                        f"📈 Samples: {new_stats.get('training_samples', 0)}",
+                        parse_mode="Markdown"
+                    )
+                else:
+                    await update.message.reply_text("❌ Training fallito. Controlla i logs.")
+            else:
+                msg += "\n💡 Usa `/trainml train` per addestrare il modello."
+        else:
+            remaining = ml.MIN_TRAINING_SAMPLES - training_count
+            msg += f"⏳ Servono altri **{remaining}** segnali chiusi per il training ML.\n"
+        
+        await update.message.reply_text(msg, parse_mode="Markdown")
+        
+    except Exception as e:
+        logger.error(f"TrainML command error: {e}")
+        await update.message.reply_text(f"❌ Errore: {e}")
 
 
 async def sell_command(update: Update, context: ContextTypes.DEFAULT_TYPE):

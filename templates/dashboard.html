@@ -275,6 +275,69 @@
                     {% endif %}
                 </div>
 
+                <!-- 6. ML Predictor (L4) -->
+                <div
+                    class="col-span-1 md:col-span-12 bg-gradient-to-r from-purple-900/20 to-gray-900 rounded-xl p-5 border border-purple-500/30 shadow-lg">
+                    <div class="card-header mb-4">
+                        <span class="card-title text-purple-400">🤖 ML Predictor (L4)</span>
+                        {% if ml_stats %}
+                        <span
+                            class="px-2 py-0.5 rounded text-[10px] font-bold border 
+                        {% if ml_stats.is_ml_ready %}bg-green-900/30 text-green-400 border-green-800{% else %}bg-yellow-900/30 text-yellow-400 border-yellow-800{% endif %}">
+                            {{ "XGBoost" if ml_stats.is_ml_ready else "Rule-Based" }}
+                        </span>
+                        {% endif %}
+                    </div>
+                    {% if ml_stats %}
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="bg-gray-800/50 rounded-lg p-3 border border-gray-700">
+                            <div class="text-xs text-gray-500 mb-1">Model Version</div>
+                            <div class="text-white font-mono text-sm">{{ ml_stats.model_version }}</div>
+                        </div>
+                        <div class="bg-gray-800/50 rounded-lg p-3 border border-gray-700">
+                            <div class="text-xs text-gray-500 mb-1">Accuracy</div>
+                            <div
+                                class="text-lg font-bold font-mono 
+                                {% if ml_stats.accuracy and ml_stats.accuracy > 0.6 %}text-green-400{% elif ml_stats.accuracy %}text-yellow-400{% else %}text-gray-400{% endif %}">
+                                {% if ml_stats.accuracy %}{{ "%.1f"|format(ml_stats.accuracy * 100) }}%{% else %}N/A{%
+                                endif %}
+                            </div>
+                        </div>
+                        <div class="bg-gray-800/50 rounded-lg p-3 border border-gray-700">
+                            <div class="text-xs text-gray-500 mb-1">Training Samples</div>
+                            <div class="text-white font-mono">{{ ml_stats.available_samples|default(0) }}</div>
+                            <div class="text-[9px] text-gray-500">Min: 50 for ML</div>
+                        </div>
+                        <div class="bg-gray-800/50 rounded-lg p-3 border border-gray-700">
+                            <div class="text-xs text-gray-500 mb-1">Last Trained</div>
+                            <div class="text-white font-mono text-sm">
+                                {% if ml_stats.last_trained %}{{ ml_stats.last_trained[:10] }}{% else %}Never{% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% if ml_stats.recent_predictions %}
+                    <div class="mt-4">
+                        <div class="text-xs text-gray-500 uppercase tracking-wider mb-2">Recent Predictions</div>
+                        <div class="flex flex-wrap gap-2">
+                            {% for pred in ml_stats.recent_predictions[:5] %}
+                            <div class="px-2 py-1 rounded text-xs bg-gray-800 border border-gray-700">
+                                <span class="font-bold text-white">{{ pred.ticker }}</span>
+                                <span
+                                    class="ml-1 
+                                    {% if pred.predicted_direction == 'UP' %}text-green-400{% elif pred.predicted_direction == 'DOWN' %}text-red-400{% else %}text-gray-400{% endif %}">
+                                    {{ pred.predicted_direction }}
+                                </span>
+                                <span class="text-gray-500 ml-1">({{ "%.0f"|format(pred.ml_confidence * 100) }}%)</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% else %}
+                    <div class="text-center py-4 text-gray-500 text-xs">ML data loading...</div>
+                    {% endif %}
+                </div>
+
 
                 <!-- ROW 1.5: BENCHMARK COMPARISON -->
                 {% if benchmark_data and benchmark_data.benchmarks %}
@@ -691,7 +754,9 @@
                     });
 
                     // Inject Data
-                    const dates = {{ chart_labels | tojson }};
+                    const dates = {{ chart_labels | tojson
+                }
+            };
             const values = {{ chart_data | safe }}; // safe because json.dumps used in python
 
             if (dates && values && dates.length === values.length) {
