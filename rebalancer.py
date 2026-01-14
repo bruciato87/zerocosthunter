@@ -434,12 +434,20 @@ class Rebalancer:
             # Simple rule-based check for obvious opportunities
             for asset in analysis["assets"]:
                 # Check for Flash TRIM (Profit > €50, RSI > 75)
-                if asset["pnl_eur"] > 50 and asset.get("rsi", 50) > 75:
-                    tax = asset["potential_tax"]
+                rsi = asset.get("rsi")
+                if rsi is None: rsi = 50
+                
+                pnl = asset.get("pnl_eur")
+                if pnl is None: pnl = 0
+
+                if pnl > 50 and rsi > 75:
+                    tax = asset.get("potential_tax")
+                    if tax is None: tax = 0
+                    
                     cost = tax + self.TRADE_FEE
-                    net_profit = asset["pnl_eur"] - cost
+                    net_profit = pnl - cost
                     if net_profit > 20: # Worth doing
-                        return f"📉 **FLASH TRIM Opportunity**: Vendi parte di {asset['ticker']} (RSI {asset.get('rsi'):.0f}). Net Gain: ~€{net_profit:.0f} (dopo fees/tax)."
+                        return f"📉 **FLASH TRIM Opportunity**: Vendi parte di {asset['ticker']} (RSI {rsi:.0f}). Net Gain: ~€{net_profit:.0f} (dopo fees/tax)."
             
             # Check for Flash BUY (Strong signal + Cash available)
             # This is handled by main hunt logic, so we focus on Portfolio Trim/Rotation here
