@@ -82,8 +82,8 @@ class Analyzer:
             
             analysis_report = self.brain.generate_deep_dive(
                 ticker=ticker,
-                news=news_items,
-                technicals=technical_summary,
+                news_list=news_items,
+                technical_data=technical_summary,
                 portfolio_context=portfolio_context
             )
             
