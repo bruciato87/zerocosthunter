@@ -325,6 +325,7 @@ async def setup_bot_commands(bot):
         BotCommand("sell", "💸 Registra Vendita"),
         BotCommand("mode", "🔧 PREPROD/PROD Mode"),
         BotCommand("usage", "📊 API Usage Stats"),
+        BotCommand("trainml", "🤖 ML Model (stato/addestra)"),
         BotCommand("dbstatus", "📦 Stato Storage DB"),
         BotCommand("help", "❓ Lista Comandi"),
         BotCommand("setprice", "💶 Correggi Prezzo"),
