@@ -342,7 +342,8 @@ class Rebalancer:
             
             **ISTRUZIONI:**
             1. Genera MAX 3 azioni concrete nel formato:
-               🟢 BUY €XXX TICKER - Motivo breve
+               🟢 BUY €XXX TICKER (NUOVO) - Motivo breve ← SOLO per asset NON in portafoglio
+               🟢 ACCUMULATE €XXX TICKER - Motivo breve ← SOLO per asset GIÀ in portafoglio
                🟡 HOLD TICKER - Motivo breve
                🔴 TRIM XX% TICKER - Motivo breve (Net profit after tax/fees: €XX)
             
