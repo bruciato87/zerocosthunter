@@ -5,57 +5,128 @@ import logging
 import json
 from market_data import MarketData
 import time
+import requests
 
 # Configure logging
 logger = logging.getLogger(__name__)
 
 class Brain:
     def __init__(self):
-        self.api_key = os.environ.get("GEMINI_API_KEY")
-        self.client = genai.Client(
-            api_key=self.api_key,
-            http_options={'timeout': 300000}  # 5 minutes timeout
+        # DeepSeek as PRIMARY provider
+        self.deepseek_api_key = os.environ.get("DEEPSEEK_API_KEY")
+        self.deepseek_base_url = "https://api.deepseek.com/v1"
+        
+        # Gemini as FALLBACK provider
+        self.gemini_api_key = os.environ.get("GEMINI_API_KEY")
+        self.gemini_client = genai.Client(
+            api_key=self.gemini_api_key,
+            http_options={'timeout': 300000}
+        ) if self.gemini_api_key else None
+        
+        # Track which provider to use
+        self.use_deepseek = bool(self.deepseek_api_key)
+        
+        logger.info(f"Brain initialized: DeepSeek={'✅' if self.use_deepseek else '❌'}, Gemini={'✅' if self.gemini_api_key else '❌'}")
+
+    def _call_deepseek(self, messages: list, temperature: float = 0.3, json_mode: bool = False) -> str:
+        """Call DeepSeek API (OpenAI-compatible)."""
+        headers = {
+            "Authorization": f"Bearer {self.deepseek_api_key}",
+            "Content-Type": "application/json"
+        }
+        
+        payload = {
+            "model": "deepseek-chat",  # DeepSeek V3
+            "messages": messages,
+            "temperature": temperature,
+            "max_tokens": 4096
+        }
+        
+        if json_mode:
+            payload["response_format"] = {"type": "json_object"}
+        
+        response = requests.post(
+            f"{self.deepseek_base_url}/chat/completions",
+            headers=headers,
+            json=payload,
+            timeout=120
         )
+        
+        if response.status_code == 402:
+            # Payment required - credits exhausted
+            raise Exception("DEEPSEEK_CREDITS_EXHAUSTED")
+        
+        response.raise_for_status()
+        return response.json()["choices"][0]["message"]["content"]
 
-    def _generate_with_retry(self, **kwargs):
-        """
-        Helper to retry Gemini API calls on 429 Resource Exhausted.
-        Max retries: 5 with smart backoff.
-        """
-        max_retries = 5
-        backoff = 10 # Start with 10 seconds (safer default)
+    def _call_gemini(self, prompt: str, json_mode: bool = False) -> str:
+        """Call Gemini API as fallback."""
+        config = types.GenerateContentConfig(temperature=0.3)
+        if json_mode:
+            config = types.GenerateContentConfig(
+                response_mime_type="application/json",
+                temperature=0.3
+            )
+        
+        response = self.gemini_client.models.generate_content(
+            model='gemini-2.5-flash-lite',  # Higher quota model
+            contents=prompt,
+            config=config
+        )
+        return response.text
 
-        for attempt in range(max_retries + 1):
+    def _generate_with_fallback(self, prompt: str, json_mode: bool = False) -> str:
+        """
+        Try DeepSeek first, fallback to Gemini on failure.
+        """
+        # Try DeepSeek first
+        if self.use_deepseek and self.deepseek_api_key:
             try:
-                return self.client.models.generate_content(**kwargs)
+                messages = [{"role": "user", "content": prompt}]
+                result = self._call_deepseek(messages, json_mode=json_mode)
+                logger.info("DeepSeek API call successful")
+                return result
             except Exception as e:
-                # Check for 429
                 error_str = str(e)
-                if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
-                    if attempt < max_retries:
-                        # Try to parse 'retryDelay' from error message if available
-                        # Example: "Please retry in 8.881087433s."
-                        waitTime = backoff
-                        try:
-                            import re
-                            match = re.search(r"retry in (\d+(\.\d+)?)s", error_str)
-                            if match:
-                                waitTime = float(match.group(1)) + 2.0 # Add buffer
-                        except:
-                            pass
-                        
-                        logger.warning(f"Gemini 429 Rate Limit hit. Retrying in {waitTime:.1f}s... (Attempt {attempt+1}/{max_retries})")
-                        time.sleep(waitTime)
-                        
-                        # Increase default backoff for next time just in case parsing fails
-                        backoff *= 1.5 
-                        continue
-                    else:
-                        logger.error(f"Gemini Rate Limit Exceeded after {max_retries} retries.")
-                        raise e
+                if "DEEPSEEK_CREDITS_EXHAUSTED" in error_str or "402" in error_str:
+                    logger.warning("DeepSeek credits exhausted! Switching to Gemini permanently.")
+                    self.use_deepseek = False
                 else:
-                    # Not a rate limit error, raise immediately
-                    raise e
+                    logger.warning(f"DeepSeek failed: {e}. Trying Gemini fallback...")
+        
+        # Fallback to Gemini
+        if self.gemini_client:
+            try:
+                # Retry logic for Gemini
+                max_retries = 5
+                backoff = 10
+                
+                for attempt in range(max_retries + 1):
+                    try:
+                        result = self._call_gemini(prompt, json_mode=json_mode)
+                        logger.info("Gemini fallback successful")
+                        return result
+                    except Exception as e:
+                        error_str = str(e)
+                        if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
+                            if attempt < max_retries:
+                                # Parse retry delay if available
+                                import re
+                                wait_time = backoff
+                                match = re.search(r"retry in (\d+(\.\d+)?)s", error_str)
+                                if match:
+                                    wait_time = float(match.group(1)) + 2.0
+                                
+                                logger.warning(f"Gemini 429. Retrying in {wait_time:.1f}s... ({attempt+1}/{max_retries})")
+                                time.sleep(wait_time)
+                                backoff *= 1.5
+                                continue
+                        raise e
+            except Exception as e:
+                logger.error(f"Gemini fallback also failed: {e}")
+                raise e
+        
+        raise Exception("No AI provider available")
     
     def analyze_news_batch(self, news_list, performance_context=None, insider_context=None, portfolio_context=None, macro_context=None, whale_context=None):
         """
@@ -410,29 +481,21 @@ class Brain:
         """
 
         try:
-            logger.info("Sending news batch to Gemini...")
-            response = self._generate_with_retry(
-                model='gemini-3-flash-preview',
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    response_mime_type="application/json",
-                    temperature=0.3  # Low temp for consistent trading signals
-                )
-            )
+            logger.info("Sending news batch to AI (DeepSeek → Gemini fallback)...")
+            response_text = self._generate_with_fallback(prompt, json_mode=True)
             
             # Parse JSON
             try:
-                # With the new SDK and response_mime_type, the text is the JSON string
-                analysis_results = json.loads(response.text)
-                logger.info(f"Gemini returned {len(analysis_results)} potential signals.")
+                analysis_results = json.loads(response_text)
+                logger.info(f"AI returned {len(analysis_results)} potential signals.")
                 return analysis_results
             except json.JSONDecodeError:
-                logger.error("Failed to parse Gemini response as JSON.")
-                logger.debug(f"Raw response: {response.text}")
+                logger.error("Failed to parse AI response as JSON.")
+                logger.debug(f"Raw response: {response_text}")
                 return []
                 
         except Exception as e:
-            logger.error(f"Error during Gemini analysis: {e}")
+            logger.error(f"Error during AI analysis: {e}")
             return []
 
     def parse_portfolio_from_image(self, image_path):
@@ -516,9 +579,10 @@ class Brain:
         """
 
         try:
-            # Using gemini-flash-latest (Generic Alias, often most reliable/generous)
-            response = self._generate_with_retry(
-                model='gemini-3-flash-preview',
+            # Vision requires Gemini (DeepSeek doesn't support images)
+            logger.info("Parsing portfolio image with Gemini Vision...")
+            response = self.gemini_client.models.generate_content(
+                model='gemini-2.5-flash-lite',
                 contents=[
                     prompt,
                     types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
@@ -792,8 +856,10 @@ class Brain:
         """
 
         try:
-            response = self._generate_with_retry(
-                model='gemini-3-flash-preview',
+            # Vision requires Gemini (DeepSeek doesn't support images)
+            logger.info("Parsing sale image with Gemini Vision...")
+            response = self.gemini_client.models.generate_content(
+                model='gemini-2.5-flash-lite',
                 contents=[
                     prompt,
                     types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
@@ -872,12 +938,9 @@ class Brain:
         """
 
         try:
-            logger.info(f"Generating Deep Dive for {ticker}...")
-            response = self._generate_with_retry(
-                model='gemini-3-flash-preview',
-                contents=prompt
-            )
-            return response.text
+            logger.info(f"Generating Deep Dive for {ticker} (DeepSeek → Gemini)...")
+            result = self._generate_with_fallback(prompt, json_mode=False)
+            return result
         except Exception as e:
             logger.error(f"Deep Dive failed: {e}")
             return "⚠️ Errore durante l'analisi approfondita."
