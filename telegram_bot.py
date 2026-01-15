@@ -30,8 +30,14 @@ class TelegramNotifier:
         try:
             # Create a fresh Bot instance for each request to avoid event loop conflicts
             async with Bot(token=self.token) as bot:
-                await bot.send_message(chat_id=chat_id, text=message, parse_mode='Markdown')
-                logger.info(f"Telegram message sent to {chat_id}.")
+                try:
+                    await bot.send_message(chat_id=chat_id, text=message, parse_mode='Markdown')
+                    logger.info(f"Telegram message sent to {chat_id}.")
+                except Exception as md_err:
+                    logger.warning(f"Markdown failed ({md_err}), retrying as plain text...")
+                    await bot.send_message(chat_id=chat_id, text=message)
+                    logger.info(f"Telegram message sent (plain text) to {chat_id}.")
+                    
         except Exception as e:
             logger.error(f"Failed to send Telegram message: {e}")
 
