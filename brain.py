@@ -61,20 +61,59 @@ class Brain:
             timeout=120
         )
         
-        if response.status_code == 402:
-            # Payment required - credits exhausted
-            raise Exception("DEEPSEEK_CREDITS_EXHAUSTED")
-        
-        response.raise_for_status()
-        
-        # Track API usage
-        try:
-            from db_handler import DBHandler
-            DBHandler().increment_api_counter("deepseek")
-        except Exception:
-            pass
-        
-        return response.json()["choices"][0]["message"]["content"]
+        if response.status_code == 200:
+            data = response.json()
+            choice = data['choices'][0]['message']
+            
+            # Extract Reasoning (Chain of Thought) if present (R1 model)
+            reasoning = choice.get('reasoning_content', '')
+            if reasoning:
+                logger.info(f"🧠 DeepSeek Thought Process:\n{reasoning[:500]}...") # Log first 500 chars
+            
+            content = choice.get('content', '')
+            
+            # JSON Repair: If json_mode is requested but content has extra text
+            if json_mode:
+                import re
+                # Try to find JSON block ```json ... ``` or just { ... }
+                json_match = re.search(r'```json\s*(\{.*?\})\s*```', content, re.DOTALL)
+                if json_match:
+                    content = json_match.group(1)
+                else:
+                    # Try finding the first { and last }
+                    json_match_raw = re.search(r'(\{.*\})', content, re.DOTALL)
+                    if json_match_raw:
+                        content = json_match_raw.group(1)
+            
+            # Verify JSON Validity
+            if json_mode:
+                try:
+                    import json
+                    json.loads(content)
+                except Exception as e:
+                    logger.error(f"DeepSeek returned invalid JSON: {e}")
+                    # If repair failed, let it crash to trigger fallback to Gemini
+                    raise ValueError(f"Invalid JSON from DeepSeek: {e}")
+
+            # Track usage
+            usage = data.get('usage', {})
+            total_tokens = usage.get('total_tokens', 0)
+            
+            try:
+                from db_handler import DBHandler
+                DBHandler().increment_api_counter("deepseek")
+            except: pass
+            
+            return content
+        else:
+            if response.status_code == 402:
+                # Payment required - credits exhausted
+                raise Exception("DEEPSEEK_CREDITS_EXHAUSTED")
+            
+            response.raise_for_status()
+            
+            # Should not reach here
+            return ""
 
     def _call_gemini(self, prompt: str, json_mode: bool = False) -> str:
         """Call Gemini API as fallback."""
