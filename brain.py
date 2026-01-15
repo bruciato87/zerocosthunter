@@ -66,6 +66,14 @@ class Brain:
             raise Exception("DEEPSEEK_CREDITS_EXHAUSTED")
         
         response.raise_for_status()
+        
+        # Track API usage
+        try:
+            from db_handler import DBHandler
+            DBHandler().increment_api_counter("deepseek")
+        except Exception:
+            pass
+        
         return response.json()["choices"][0]["message"]["content"]
 
     def _call_gemini(self, prompt: str, json_mode: bool = False) -> str:
@@ -82,7 +90,39 @@ class Brain:
             contents=prompt,
             config=config
         )
+        
+        # Track API usage and check for 80% warning
+        try:
+            from db_handler import DBHandler
+            db = DBHandler()
+            counters = db.increment_api_counter("gemini")
+            
+            # Send warning at 80% of daily limit (800/1000)
+            gemini_count = counters.get("gemini", 0)
+            if gemini_count == 800:
+                self._send_usage_warning(gemini_count, 1000)
+        except Exception:
+            pass
+        
         return response.text
+    
+    def _send_usage_warning(self, current: int, limit: int):
+        """Send Telegram warning when approaching API limit."""
+        try:
+            from telegram_bot import TelegramNotifier
+            import asyncio
+            
+            pct = (current / limit) * 100
+            msg = (
+                f"⚠️ **API Usage Warning**\n\n"
+                f"Gemini: {current}/{limit} ({pct:.0f}%)\n\n"
+                f"Considera di passare a PROD mode (`/mode PROD`) per usare DeepSeek."
+            )
+            
+            notifier = TelegramNotifier()
+            asyncio.get_event_loop().run_until_complete(notifier.send_alert(msg))
+        except Exception as e:
+            logger.warning(f"Failed to send usage warning: {e}")
 
     def _generate_with_fallback(self, prompt: str, json_mode: bool = False) -> str:
         """

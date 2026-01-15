@@ -234,6 +234,36 @@ async def mode_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown"
     )
 
+async def usage_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Show API usage statistics."""
+    db = DBHandler()
+    usage = db.get_api_usage()
+    
+    gemini_count = usage.get("gemini", 0)
+    deepseek_count = usage.get("deepseek", 0)
+    gemini_limit = usage.get("limits", {}).get("gemini", 1000)
+    date = usage.get("date", "N/A")
+    
+    # Calculate percentage
+    gemini_pct = (gemini_count / gemini_limit * 100) if gemini_limit else 0
+    
+    # Choose emoji based on usage level
+    if gemini_pct < 50:
+        gemini_emoji = "🟢"
+    elif gemini_pct < 80:
+        gemini_emoji = "🟡"
+    else:
+        gemini_emoji = "🔴"
+    
+    msg = (
+        f"📊 **API Usage Today** ({date})\n"
+        f"━━━━━━━━━━━━━━━━━━\n\n"
+        f"{gemini_emoji} **Gemini:** {gemini_count}/{gemini_limit} ({gemini_pct:.1f}%)\n"
+        f"🔵 **DeepSeek:** {deepseek_count} (pay-per-use)\n\n"
+        f"⏰ Reset: 00:00 UTC"
+    )
+    await update.message.reply_text(msg, parse_mode="Markdown")
+
 from whale_watcher import WhaleWatcher
 from economist import Economist
 
@@ -259,6 +289,7 @@ async def setup_bot_commands(bot):
         BotCommand("rebalance", "⚖️ Analisi Ribilanciamento"),
         BotCommand("sell", "💸 Registra Vendita"),
         BotCommand("mode", "🔧 PREPROD/PROD Mode"),
+        BotCommand("usage", "📊 API Usage Stats"),
         BotCommand("dbstatus", "📦 Stato Storage DB"),
         BotCommand("help", "❓ Lista Comandi"),
         BotCommand("setprice", "💶 Correggi Prezzo"),
@@ -308,7 +339,8 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "• `/trainml`: Stato del modello ML (predizioni, accuracy).\n"
         "• `/trainml train`: Addestra il modello sui tuoi dati storici.\n\n"
         "⚙️ `/settings`: Configura filtri AI.\n"
-        "🔧 `/mode`: Cambia modalità PREPROD/PROD.\n\n"
+        "🔧 `/mode`: Cambia modalità PREPROD/PROD.\n"
+        "📊 `/usage`: Vedi statistiche API usage.\n\n"
         "📸 **Caricamento:**\nBasta inviare una foto! Se vuoi forzare il ticker, scrivilo nella **didascalia**."
     )
     await update.message.reply_text(msg)
@@ -995,6 +1027,7 @@ def webhook():
                 bot_app.add_handler(CommandHandler("analyze", analyze_command))
                 bot_app.add_handler(CommandHandler("settings", settings_command))
                 bot_app.add_handler(CommandHandler("mode", mode_command))
+                bot_app.add_handler(CommandHandler("usage", usage_command))
                 bot_app.add_handler(CommandHandler("macro", macro_command))
                 bot_app.add_handler(CommandHandler("whale", whale_command))
                 bot_app.add_handler(CommandHandler("rebalance", rebalance_command))

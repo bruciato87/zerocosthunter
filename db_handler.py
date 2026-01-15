@@ -322,6 +322,62 @@ class DBHandler:
             logger.error(f"Error updating settings: {e}")
             return False
 
+    # --- API USAGE TRACKING ---
+    def increment_api_counter(self, provider: str) -> dict:
+        """
+        Increment daily API call counter for a provider.
+        Returns current counters dict.
+        """
+        try:
+            today = datetime.utcnow().strftime('%Y-%m-%d')
+            settings = self.get_settings()
+            
+            # Get or initialize counters
+            counters = settings.get("api_counters") or {}
+            if not isinstance(counters, dict):
+                counters = {}
+            
+            # Reset if new day
+            if counters.get("date") != today:
+                counters = {"date": today, "gemini": 0, "deepseek": 0}
+            
+            # Increment provider counter
+            counters[provider] = counters.get(provider, 0) + 1
+            
+            # Save to DB
+            if "id" in settings:
+                self.supabase.table("user_settings").update({"api_counters": counters}).eq("id", settings["id"]).execute()
+            
+            logger.info(f"API Counter: {provider} = {counters[provider]} (today: {today})")
+            return counters
+        except Exception as e:
+            logger.error(f"Error incrementing API counter: {e}")
+            return {"date": today, "gemini": 0, "deepseek": 0}
+
+    def get_api_usage(self) -> dict:
+        """
+        Get current API usage stats.
+        Returns: {"date": "2026-01-15", "gemini": 45, "deepseek": 12, "limits": {...}}
+        """
+        try:
+            today = datetime.utcnow().strftime('%Y-%m-%d')
+            settings = self.get_settings()
+            counters = settings.get("api_counters") or {}
+            
+            if not isinstance(counters, dict) or counters.get("date") != today:
+                counters = {"date": today, "gemini": 0, "deepseek": 0}
+            
+            # Add limits info
+            counters["limits"] = {
+                "gemini": 1000,  # gemini-2.5-flash-lite RPD
+                "deepseek": None  # Pay-per-use, no daily limit
+            }
+            
+            return counters
+        except Exception as e:
+            logger.error(f"Error getting API usage: {e}")
+            return {"date": today, "gemini": 0, "deepseek": 0, "limits": {"gemini": 1000, "deepseek": None}}
+
     def check_if_analyzed_recently(self, ticker: str, new_sentiment: str, hours: int = 24) -> bool:
         """
         Check if we should SKIP this alert.
