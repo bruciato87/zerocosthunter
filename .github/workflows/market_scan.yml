@@ -20,6 +20,10 @@ on:
           - hunt
           - rebalance
           - weekly_summary
+      target_chat_id:
+        description: 'Target Chat ID for report'
+        required: false
+        type: string
 
 jobs:
   hunt:
@@ -77,6 +81,7 @@ jobs:
         SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TARGET_CHAT_ID: ${{ github.event.inputs.target_chat_id }}
       run: |
         python rebalancer.py
 

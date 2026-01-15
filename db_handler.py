@@ -595,6 +595,54 @@ class DBHandler:
             logger.error(f"Error logging transaction: {e}")
             return None
 
+
+    def check_and_lock_command(self, chat_id: int, command_hash: str, lock_window_seconds: int = 15) -> bool:
+        """
+        Distributed Lock: Checks if the exact same command was processed recently.
+        Returns TRUE if we can proceed (lock acquired).
+        Returns FALSE if we should ignore (duplicate).
+        """
+        try:
+            # 1. Get current lock status
+            settings = self.get_settings()
+            
+            # If no settings exist yet, create them (should normally exist)
+            if not settings:
+                self.update_settings(app_mode="PROD") # Default init
+                settings = {}
+
+            last_ts_str = settings.get("last_command_ts")
+            last_hash = settings.get("last_command_hash")
+            
+            now = datetime.utcnow()
+            
+            if last_ts_str and last_hash:
+                last_ts = datetime.fromisoformat(last_ts_str.replace('Z', '+00:00'))
+                # Handle naive datetime if necessary (though UTC now is naive usually in Py < 3.11 without timezone)
+                # Ensure comparison compatibility
+                if last_ts.tzinfo is not None:
+                    last_ts = last_ts.replace(tzinfo=None) # Make naive UTC for simple diff
+                
+                elapsed = (now - last_ts).total_seconds()
+                
+                # Check Lock
+                if elapsed < lock_window_seconds and last_hash == command_hash:
+                    logger.warning(f"🔒 Distributed Lock: Duplicate command {command_hash} blocked (Elapsed: {elapsed:.1f}s)")
+                    return False
+            
+            # 2. Acquire Lock (Update DB)
+            # Depending on race conditions, this might still allow small window, but for Telegram retry (10s later) it's perfect.
+            self.supabase.table("user_settings").update({
+                "last_command_ts": now.isoformat(),
+                "last_command_hash": command_hash
+            }).eq("id", settings.get("id")).execute()
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Distributed Lock Error: {e}")
+            return True # Fail open (allow execution) to avoid blocking valid commands if DB fails
+
     def get_transactions(self, ticker: str = None, action: str = None, limit: int = 50):
         """
         Fetch transactions, optionally filtered by ticker and/or action.

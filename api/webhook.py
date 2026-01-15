@@ -77,36 +77,36 @@ def favicon_png():
 # Local (per-instance) lock + DB (distributed) lock
 IS_HUNTING = False
 
-# Deduplication Cache (Simple In-Memory for Vercel Warm Instances)
-# Stores (user_id, command_type) -> timestamp
-PROCESSED_COMMANDS = {}
+# Deduplication Strategy: Distributed Lock via DB
+# Prevents double execution across Vercel instances
 DEBOUNCE_SECONDS = 15
 
 def debounce_command(func):
-    """Decorator to prevent double execution within DEBOUNCE_SECONDS."""
+    """Decorator to prevent double execution via Distributed DB Lock."""
     async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
             user_id = update.effective_user.id
-            command = update.message.text.split()[0] if update.message and update.message.text else "unknown"
+            command_text = update.message.text if update.message and update.message.text else "unknown"
+            command_name = command_text.split()[0] # e.g. /rebalance
             
-            # Key: User + Command (prevents spamming /start or /rebalance)
-            key = f"{user_id}_{command}"
-            now = datetime.utcnow().timestamp()
+            # Create a simplified hash for the lock
+            # We use command_text to differentiate /analyze NVDA from /analyze BTC
+            import hashlib
+            raw_string = f"{user_id}:{command_text}"
+            command_hash = hashlib.md5(raw_string.encode()).hexdigest()
             
-            last_run = PROCESSED_COMMANDS.get(key, 0)
-            if now - last_run < DEBOUNCE_SECONDS:
-                logger.warning(f"Debounce: Ignoring duplicate {command} from {user_id} ({(now-last_run):.1f}s ago)")
+            # Check DB Lock
+            db = DBHandler()
+            if not db.check_and_lock_command(user_id, command_hash, DEBOUNCE_SECONDS):
+                logger.warning(f"🔒 Distributed Lock: Ignored duplicate {command_name} from {user_id}")
                 return # Silently ignore
-            
-            # Update timestamp
-            PROCESSED_COMMANDS[key] = now
             
             # Execute
             await func(update, context)
             
         except Exception as e:
             logger.error(f"Debounce wrapper error: {e}")
-            # Fallback: run anyway if debounce logic fails
+            # Fallback: run anyway if lock fails
             await func(update, context)
             
     return wrapper
@@ -1331,35 +1331,64 @@ async def benchmark_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 @debounce_command
 async def rebalance_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Show portfolio rebalancing analysis and suggestions."""
-    await update.message.reply_text("📊 **Analisi Ribilanciamento Portfolio...**", parse_mode="Markdown")
+    """Trigger Rebalancing Analysis via GitHub Actions (Async)."""
+    import httpx
     
+    chat_id = update.effective_chat.id
+    # user_id unused here but available
+    
+    await update.message.reply_text(
+        "📊 **Analisi Ribilanciamento Avviata!** 🚀\n\n"
+        "⏳ Sto affidando il calcolo a **DeepSeek R1** (potente ma lento).\n"
+        "Riceverai il report completo qui tra circa **2-3 minuti**.\n\n"
+        "_(Il calcolo gira su GitHub per evitare timeout)_"
+    )
+    
+    # Get GitHub token from environment
+    github_token = os.environ.get("GITHUB_TOKEN")
+    github_repo = os.environ.get("GITHUB_REPO", "bruciato87/zerocosthunter")
+    
+    if not github_token:
+        # Fallback: Try to run locally if no token (will likely timeout on Vercel)
+        logger.warning("GITHUB_TOKEN not set - running rebalance locally")
+        try:
+            from rebalancer import Rebalancer
+            rebalancer = Rebalancer()
+            report = rebalancer.format_rebalance_report()
+            await update.message.reply_text(report, parse_mode="Markdown")
+        except Exception as e:
+            await update.message.reply_text(f"❌ Errore locale: {e}")
+        return
+    
+    # Trigger GitHub Actions workflow
     try:
-        from rebalancer import Rebalancer
-        rebalancer = Rebalancer()
-        
-        report = rebalancer.format_rebalance_report()
-        
-        # Split if too long
-        if len(report) > 4000:
-            parts = [report[i:i+4000] for i in range(0, len(report), 4000)]
-            for part in parts:
-                try:
-                    await update.message.reply_text(part, parse_mode="Markdown")
-                except Exception:
-                    # Markdown parse error - fallback to plain text
-                    await update.message.reply_text(part)
-        else:
-            try:
-                await update.message.reply_text(report, parse_mode="Markdown")
-            except Exception as md_err:
-                # Markdown parse error - fallback to plain text
-                logger.warning(f"Rebalance markdown failed, sending plain text: {md_err}")
-                await update.message.reply_text(report)
-        
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"https://api.github.com/repos/{github_repo}/actions/workflows/market_scan.yml/dispatches",
+                headers={
+                    "Authorization": f"Bearer {github_token}",
+                    "Accept": "application/vnd.github.v3+json",
+                    "X-GitHub-Api-Version": "2022-11-28"
+                },
+                json={
+                    "ref": "main",
+                    "inputs": {
+                        "job_type": "rebalance",
+                        "target_chat_id": str(chat_id)
+                    }
+                },
+                timeout=10
+            )
+            
+            if response.status_code == 204:
+                logger.info(f"GitHub Action 'rebalance' triggered for {chat_id}")
+            else:
+                logger.error(f"GitHub Action trigger failed: {response.status_code} - {response.text}")
+                await update.message.reply_text(f"⚠️ Errore avvio task remoto: {response.status_code}")
+                
     except Exception as e:
-        logger.error(f"Rebalance command error: {e}")
-        await update.message.reply_text(f"❌ Errore nel calcolo ribilanciamento: {e}")
+        logger.error(f"GitHub Trigger Error: {e}")
+        await update.message.reply_text("⚠️ Impossibile avviare il task remoto.")
 
 async def trainml_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Show status or train the Pure Python ML model."""

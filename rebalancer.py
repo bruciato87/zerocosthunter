@@ -367,8 +367,8 @@ class Rebalancer:
             # Use 'deepseek-reasoner' (R1) for complex logic, fallback to Gemini
             from brain import Brain
             brain = Brain()
-            # Emergency Revert to V3 (Chat) to prevent Vercel Timeout Loops
-            response_text = brain._generate_with_fallback(prompt, json_mode=False, model="deepseek-chat")
+            # DeepSeek R1 enabled for GitHub Actions (Long-running async task)
+            response_text = brain._generate_with_fallback(prompt, json_mode=False, model="deepseek-reasoner")
             
             return response_text.strip()
             
@@ -394,7 +394,7 @@ class Rebalancer:
         # AI Strategy (FIRST - most important)
         ai_strategy = self._get_ai_suggestion(analysis)
         if ai_strategy:
-            report += "🎯 **PIANO D'AZIONE (Hybrid AI):**\n"
+            report += "🎯 **PIANO D'AZIONE (Hybrid AI - R1):**\n"
             report += ai_strategy + "\n\n"
         
         # Sector allocation (compact)
@@ -477,16 +477,26 @@ class Rebalancer:
         """
         Run daily rebalancing analysis and send to Telegram.
         Called by GitHub Actions.
+        If TARGET_CHAT_ID is set in env, sends only to that user.
         """
         from telegram_bot import TelegramNotifier
         
         logger.info("Running daily rebalancing analysis...")
         
+        # Check for Targeted Execution (e.g. from /rebalance command)
+        target_chat_id = os.environ.get("TARGET_CHAT_ID")
+        
         try:
             report = self.format_rebalance_report()
             
             notifier = TelegramNotifier()
-            await notifier.send_alert(report)
+            
+            if target_chat_id:
+                logger.info(f"Sending targeted report to {target_chat_id}")
+                await notifier.send_message(chat_id=target_chat_id, message=report)
+            else:
+                # Default: Broadcast to alert list (Daily Schedule)
+                await notifier.send_alert(report)
             
             # Log to DB
             self.db.log_system_event("INFO", "Rebalancer", "Daily rebalancing report sent")
