@@ -77,6 +77,40 @@ def favicon_png():
 # Local (per-instance) lock + DB (distributed) lock
 IS_HUNTING = False
 
+# Deduplication Cache (Simple In-Memory for Vercel Warm Instances)
+# Stores (user_id, command_type) -> timestamp
+PROCESSED_COMMANDS = {}
+DEBOUNCE_SECONDS = 15
+
+def debounce_command(func):
+    """Decorator to prevent double execution within DEBOUNCE_SECONDS."""
+    async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        try:
+            user_id = update.effective_user.id
+            command = update.message.text.split()[0] if update.message and update.message.text else "unknown"
+            
+            # Key: User + Command (prevents spamming /start or /rebalance)
+            key = f"{user_id}_{command}"
+            now = datetime.utcnow().timestamp()
+            
+            last_run = PROCESSED_COMMANDS.get(key, 0)
+            if now - last_run < DEBOUNCE_SECONDS:
+                logger.warning(f"Debounce: Ignoring duplicate {command} from {user_id} ({(now-last_run):.1f}s ago)")
+                return # Silently ignore
+            
+            # Update timestamp
+            PROCESSED_COMMANDS[key] = now
+            
+            # Execute
+            await func(update, context)
+            
+        except Exception as e:
+            logger.error(f"Debounce wrapper error: {e}")
+            # Fallback: run anyway if debounce logic fails
+            await func(update, context)
+            
+    return wrapper
+
 async def hunt_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Trigger hunt via GitHub Actions to bypass Vercel timeout limits."""
     import httpx
@@ -141,6 +175,7 @@ async def dashboard_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=reply_markup
     )
 
+@debounce_command
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await setup_bot_commands(context.bot)
     await update.message.reply_text(
@@ -1294,6 +1329,7 @@ async def benchmark_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.error(f"Benchmark command error: {e}")
         await update.message.reply_text(f"❌ Errore nel calcolo benchmark: {e}")
 
+@debounce_command
 async def rebalance_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Show portfolio rebalancing analysis and suggestions."""
     await update.message.reply_text("📊 **Analisi Ribilanciamento Portfolio...**", parse_mode="Markdown")
