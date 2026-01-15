@@ -24,6 +24,10 @@ on:
         description: 'Target Chat ID for report'
         required: false
         type: string
+      target_ticker:
+        description: 'Ticker for Deep Dive Analysis'
+        required: false
+        type: string
 
 jobs:
   hunt:
@@ -114,4 +118,35 @@ jobs:
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
       run: |
         python -c "import asyncio; from benchmark import Benchmark; asyncio.run(Benchmark().send_weekly_summary())"
+
+  analyze:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.job_type == 'analyze'
+    
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+    - name: Run Deep Dive Analysis
+      env:
+        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TARGET_CHAT_ID: ${{ github.event.inputs.target_chat_id }}
+        TARGET_TICKER: ${{ github.event.inputs.target_ticker }}
+      run: |
+        python analyzer.py
 

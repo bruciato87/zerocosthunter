@@ -1864,268 +1864,67 @@ async def backtest_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"❌ Errore durante il backtest: {e}")
 
 async def analyze_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Trigger Deep Dive Analysis via GitHub Actions (Async)."""
+    import httpx
+    
     args = context.args
     if not args:
         await update.message.reply_text("⚠️ Uso: `/analyze <TICKER>` (es. `/analyze NVDA`)")
         return
     
     ticker = args[0].upper()
-    await update.message.reply_text(f"🔬 **Analisi Strategica in corso su {ticker}...**\n_(Analizzo news, grafici e contesto. Richiede ~10s)_")
+    chat_id = update.effective_chat.id
     
+    await update.message.reply_text(
+        f"🔬 **Analisi Deep Dive Avviata: {ticker}**\n\n"
+        "⏳ Sto interrogando **DeepSeek R1** (ragionamento profondo).\n"
+        "Riceverai il report completo qui tra circa **2-3 minuti**.\n\n"
+        "_(Analisi remota su GitHub)_"
+    )
+    
+    # Get GitHub token from environment
+    github_token = os.environ.get("GITHUB_TOKEN")
+    github_repo = os.environ.get("GITHUB_REPO", "bruciato87/zerocosthunter")
+    
+    if not github_token:
+        # Fallback: Try to run locally if no token (might timeout)
+        logger.warning("GITHUB_TOKEN not set - running analyze locally")
+        try:
+            # Replicate local logic briefly or just warn
+            await update.message.reply_text("⚠️ GITHUB_TOKEN mancante. Esecuzione locale non supportata per R1.")
+        except Exception as e:
+            await update.message.reply_text(f"❌ Errore locale: {e}")
+        return
+    
+    # Trigger GitHub Actions workflow
     try:
-        # Initialize modules
-        brain = Brain()
-        hunter = NewsHunter()
-        market = MarketData()
-        db = DBHandler()
-        
-        # 1. Fetch Deep News
-        logger.info(f"Analyze: Fetching news for {ticker}")
-        news_items = hunter.fetch_ticker_news(ticker, limit=3)
-        
-        # 2. Fetch Technicals
-        technical_summary = market.get_technical_summary(ticker)
-        
-        # 3. Validation - Only block if technicals are unknown (invalid ticker)
-        # News is now optional - AI can analyze based on technicals alone
-        if "Unknown" in technical_summary:
-             await update.message.reply_text(f"❌ Impossibile analizzare **{ticker}**. Ticker non valido o dati tecnici non disponibili.", parse_mode="Markdown")
-             return
-    
-    
-
-        # 4. Check Portfolio & Allocations
-        portfolio = db.get_portfolio()
-        total_invested = 0.0
-        asset_data = None
-        
-        # Calculate Total Cost Basis (Approx Portfolio Size) for Context
-        for p in portfolio:
-            qty = p.get('quantity', 0)
-            avg = p.get('avg_price', 0)
-            if qty and avg:
-                total_invested += qty * avg
-            
-            # Find the specific asset (Robust Match)
-            p_ticker = p.get('ticker','').upper()
-            
-            # Normalize: Remove -USD suffix for comparison
-            # e.g. Input "BTC" matches DB "BTC-USD"
-            # e.g. Input "BTC-USD" matches DB "BTC"
-            def normalize(t): return t.replace('-USD', '')
-            
-            if normalize(p_ticker) == normalize(ticker):
-                 asset_data = p
-        
-        portfolio_context = "Not Owned"
-        if asset_data:
-            qty = asset_data.get('quantity', 0)
-            avg = asset_data.get('avg_price', 0)
-            
-            # Calculate Live Value of this asset
-            live_price = 0.0
-            # Try to extract live price from technical summary output? No, separate logic.
-            # We use 'technical_summary' string which might contain price, but cleaner to fetch.
-            # Reuse logic from smart fetch? 
-            # We already validated ticker via news, let's trust market data or just use cost basis if simplest.
-            # User wants "Current Value".
-            # Let's peek at technical_summary content? It's a string.
-            
-            # Re-fetch price quickly using MarketData logic
-            price_eur, _ = market.get_smart_price_eur(ticker)
-            live_val = qty * price_eur if price_eur > 0 else (qty * avg)
-            
-            alloc_pct = 0.0
-            if total_invested > 0:
-                # Allocation vs Cost Basis is a decent proxy for "Size"
-                alloc_pct = (live_val / total_invested) * 100
-            
-            size_desc = "Tiny" if alloc_pct < 2 else "Small" if alloc_pct < 5 else "Medium" if alloc_pct < 15 else "Large" if alloc_pct < 30 else "Huge"
-            
-            portfolio_context = (
-                f"OWNED: {qty} units. Live Value: €{live_val:.2f}. "
-                f"Total Portfolio (Approx): €{total_invested:.0f}. "
-                f"Allocation: {alloc_pct:.1f}% ({size_desc}). "
-                f"Avg Buy Price: €{avg:.2f}. "
-                f"PnL: €{(live_val - (qty*avg)):.2f}."
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"https://api.github.com/repos/{github_repo}/actions/workflows/market_scan.yml/dispatches",
+                headers={
+                    "Authorization": f"Bearer {github_token}",
+                    "Accept": "application/vnd.github.v3+json",
+                    "X-GitHub-Api-Version": "2022-11-28"
+                },
+                json={
+                    "ref": "main",
+                    "inputs": {
+                        "job_type": "analyze",
+                        "target_chat_id": str(chat_id),
+                        "target_ticker": ticker
+                    }
+                },
+                timeout=10
             )
-
-        # 5. Backtest Context (Historical Strategy Performance)
-        backtest_context = ""
-        try:
-            from backtester import Backtester
-            bt = Backtester()
-            result = bt.run_best_strategy(ticker, 90)
-            if result:
-                backtest_context = (
-                    f"BACKTEST RESULTS (90d, best strategy): "
-                    f"Strategy={result['strategy_version']}, "
-                    f"PnL={result['pnl_percent']:+.2f}%, "
-                    f"Trades={result['total_trades']}, "
-                    f"WinRate={result['win_rate']:.0f}%. "
-                    f"This historical simulation used the best-performing strategy for this asset type."
-                )
-                logger.info(f"Analyze: Backtest context added for {ticker}")
-        except Exception as e:
-            logger.warning(f"Analyze: Backtest failed for {ticker}: {e}")
-            backtest_context = "BACKTEST: Not available for this ticker."
-
-        # 6. Fetch Macro Context (VIX, Yields, DXY, Fear&Greed)
-        macro_context = None
-        try:
-            from economist import Economist
-            eco = Economist()
-            macro_context = eco.get_macro_summary()
-            logger.info(f"Analyze: Macro context fetched ({len(macro_context)} chars)")
-        except Exception as e:
-            logger.warning(f"Analyze: Macro context failed: {e}")
-
-        # 7. Fetch Whale Context (On-Chain Flows)
-        whale_context = None
-        try:
-            from whale_watcher import WhaleWatcher
-            ww = WhaleWatcher()
-            whale_context = ww.analyze_flow()
-            logger.info(f"Analyze: Whale context fetched ({len(whale_context)} chars)")
-        except Exception as e:
-            logger.warning(f"Analyze: Whale context failed: {e}")
-
-        # 8. L1 Predictive System - Unified with /hunt
-        l1_context = ""
-        try:
-            from signal_intelligence import SignalIntelligence
-            from sentiment_aggregator import SentimentAggregator
             
-            si = SignalIntelligence()
-            
-            # 8.1 Technical Confluence (RSI + SMA50 + Volume)
-            confluence = si.check_technical_confluence(ticker, "BUY")  # Check BUY alignment
-            confluence_text = f"Confluence: {confluence.get('alignment', 0)}/3"
-            if confluence.get('reasons'):
-                confluence_text += f" ({', '.join(confluence.get('reasons', [])[:2])})"
-            logger.info(f"Analyze L1: {confluence_text}")
-            
-            # 8.2 Multi-Timeframe Analysis
-            mtf = market.get_multi_timeframe_trend(ticker)
-            mtf_text = f"MTF: {mtf.get('direction', 'unknown')} ({mtf.get('alignment', 0)}/3 timeframes aligned)"
-            logger.info(f"Analyze L1: {mtf_text}")
-            
-            # 8.3 Sentiment Aggregator
-            sentiment_agg = SentimentAggregator()
-            agg_result = sentiment_agg.get_aggregated_score()
-            sentiment_text = f"Market Sentiment: {agg_result.get('score', 50)}/100 ({agg_result.get('label', 'Neutral')}) → {agg_result.get('recommendation', 'HOLD')}"
-            logger.info(f"Analyze L1: {sentiment_text}")
-            
-            # 8.4 Correlated Assets Info
-            from correlation_engine import CorrelationEngine
-            corr_engine = CorrelationEngine()
-            correlated = corr_engine.get_correlated_assets(ticker)
-            corr_text = ""
-            if correlated:
-                top_corr = correlated[:3]
-                corr_text = f"Correlated: " + ", ".join([f"{c[0]} ({c[1]:.0%})" for c in top_corr])
-            
-            l1_context = f"""
-**L1 PREDICTIVE ANALYSIS:**
-- {confluence_text}
-- {mtf_text} (Timeframes: {mtf.get('timeframes', {})})
-- {sentiment_text}
-- {corr_text}
-"""
-            logger.info(f"Analyze: L1 context added")
-        except Exception as e:
-            logger.warning(f"Analyze: L1 context failed: {e}")
-            l1_context = "L1 Predictive: Not available"
-
-        # 9. L2 Predictive System - Support/Resistance + Divergence
-        l2_context = ""
-        try:
-            from support_resistance import SupportResistanceAI
-            from signal_intelligence import SignalIntelligence
-            
-            # 9.1 Support/Resistance Levels
-            sr_ai = SupportResistanceAI()
-            sr_context = sr_ai.format_for_ai(ticker)
-            logger.info(f"Analyze L2: S/R levels added")
-            
-            # 9.2 Divergence Detection
-            si = SignalIntelligence()
-            divergence = si.check_divergence(ticker)
-            div_context = ""
-            if divergence.get('has_divergence'):
-                div_context = f"\nDivergence: {divergence.get('type').upper()} divergence detected (strength: {divergence.get('strength'):.0%})"
-                logger.info(f"Analyze L2: {divergence.get('type')} divergence detected")
-            
-            # 9.3 Market Regime (for context)
-            from market_regime import MarketRegimeClassifier
-            regime = MarketRegimeClassifier().classify()
-            regime_context = f"\nMarket Regime: {regime.get('regime')} ({regime.get('confidence'):.0%}) - {regime.get('recommendation')}"
-            
-            l2_context = f"""
-**L2 PREDICTIVE ANALYSIS:**
-{sr_context}
-{div_context}
-{regime_context}
-"""
-            logger.info(f"Analyze: L2 context added")
-        except Exception as e:
-            logger.warning(f"Analyze: L2 context failed: {e}")
-            l2_context = "L2 Predictive: Not available"
-
-        # 10. L3 Pattern Recognition (NEW)
-        l3_context = ""
-        try:
-            from pattern_recognition import PatternRecognizer
-            pr = PatternRecognizer()
-            pattern_summary = pr.get_pattern_summary(ticker)
-            
-            if "No significant" not in pattern_summary:
-                l3_context = f"""
-**L3 PATTERN RECOGNITION:**
-{pattern_summary}
-"""
-                logger.info(f"Analyze: L3 pattern context added for {ticker}")
+            if response.status_code == 204:
+                logger.info(f"GitHub Action 'analyze' triggered for {ticker} by {chat_id}")
             else:
-                l3_context = "L3 Pattern: No significant chart patterns detected."
-                logger.info(f"Analyze: No patterns detected for {ticker}")
-        except Exception as e:
-            logger.warning(f"Analyze: L3 pattern context failed: {e}")
-            l3_context = "L3 Pattern: Not available"
-
-        # 11. Generate Report (with ALL context: backtest, macro, whale, L1, L2, L3)
-        logger.info(f"Analyze: Generating AI Report for {ticker}...")
-        report = brain.generate_deep_dive(
-            ticker, 
-            news_items, 
-            technical_summary, 
-            portfolio_context, 
-            backtest_context,
-            macro_context,
-            whale_context,
-            l1_context + "\n" + l2_context + "\n" + l3_context  # Combined L1+L2+L3 predictive context
-        )
-        
-        # 6. Send Report (Split if too long, though unlikely for this prompt)
-        # Telegram limit is 4096 chars.
-        # 6. Send Report with Markdown Fallback
-        async def send_safe(text):
-            try:
-                if len(text) > 4000:
-                    for x in range(0, len(text), 4000):
-                        await update.message.reply_text(text[x:x+4000], parse_mode="Markdown")
-                else:
-                    await update.message.reply_text(text, parse_mode="Markdown")
-            except Exception as e:
-                logger.warning(f"Markdown failed, sending plain text: {e}")
-                # Fallback to plain text if Markdown fails
-                if len(text) > 4000:
-                    for x in range(0, len(text), 4000):
-                        await update.message.reply_text(text[x:x+4000])
-                else:
-                    await update.message.reply_text(text)
-
-        await send_safe(report)
-
+                logger.error(f"GitHub Action trigger failed: {response.status_code} - {response.text}")
+                await update.message.reply_text(f"⚠️ Errore avvio task remoto: {response.status_code}")
+                
     except Exception as e:
-        logger.error(f"Analyze Error: {e}")
-        await update.message.reply_text("❌ Errore durante l'analisi. Riprova più tardi.")
+        logger.error(f"GitHub Trigger Error: {e}")
+        await update.message.reply_text("⚠️ Impossibile avviare il task remoto.")
+
+
