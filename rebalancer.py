@@ -367,7 +367,8 @@ class Rebalancer:
             # Use 'deepseek-reasoner' (R1) for complex logic, fallback to Gemini
             from brain import Brain
             brain = Brain()
-            response_text = brain._generate_with_fallback(prompt, json_mode=False, model="deepseek-reasoner")
+            # Emergency Revert to V3 (Chat) to prevent Vercel Timeout Loops
+            response_text = brain._generate_with_fallback(prompt, json_mode=False, model="deepseek-chat")
             
             return response_text.strip()
             
