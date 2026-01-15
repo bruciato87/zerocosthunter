@@ -295,12 +295,12 @@ class DBHandler:
             response = self.supabase.table("user_settings").select("*").limit(1).execute()
             if response.data:
                 return response.data[0]
-            return {"min_confidence": 0.70, "only_portfolio": False} # Defaults
+            return {"min_confidence": 0.70, "only_portfolio": False, "app_mode": "PREPROD"} # Defaults
         except Exception as e:
             logger.error(f"Error fetching settings: {e}")
-            return {"min_confidence": 0.70, "only_portfolio": False}
+            return {"min_confidence": 0.70, "only_portfolio": False, "app_mode": "PREPROD"}
 
-    def update_settings(self, min_confidence=None, only_portfolio=None):
+    def update_settings(self, min_confidence=None, only_portfolio=None, app_mode=None):
         """Update the single settings row."""
         try:
             # First get the ID
@@ -310,6 +310,8 @@ class DBHandler:
                 updates["min_confidence"] = min_confidence
             if only_portfolio is not None:
                 updates["only_portfolio"] = only_portfolio
+            if app_mode is not None:
+                updates["app_mode"] = app_mode.upper()
             
             if updates and "id" in settings:
                 self.supabase.table("user_settings").update(updates).eq("id", settings["id"]).execute()

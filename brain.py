@@ -12,21 +12,30 @@ logger = logging.getLogger(__name__)
 
 class Brain:
     def __init__(self):
-        # DeepSeek as PRIMARY provider
-        self.deepseek_api_key = os.environ.get("DEEPSEEK_API_KEY")
-        self.deepseek_base_url = "https://api.deepseek.com/v1"
+        # Load APP_MODE from database (dynamic via /mode command), fallback to env var
+        try:
+            from db_handler import DBHandler
+            db = DBHandler()
+            settings = db.get_settings()
+            self.app_mode = settings.get("app_mode", "PREPROD").upper()
+        except Exception:
+            self.app_mode = os.environ.get("APP_MODE", "PREPROD").upper()
         
-        # Gemini as FALLBACK provider
+        # Gemini - always available (primary in PREPROD, fallback in PROD)
         self.gemini_api_key = os.environ.get("GEMINI_API_KEY")
         self.gemini_client = genai.Client(
             api_key=self.gemini_api_key,
             http_options={'timeout': 300000}
         ) if self.gemini_api_key else None
         
-        # Track which provider to use
-        self.use_deepseek = bool(self.deepseek_api_key)
+        # DeepSeek - only used in PROD mode
+        self.deepseek_api_key = os.environ.get("DEEPSEEK_API_KEY")
+        self.deepseek_base_url = "https://api.deepseek.com/v1"
         
-        logger.info(f"Brain initialized: DeepSeek={'✅' if self.use_deepseek else '❌'}, Gemini={'✅' if self.gemini_api_key else '❌'}")
+        # Use DeepSeek only if: PROD mode AND key is available
+        self.use_deepseek = (self.app_mode == "PROD" and bool(self.deepseek_api_key))
+        
+        logger.info(f"Brain initialized: Mode={self.app_mode}, DeepSeek={'✅' if self.use_deepseek else '❌'}, Gemini={'✅' if self.gemini_api_key else '❌'}")
 
     def _call_deepseek(self, messages: list, temperature: float = 0.3, json_mode: bool = False) -> str:
         """Call DeepSeek API (OpenAI-compatible)."""
