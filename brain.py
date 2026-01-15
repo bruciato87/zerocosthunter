@@ -20,10 +20,10 @@ class Brain:
     def _generate_with_retry(self, **kwargs):
         """
         Helper to retry Gemini API calls on 429 Resource Exhausted.
-        Max retries: 3 with exponential backoff.
+        Max retries: 5 with smart backoff.
         """
-        max_retries = 3
-        backoff = 5 # Start with 5 seconds
+        max_retries = 5
+        backoff = 10 # Start with 10 seconds (safer default)
 
         for attempt in range(max_retries + 1):
             try:
@@ -33,9 +33,22 @@ class Brain:
                 error_str = str(e)
                 if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
                     if attempt < max_retries:
-                        logger.warning(f"Gemini 429 Rate Limit hit. Retrying in {backoff}s... (Attempt {attempt+1}/{max_retries})")
-                        time.sleep(backoff)
-                        backoff *= 2 # Exponential backoff: 5, 10, 20
+                        # Try to parse 'retryDelay' from error message if available
+                        # Example: "Please retry in 8.881087433s."
+                        waitTime = backoff
+                        try:
+                            import re
+                            match = re.search(r"retry in (\d+(\.\d+)?)s", error_str)
+                            if match:
+                                waitTime = float(match.group(1)) + 2.0 # Add buffer
+                        except:
+                            pass
+                        
+                        logger.warning(f"Gemini 429 Rate Limit hit. Retrying in {waitTime:.1f}s... (Attempt {attempt+1}/{max_retries})")
+                        time.sleep(waitTime)
+                        
+                        # Increase default backoff for next time just in case parsing fails
+                        backoff *= 1.5 
                         continue
                     else:
                         logger.error(f"Gemini Rate Limit Exceeded after {max_retries} retries.")
