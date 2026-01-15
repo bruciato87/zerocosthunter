@@ -20,7 +20,7 @@ class Analyzer:
         # Lazy imports to speed up startup
         from db_handler import DBHandler
         from market_data import MarketData
-        from news_hunter import NewsHunter
+        from hunter import NewsHunter
         from brain import Brain
         from telegram_bot import TelegramNotifier
         
