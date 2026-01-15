@@ -419,12 +419,12 @@ class Benchmark:
             - Menziona rischi e opportunità
             """
             
-            response = client.models.generate_content(
-                model='gemini-3-flash-preview',
-                contents=prompt
-            )
+            # Use Brain's fallback system (respects APP_MODE: PREPROD/PROD)
+            from brain import Brain
+            brain = Brain()
+            response_text = brain._generate_with_fallback(prompt, json_mode=False)
             
-            return response.text.strip()
+            return response_text.strip()
             
         except Exception as e:
             logger.warning(f"AI outlook failed: {e}")
