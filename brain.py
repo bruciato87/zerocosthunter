@@ -72,6 +72,12 @@ class Brain:
             
             content = choice.get('content', '')
             
+            # R1 Fix: If content is empty but reasoning exists, use reasoning as output
+            # (R1 sometimes puts the full answer in reasoning_content for non-JSON tasks)
+            if not content and reasoning and model == "deepseek-reasoner":
+                logger.info("R1: Using reasoning_content as response (content was empty)")
+                content = reasoning
+            
             # JSON Repair: If json_mode is requested but content has extra text
             if json_mode:
                 import re
