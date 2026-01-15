@@ -364,9 +364,10 @@ class Rebalancer:
             """
             
             # Use Brain's fallback system (respects APP_MODE: PREPROD/PROD)
+            # Use 'deepseek-reasoner' (R1) for complex logic, fallback to Gemini
             from brain import Brain
             brain = Brain()
-            response_text = brain._generate_with_fallback(prompt, json_mode=False)
+            response_text = brain._generate_with_fallback(prompt, json_mode=False, model="deepseek-reasoner")
             
             return response_text.strip()
             
@@ -392,7 +393,7 @@ class Rebalancer:
         # AI Strategy (FIRST - most important)
         ai_strategy = self._get_ai_suggestion(analysis)
         if ai_strategy:
-            report += "🎯 **PIANO D'AZIONE:**\n"
+            report += "🎯 **PIANO D'AZIONE (Hybrid AI):**\n"
             report += ai_strategy + "\n\n"
         
         # Sector allocation (compact)
@@ -426,6 +427,7 @@ class Rebalancer:
         """
         Get a single cost-effective rebalancing tip for the Hunt report.
         Only returns if there's a strong opportunity covering fees+tax.
+        Uses DeepSeek Reasoner for maximum precision if available.
         """
         try:
             analysis = self.get_portfolio_analysis()
@@ -440,6 +442,7 @@ class Rebalancer:
                 pnl = asset.get("pnl_eur")
                 if pnl is None: pnl = 0
 
+                # If rule based trigger found, pass to AI for confirmation
                 if pnl > 50 and rsi > 75:
                     tax = asset.get("potential_tax")
                     if tax is None: tax = 0
@@ -447,7 +450,19 @@ class Rebalancer:
                     cost = tax + self.TRADE_FEE
                     net_profit = pnl - cost
                     if net_profit > 20: # Worth doing
-                        return f"📉 **FLASH TRIM Opportunity**: Vendi parte di {asset['ticker']} (RSI {rsi:.0f}). Net Gain: ~€{net_profit:.0f} (dopo fees/tax)."
+                        # Ask DeepSeek Reasoner for a one-line strategic confirmation
+                        try:
+                            prompt = (
+                                f"I am considering FLASH TRIMMING {asset['ticker']} because RSI is {rsi:.0f} (overbought) "
+                                f"and I have €{pnl:.0f} profit (€{net_profit:.0f} net after tax). "
+                                f"Total portfolio value: €{analysis['total_value']:.0f}. "
+                                "Is this a smart move? Answer in 1 short sentence starting with '💡 FLASH TIP:'."
+                            )
+                            from brain import Brain
+                            return Brain()._generate_with_fallback(prompt, json_mode=False, model="deepseek-reasoner").strip()
+                        except:
+                            # Fallback to simple rule text if AI fails
+                            return f"📉 **FLASH TRIM Opportunity**: Vendi parte di {asset['ticker']} (RSI {rsi:.0f}). Net Gain: ~€{net_profit:.0f} (dopo fees/tax)."
             
             # Check for Flash BUY (Strong signal + Cash available)
             # This is handled by main hunt logic, so we focus on Portfolio Trim/Rotation here

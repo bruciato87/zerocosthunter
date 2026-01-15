@@ -37,7 +37,7 @@ class Brain:
         
         logger.info(f"Brain initialized: Mode={self.app_mode}, DeepSeek={'✅' if self.use_deepseek else '❌'}, Gemini={'✅' if self.gemini_api_key else '❌'}")
 
-    def _call_deepseek(self, messages: list, temperature: float = 0.3, json_mode: bool = False) -> str:
+    def _call_deepseek(self, messages: list, temperature: float = 0.3, json_mode: bool = False, model: str = "deepseek-chat") -> str:
         """Call DeepSeek API (OpenAI-compatible)."""
         headers = {
             "Authorization": f"Bearer {self.deepseek_api_key}",
@@ -45,7 +45,7 @@ class Brain:
         }
         
         payload = {
-            "model": "deepseek-chat",  # DeepSeek V3
+            "model": model,  # "deepseek-chat" (V3) or "deepseek-reasoner" (R1)
             "messages": messages,
             "temperature": temperature,
             "max_tokens": 4096
@@ -124,7 +124,7 @@ class Brain:
         except Exception as e:
             logger.warning(f"Failed to send usage warning: {e}")
 
-    def _generate_with_fallback(self, prompt: str, json_mode: bool = False) -> str:
+    def _generate_with_fallback(self, prompt: str, json_mode: bool = False, model: str = "deepseek-chat") -> str:
         """
         Try DeepSeek first, fallback to Gemini on failure.
         """
@@ -132,8 +132,8 @@ class Brain:
         if self.use_deepseek and self.deepseek_api_key:
             try:
                 messages = [{"role": "user", "content": prompt}]
-                result = self._call_deepseek(messages, json_mode=json_mode)
-                logger.info("DeepSeek API call successful")
+                result = self._call_deepseek(messages, json_mode=json_mode, model=model)
+                logger.info(f"DeepSeek ({model}) API call successful")
                 return result
             except Exception as e:
                 error_str = str(e)
@@ -987,8 +987,9 @@ class Brain:
         """
 
         try:
-            logger.info(f"Generating Deep Dive for {ticker} (DeepSeek → Gemini)...")
-            result = self._generate_with_fallback(prompt, json_mode=False)
+            logger.info(f"Generating Deep Dive for {ticker} (DeepSeek Reasoner → Gemini)...")
+            # Use Reasoner (R1) for Deep Dive to provide Chain of Thought and logic
+            result = self._generate_with_fallback(prompt, json_mode=False, model="deepseek-reasoner")
             return result
         except Exception as e:
             logger.error(f"Deep Dive failed: {e}")
