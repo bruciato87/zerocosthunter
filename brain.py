@@ -17,6 +17,33 @@ class Brain:
             http_options={'timeout': 300000}  # 5 minutes timeout
         )
 
+    def _generate_with_retry(self, **kwargs):
+        """
+        Helper to retry Gemini API calls on 429 Resource Exhausted.
+        Max retries: 3 with exponential backoff.
+        """
+        max_retries = 3
+        backoff = 5 # Start with 5 seconds
+
+        for attempt in range(max_retries + 1):
+            try:
+                return self.client.models.generate_content(**kwargs)
+            except Exception as e:
+                # Check for 429
+                error_str = str(e)
+                if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
+                    if attempt < max_retries:
+                        logger.warning(f"Gemini 429 Rate Limit hit. Retrying in {backoff}s... (Attempt {attempt+1}/{max_retries})")
+                        time.sleep(backoff)
+                        backoff *= 2 # Exponential backoff: 5, 10, 20
+                        continue
+                    else:
+                        logger.error(f"Gemini Rate Limit Exceeded after {max_retries} retries.")
+                        raise e
+                else:
+                    # Not a rate limit error, raise immediately
+                    raise e
+    
     def analyze_news_batch(self, news_list, performance_context=None, insider_context=None, portfolio_context=None, macro_context=None, whale_context=None):
         """
         [2024 UPDATE] V3.0 Hybrid Brain with Memory & Insider & Advisor Info & Macro Strategy & Whale Watcher.
@@ -371,7 +398,7 @@ class Brain:
 
         try:
             logger.info("Sending news batch to Gemini...")
-            response = self.client.models.generate_content(
+            response = self._generate_with_retry(
                 model='gemini-3-flash-preview',
                 contents=prompt,
                 config=types.GenerateContentConfig(
@@ -477,7 +504,7 @@ class Brain:
 
         try:
             # Using gemini-flash-latest (Generic Alias, often most reliable/generous)
-            response = self.client.models.generate_content(
+            response = self._generate_with_retry(
                 model='gemini-3-flash-preview',
                 contents=[
                     prompt,
@@ -752,7 +779,7 @@ class Brain:
         """
 
         try:
-            response = self.client.models.generate_content(
+            response = self._generate_with_retry(
                 model='gemini-3-flash-preview',
                 contents=[
                     prompt,
@@ -833,7 +860,7 @@ class Brain:
 
         try:
             logger.info(f"Generating Deep Dive for {ticker}...")
-            response = self.client.models.generate_content(
+            response = self._generate_with_retry(
                 model='gemini-3-flash-preview',
                 contents=prompt
             )
