@@ -625,7 +625,7 @@ class MarketData:
                 close_prices = data
             
             # Calculate daily returns
-            returns = close_prices.pct_change().dropna()
+            returns = close_prices.pct_change(fill_method=None).dropna()
             
             if returns.empty or len(returns) < 10:
                 return {"matrix": {}, "high_correlation_pairs": [], "diversification_score": 50}
