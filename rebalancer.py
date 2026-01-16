@@ -393,7 +393,7 @@ class Rebalancer:
                 # Add Correlation Analysis
                 tickers = [asset['ticker'] for asset in analysis["assets"][:10]]
                 if len(tickers) >= 2:
-                    corr_data = self.market_data.calculate_correlation_matrix(tickers)
+                    corr_data = self.market.calculate_correlation_matrix(tickers)
                     if corr_data.get('high_correlation_pairs'):
                         backtest_context += "\n**⚠️ HIGH CORRELATION WARNING (>70%):**\n"
                         for t1, t2, corr in corr_data['high_correlation_pairs'][:3]:
