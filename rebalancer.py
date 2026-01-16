@@ -44,6 +44,12 @@ class Rebalancer:
         self.market = MarketData()
         self.advisor = Advisor()
         
+        # Level 9: Active AI Manager
+        from economist import Economist
+        from strategy_manager import StrategyManager
+        self.economist = Economist()
+        self.strategy_manager = StrategyManager()
+        
         # Gemini for AI suggestions
         self.api_key = os.environ.get("GEMINI_API_KEY")
     
@@ -310,17 +316,35 @@ class Rebalancer:
             except Exception as e:
                 logger.warning(f"L3 context failed for rebalance: {e}")
             
-            # 6. Strategy Governance Context (Level 8)
+            # 6. Strategy Governance Context (Level 9)
             strategy_context = ""
+            regime_desc = "NEUTRAL"
+            risk_level = "UNKNOWN"
+            
             try:
-                from strategy_manager import StrategyManager
-                sm = StrategyManager()
+                # Get Macro Regime
+                regime_data = self.strategy_manager.get_market_regime(self.economist)
+                regime_desc = regime_data.get('description', 'NEUTRAL')
+                risk_level = regime_data.get('risk_level', 'UNKNOWN')
+                
                 strategy_lines = []
                 for asset in analysis["assets"][:10]:  # Top 10 assets
                     ticker = asset['ticker']
                     pnl = asset.get('pnl_pct', 0)
                     alloc = asset.get('allocation', 0)
-                    ctx = sm.get_strategy_context(ticker, pnl, alloc)
+                    
+                    # Calculate Dynamic Target
+                    rule = self.strategy_manager.get_rule(ticker)
+                    base_target = rule.target_allocation_pct if rule else 10.0
+                    dynamic_target = self.strategy_manager.get_dynamic_target(ticker, base_target, regime_data)
+                    
+                    ctx = self.strategy_manager.get_strategy_context(ticker, pnl, alloc)
+                    
+                    # Inject Dynamic Target info if different from base
+                    if dynamic_target != base_target:
+                        arrow = "⬆️" if dynamic_target > base_target else "⬇️"
+                        ctx += f"\n   ⚡ **Dynamic Target ({regime_desc}):** {base_target}% -> {dynamic_target}% {arrow}"
+                    
                     if "No specific rule" not in ctx:
                         strategy_lines.append(ctx)
                 
@@ -359,6 +383,12 @@ class Rebalancer:
             
             {l3_context}
             
+            **🔬 MACRO REGIME ANALYSIS (DeepSeek R1):**
+            Based on VIX and Fed data from Economist:
+            - Regime: {regime_desc}
+            - Risk Level: {risk_level}
+            
+            **🛡️ DYNAMIC STRATEGY RULES (MANDATORY):**
             {strategy_context}
             
             **OBIETTIVO PRINCIPALE: MASSIMIZZARE I PROFITTI NETTI**

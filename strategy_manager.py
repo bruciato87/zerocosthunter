@@ -265,19 +265,81 @@ class StrategyManager:
 # =============================================================================
 # Standalone Test
 # =============================================================================
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
     
+    def get_market_regime(self, economist) -> Dict:
+        """
+        Analyze Macro data to determine Market Regime (Risk ON/OFF).
+        Arg: economist instance
+        """
+        # Get risk level from Economist (LOW/MEDIUM/HIGH)
+        risk_level = economist.check_risk_level()
+        
+        # Determine Regime
+        regime = "NEUTRAL"
+        adjustments = {}
+        
+        if risk_level == "HIGH":
+            regime = "RISK_OFF"
+            description = "🐻 BEARISH / DEFENSIVE"
+            adjustments = {
+                "Crypto": -0.5,  # Reduce Crypto target by 50%
+                "Technology": -0.3, # Reduce Tech by 30%
+                "ETF": 0.2,      # Increase Safe Haven by 20%
+                "Cash": 0.5      # Increase Cash
+            }
+        elif risk_level == "LOW":
+            regime = "RISK_ON"
+            description = "🐂 BULLISH / AGGRESSIVE"
+            adjustments = {
+                "Crypto": 0.2,   # Increase Crypto target by 20%
+                "Technology": 0.1, # Increase Tech by 10%
+                "ETF": -0.1      # Reduce Safe Haven slightly
+            }
+        else:
+            description = "⚖️ NEUTRAL / CAUTIOUS"
+            adjustments = {}
+            
+        return {
+            "type": regime,
+            "description": description,
+            "adjustments": adjustments,
+            "risk_level": risk_level
+        }
+
+    def get_dynamic_target(self, ticker: str, base_target: float, regime: Dict) -> float:
+        """
+        Calculate dynamic target allocation based on Market Regime.
+        """
+        # Map ticker to sector (Simplified logic, could be in DB)
+        sector = "Other"
+        if ticker in ["BTC-USD", "ETH-USD", "SOL-USD"]:
+            sector = "Crypto"
+        elif ticker in ["NVDA", "AAPL", "MSFT", "GOOGL", "META"]:
+            sector = "Technology"
+        elif "EUNL" in ticker or "ETF" in ticker:
+            sector = "ETF"
+            
+        # Apply adjustment factor
+        adjustment = regime.get("adjustments", {}).get(sector, 0.0)
+        
+        # Calculate new target
+        dynamic_target = base_target * (1 + adjustment)
+        
+        return round(dynamic_target, 1)
+
+if __name__ == "__main__":
+    # Test stub
+    logging.basicConfig(level=logging.INFO)
     sm = StrategyManager()
     
-    # Test: LONG_TERM asset should not be sold
-    signal, reason = sm.validate_signal("EUNL.DE", "SELL", 10.0, 45.0, 500)
-    print(f"EUNL.DE SELL -> {signal}: {reason}")
+    # Mock Economist for test
+    class MockEconomist:
+        def check_risk_level(self): return "HIGH"
+        
+    regime = sm.get_market_regime(MockEconomist())
+    print(f"Regime: {regime['description']}")
     
-    # Test: Take profit should trigger
-    signal, reason = sm.validate_signal("BTC-USD", "HOLD", 35.0, 8.0, 1000)
-    print(f"BTC-USD HOLD (at +35%) -> {signal}: {reason}")
-    
-    # Test: Tax efficiency should block low-profit sell
-    signal, reason = sm.validate_signal("AAPL", "TRIM", 5.0, 4.0, 30)
-    print(f"AAPL TRIM (€30 profit) -> {signal}: {reason}")
+    # Test Dynamic Target (Risk OFF -> Crypto should go down)
+    base_btc = 10.0
+    dyn_btc = sm.get_dynamic_target("BTC-USD", base_btc, regime)
+    print(f"BTC Target: Base {base_btc}% -> Dynamic {dyn_btc}% (Risk OFF)")
