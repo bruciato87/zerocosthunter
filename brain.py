@@ -131,7 +131,7 @@ class Brain:
             )
         
         response = self.gemini_client.models.generate_content(
-            model='gemini-2.5-flash-lite',  # Higher quota model
+            model='gemini-2.5-flash',  # Standard model for better reasoning
             contents=prompt,
             config=config
         )
@@ -676,7 +676,7 @@ class Brain:
             # Vision requires Gemini (DeepSeek doesn't support images)
             logger.info("Parsing portfolio image with Gemini Vision...")
             response = self.gemini_client.models.generate_content(
-                model='gemini-2.5-flash-lite',
+                model='gemini-2.5-flash',
                 contents=[
                     prompt,
                     types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
@@ -953,7 +953,7 @@ class Brain:
             # Vision requires Gemini (DeepSeek doesn't support images)
             logger.info("Parsing sale image with Gemini Vision...")
             response = self.gemini_client.models.generate_content(
-                model='gemini-2.5-flash-lite',
+                model='gemini-2.5-flash',
                 contents=[
                     prompt,
                     types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
