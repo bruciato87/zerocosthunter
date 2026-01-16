@@ -231,7 +231,7 @@ if __name__ == "__main__":
     import asyncio
     from db_handler import DBHandler
     from market_data import MarketData
-    from telegram_bot import TelegramBot
+    from telegram_bot import TelegramNotifier
     
     logging.basicConfig(level=logging.INFO)
     logger.info("Portfolio Backtest: Starting standalone execution...")
@@ -256,7 +256,7 @@ if __name__ == "__main__":
             try:
                 db = DBHandler()
                 md = MarketData()
-                bot = TelegramBot()
+                bot = TelegramNotifier()
                 bt = PortfolioBacktest()
                 
                 await bot.send_message(target_chat_id, f"⏳ Avvio Backtest Remoto ({period} giorni)...")
