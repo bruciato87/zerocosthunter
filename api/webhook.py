@@ -1488,7 +1488,7 @@ async def strategy_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # No args: Show all rules
         if not args:
             report = sm.format_rules_report()
-            await update.message.reply_text(report, parse_mode="Markdown")
+            await update.message.reply_text(report)
             return
         
         # /strategy set TICKER ...
