@@ -449,10 +449,20 @@ class Rebalancer:
         try:
             regime_data = self.strategy_manager.get_market_regime(self.economist)
             regime_desc = regime_data.get('description', 'NEUTRAL')
-            risk_level = regime_data.get('risk_level', 'UNKNOWN')
+            risk_info = regime_data.get('risk_level', 'UNKNOWN')
+            
+            # Handle tuple (level, reason) from enhanced check_risk_level
+            if isinstance(risk_info, tuple):
+                risk_level, risk_reason = risk_info
+            else:
+                risk_level = risk_info
+                risk_reason = ""
             
             report += f"🔬 **MACRO REGIME:** {regime_desc}\n"
-            report += f"   📊 Risk Level: {risk_level}\n"
+            report += f"   📊 Risk Level: {risk_level}"
+            if risk_reason:
+                report += f" | {risk_reason}"
+            report += "\n"
             
             # Show Dynamic Targets for top assets
             dynamic_lines = []
