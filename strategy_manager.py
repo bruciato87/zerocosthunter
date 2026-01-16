@@ -194,6 +194,24 @@ class StrategyManager:
             if ai_signal not in ["SELL", "PANIC SELL"]:
                 return ("SELL", f"⚠️ Stop-Loss: {current_pnl_pct:.1f}% hit threshold of {rule.stop_loss_threshold}%")
         
+        # =========================================================================
+        # RULE 6: ATR-Based Dynamic Stop (Level 11)
+        # =========================================================================
+        try:
+            from market_data import MarketData
+            md = MarketData()
+            atr_data = md.calculate_atr(ticker)
+            
+            if atr_data['atr_pct'] > 0 and atr_data['volatility'] != 'unknown':
+                dynamic_stop = -atr_data['suggested_stop']  # Negative value
+                
+                # Check if current loss exceeds dynamic ATR-based stop
+                if current_pnl_pct <= dynamic_stop:
+                    if ai_signal not in ["SELL", "PANIC SELL"]:
+                        return ("SELL", f"⚠️ ATR Stop: {current_pnl_pct:.1f}% hit dynamic stop of {dynamic_stop:.1f}% (Volatility: {atr_data['volatility']})")
+        except Exception as e:
+            logger.warning(f"ATR stop check failed for {ticker}: {e}")
+        
         # All checks passed, use AI signal
         return (ai_signal, "✅ Strategy aligned with AI suggestion")
     

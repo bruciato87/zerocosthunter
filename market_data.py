@@ -489,8 +489,194 @@ class MarketData:
             self._technical_cache[cache_key] = {'summary': error_summary, 'ts': time.time()}
             return error_summary
 
+    # =========================================================================
+    # ATR (Average True Range) - Level 11: Dynamic Stop-Loss
+    # =========================================================================
+    
+    def calculate_atr(self, ticker: str, period: int = 14) -> dict:
+        """
+        Calculate Average True Range for dynamic stop-loss levels.
+        
+        Args:
+            ticker: Asset ticker
+            period: ATR period (default 14 days)
+        
+        Returns:
+            {
+                "atr": 5.23,           # ATR value in asset currency
+                "atr_pct": 2.5,        # ATR as % of current price
+                "suggested_stop": 5.0, # Suggested stop-loss % (2x ATR)
+                "volatility": "medium" # low/medium/high classification
+            }
+        """
+        try:
+            yf_ticker = self.TICKER_ALIASES.get(ticker.upper(), ticker.upper())
+            
+            # Handle crypto
+            crypto_list = ['BTC', 'ETH', 'SOL', 'XRP', 'RENDER', 'DOGE']
+            base = ticker.replace('-USD', '').replace('-EUR', '')
+            if base.upper() in crypto_list and not yf_ticker.endswith('-USD'):
+                yf_ticker = f"{base}-USD"
+            
+            # Fetch data
+            data = yf.download(yf_ticker, period="60d", progress=False, auto_adjust=True)
+            
+            if data.empty or len(data) < period + 1:
+                return {"atr": 0, "atr_pct": 0, "suggested_stop": 10.0, "volatility": "unknown"}
+            
+            # Handle MultiIndex
+            if hasattr(data.columns, 'levels'):
+                high = data['High'].iloc[:, 0] if data['High'].ndim > 1 else data['High']
+                low = data['Low'].iloc[:, 0] if data['Low'].ndim > 1 else data['Low']
+                close = data['Close'].iloc[:, 0] if data['Close'].ndim > 1 else data['Close']
+            else:
+                high = data['High']
+                low = data['Low']
+                close = data['Close']
+            
+            # Calculate True Range
+            tr1 = high - low
+            tr2 = abs(high - close.shift())
+            tr3 = abs(low - close.shift())
+            tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
+            
+            # Calculate ATR (Simple Moving Average of TR)
+            atr = tr.rolling(window=period).mean().iloc[-1]
+            current_price = close.iloc[-1]
+            
+            # ATR as percentage of price
+            atr_pct = (atr / current_price) * 100
+            
+            # Suggested stop-loss = 2x ATR (common practice)
+            suggested_stop = atr_pct * 2
+            
+            # Volatility classification
+            if atr_pct < 2:
+                volatility = "low"
+            elif atr_pct < 5:
+                volatility = "medium"
+            else:
+                volatility = "high"
+            
+            return {
+                "atr": round(float(atr), 4),
+                "atr_pct": round(float(atr_pct), 2),
+                "suggested_stop": round(float(suggested_stop), 1),
+                "volatility": volatility
+            }
+            
+        except Exception as e:
+            logger.warning(f"ATR calculation failed for {ticker}: {e}")
+            return {"atr": 0, "atr_pct": 0, "suggested_stop": 10.0, "volatility": "unknown"}
+
+    # =========================================================================
+    # Correlation Matrix - Level 11: Diversification Analysis
+    # =========================================================================
+    
+    def calculate_correlation_matrix(self, tickers: list, period: str = "90d") -> dict:
+        """
+        Calculate correlation matrix between assets for diversification analysis.
+        
+        Args:
+            tickers: List of ticker symbols
+            period: Historical period for correlation (default 90 days)
+        
+        Returns:
+            {
+                "matrix": {
+                    "BTC-USD": {"ETH-USD": 0.92, "AAPL": 0.45},
+                    "ETH-USD": {"BTC-USD": 0.92, "AAPL": 0.38}
+                },
+                "high_correlation_pairs": [("BTC-USD", "ETH-USD", 0.92)],
+                "diversification_score": 65  # 0-100, higher is better
+            }
+        """
+        try:
+            if len(tickers) < 2:
+                return {"matrix": {}, "high_correlation_pairs": [], "diversification_score": 100}
+            
+            # Normalize tickers
+            normalized = []
+            for t in tickers:
+                t_upper = t.upper()
+                t_resolved = self.TICKER_ALIASES.get(t_upper, t_upper)
+                
+                # Handle crypto
+                crypto_list = ['BTC', 'ETH', 'SOL', 'XRP', 'RENDER', 'DOGE']
+                base = t_resolved.replace('-USD', '').replace('-EUR', '')
+                if base in crypto_list and not t_resolved.endswith('-USD'):
+                    t_resolved = f"{base}-USD"
+                
+                normalized.append(t_resolved)
+            
+            # Download all data
+            data = yf.download(normalized, period=period, progress=False, auto_adjust=True)
+            
+            if data.empty:
+                return {"matrix": {}, "high_correlation_pairs": [], "diversification_score": 50}
+            
+            # Extract Close prices
+            if 'Close' in data.columns:
+                if hasattr(data['Close'], 'columns'):
+                    close_prices = data['Close']
+                else:
+                    close_prices = data[['Close']]
+            else:
+                close_prices = data
+            
+            # Calculate daily returns
+            returns = close_prices.pct_change().dropna()
+            
+            if returns.empty or len(returns) < 10:
+                return {"matrix": {}, "high_correlation_pairs": [], "diversification_score": 50}
+            
+            # Calculate correlation matrix
+            corr_matrix = returns.corr()
+            
+            # Convert to dictionary format
+            matrix_dict = {}
+            high_corr_pairs = []
+            
+            for i, t1 in enumerate(corr_matrix.columns):
+                matrix_dict[t1] = {}
+                for j, t2 in enumerate(corr_matrix.columns):
+                    if t1 != t2:
+                        corr_val = corr_matrix.loc[t1, t2]
+                        matrix_dict[t1][t2] = round(corr_val, 3)
+                        
+                        # Track high correlation pairs (avoid duplicates)
+                        if i < j and abs(corr_val) > 0.7:
+                            high_corr_pairs.append((t1, t2, round(corr_val, 2)))
+            
+            # Calculate diversification score
+            # Lower avg correlation = better diversification
+            avg_corr = corr_matrix.values[~pd.np.eye(len(corr_matrix), dtype=bool)].mean()
+            diversification_score = max(0, min(100, int((1 - abs(avg_corr)) * 100)))
+            
+            return {
+                "matrix": matrix_dict,
+                "high_correlation_pairs": sorted(high_corr_pairs, key=lambda x: -abs(x[2])),
+                "diversification_score": diversification_score
+            }
+            
+        except Exception as e:
+            logger.warning(f"Correlation matrix calculation failed: {e}")
+            return {"matrix": {}, "high_correlation_pairs": [], "diversification_score": 50}
+
+
 if __name__ == "__main__":
     # Test
     md = MarketData()
     print(md.get_technical_summary("AAPL"))
     print(md.get_technical_summary("BTC-USD"))
+    
+    # Test ATR
+    print("\nATR Test:")
+    print(md.calculate_atr("BTC-USD"))
+    print(md.calculate_atr("AAPL"))
+    
+    # Test Correlation
+    print("\nCorrelation Test:")
+    corr = md.calculate_correlation_matrix(["BTC-USD", "ETH-USD", "AAPL"])
+    print(f"High Correlation Pairs: {corr['high_correlation_pairs']}")
+    print(f"Diversification Score: {corr['diversification_score']}")
