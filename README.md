@@ -5,10 +5,45 @@ An automated AI-powered investment assistant that hunts for high-quality market 
 ## 🚀 Features
 
 -   **News Hunter:** Scrapes RSS feeds from CoinTelegraph, CNBC, Yahoo Finance, and MarketWatch.
--   **AI Brain (Gemini 1.5 Flash):** Analyzes news sentiment, strictly filters for major assets (S&P 500, BTC, ETH), and predicts price direction.
+-   **AI Brain (Multi-Model):** Gemini 2.5 Flash for news, DeepSeek R1 for deep analysis.
+-   **Machine Learning:** Custom Gradient Boosting classifier validates AI predictions.
 -   **Supabase Memory:** Logs all predictions to avoid duplicate alerts and track performance.
--   **Telegram Bot:** Sends real-time BUY/SELL signals directly to your phone.
--   **Zero-Cost:** Runs entirely on GitHub Actions (Free Tier) + Gemini Free Tier + Supabase Free Tier.
+-   **Telegram Bot:** 20+ commands for portfolio management, analysis, and alerts.
+-   **Zero-Cost:** Runs entirely on GitHub Actions + Gemini Free Tier + Supabase Free Tier.
+
+---
+
+## 🧠 AI Intelligence Levels
+
+| Level | Module | Description |
+|-------|--------|-------------|
+| L1 | `hunter.py` | News collection from RSS/Yahoo |
+| L2 | `brain.py` | Sentiment analysis (Gemini 2.5 Flash) |
+| L3 | `pattern_recognizer.py` | Chart pattern detection (Double Top, etc.) |
+| L4 | `ml_predictor.py` | ML validation (Gradient Boosting) |
+| L5 | `main.py` | RSI filter (<35 buy, >65 sell) |
+| L6 | `rebalancer.py` | Portfolio strategy (DeepSeek R1) |
+| L7 | `brain.py` | Deep Dive Analysis (`/analyze`) |
+| L8 | `strategy_manager.py` | Governance Rules (LONG_TERM, SWING) |
+| L9 | `strategy_manager.py` | Active Portfolio (Macro Regime) |
+| L10 | `economist.py` | S&P 500 Trend, DXY, Kelly Criterion |
+| L11 | `portfolio_backtest.py` | ATR Stop-Loss, Correlation, Backtest |
+
+---
+
+## 📊 Key Telegram Commands
+
+| Command | Description |
+|---------|-------------|
+| `/hunt` | 🏹 Manual news hunt |
+| `/analyze TICKER` | 🔬 Deep dive on single ticker |
+| `/rebalance` | ⚖️ Portfolio rebalancing with AI |
+| `/portfolio_backtest` | 📈 Sharpe Ratio, Max Drawdown, Correlation |
+| `/strategy` | 🛡️ View/set strategy rules |
+| `/portfolio` | 📊 Live portfolio value |
+| `/benchmark` | 📊 Compare vs S&P500/BTC |
+| `/macro` | 🏛 FED/VIX/DXY context |
+| `/help` | ❓ All commands |
 
 ---
 
@@ -19,6 +54,10 @@ An automated AI-powered investment assistant that hunts for high-quality market 
 3.  **`brain.py`**: Sends news to Google Gemini for specific analysis.
 4.  **`db_handler.py`**: Manages Supabase connection.
 5.  **`telegram_bot.py`**: Handles user notifications.
+6.  **`rebalancer.py`**: Portfolio optimization with DeepSeek R1.
+7.  **`strategy_manager.py`**: Strategy governance and position sizing.
+8.  **`economist.py`**: Macro analysis (VIX, S&P, DXY, Fed).
+9.  **`portfolio_backtest.py`**: Historical performance metrics.
 
 ---
 
