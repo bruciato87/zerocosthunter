@@ -236,23 +236,28 @@ class StrategyManager:
     def format_rules_report(self) -> str:
         """Generate a formatted report of all strategy rules for Telegram."""
         if not self._rules_cache:
-            return "📋 **Strategy Rules**\n\n❌ Nessuna regola definita.\nUsa `/strategy set TICKER type=SWING` per aggiungerne una."
+            return "📋 Strategy Rules\n\n❌ Nessuna regola definita.\nUsa /strategy set TICKER type=SWING per aggiungerne una."
         
-        report = "📋 **Strategy Rules**\n"
-        report += "━" * 28 + "\n\n"
+        report = "📋 Strategy Rules\n"
+        report += "━" * 24 + "\n\n"
         
         for ticker, rule in sorted(self._rules_cache.items()):
             emoji = "🔵" if rule.strategy_type == StrategyType.LONG_TERM else "🟢" if rule.strategy_type == StrategyType.ACCUMULATE else "🟡"
-            report += f"{emoji} **{ticker}**: {rule.strategy_type.value}\n"
-            report += f"   Target: {rule.target_allocation_pct}% | Cap: {rule.max_allocation_cap}%\n"
+            report += f"{emoji} {ticker}: {rule.strategy_type.value}\n"
+            report += f"   📎 Target: {rule.target_allocation_pct}% | Cap: {rule.max_allocation_cap}%\n"
+            tp_sl = ""
             if rule.take_profit_threshold:
-                report += f"   TP: +{rule.take_profit_threshold}%"
+                tp_sl += f"TP: +{rule.take_profit_threshold}%"
             if rule.stop_loss_threshold:
-                report += f" | SL: {rule.stop_loss_threshold}%"
-            report += "\n\n"
+                if tp_sl:
+                    tp_sl += " | "
+                tp_sl += f"SL: {rule.stop_loss_threshold}%"
+            if tp_sl:
+                report += f"   💰 {tp_sl}\n"
+            report += "\n"
         
-        report += "━" * 28 + "\n"
-        report += "_Modifica con `/strategy set TICKER ...`_"
+        report += "━" * 24 + "\n"
+        report += "Modifica: /strategy set TICKER ..."
         
         return report
 
