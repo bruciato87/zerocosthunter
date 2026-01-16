@@ -661,14 +661,55 @@ class MLPredictor:
 
 
 if __name__ == "__main__":
+    import asyncio
     logging.basicConfig(level=logging.INFO)
     
-    ml = MLPredictor()
-    print(f"\n=== Pure Python ML Test ===")
-    print(f"Model: {ml.model_version}")
-    print(f"ML Ready: {ml.is_ml_ready}")
-    print(f"Training Samples: {ml.get_training_data_count()}")
+    # Check if running in GitHub Actions (Remote Training Mode)
+    target_chat_id = os.environ.get("TARGET_CHAT_ID")
     
-    result = ml.predict("BTC-USD")
-    print(f"\nBTC-USD: {result.direction} ({result.confidence:.0%})")
-    print(f"Is ML: {result.is_ml}")
+    if target_chat_id:
+        logger.info("Starting Remote ML Training (GitHub Actions)...")
+        from telegram_bot import TelegramNotifier
+        
+        async def run_remote_training():
+            notifier = TelegramNotifier()
+            ml = MLPredictor()
+            
+            # Send start message
+            await notifier.send_message(target_chat_id, "⚙️ **GitHub Action:** Training ML in corso...")
+            
+            try:
+                # Execute Training
+                success = ml.train()
+                
+                if success:
+                    stats = ml.get_dashboard_stats()
+                    msg = (
+                        f"✅ **Training Remoto Completato!**\n\n"
+                        f"📦 Modello: `{stats.get('model_version')}`\n"
+                        f"📊 Accuracy: {stats.get('accuracy', 0):.1%}\n"
+                        f"📈 Samples: {stats.get('training_samples', 0)}\n\n"
+                        f"💡 Il modello è stato salvato su Supabase."
+                    )
+                else:
+                    msg = "❌ Training Fallito. Controlla i log di GitHub Actions."
+                
+                await notifier.send_message(target_chat_id, msg)
+                
+            except Exception as e:
+                logger.error(f"Remote training script error: {e}")
+                await notifier.send_message(target_chat_id, f"❌ Errore critico script: {e}")
+        
+        asyncio.run(run_remote_training())
+        
+    else:
+        # Local Diagnostic / Test Mode
+        ml = MLPredictor()
+        print(f"\n=== Pure Python ML Test ===")
+        print(f"Model: {ml.model_version}")
+        print(f"ML Ready: {ml.is_ml_ready}")
+        print(f"Training Samples: {ml.get_training_data_count()}")
+        
+        result = ml.predict("BTC-USD")
+        print(f"\nBTC-USD: {result.direction} ({result.confidence:.0%})")
+        print(f"Is ML: {result.is_ml}")

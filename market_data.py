@@ -113,10 +113,18 @@ class MarketData:
                  search_ticker = f"{search_ticker}-USD"
             
             t = yf.Ticker(search_ticker)
-            # Try fast info first
-            if 'currentPrice' in t.info:
+            # [OPTIMIZATION] Use fast_info (lighter) instead of .info (heavy JSON)
+            if hasattr(t, 'fast_info'):
+                try:
+                    price = t.fast_info.get('last_price')
+                    if price: return price
+                except:
+                    pass # Fallback to history
+            
+            # Fallback for older yfinance versions
+            if hasattr(t, 'info') and 'currentPrice' in t.info:
                 return t.info['currentPrice']
-            if 'regularMarketPrice' in t.info:
+            if hasattr(t, 'info') and 'regularMarketPrice' in t.info:
                 return t.info['regularMarketPrice']
                 
             # Fallback to history

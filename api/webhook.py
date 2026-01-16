@@ -1418,22 +1418,53 @@ async def trainml_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Check if user wants to train
         if context.args and context.args[0].lower() == 'train':
             if training_count >= ml.MIN_TRAINING_SAMPLES:
-                await update.message.reply_text("⏳ **Avvio training ML...**\n\nPotrebbe richiedere 1-2 minuti.", parse_mode="Markdown")
+                await update.message.reply_text(
+                    "⏳ **Avvio Training Remoto ML (Cloud)...**\n\n"
+                    "L'operazione girerà su GitHub per salvare risorse.\n"
+                    "Riceverai una conferma al termine.", 
+                    parse_mode="Markdown"
+                )
                 
-                success = ml.train()
+                # Trigger GitHub Action
+                chat_id = update.effective_chat.id
+                github_token = os.environ.get("GITHUB_TOKEN")
+                repo_owner = "bruciato87"
+                repo_name = "zerocosthunter"
+                workflow_id = "market_scan.yml"
                 
-                if success:
-                    new_stats = ml.get_dashboard_stats()
-                    await update.message.reply_text(
-                        f"✅ **Training Completato!**\n\n"
-                        f"📦 Modello: `{ml.model_version}`\n"
-                        f"📊 Accuracy: {new_stats.get('accuracy', 0):.1%}\n"
-                        f"📈 Samples: {new_stats.get('training_samples', 0)}\n\n"
-                        f"💡 Il modello ora userà ML per le predizioni!",
-                        parse_mode="Markdown"
-                    )
-                else:
-                    await update.message.reply_text("❌ Training fallito. Controlla i logs.")
+                if not github_token:
+                    logger.warning("GITHUB_TOKEN not set - running locally as fallback")
+                    success = ml.train()
+                    if success:
+                        await update.message.reply_text("✅ Training Locale Completato (Fallback).")
+                    else:
+                        await update.message.reply_text("❌ Training Locale Fallito.")
+                    return
+
+                try:
+                    async with httpx.AsyncClient() as client:
+                        response = await client.post(
+                            f"https://api.github.com/repos/{repo_owner}/{repo_name}/actions/workflows/{workflow_id}/dispatches",
+                            headers={
+                                "Authorization": f"Bearer {github_token}",
+                                "Accept": "application/vnd.github.v3+json"
+                            },
+                            json={
+                                "ref": "main",
+                                "inputs": {
+                                    "job_type": "trainml",
+                                    "target_chat_id": str(chat_id)
+                                }
+                            },
+                            timeout=10
+                        )
+                        if response.status_code == 204:
+                            logger.info(f"GitHub Action 'trainml' triggered for {chat_id}")
+                        else:
+                            await update.message.reply_text(f"⚠️ Errore Cloud: {response.status_code}")
+                except Exception as e:
+                    logger.error(f"GitHub Trigger Error: {e}")
+                    await update.message.reply_text("⚠️ Errore connessione GitHub.")
                 return
             else:
                 remaining = ml.MIN_TRAINING_SAMPLES - training_count
