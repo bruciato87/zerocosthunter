@@ -1591,6 +1591,7 @@ async def portfolio_backtest_command(update: Update, context: ContextTypes.DEFAU
     Usage: /portfolio_backtest [days]
     """
     try:
+        import httpx
         chat_id = update.effective_chat.id
         
         # Get period from args (default 180 days)
