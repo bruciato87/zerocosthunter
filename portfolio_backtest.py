@@ -114,11 +114,17 @@ class PortfolioBacktest:
             else:
                 close_prices = data
             
-            # Calculate daily returns
-            daily_returns = close_prices.pct_change().dropna()
+            # Drop columns with too many NaN values (ticker not found)
+            close_prices = close_prices.dropna(axis=1, thresh=int(len(close_prices) * 0.5))
             
-            if daily_returns.empty:
-                return {"error": "Insufficient data for backtest"}
+            if close_prices.empty or len(close_prices.columns) == 0:
+                return {"error": "No valid ticker data found"}
+            
+            # Calculate daily returns (without deprecated fill_method)
+            daily_returns = close_prices.pct_change(fill_method=None).dropna()
+            
+            if daily_returns.empty or len(daily_returns) < 10:
+                return {"error": f"Insufficient data: only {len(daily_returns)} days found"}
             
             # Calculate weighted portfolio returns
             portfolio_returns = pd.Series(0, index=daily_returns.index)
