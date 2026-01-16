@@ -60,9 +60,10 @@ class PortfolioBacktest:
             
             for item in portfolio:
                 ticker = item.get('ticker', '').upper()
-                qty = item.get('qty', 0)
-                price = item.get('current_price', item.get('avg_price', 0))
-                value = qty * price
+                # Support both field names (qty/quantity, avg_price/avg_price_eur)
+                qty = item.get('qty', item.get('quantity', 0))
+                price = item.get('current_price', item.get('avg_price', item.get('avg_price_eur', 0)))
+                value = float(qty) * float(price) if qty and price else 0
                 
                 if value > 0:
                     tickers.append(ticker)
@@ -74,9 +75,9 @@ class PortfolioBacktest:
             # Calculate weights
             for item in portfolio:
                 ticker = item.get('ticker', '').upper()
-                qty = item.get('qty', 0)
-                price = item.get('current_price', item.get('avg_price', 0))
-                value = qty * price
+                qty = item.get('qty', item.get('quantity', 0))
+                price = item.get('current_price', item.get('avg_price', item.get('avg_price_eur', 0)))
+                value = float(qty) * float(price) if qty and price else 0
                 weights[ticker] = value / total_value if total_value > 0 else 0
             
             # Normalize tickers for yfinance
