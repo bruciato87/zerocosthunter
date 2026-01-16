@@ -310,6 +310,27 @@ class Rebalancer:
             except Exception as e:
                 logger.warning(f"L3 context failed for rebalance: {e}")
             
+            # 6. Strategy Governance Context (Level 8)
+            strategy_context = ""
+            try:
+                from strategy_manager import StrategyManager
+                sm = StrategyManager()
+                strategy_lines = []
+                for asset in analysis["assets"][:10]:  # Top 10 assets
+                    ticker = asset['ticker']
+                    pnl = asset.get('pnl_pct', 0)
+                    alloc = asset.get('allocation', 0)
+                    ctx = sm.get_strategy_context(ticker, pnl, alloc)
+                    if "No specific rule" not in ctx:
+                        strategy_lines.append(ctx)
+                
+                if strategy_lines:
+                    strategy_context = "\n\n**🛡️ USER STRATEGY RULES (MANDATORY):**\n" + "\n".join(strategy_lines)
+                    strategy_context += "\n**⚠️ CRITICAL: You MUST respect these rules. Do NOT suggest SELL for LONG_TERM assets!**"
+                    logger.info(f"Rebalance: Strategy context added for {len(strategy_lines)} assets")
+            except Exception as e:
+                logger.warning(f"Strategy context failed for rebalance: {e}")
+            
             prompt = f"""
             Sei un Portfolio Manager italiano focalizzato sulla MASSIMIZZAZIONE DEI PROFITTI NETTI (Post-Tax & Fees).
             
@@ -337,6 +358,8 @@ class Rebalancer:
             {l2_context}
             
             {l3_context}
+            
+            {strategy_context}
             
             **OBIETTIVO PRINCIPALE: MASSIMIZZARE I PROFITTI NETTI**
             

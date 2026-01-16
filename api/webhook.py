@@ -326,6 +326,7 @@ async def setup_bot_commands(bot):
         BotCommand("mode", "🔧 PREPROD/PROD Mode"),
         BotCommand("usage", "📊 API Usage Stats"),
         BotCommand("trainml", "🤖 ML Model (stato/addestra)"),
+        BotCommand("strategy", "🛡️ Regole Strategia (view/set)"),
         BotCommand("dbstatus", "📦 Stato Storage DB"),
         BotCommand("help", "❓ Lista Comandi"),
         BotCommand("setprice", "💶 Correggi Prezzo"),
@@ -1068,6 +1069,7 @@ def webhook():
                 bot_app.add_handler(CommandHandler("whale", whale_command))
                 bot_app.add_handler(CommandHandler("rebalance", rebalance_command))
                 bot_app.add_handler(CommandHandler("trainml", trainml_command))
+                bot_app.add_handler(CommandHandler("strategy", strategy_command))
                 bot_app.add_handler(CommandHandler("sell", sell_command))
                 bot_app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
                 bot_app.add_handler(CallbackQueryHandler(handle_callback))
@@ -1466,6 +1468,116 @@ async def trainml_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.error(f"TrainML command error: {e}")
         await update.message.reply_text(f"❌ Errore: {e}")
 
+
+async def strategy_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    View or set strategy rules for assets.
+    Usage:
+        /strategy - List all rules
+        /strategy set TICKER type=SWING target=10% tp=20% sl=-15%
+    """
+    try:
+        from strategy_manager import StrategyManager
+        sm = StrategyManager()
+        
+        args = context.args
+        
+        # No args: Show all rules
+        if not args:
+            report = sm.format_rules_report()
+            await update.message.reply_text(report, parse_mode="Markdown")
+            return
+        
+        # /strategy set TICKER ...
+        if args[0].lower() == 'set':
+            if len(args) < 2:
+                await update.message.reply_text(
+                    "❌ **Formato:**\n"
+                    "`/strategy set TICKER type=SWING target=10 cap=20 tp=25 sl=-15`\n\n"
+                    "**Parametri:**\n"
+                    "• `type`: ACCUMULATE, SWING, LONG_TERM\n"
+                    "• `target`: % allocazione target\n"
+                    "• `cap`: % max allocazione\n"
+                    "• `tp`: % take profit (opzionale)\n"
+                    "• `sl`: % stop loss (opzionale)\n"
+                    "• `minprofit`: € minimo netto per vendere",
+                    parse_mode="Markdown"
+                )
+                return
+            
+            ticker = args[1].upper()
+            
+            # Parse key=value pairs
+            params = {
+                'strategy_type': 'ACCUMULATE',
+                'target_pct': 10.0,
+                'max_cap': 20.0,
+                'take_profit': None,
+                'stop_loss': None,
+                'min_profit': 50.0
+            }
+            
+            for arg in args[2:]:
+                if '=' in arg:
+                    key, value = arg.split('=', 1)
+                    key = key.lower().strip()
+                    value = value.strip().replace('%', '')
+                    
+                    if key == 'type':
+                        params['strategy_type'] = value.upper()
+                    elif key == 'target':
+                        params['target_pct'] = float(value)
+                    elif key == 'cap':
+                        params['max_cap'] = float(value)
+                    elif key == 'tp':
+                        params['take_profit'] = float(value)
+                    elif key == 'sl':
+                        params['stop_loss'] = float(value)
+                    elif key == 'minprofit':
+                        params['min_profit'] = float(value)
+            
+            # Set the rule
+            success = sm.set_rule(
+                ticker=ticker,
+                strategy_type=params['strategy_type'],
+                target_pct=params['target_pct'],
+                max_cap=params['max_cap'],
+                take_profit=params['take_profit'],
+                stop_loss=params['stop_loss'],
+                min_profit=params['min_profit']
+            )
+            
+            if success:
+                emoji = "🔵" if params['strategy_type'] == 'LONG_TERM' else "🟢" if params['strategy_type'] == 'ACCUMULATE' else "🟡"
+                msg = (
+                    f"✅ **Regola Salvata per {ticker}**\n\n"
+                    f"{emoji} Tipo: `{params['strategy_type']}`\n"
+                    f"🎯 Target: {params['target_pct']}%\n"
+                    f"🚫 Cap Max: {params['max_cap']}%\n"
+                )
+                if params['take_profit']:
+                    msg += f"💰 Take Profit: +{params['take_profit']}%\n"
+                if params['stop_loss']:
+                    msg += f"⚠️ Stop Loss: {params['stop_loss']}%\n"
+                msg += f"📊 Min Profit: €{params['min_profit']}"
+                
+                await update.message.reply_text(msg, parse_mode="Markdown")
+            else:
+                await update.message.reply_text("❌ Errore nel salvataggio della regola.")
+            return
+        
+        # Unknown subcommand
+        await update.message.reply_text(
+            "❌ Comando non riconosciuto.\n\n"
+            "**Uso:**\n"
+            "`/strategy` - Mostra regole\n"
+            "`/strategy set TICKER type=SWING ...` - Imposta regola",
+            parse_mode="Markdown"
+        )
+            
+    except Exception as e:
+        logger.error(f"Strategy command error: {e}")
+        await update.message.reply_text(f"❌ Errore: {e}")
 
 async def sell_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
