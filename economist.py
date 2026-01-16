@@ -89,9 +89,9 @@ class Economist:
         
     def check_risk_level(self):
         """
-        Determines current Macro Risk Level.
-        HIGH: Within 24h of FED Meeting OR VIX > 30.
-        MEDIUM: VIX > 20.
+        Determines current Macro Risk Level (Enhanced Level 10).
+        HIGH: Within 24h of FED Meeting OR VIX > 30 OR S&P Death Cross OR DXY Spike.
+        MEDIUM: VIX > 20 OR Yield Spike.
         LOW: Normal conditions.
         """
         today = datetime.date.today()
@@ -135,6 +135,59 @@ class Economist:
                     if risk != "HIGH": risk = "MEDIUM"
                     reason.append(f"Yield Spike (+{change:.1f}%)")
         except: pass
+
+        # 4. S&P 500 Trend (MA50 vs MA200) - NEW Level 10
+        try:
+            spy = yf.Ticker("^GSPC")  # S&P 500 Index
+            hist = spy.history(period="220d")
+            if len(hist) >= 200:
+                ma50 = hist['Close'].iloc[-50:].mean()
+                ma200 = hist['Close'].iloc[-200:].mean()
+                current_price = hist['Close'].iloc[-1]
+                
+                # Death Cross: MA50 < MA200 (Bearish)
+                if ma50 < ma200:
+                    if risk != "HIGH":
+                        risk = "MEDIUM"
+                    reason.append(f"S&P Death Cross (MA50<MA200)")
+                    
+                # Golden Cross: MA50 > MA200 (Bullish) - could reduce risk if all else is OK
+                elif ma50 > ma200 * 1.02:  # MA50 > MA200 by at least 2%
+                    if risk == "MEDIUM" and len(reason) == 1:
+                        # Only downgrade if medium was from yield spike alone
+                        pass  # Keep medium as precaution
+                    reason.append(f"S&P Golden Cross (Bullish)")
+                
+                # Check trend direction (7-day momentum)
+                week_ago_price = hist['Close'].iloc[-7]
+                momentum = ((current_price - week_ago_price) / week_ago_price) * 100
+                if momentum < -5:  # -5% weekly drop
+                    if risk != "HIGH":
+                        risk = "MEDIUM"
+                    reason.append(f"S&P Correction ({momentum:.1f}% week)")
+                    
+        except Exception as e:
+            logger.warning(f"S&P 500 trend fetch failed: {e}")
+
+        # 5. DXY (Dollar Index) - NEW Level 10
+        try:
+            dxy = yf.Ticker("DX-Y.NYB")
+            hist = dxy.history(period="5d")
+            if not hist.empty:
+                current = hist['Close'].iloc[-1]
+                start = hist['Close'].iloc[0]
+                change = ((current - start) / start) * 100
+                
+                # Strong dollar surge (>2% in 5 days) is bearish for risk assets
+                if change > 2.0:
+                    if risk != "HIGH":
+                        risk = "MEDIUM"
+                    reason.append(f"DXY Spike (+{change:.1f}%)")
+                elif change < -2.0:
+                    # Dollar weakness is bullish for risk assets
+                    reason.append(f"DXY Weak ({change:.1f}%) → Risk ON")
+        except Exception as e:
+            logger.warning(f"DXY fetch failed: {e}")
 
         return risk, ", ".join(reason)
 

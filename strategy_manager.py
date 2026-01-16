@@ -260,6 +260,120 @@ class StrategyManager:
         report += "Modifica: /strategy set TICKER ..."
         
         return report
+    
+    # =========================================================================
+    # Position Sizing (Kelly Criterion) - Level 10
+    # =========================================================================
+    
+    def calculate_position_size(self, ticker: str, portfolio_value: float, 
+                                 win_rate: float = 0.55, avg_win: float = 0.15, 
+                                 avg_loss: float = 0.10, confidence_score: float = 0.8) -> Dict:
+        """
+        Calculate optimal position size using Modified Kelly Criterion.
+        
+        Args:
+            ticker: Asset ticker
+            portfolio_value: Total portfolio value in EUR
+            win_rate: Historical win probability (0.0 - 1.0)
+            avg_win: Average winning trade return (e.g. 0.15 = 15%)
+            avg_loss: Average losing trade return (e.g. 0.10 = 10%)
+            confidence_score: AI confidence in the signal (0.0 - 1.0)
+        
+        Returns:
+            Dict with position sizing recommendations
+        """
+        rule = self.get_rule(ticker)
+        max_allocation = rule.max_allocation_cap if rule else 20.0
+        
+        # Kelly Formula: f* = (bp - q) / b
+        # Where: b = odds (avg_win/avg_loss), p = win prob, q = 1 - p
+        if avg_loss == 0:
+            avg_loss = 0.05  # Minimum 5% assumed loss
+        
+        b = avg_win / avg_loss  # Win/Loss ratio
+        p = win_rate
+        q = 1 - p
+        
+        kelly_pct = ((b * p) - q) / b
+        
+        # Clamp Kelly (can be negative if expected value is negative)
+        kelly_pct = max(0, min(kelly_pct, 0.25))  # Cap at 25%
+        
+        # Half-Kelly (safer, commonly used in practice)
+        half_kelly_pct = kelly_pct / 2
+        
+        # Apply confidence modifier
+        adjusted_pct = half_kelly_pct * confidence_score
+        
+        # Respect max allocation cap
+        final_pct = min(adjusted_pct * 100, max_allocation)
+        
+        # Calculate EUR amount
+        position_eur = portfolio_value * (final_pct / 100)
+        
+        # Minimum trade size check (avoid trades smaller than €50)
+        if position_eur < 50:
+            final_pct = 0
+            position_eur = 0
+            reason = "Position too small (<€50)"
+        else:
+            reason = f"Kelly {kelly_pct*100:.1f}% → Half-Kelly {half_kelly_pct*100:.1f}% × Conf {confidence_score:.0%}"
+        
+        return {
+            "ticker": ticker,
+            "kelly_raw": round(kelly_pct * 100, 2),
+            "half_kelly": round(half_kelly_pct * 100, 2),
+            "final_allocation_pct": round(final_pct, 2),
+            "position_eur": round(position_eur, 0),
+            "max_cap": max_allocation,
+            "reason": reason
+        }
+    
+    def get_position_size_for_signal(self, ticker: str, portfolio_value: float, 
+                                      ml_confidence: float = 0.6, 
+                                      historical_win_rate: float = None) -> str:
+        """
+        Generate a human-readable position sizing recommendation for AI prompts.
+        
+        Args:
+            ticker: Asset ticker
+            portfolio_value: Total portfolio value in EUR
+            ml_confidence: ML model confidence (0.0 - 1.0)
+            historical_win_rate: Optional win rate from historical signals
+        
+        Returns:
+            String recommendation for injection into AI prompt
+        """
+        # Default win rate if not provided
+        win_rate = historical_win_rate if historical_win_rate else 0.55
+        
+        # Adjust based on strategy type
+        rule = self.get_rule(ticker)
+        if rule:
+            if rule.strategy_type == StrategyType.SWING:
+                avg_win = 0.20  # Swing traders aim for 20%
+                avg_loss = 0.10
+            elif rule.strategy_type == StrategyType.LONG_TERM:
+                avg_win = 0.30  # Long term holders expect larger gains
+                avg_loss = 0.15
+            else:  # ACCUMULATE
+                avg_win = 0.15
+                avg_loss = 0.08
+        else:
+            avg_win = 0.15
+            avg_loss = 0.10
+        
+        result = self.calculate_position_size(
+            ticker, portfolio_value, win_rate, avg_win, avg_loss, ml_confidence
+        )
+        
+        if result["position_eur"] == 0:
+            return f"[Position Size {ticker}]: Skip trade ({result['reason']})"
+        
+        return (
+            f"[Position Size {ticker}]: €{result['position_eur']:.0f} "
+            f"({result['final_allocation_pct']:.1f}% of portfolio) - {result['reason']}"
+        )
 
 
 # =============================================================================
