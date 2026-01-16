@@ -445,6 +445,41 @@ class Rebalancer:
         # Total value
         report += f"💰 **Valore Totale:** €{analysis['total_value']:,.0f}\n\n"
         
+        # Macro Regime & Dynamic Targets (Level 9)
+        try:
+            regime_data = self.strategy_manager.get_market_regime(self.economist)
+            regime_desc = regime_data.get('description', 'NEUTRAL')
+            risk_level = regime_data.get('risk_level', 'UNKNOWN')
+            
+            report += f"🔬 **MACRO REGIME:** {regime_desc}\n"
+            report += f"   📊 Risk Level: {risk_level}\n"
+            
+            # Show Dynamic Targets for top assets
+            dynamic_lines = []
+            for asset in analysis["assets"][:6]:
+                ticker = asset['ticker']
+                rule = self.strategy_manager.get_rule(ticker)
+                if rule:
+                    base_target = rule.target_allocation_pct
+                    dynamic_target = self.strategy_manager.get_dynamic_target(ticker, base_target, regime_data)
+                    
+                    if rule.strategy_type.value == "LONG_TERM":
+                        dynamic_lines.append(f"   🔵 {ticker}: {base_target}% (LONG_TERM)")
+                    elif dynamic_target != base_target:
+                        arrow = "⬆️" if dynamic_target > base_target else "⬇️"
+                        dynamic_lines.append(f"   ⚡ {ticker}: {base_target}% → {dynamic_target}% {arrow}")
+                    else:
+                        dynamic_lines.append(f"   🟢 {ticker}: {base_target}%")
+            
+            if dynamic_lines:
+                report += "   ⚡ **Dynamic Targets:**\n"
+                for line in dynamic_lines:
+                    report += f"{line}\n"
+            
+            report += "\n"
+        except Exception as e:
+            logger.warning(f"Macro regime display failed: {e}")
+        
         # AI Strategy (FIRST - most important)
         ai_strategy = self._get_ai_suggestion(analysis)
         if ai_strategy:
