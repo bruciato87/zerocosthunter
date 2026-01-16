@@ -327,6 +327,7 @@ async def setup_bot_commands(bot):
         BotCommand("usage", "📊 API Usage Stats"),
         BotCommand("trainml", "🤖 ML Model (stato/addestra)"),
         BotCommand("strategy", "🛡️ Regole Strategia (view/set)"),
+        BotCommand("portfolio_backtest", "📊 Backtest Portafoglio (Sharpe/DD)"),
         BotCommand("dbstatus", "📦 Stato Storage DB"),
         BotCommand("help", "❓ Lista Comandi"),
         BotCommand("setprice", "💶 Correggi Prezzo"),
@@ -1073,6 +1074,7 @@ def webhook():
                 bot_app.add_handler(CommandHandler("rebalance", rebalance_command))
                 bot_app.add_handler(CommandHandler("trainml", trainml_command))
                 bot_app.add_handler(CommandHandler("strategy", strategy_command))
+                bot_app.add_handler(CommandHandler("portfolio_backtest", portfolio_backtest_command))
                 bot_app.add_handler(CommandHandler("sell", sell_command))
                 bot_app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
                 bot_app.add_handler(CallbackQueryHandler(handle_callback))
@@ -1577,10 +1579,66 @@ async def strategy_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "`/strategy set TICKER type=SWING ...` - Imposta regola",
             parse_mode="Markdown"
         )
-            
+        
     except Exception as e:
         logger.error(f"Strategy command error: {e}")
         await update.message.reply_text(f"❌ Errore: {e}")
+
+async def portfolio_backtest_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Run portfolio backtest to calculate Sharpe Ratio, Max Drawdown, etc.
+    Usage: /portfolio_backtest [days]
+    """
+    try:
+        from db_handler import DBHandler
+        from portfolio_backtest import PortfolioBacktest
+        from market_data import MarketData
+        
+        db = DBHandler()
+        md = MarketData()
+        bt = PortfolioBacktest()
+        
+        # Get period from args (default 180 days)
+        period = 180
+        if context.args and context.args[0].isdigit():
+            period = int(context.args[0])
+            period = min(365, max(30, period))  # Limit 30-365 days
+        
+        await update.message.reply_text(f"⏳ Calcolo backtest ({period} giorni)...")
+        
+        # Get portfolio
+        portfolio = db.get_portfolio()
+        if not portfolio:
+            await update.message.reply_text("❌ Portafoglio vuoto.")
+            return
+        
+        # Add current prices
+        for item in portfolio:
+            ticker = item.get('ticker', '')
+            price, _ = md.get_smart_price_eur(ticker)
+            item['current_price'] = price
+        
+        # Run backtest
+        results = bt.run_backtest(portfolio, period_days=period)
+        
+        # Format report
+        report = bt.format_backtest_report(results)
+        
+        # Add correlation analysis
+        tickers = [item['ticker'] for item in portfolio][:10]
+        if len(tickers) >= 2:
+            corr_data = md.calculate_correlation_matrix(tickers)
+            if corr_data['high_correlation_pairs']:
+                report += "\n\n⚠️ **Asset Correlati (>70%):**\n"
+                for t1, t2, corr in corr_data['high_correlation_pairs'][:3]:
+                    report += f"• {t1} ↔ {t2}: {corr:.0%}\n"
+            report += f"\n🎯 Diversification Score: {corr_data['diversification_score']}/100"
+        
+        await update.message.reply_text(report)
+        
+    except Exception as e:
+        logger.error(f"Portfolio backtest error: {e}")
+        await update.message.reply_text(f"❌ Errore backtest: {e}")
 
 async def sell_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
