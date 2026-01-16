@@ -355,6 +355,57 @@ class Rebalancer:
             except Exception as e:
                 logger.warning(f"Strategy context failed for rebalance: {e}")
             
+            # 7. Portfolio Backtest & Correlation Context (Level 11)
+            backtest_context = ""
+            try:
+                from portfolio_backtest import PortfolioBacktest
+                bt = PortfolioBacktest()
+                
+                # Prepare portfolio data for backtest
+                bt_portfolio = []
+                for asset in analysis["assets"]:
+                    bt_portfolio.append({
+                        "ticker": asset['ticker'],
+                        "quantity": asset.get('qty', 0),
+                        "avg_price_eur": asset.get('avg_price', 0),
+                        "current_price": asset.get('price', asset.get('avg_price', 0))
+                    })
+                
+                # Run 90-day backtest (shorter for speed)
+                bt_results = bt.run_backtest(bt_portfolio, period_days=90)
+                
+                if "error" not in bt_results:
+                    sharpe = bt_results.get('sharpe_ratio', 0)
+                    max_dd = bt_results.get('max_drawdown_pct', 0)
+                    win_rate = bt_results.get('win_rate', 0)
+                    
+                    sharpe_status = "🟢 GOOD" if sharpe >= 1.0 else "🟡 MEDIOCRE" if sharpe >= 0 else "🔴 POOR"
+                    dd_status = "🟢 SAFE" if max_dd >= -15 else "🟡 MODERATE" if max_dd >= -25 else "🔴 HIGH RISK"
+                    
+                    backtest_context = f"""
+**📊 PORTFOLIO HISTORICAL PERFORMANCE (90 days):**
+- Sharpe Ratio: {sharpe:.2f} ({sharpe_status})
+- Max Drawdown: {max_dd:.1f}% ({dd_status})
+- Win Rate: {win_rate:.0%}
+"""
+                    logger.info(f"Rebalance: Backtest context added (Sharpe: {sharpe:.2f})")
+                
+                # Add Correlation Analysis
+                tickers = [asset['ticker'] for asset in analysis["assets"][:10]]
+                if len(tickers) >= 2:
+                    corr_data = self.market_data.calculate_correlation_matrix(tickers)
+                    if corr_data.get('high_correlation_pairs'):
+                        backtest_context += "\n**⚠️ HIGH CORRELATION WARNING (>70%):**\n"
+                        for t1, t2, corr in corr_data['high_correlation_pairs'][:3]:
+                            backtest_context += f"- {t1} ↔ {t2}: {corr:.0%} (consider diversifying)\n"
+                    
+                    div_score = corr_data.get('diversification_score', 50)
+                    div_status = "🟢 GOOD" if div_score >= 70 else "🟡 MEDIOCRE" if div_score >= 50 else "🔴 POOR"
+                    backtest_context += f"- Diversification Score: {div_score}/100 ({div_status})\n"
+                    
+            except Exception as e:
+                logger.warning(f"Backtest context failed for rebalance: {e}")
+            
             prompt = f"""
             Sei un Portfolio Manager italiano focalizzato sulla MASSIMIZZAZIONE DEI PROFITTI NETTI (Post-Tax & Fees).
             
@@ -391,6 +442,8 @@ class Rebalancer:
             **🛡️ DYNAMIC STRATEGY RULES (MANDATORY):**
             {strategy_context}
             
+            {backtest_context}
+            
             **OBIETTIVO PRINCIPALE: MASSIMIZZARE I PROFITTI NETTI**
             
             **ISTRUZIONI:**
@@ -408,6 +461,7 @@ class Rebalancer:
             - **PRIORITÀ 2:** Accumula asset con RSI OVERSOLD (<30)
             - **PRIORITÀ 3:** Trimma asset con RSI OVERBOUGHT (>70) SOLO SE il PnL netto giustifica la tassa.
             - **PRIORITÀ 4:** (Solo dopo) Considera il bilanciamento settoriale
+            - **PRIORITÀ 5:** Se Sharpe < 0 o Diversification Score < 60, suggerisci di ridurre asset altamente correlati
             
             - **TICKER SUGGERIBILI:** Asset nel portfolio: {', '.join([a['ticker'] for a in analysis['assets']])}
             - **ECCEZIONE:** Se un segnale recente (BUY ≥80% conf) è per un ticker NON nel portfolio, suggeriscilo comunque indicando "(NUOVO)"
