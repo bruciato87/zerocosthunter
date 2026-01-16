@@ -366,10 +366,12 @@ class Rebalancer:
                 for asset in analysis["assets"]:
                     bt_portfolio.append({
                         "ticker": asset['ticker'],
-                        "quantity": asset.get('qty', 0),
-                        "avg_price_eur": asset.get('avg_price', 0),
-                        "current_price": asset.get('price', asset.get('avg_price', 0))
+                        "quantity": asset.get('quantity', asset.get('qty', 0)),
+                        "avg_price_eur": asset.get('avg_price_eur', asset.get('avg_price', 0)),
+                        "current_price": asset.get('price', asset.get('current_price', asset.get('avg_price', 0)))
                     })
+                
+                logger.info(f"Rebalance: Running backtest for {len(bt_portfolio)} assets...")
                 
                 # Run 90-day backtest (shorter for speed)
                 bt_results = bt.run_backtest(bt_portfolio, period_days=90)
@@ -388,7 +390,9 @@ class Rebalancer:
 - Max Drawdown: {max_dd:.1f}% ({dd_status})
 - Win Rate: {win_rate:.0%}
 """
-                    logger.info(f"Rebalance: Backtest context added (Sharpe: {sharpe:.2f})")
+                    logger.info(f"Rebalance: Backtest context added (Sharpe: {sharpe:.2f}, MaxDD: {max_dd:.1f}%)")
+                else:
+                    logger.warning(f"Rebalance: Backtest returned error: {bt_results.get('error')}")
                 
                 # Add Correlation Analysis
                 tickers = [asset['ticker'] for asset in analysis["assets"][:10]]

@@ -1587,58 +1587,67 @@ async def strategy_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def portfolio_backtest_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Run portfolio backtest to calculate Sharpe Ratio, Max Drawdown, etc.
+    TRIGGERS GITHUB ACTION (Async) to save Vercel CPU.
     Usage: /portfolio_backtest [days]
     """
     try:
-        from db_handler import DBHandler
-        from portfolio_backtest import PortfolioBacktest
-        from market_data import MarketData
-        
-        db = DBHandler()
-        md = MarketData()
-        bt = PortfolioBacktest()
+        chat_id = update.effective_chat.id
         
         # Get period from args (default 180 days)
         period = 180
         if context.args and context.args[0].isdigit():
             period = int(context.args[0])
             period = min(365, max(30, period))  # Limit 30-365 days
+            
+        await update.message.reply_text(
+            f"⏳ **Avvio Backtest Remoto ({period} giorni)...**\n"
+            "☁️ Il calcolo avverrà sul Cloud (GitHub) per non sovraccaricare il bot.\n"
+            "📨 Riceverai il report qui tra 1-2 minuti."
+        )
         
-        await update.message.reply_text(f"⏳ Calcolo backtest ({period} giorni)...")
+        # Trigger GitHub Action
+        # Requires GITHUB_TOKEN in env vars or hardcoded if necessary (here utilizing existing env approach)
+        github_token = os.environ.get("GITHUB_TOKEN")
+        repo_owner = "bruciato87"
+        repo_name = "zerocosthunter"
+        workflow_id = "market_scan.yml"
         
-        # Get portfolio
-        portfolio = db.get_portfolio()
-        if not portfolio:
-            await update.message.reply_text("❌ Portafoglio vuoto.")
+        if not github_token:
+            # Fallback for Vercel env if GITHUB_TOKEN not set
+            # Assuming it might be set as env var, or log warning
+            logger.warning("GITHUB_TOKEN not set, cannot trigger remote backtest.")
+            await update.message.reply_text("⚠️ Token GitHub mancante. Contatta l'admin.")
             return
+
+        headers = {
+            "Authorization": f"Bearer {github_token}",
+            "Accept": "application/vnd.github.v3+json"
+        }
         
-        # Add current prices
-        for item in portfolio:
-            ticker = item.get('ticker', '')
-            price, _ = md.get_smart_price_eur(ticker)
-            item['current_price'] = price
-        
-        # Run backtest
-        results = bt.run_backtest(portfolio, period_days=period)
-        
-        # Format report
-        report = bt.format_backtest_report(results)
-        
-        # Add correlation analysis
-        tickers = [item['ticker'] for item in portfolio][:10]
-        if len(tickers) >= 2:
-            corr_data = md.calculate_correlation_matrix(tickers)
-            if corr_data['high_correlation_pairs']:
-                report += "\n\n⚠️ **Asset Correlati (>70%):**\n"
-                for t1, t2, corr in corr_data['high_correlation_pairs'][:3]:
-                    report += f"• {t1} ↔ {t2}: {corr:.0%}\n"
-            report += f"\n🎯 Diversification Score: {corr_data['diversification_score']}/100"
-        
-        await update.message.reply_text(report)
-        
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"https://api.github.com/repos/{repo_owner}/{repo_name}/actions/workflows/{workflow_id}/dispatches",
+                headers=headers,
+                json={
+                    "ref": "main",
+                    "inputs": {
+                        "job_type": "portfolio_backtest",
+                        "target_chat_id": str(chat_id),
+                        "backtest_period": str(period)
+                    }
+                },
+                timeout=10
+            )
+            
+            if response.status_code == 204:
+                logger.info(f"GitHub Action 'portfolio_backtest' triggered for {chat_id}")
+            else:
+                logger.error(f"GitHub Action trigger failed: {response.status_code} - {response.text}")
+                await update.message.reply_text(f"⚠️ Errore avvio task remoto: {response.status_code}")
+
     except Exception as e:
-        logger.error(f"Portfolio backtest error: {e}")
-        await update.message.reply_text(f"❌ Errore backtest: {e}")
+        logger.error(f"Portfolio backtest init error: {e}")
+        await update.message.reply_text(f"❌ Errore init: {e}")
 
 async def sell_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """

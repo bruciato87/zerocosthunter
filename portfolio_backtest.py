@@ -224,19 +224,75 @@ class PortfolioBacktest:
 
 
 # =============================================================================
-# Standalone Test
+# Standalone Execution (GitHub Actions)
 # =============================================================================
 if __name__ == "__main__":
+    import os
+    import asyncio
+    from db_handler import DBHandler
+    from market_data import MarketData
+    from telegram_bot import TelegramBot
+    
     logging.basicConfig(level=logging.INFO)
+    logger.info("Portfolio Backtest: Starting standalone execution...")
     
-    # Mock portfolio
-    test_portfolio = [
-        {"ticker": "BTC-USD", "qty": 0.1, "avg_price": 40000, "current_price": 42000},
-        {"ticker": "ETH-USD", "qty": 1.0, "avg_price": 2000, "current_price": 2200},
-        {"ticker": "AAPL", "qty": 10, "avg_price": 150, "current_price": 155}
-    ]
+    # 1. Configuration
+    target_chat_id = os.environ.get("TARGET_CHAT_ID")
+    period = int(os.environ.get("BACKTEST_PERIOD", 180))
     
-    bt = PortfolioBacktest()
-    results = bt.run_backtest(test_portfolio, period_days=180)
-    
-    print(bt.format_backtest_report(results))
+    if not target_chat_id:
+        logger.warning("Target Chat ID not set, running in test mode with mock data")
+        # Existing mock test...
+        test_portfolio = [
+            {"ticker": "BTC-USD", "quantity": 0.1, "avg_price": 40000, "current_price": 42000},
+            {"ticker": "ETH-USD", "quantity": 1.0, "avg_price": 2000, "current_price": 2200}
+        ]
+        bt = PortfolioBacktest()
+        results = bt.run_backtest(test_portfolio, period_days=period)
+        print(bt.format_backtest_report(results))
+    else:
+        # 2. Production Execution
+        async def main():
+            try:
+                db = DBHandler()
+                md = MarketData()
+                bot = TelegramBot()
+                bt = PortfolioBacktest()
+                
+                await bot.send_message(target_chat_id, f"⏳ Avvio Backtest Remoto ({period} giorni)...")
+                
+                # Fetch Portfolio
+                portfolio = db.get_portfolio()
+                if not portfolio:
+                    await bot.send_message(target_chat_id, "❌ Portafoglio vuoto.")
+                    return
+
+                # Add current prices
+                for item in portfolio:
+                    ticker = item.get('ticker', '')
+                    price, _ = md.get_smart_price_eur(ticker)
+                    item['current_price'] = price
+                
+                # Run Backtest
+                results = bt.run_backtest(portfolio, period_days=period)
+                report = bt.format_backtest_report(results)
+                
+                # Add Correlation (Standalone version needs this too)
+                tickers = [item['ticker'] for item in portfolio][:10]
+                if len(tickers) >= 2:
+                    corr_data = md.calculate_correlation_matrix(tickers)
+                    if corr_data.get('high_correlation_pairs'):
+                        report += "\n\n⚠️ **Asset Correlati (>70%):**\n"
+                        for t1, t2, corr in corr_data['high_correlation_pairs'][:3]:
+                            report += f"• {t1} ↔ {t2}: {corr:.0%}\n"
+                    report += f"\n🎯 Diversification Score: {corr_data['diversification_score']}/100"
+                
+                await bot.send_message(target_chat_id, report)
+                await bot.send_message(target_chat_id, "✅ Backtest completato (Cloud Execution).")
+                
+            except Exception as e:
+                logger.error(f"Backtest execution failed: {e}")
+                if target_chat_id:
+                    await bot.send_message(target_chat_id, f"❌ Errore Backtest Remoto: {e}")
+        
+        asyncio.run(main())

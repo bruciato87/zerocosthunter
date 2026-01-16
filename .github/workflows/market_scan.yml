@@ -21,6 +21,7 @@ on:
           - rebalance
           - weekly_summary
           - analyze
+          - portfolio_backtest
       target_chat_id:
         description: 'Target Chat ID for report'
         required: false
@@ -28,6 +29,11 @@ on:
       target_ticker:
         description: 'Ticker for Deep Dive Analysis'
         required: false
+        type: string
+      backtest_period:
+        description: 'Period for Backtest (days)'
+        required: false
+        default: '180'
         type: string
 
 jobs:
@@ -152,3 +158,34 @@ jobs:
       run: |
         python analyzer.py
 
+  portfolio_backtest:
+    runs-on: ubuntu-latest
+    # Only manual trigger with portfolio_backtest selected
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.job_type == 'portfolio_backtest'
+    
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+    - name: Run Portfolio Backtest
+      env:
+        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TARGET_CHAT_ID: ${{ github.event.inputs.target_chat_id }}
+        BACKTEST_PERIOD: ${{ github.event.inputs.backtest_period }}
+      run: |
+        python portfolio_backtest.py
