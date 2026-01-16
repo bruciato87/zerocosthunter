@@ -650,7 +650,8 @@ class MarketData:
             
             # Calculate diversification score
             # Lower avg correlation = better diversification
-            avg_corr = corr_matrix.values[~pd.np.eye(len(corr_matrix), dtype=bool)].mean()
+            import numpy as np
+            avg_corr = corr_matrix.values[~np.eye(len(corr_matrix), dtype=bool)].mean()
             diversification_score = max(0, min(100, int((1 - abs(avg_corr)) * 100)))
             
             return {

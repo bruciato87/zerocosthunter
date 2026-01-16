@@ -11,6 +11,7 @@ from typing import Dict, List, Optional
 from datetime import datetime, timedelta
 import yfinance as yf
 import pandas as pd
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
