@@ -169,11 +169,30 @@ class Brain:
         except Exception as e:
             logger.warning(f"Failed to send usage warning: {e}")
 
-    def _generate_with_fallback(self, prompt: str, json_mode: bool = False, model: str = "deepseek-chat") -> str:
+    def _generate_with_fallback(self, prompt: str, json_mode: bool = False, model: str = "deepseek-chat", prefer_free: bool = False) -> str:
         """
         Try DeepSeek first, fallback to Gemini on failure.
+        If prefer_free is True, try Gemini first and fallback to DeepSeek.
         """
-        # Try DeepSeek first
+        
+        # 1. Logic for prefer_free (Gemini First)
+        if prefer_free and self.gemini_client:
+            try:
+                # Use Gemini as primary
+                return self._call_gemini_with_retries(prompt, json_mode)
+            except Exception as e:
+                logger.warning(f"Gemini (primary) failed: {e}. Falling back to DeepSeek...")
+                # Fallback to DeepSeek if enabled
+                if self.use_deepseek and self.deepseek_api_key:
+                    try:
+                        messages = [{"role": "user", "content": prompt}]
+                        return self._call_deepseek(messages, json_mode=json_mode, model=model)
+                    except Exception as de:
+                        logger.error(f"DeepSeek fallback also failed: {de}")
+                        raise de
+                raise e
+
+        # 2. Logic for Standard (DeepSeek First - Default)
         if self.use_deepseek and self.deepseek_api_key:
             try:
                 messages = [{"role": "user", "content": prompt}]
@@ -190,37 +209,34 @@ class Brain:
         
         # Fallback to Gemini
         if self.gemini_client:
-            try:
-                # Retry logic for Gemini
-                max_retries = 5
-                backoff = 10
-                
-                for attempt in range(max_retries + 1):
-                    try:
-                        result = self._call_gemini(prompt, json_mode=json_mode)
-                        logger.info("Gemini fallback successful")
-                        return result
-                    except Exception as e:
-                        error_str = str(e)
-                        if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
-                            if attempt < max_retries:
-                                # Parse retry delay if available
-                                import re
-                                wait_time = backoff
-                                match = re.search(r"retry in (\d+(\.\d+)?)s", error_str)
-                                if match:
-                                    wait_time = float(match.group(1)) + 2.0
-                                
-                                logger.warning(f"Gemini 429. Retrying in {wait_time:.1f}s... ({attempt+1}/{max_retries})")
-                                time.sleep(wait_time)
-                                backoff *= 1.5
-                                continue
-                        raise e
-            except Exception as e:
-                logger.error(f"Gemini fallback also failed: {e}")
-                raise e
+            return self._call_gemini_with_retries(prompt, json_mode)
         
         raise Exception("No AI provider available")
+
+    def _call_gemini_with_retries(self, prompt: str, json_mode: bool) -> str:
+        """Helper for Gemini with backoff retries."""
+        max_retries = 5
+        backoff = 10
+        for attempt in range(max_retries + 1):
+            try:
+                result = self._call_gemini(prompt, json_mode=json_mode)
+                logger.info("Gemini call successful")
+                return result
+            except Exception as e:
+                error_str = str(e)
+                if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
+                    if attempt < max_retries:
+                        import re
+                        wait_time = backoff
+                        match = re.search(r"retry in (\d+(\.\d+)?)s", error_str)
+                        if match:
+                            wait_time = float(match.group(1)) + 2.0
+                        logger.warning(f"Gemini 429. Retrying in {wait_time:.1f}s... ({attempt+1}/{max_retries})")
+                        time.sleep(wait_time)
+                        backoff *= 1.5
+                        continue
+                raise e
+        return ""
     
     def analyze_news_batch(self, news_list, performance_context=None, insider_context=None, portfolio_context=None, macro_context=None, whale_context=None):
         """
@@ -575,8 +591,8 @@ class Brain:
         """
 
         try:
-            logger.info("Sending news batch to AI (DeepSeek → Gemini fallback)...")
-            response_text = self._generate_with_fallback(prompt, json_mode=True)
+            logger.info("Sending news batch to AI (Prefer FREE Gemini → DeepSeek fallback)...")
+            response_text = self._generate_with_fallback(prompt, json_mode=True, prefer_free=True)
             
             # Parse JSON
             try:
