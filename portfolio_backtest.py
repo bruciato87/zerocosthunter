@@ -167,13 +167,17 @@ class PortfolioBacktest:
             for yf_t in yf_tickers:
                 if yf_t in close_prices.columns:
                     orig_t = ticker_map.get(yf_t, yf_t)
-                    first_price = close_prices[yf_t].iloc[0]
-                    last_price = close_prices[yf_t].iloc[-1]
-                    asset_return = ((last_price - first_price) / first_price) * 100
-                    asset_returns[orig_t] = round(float(asset_return), 2)
+                    first_price = close_prices[yf_t].dropna().iloc[0] if not close_prices[yf_t].dropna().empty else None
+                    last_price = close_prices[yf_t].dropna().iloc[-1] if not close_prices[yf_t].dropna().empty else None
+                    if first_price and last_price and first_price > 0:
+                        asset_return = ((last_price - first_price) / first_price) * 100
+                        if not np.isnan(asset_return):
+                            asset_returns[orig_t] = round(float(asset_return), 2)
             
-            best = max(asset_returns.items(), key=lambda x: x[1]) if asset_returns else ("N/A", 0)
-            worst = min(asset_returns.items(), key=lambda x: x[1]) if asset_returns else ("N/A", 0)
+            # Filter valid returns for best/worst
+            valid_returns = {k: v for k, v in asset_returns.items() if not np.isnan(v)}
+            best = max(valid_returns.items(), key=lambda x: x[1]) if valid_returns else ("N/A", 0)
+            worst = min(valid_returns.items(), key=lambda x: x[1]) if valid_returns else ("N/A", 0)
             
             return {
                 "total_return_pct": round(float(total_return) * 100, 2),
