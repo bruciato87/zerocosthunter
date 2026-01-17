@@ -58,9 +58,10 @@ class MarketData:
             "RENDER": "RENDER-USD",   # Naked ticker support
             "BYD": "BY6.F",           # User owns BYD EV (Frankfurt), not Boyd Gaming (NYSE)
             "BYDDF": "BY6.F",         # BYD OTC -> Frankfurt (faster)
-            "TCT": "NNnD.F",          # Tencent Frankfurt
-            "3XC": "3CP.F",           # Xiaomi Frankfurt
-            "NUKL": "NUKL.DE"         # Global X Uranium
+            "TCT": "0700.HK",         # Tencent on Hong Kong (more reliable than Frankfurt)
+            "3XC": "1810.HK",         # Xiaomi on Hong Kong (more reliable)
+            "NUKL": "U3O8.DE",        # Global X Uranium (EU version) on Xetra
+            "JAZZ": "JAZZ",           # Jazz Pharmaceuticals on NASDAQ (no suffix needed)
         }
 
     def get_crypto_data_coingecko(self, ticker):

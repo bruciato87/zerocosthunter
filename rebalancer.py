@@ -590,8 +590,10 @@ class Rebalancer:
         # AI Strategy (FIRST - most important)
         ai_strategy = self._get_ai_suggestion(analysis)
         if ai_strategy:
+            # Sanitize markdown: escape problematic characters
+            ai_strategy_safe = ai_strategy.replace("_", "\\_").replace("*", "\\*") if "_" in ai_strategy or "*" in ai_strategy else ai_strategy
             report += "🎯 **PIANO D'AZIONE (Hybrid AI - R1):**\n"
-            report += ai_strategy + "\n\n"
+            report += ai_strategy_safe + "\n\n"
         
         # Sector allocation (compact)
         report += "📈 **Allocazione Settori:**\n"
