@@ -182,7 +182,44 @@ class MarketData:
         except: pass
 
         ticker_u = candidate_ticker.upper()
-        # 0. Check Aliases first
+        
+        # [V11] Check DB ticker_cache for pre-resolved ticker
+        # This is the self-learning cache that remembers successful resolutions
+        try:
+            from db_handler import DBHandler
+            db = DBHandler()
+            cached_ticker = db.get_ticker_cache(ticker_u)
+            if cached_ticker:
+                resolved = cached_ticker.get("resolved_ticker")
+                is_crypto = cached_ticker.get("is_crypto", False)
+                currency = cached_ticker.get("currency", "USD")
+                logger.debug(f"Ticker cache HIT: {ticker_u} -> {resolved}")
+                
+                # Fetch price for the cached resolved ticker
+                try:
+                    t_obj = yf.Ticker(resolved)
+                    hist = t_obj.history(period="1d")
+                    if not hist.empty:
+                        price = hist['Close'].iloc[-1]
+                        if include_change: change_pct = extract_change(t_obj)
+                        
+                        # Convert to EUR if needed
+                        if currency == "USD":
+                            price = price / eur_usd_rate
+                        elif currency == "HKD":
+                            price = price / (eur_usd_rate * 7.8)  # HKD/USD ~ 7.8
+                        
+                        # Cache in memory
+                        self._price_cache[cache_key] = {'price': price, 'source': resolved, 'change': change_pct, 'ts': time.time()}
+                        return (*[price, resolved, change_pct], ) if include_change else (price, resolved)
+                except Exception as e:
+                    # Cache miss or stale, continue with discovery
+                    db.increment_ticker_fail(ticker_u)
+                    logger.debug(f"Ticker cache MISS (fetch failed): {ticker_u} -> {resolved}")
+        except:
+            pass  # DB not available, continue without cache
+        
+        # 0. Check Aliases first (Manual overrides)
         # Usually aliases map to the EXACT ticker intended (e.g. BYD -> BY6.F)
         # If alias is found, trust it 100% and fetch that.
         if ticker_u in self.TICKER_ALIASES:
@@ -284,14 +321,25 @@ class MarketData:
                     
                     if '.' in t_test: 
                          result = (price, t_test) # EUR
+                         currency = "EUR"
                     else:
                          result = (price / eur_usd_rate, t_test) # Convert USD (heuristic)
+                         currency = "USD"
                     
-                    # [PERFORMANCE] Store in cache
+                    # [PERFORMANCE] Store in memory cache
                     self._price_cache[cache_key] = {
                         'price': result[0], 'source': result[1], 
                         'change': change_pct, 'ts': time.time()
                     }
+                    
+                    # [V11] Save to DB cache for future use (self-learning)
+                    try:
+                        from db_handler import DBHandler
+                        db = DBHandler()
+                        db.save_ticker_cache(ticker_u, t_test, is_crypto=False, currency=currency)
+                    except:
+                        pass  # DB save failed, not critical
+                    
                     return (*result, change_pct) if include_change else result
             except: pass
             

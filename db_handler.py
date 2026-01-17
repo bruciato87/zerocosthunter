@@ -678,6 +678,69 @@ class DBHandler:
             logger.error(f"Error calculating realized P&L: {e}")
             return 0.0
 
+    # --- TICKER CACHE (V11 - Self-Learning Resolution) ---
+    
+    def get_ticker_cache(self, user_ticker: str) -> dict:
+        """
+        Get cached ticker resolution.
+        Returns: {"resolved_ticker": "0700.HK", "is_crypto": False, "currency": "HKD"} or None
+        """
+        try:
+            response = self.supabase.table("ticker_cache") \
+                .select("resolved_ticker, is_crypto, currency, last_verified_at, fail_count") \
+                .eq("user_ticker", user_ticker.upper()) \
+                .limit(1) \
+                .execute()
+            
+            if response.data:
+                cache = response.data[0]
+                # Ignore cache if fail_count > 3 (needs re-discovery)
+                if (cache.get("fail_count", 0) or 0) > 3:
+                    return None
+                return cache
+            return None
+        except Exception as e:
+            logger.warning(f"Ticker cache lookup failed for {user_ticker}: {e}")
+            return None
+    
+    def save_ticker_cache(self, user_ticker: str, resolved_ticker: str, is_crypto: bool = False, currency: str = "USD"):
+        """
+        Save successful ticker resolution to cache.
+        """
+        try:
+            self.supabase.table("ticker_cache").upsert({
+                "user_ticker": user_ticker.upper(),
+                "resolved_ticker": resolved_ticker,
+                "is_crypto": is_crypto,
+                "currency": currency,
+                "last_verified_at": datetime.now().isoformat(),
+                "fail_count": 0
+            }, on_conflict="user_ticker").execute()
+            logger.info(f"Ticker cache saved: {user_ticker} -> {resolved_ticker}")
+        except Exception as e:
+            logger.warning(f"Failed to save ticker cache for {user_ticker}: {e}")
+    
+    def increment_ticker_fail(self, user_ticker: str):
+        """
+        Increment fail count for a cached ticker.
+        If fail_count > 3, the cache entry will be ignored and re-discovered.
+        """
+        try:
+            response = self.supabase.table("ticker_cache") \
+                .select("fail_count") \
+                .eq("user_ticker", user_ticker.upper()) \
+                .limit(1) \
+                .execute()
+            
+            if response.data:
+                new_count = (response.data[0].get("fail_count", 0) or 0) + 1
+                self.supabase.table("ticker_cache") \
+                    .update({"fail_count": new_count}) \
+                    .eq("user_ticker", user_ticker.upper()) \
+                    .execute()
+        except Exception as e:
+            logger.warning(f"Failed to increment ticker fail for {user_ticker}: {e}")
+
 if __name__ == "__main__":
     # Test connection
     try:
