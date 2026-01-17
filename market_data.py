@@ -249,16 +249,25 @@ class MarketData:
             'BA', 'JPM', 'GS', 'V', 'MA', 'DIS', 'WMT', 'JNJ', 'PG',
             'KO', 'PEP', 'MCD', 'NKE', 'SBUX', 'HD', 'LOW', 'TGT',
             'CVX', 'XOM', 'COP', 'PYPL', 'SQ', 'SHOP', 'PLTR', 'SNOW',
-            'MU', 'AVGO', 'QCOM', 'COST', 'ADBE', 'CRM', 'ORCL', 'CSCO'
+            'MU', 'AVGO', 'QCOM', 'COST', 'ADBE', 'CRM', 'ORCL', 'CSCO',
+            # Healthcare & Pharma
+            'JAZZ', 'PFE', 'MRK', 'LLY', 'ABBV', 'BMY', 'GILD', 'BIIB', 'MRNA', 'VRTX',
+            # Additional Tech
+            'PANW', 'ZS', 'CRWD', 'NET', 'DDOG', 'ZM', 'OKTA', 'TWLO',
+            # Finance & Other
+            'BLK', 'MS', 'C', 'WFC', 'BAC', 'AXP', 'SCHW',
         }
+        
+        # Also skip EU suffixes if ticker is from an alias (user explicitly mapped it)
+        ticker_is_aliased = ticker_u in self.TICKER_ALIASES
         
         # If start_ticker already has a suffix, try it directly first
         initial_candidates = [start_ticker]
         
         if '.' not in start_ticker:
-            # For US stocks, skip EU suffixes entirely
-            if start_ticker in US_STOCKS:
-                initial_candidates = [start_ticker]  # Only try US ticker
+            # For US stocks OR aliased tickers, skip EU suffixes entirely
+            if start_ticker in US_STOCKS or ticker_is_aliased:
+                initial_candidates = [start_ticker]  # Only try the mapped/US ticker
             else:
                 initial_candidates = [start_ticker + s for s in suffixes_eur] + [start_ticker]
         
