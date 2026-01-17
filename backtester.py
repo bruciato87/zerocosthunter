@@ -9,6 +9,7 @@ from ta.trend import MACD
 from ta.volatility import BollingerBands
 from db_handler import DBHandler
 from market_data import MarketData
+from ticker_resolver import resolve_ticker
 
 # Configure Logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -25,8 +26,8 @@ class Backtester:
         end_date = datetime.now()
         start_date = end_date - timedelta(days=period_days + 50)  # Buffer for indicator calc
         
-        # Use centralized TICKER_ALIASES from MarketData for consistency
-        yf_ticker = self.market.TICKER_ALIASES.get(ticker.upper(), ticker)
+        # Use centralized ticker_resolver for self-learning cache
+        yf_ticker = resolve_ticker(ticker)
         logger.info(f"📊 Fetching data for {ticker} (resolved to: {yf_ticker})")
         
         try:

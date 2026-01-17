@@ -527,11 +527,60 @@ class Rebalancer:
             # DeepSeek R1 enabled for GitHub Actions (Long-running async task)
             response_text = brain._generate_with_fallback(prompt, json_mode=False, model="deepseek-reasoner")
             
+            # [V12] Save AI suggestions for learning
+            self._save_suggestions_to_db(response_text, analysis, regime_data)
+            
             return response_text.strip()
             
         except Exception as e:
             logger.warning(f"AI suggestion failed: {e}")
             return None
+    
+    def _save_suggestions_to_db(self, response_text: str, analysis: dict, regime_data: dict):
+        """
+        Parse AI response and save individual suggestions to rebalancer_history for learning.
+        """
+        try:
+            import re
+            
+            # Patterns to match AI suggestions
+            patterns = [
+                r'🟢\s*(BUY|ACCUMULATE)\s*€?(\d+)\s+(\w+[-\w]*)',
+                r'🔴\s*(TRIM|SELL)\s*(\d+)%?\s*(\w+[-\w]*)',
+                r'🟡\s*(HOLD)\s+(\w+[-\w]*)',
+            ]
+            
+            for pattern in patterns:
+                matches = re.findall(pattern, response_text, re.IGNORECASE)
+                for match in matches:
+                    if len(match) >= 3:
+                        action = match[0].upper()
+                        amount = float(match[1]) if match[1].isdigit() else None
+                        ticker = match[2].upper() if len(match) > 2 else match[1].upper()
+                    elif len(match) == 2:
+                        action = match[0].upper()
+                        ticker = match[1].upper()
+                        amount = None
+                    else:
+                        continue
+                    
+                    # Find asset in portfolio for context
+                    asset_info = next((a for a in analysis.get('assets', []) 
+                                      if a.get('ticker', '').upper() == ticker), {})
+                    
+                    self.db.save_rebalancer_suggestion(
+                        ticker=ticker,
+                        action=action,
+                        amount=amount,
+                        regime=regime_data.get('regime', 'UNKNOWN'),
+                        sector_rotation=regime_data.get('sector_rotation', 'UNKNOWN'),
+                        ticker_rsi=asset_info.get('rsi'),
+                        ticker_pnl_pct=asset_info.get('pnl_pct'),
+                        portfolio_value=analysis.get('total_value'),
+                        price_at_suggestion=asset_info.get('current_price')
+                    )
+        except Exception as e:
+            logger.warning(f"Failed to save suggestions for learning: {e}")
     
     def format_rebalance_report(self) -> str:
         """

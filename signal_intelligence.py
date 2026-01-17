@@ -13,6 +13,7 @@ import logging
 import yfinance as yf
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
+from ticker_resolver import resolve_ticker
 
 logger = logging.getLogger("SignalIntelligence")
 
@@ -123,13 +124,8 @@ class SignalIntelligence:
             }
         """
         try:
-            yf_ticker = self.market.TICKER_ALIASES.get(ticker, ticker)
-            
-            # Handle crypto tickers
-            crypto_list = ['BTC', 'ETH', 'SOL', 'XRP', 'ADA', 'AVAX', 'DOT', 'LINK', 'RENDER', 'DOGE']
-            base = ticker.replace('-USD', '').replace('-EUR', '')
-            if base in crypto_list and not yf_ticker.endswith('-USD'):
-                yf_ticker = f"{base}-USD"
+            # Use centralized ticker resolver for self-learning cache
+            yf_ticker = resolve_ticker(ticker)
             
             data = yf.download(yf_ticker, period="60d", progress=False, auto_adjust=True)
             
@@ -241,13 +237,8 @@ class SignalIntelligence:
             }
         """
         try:
-            yf_ticker = self.market.TICKER_ALIASES.get(ticker, ticker)
-            
-            # Handle crypto
-            crypto_list = ['BTC', 'ETH', 'SOL', 'XRP', 'ADA', 'AVAX', 'DOT', 'LINK', 'RENDER', 'DOGE']
-            base = ticker.replace('-USD', '').replace('-EUR', '')
-            if base in crypto_list and not yf_ticker.endswith('-USD'):
-                yf_ticker = f"{base}-USD"
+            # Use centralized ticker resolver
+            yf_ticker = resolve_ticker(ticker)
             
             data = yf.download(yf_ticker, period=f"{lookback_days + 14}d", progress=False, auto_adjust=True)
             
@@ -350,10 +341,8 @@ class SignalIntelligence:
             }
         """
         try:
-            # Fetch 30-day history
-            yf_ticker = self.market.TICKER_ALIASES.get(ticker, ticker)
-            if not yf_ticker.endswith('-USD') and ticker in ['BTC', 'ETH', 'SOL', 'XRP']:
-                yf_ticker = f"{ticker}-USD"
+            # Use centralized ticker resolver
+            yf_ticker = resolve_ticker(ticker)
             
             data = yf.download(yf_ticker, period="30d", progress=False, auto_adjust=True)
             
@@ -614,7 +603,7 @@ class SignalIntelligence:
             if cache_key in self._earnings_cache:
                 return self._earnings_cache[cache_key]
             
-            yf_ticker = self.market.TICKER_ALIASES.get(ticker, ticker)
+            yf_ticker = resolve_ticker(ticker)
             t = yf.Ticker(yf_ticker)
             
             # Get earnings dates

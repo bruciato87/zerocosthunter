@@ -741,6 +741,93 @@ class DBHandler:
         except Exception as e:
             logger.warning(f"Failed to increment ticker fail for {user_ticker}: {e}")
 
+    # --- REBALANCER HISTORY (V12 - Self-Learning) ---
+    
+    def save_rebalancer_suggestion(self, ticker: str, action: str, amount: float = None, 
+                                    confidence: float = None, reasoning: str = None,
+                                    regime: str = None, sector_rotation: str = None,
+                                    ticker_rsi: float = None, ticker_pnl_pct: float = None,
+                                    portfolio_value: float = None, price_at_suggestion: float = None):
+        """
+        Save an AI-generated rebalancing suggestion for tracking and learning.
+        """
+        try:
+            self.supabase.table("rebalancer_history").insert({
+                "ticker": ticker.upper(),
+                "action": action.upper(),
+                "suggested_amount_eur": amount,
+                "confidence": confidence,
+                "reasoning": reasoning,
+                "regime": regime,
+                "sector_rotation": sector_rotation,
+                "ticker_rsi": ticker_rsi,
+                "ticker_pnl_pct": ticker_pnl_pct,
+                "portfolio_value_eur": portfolio_value,
+                "price_at_suggestion": price_at_suggestion,
+            }).execute()
+            logger.info(f"Rebalancer suggestion saved: {action} {ticker}")
+        except Exception as e:
+            logger.warning(f"Failed to save rebalancer suggestion: {e}")
+    
+    def get_rebalancer_performance(self, days: int = 30) -> dict:
+        """
+        Get rebalancer performance stats for the last N days.
+        Used to inject learning context into AI prompt.
+        """
+        try:
+            cutoff = (datetime.now() - timedelta(days=days)).isoformat()
+            response = self.supabase.table("rebalancer_history") \
+                .select("ticker, action, was_executed, was_good_advice, outcome_pnl_pct") \
+                .gte("created_at", cutoff) \
+                .execute()
+            
+            if not response.data:
+                return {"suggestions": 0, "executed": 0, "success_rate": 0}
+            
+            total = len(response.data)
+            executed = sum(1 for r in response.data if r.get("was_executed"))
+            good = sum(1 for r in response.data if r.get("was_good_advice"))
+            
+            # Calculate average PnL for executed trades
+            pnl_values = [r.get("outcome_pnl_pct", 0) for r in response.data 
+                          if r.get("outcome_pnl_pct") is not None]
+            avg_pnl = sum(pnl_values) / len(pnl_values) if pnl_values else 0
+            
+            return {
+                "suggestions": total,
+                "executed": executed,
+                "good_advice": good,
+                "success_rate": (good / executed * 100) if executed > 0 else 0,
+                "avg_pnl_pct": avg_pnl
+            }
+        except Exception as e:
+            logger.warning(f"Failed to get rebalancer performance: {e}")
+            return {"suggestions": 0, "executed": 0, "success_rate": 0}
+    
+    def mark_suggestion_executed(self, ticker: str, action: str):
+        """
+        Mark a recent suggestion as executed when user follows it.
+        """
+        try:
+            # Find the most recent unexecuted suggestion for this ticker/action
+            response = self.supabase.table("rebalancer_history") \
+                .select("id") \
+                .eq("ticker", ticker.upper()) \
+                .eq("action", action.upper()) \
+                .is_("was_executed", "null") \
+                .order("created_at", desc=True) \
+                .limit(1) \
+                .execute()
+            
+            if response.data:
+                self.supabase.table("rebalancer_history") \
+                    .update({"was_executed": True, "executed_at": datetime.now().isoformat()}) \
+                    .eq("id", response.data[0]["id"]) \
+                    .execute()
+                logger.info(f"Marked suggestion as executed: {action} {ticker}")
+        except Exception as e:
+            logger.warning(f"Failed to mark suggestion as executed: {e}")
+
 if __name__ == "__main__":
     # Test connection
     try:

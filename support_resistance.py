@@ -8,6 +8,7 @@ import logging
 import yfinance as yf
 from typing import Dict, List
 from datetime import datetime
+from ticker_resolver import resolve_ticker
 
 logger = logging.getLogger("SupportResistance")
 
@@ -111,12 +112,8 @@ class SupportResistanceAI:
             }
         """
         try:
-            # Handle crypto tickers
-            yf_ticker = ticker
-            crypto_list = ['BTC', 'ETH', 'SOL', 'XRP', 'ADA', 'AVAX', 'DOT', 'LINK', 'RENDER', 'DOGE']
-            base = ticker.replace('-USD', '').replace('-EUR', '')
-            if base in crypto_list and not yf_ticker.endswith('-USD'):
-                yf_ticker = f"{base}-USD"
+            # Use centralized ticker resolver
+            yf_ticker = resolve_ticker(ticker)
             
             data = yf.download(yf_ticker, period=period, progress=False, auto_adjust=True)
             

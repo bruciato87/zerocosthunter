@@ -6,6 +6,7 @@ Propagates signals from one asset to correlated assets with discounted confidenc
 
 import logging
 from typing import Dict, List, Tuple
+from ticker_resolver import resolve_ticker
 
 logger = logging.getLogger("CorrelationEngine")
 
@@ -107,16 +108,9 @@ class CorrelationEngine:
         from datetime import datetime, timedelta
         
         try:
-            # Normalize tickers
-            def normalize(t):
-                crypto_list = ['BTC', 'ETH', 'SOL', 'XRP', 'ADA', 'AVAX', 'DOT', 'LINK', 'RENDER', 'DOGE']
-                base = t.replace('-USD', '').replace('-EUR', '')
-                if base in crypto_list:
-                    return f"{base}-USD"
-                return t
-            
-            t1 = normalize(ticker1)
-            t2 = normalize(ticker2)
+            # Use centralized ticker resolver
+            t1 = resolve_ticker(ticker1)
+            t2 = resolve_ticker(ticker2)
             
             # Download price data
             data1 = yf.download(t1, period=period, progress=False, auto_adjust=True)
