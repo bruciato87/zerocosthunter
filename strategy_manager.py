@@ -392,72 +392,185 @@ class StrategyManager:
             f"[Position Size {ticker}]: €{result['position_eur']:.0f} "
             f"({result['final_allocation_pct']:.1f}% of portfolio) - {result['reason']}"
         )
-
-
 # =============================================================================
-# Standalone Test
+# Level 9: Active AI Portfolio Management - Dynamic Regime Targets
 # =============================================================================
-    
-    def get_market_regime(self, economist) -> Dict:
-        """
-        Analyze Macro data to determine Market Regime (Risk ON/OFF).
-        Arg: economist instance
-        """
-        # Get risk level from Economist (LOW/MEDIUM/HIGH)
-        risk_level = economist.check_risk_level()
-        
-        # Determine Regime
-        regime = "NEUTRAL"
-        adjustments = {}
-        
-        if risk_level == "HIGH":
-            regime = "RISK_OFF"
-            description = "🐻 BEARISH / DEFENSIVE"
-            adjustments = {
-                "Crypto": -0.5,  # Reduce Crypto target by 50%
-                "Technology": -0.3, # Reduce Tech by 30%
-                "ETF": 0.2,      # Increase Safe Haven by 20%
-                "Cash": 0.5      # Increase Cash
-            }
-        elif risk_level == "LOW":
-            regime = "RISK_ON"
-            description = "🐂 BULLISH / AGGRESSIVE"
-            adjustments = {
-                "Crypto": 0.2,   # Increase Crypto target by 20%
-                "Technology": 0.1, # Increase Tech by 10%
-                "ETF": -0.1      # Reduce Safe Haven slightly
-            }
-        else:
-            description = "⚖️ NEUTRAL / CAUTIOUS"
-            adjustments = {}
-            
-        return {
-            "type": regime,
-            "description": description,
-            "adjustments": adjustments,
-            "risk_level": risk_level
+
+    # Target allocations per market regime (%)
+    REGIME_TARGETS = {
+        "BULL": {
+            "Crypto": 35.0,
+            "Technology": 30.0,
+            "ETF": 20.0,
+            "Cash": 10.0,
+            "Other": 5.0
+        },
+        "BEAR": {
+            "Crypto": 15.0,
+            "Technology": 20.0,
+            "ETF": 30.0,
+            "Cash": 30.0,
+            "Other": 5.0
+        },
+        "SIDEWAYS": {
+            "Crypto": 25.0,
+            "Technology": 25.0,
+            "ETF": 25.0,
+            "Cash": 20.0,
+            "Other": 5.0
+        },
+        "ACCUMULATION": {
+            "Crypto": 40.0,
+            "Technology": 25.0,
+            "ETF": 20.0,
+            "Cash": 10.0,
+            "Other": 5.0
+        },
+        "DISTRIBUTION": {
+            "Crypto": 10.0,
+            "Technology": 15.0,
+            "ETF": 35.0,
+            "Cash": 35.0,
+            "Other": 5.0
         }
+    }
+    
+    # Safety Caps (min%, max%)
+    SAFETY_CAPS = {
+        "Crypto": (5.0, 50.0),
+        "Technology": (10.0, 40.0),
+        "ETF": (10.0, 50.0),
+        "Cash": (5.0, 50.0),
+        "Other": (0.0, 20.0)
+    }
+    
+    def get_market_regime(self, economist=None) -> Dict:
+        """
+        Level 9: Analyze market to determine regime using sophisticated classifier.
+        Falls back to economist-based detection if classifier fails.
+        
+        Returns:
+            {
+                "regime": "BULL" | "BEAR" | "SIDEWAYS" | "ACCUMULATION" | "DISTRIBUTION",
+                "confidence": 0.0-1.0,
+                "description": "🐂 BULLISH / AGGRESSIVE",
+                "targets": {"Crypto": 35.0, "Technology": 30.0, ...},
+                "signals": ["SPY > SMA200", "VIX low", ...],
+                "recommendation": "aggressive" | "normal" | "defensive"
+            }
+        """
+        try:
+            from market_regime import MarketRegimeClassifier
+            classifier = MarketRegimeClassifier()
+            regime_data = classifier.classify()
+            
+            # Get regime name
+            regime = regime_data.get("regime", "SIDEWAYS")
+            confidence = regime_data.get("confidence", 0.5)
+            recommendation = regime_data.get("recommendation", "normal")
+            signals = regime_data.get("signals", [])
+            
+            # Map regime to description emoji
+            descriptions = {
+                "BULL": "🐂 BULLISH / AGGRESSIVE",
+                "BEAR": "🐻 BEARISH / DEFENSIVE",
+                "SIDEWAYS": "⚖️ SIDEWAYS / NEUTRAL",
+                "ACCUMULATION": "💎 ACCUMULATION / BUY DIPS",
+                "DISTRIBUTION": "⚠️ DISTRIBUTION / TAKE PROFITS"
+            }
+            description = descriptions.get(regime, "⚖️ NEUTRAL")
+            
+            # Get dynamic targets for this regime
+            targets = self.get_regime_targets(regime)
+            
+            logger.info(f"L9 Regime: {regime} ({confidence:.0%}) -> Targets: Crypto={targets.get('Crypto')}%, Tech={targets.get('Technology')}%")
+            
+            return {
+                "regime": regime,
+                "confidence": confidence,
+                "description": description,
+                "targets": targets,
+                "signals": signals,
+                "recommendation": recommendation,
+                "risk_level": "HIGH" if regime in ["BEAR", "DISTRIBUTION"] else ("LOW" if regime in ["BULL", "ACCUMULATION"] else "MEDIUM")
+            }
+            
+        except Exception as e:
+            logger.warning(f"MarketRegimeClassifier failed, using fallback: {e}")
+            
+            # Fallback to economist-based detection
+            if economist:
+                risk_level = economist.check_risk_level()
+                if risk_level == "HIGH":
+                    regime = "BEAR"
+                elif risk_level == "LOW":
+                    regime = "BULL"
+                else:
+                    regime = "SIDEWAYS"
+            else:
+                regime = "SIDEWAYS"
+            
+            return {
+                "regime": regime,
+                "confidence": 0.5,
+                "description": f"⚖️ {regime} (Fallback)",
+                "targets": self.get_regime_targets(regime),
+                "signals": ["Fallback mode"],
+                "recommendation": "normal",
+                "risk_level": "MEDIUM"
+            }
+    
+    def get_regime_targets(self, regime: str) -> Dict[str, float]:
+        """
+        Get target allocations for a specific regime with safety caps applied.
+        """
+        # Get base targets for regime (default to SIDEWAYS)
+        targets = self.REGIME_TARGETS.get(regime, self.REGIME_TARGETS["SIDEWAYS"]).copy()
+        
+        # Apply safety caps
+        for sector, (min_cap, max_cap) in self.SAFETY_CAPS.items():
+            if sector in targets:
+                targets[sector] = max(min_cap, min(max_cap, targets[sector]))
+        
+        return targets
 
     def get_dynamic_target(self, ticker: str, base_target: float, regime: Dict) -> float:
         """
         Calculate dynamic target allocation based on Market Regime.
+        Uses the new regime targets system.
         """
-        # Map ticker to sector (Simplified logic, could be in DB)
-        sector = "Other"
-        if ticker in ["BTC-USD", "ETH-USD", "SOL-USD"]:
-            sector = "Crypto"
-        elif ticker in ["NVDA", "AAPL", "MSFT", "GOOGL", "META"]:
-            sector = "Technology"
-        elif "EUNL" in ticker or "ETF" in ticker:
-            sector = "ETF"
-            
-        # Apply adjustment factor
-        adjustment = regime.get("adjustments", {}).get(sector, 0.0)
+        # Map ticker to sector
+        sector = self._get_ticker_sector(ticker)
         
-        # Calculate new target
+        # Get target from regime (if available) or use adjusted base
+        regime_targets = regime.get("targets", {})
+        if sector in regime_targets:
+            return regime_targets[sector]
+        
+        # Fallback: apply old adjustment logic
+        adjustment = regime.get("adjustments", {}).get(sector, 0.0)
         dynamic_target = base_target * (1 + adjustment)
         
         return round(dynamic_target, 1)
+    
+    def _get_ticker_sector(self, ticker: str) -> str:
+        """Map a ticker to its sector category."""
+        ticker_upper = ticker.upper()
+        
+        # Crypto
+        if any(c in ticker_upper for c in ["BTC", "ETH", "SOL", "XRP", "ADA", "DOGE", "DOT", "AVAX", "MATIC", "LINK"]):
+            return "Crypto"
+        
+        # Technology
+        tech_tickers = ["NVDA", "AAPL", "MSFT", "GOOGL", "GOOG", "META", "AMZN", "TSLA", "AMD", "INTC", "ASML"]
+        if any(t in ticker_upper for t in tech_tickers):
+            return "Technology"
+        
+        # ETF/Safe Haven
+        if any(e in ticker_upper for e in ["EUNL", "IWDA", "VWCE", "GLD", "SLV", "TLT", "ETF"]):
+            return "ETF"
+        
+        return "Other"
 
 if __name__ == "__main__":
     # Test stub

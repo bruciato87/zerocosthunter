@@ -198,6 +198,37 @@ class Rebalancer:
         
         return suggestions
     
+    def _format_regime_targets(self, regime_data: Dict) -> str:
+        """
+        Format dynamic sector targets for AI prompt, comparing to current allocation.
+        """
+        targets = regime_data.get("targets", {})
+        regime = regime_data.get("regime", "SIDEWAYS")
+        
+        # Get current sector allocations from portfolio
+        analysis = self.get_portfolio_analysis()
+        current_sectors = analysis.get("sector_allocation", {})
+        
+        lines = []
+        for sector, target in targets.items():
+            current = current_sectors.get(sector, 0.0)
+            diff = current - target
+            
+            if abs(diff) < 2:  # Within tolerance
+                status = "✅"
+                action = "OK"
+            elif diff > 0:  # Overweight
+                status = "🔴"
+                action = f"TRIM {abs(diff):.0f}%"
+            else:  # Underweight
+                status = "🟢"
+                action = f"BUY +{abs(diff):.0f}%"
+            
+            lines.append(f"  {status} {sector}: {current:.0f}% → Target: {target:.0f}% ({action})")
+        
+        header = f"[{regime}] Dynamic Sector Targets:"
+        return header + "\n" + "\n".join(lines)
+    
     def _get_ai_suggestion(self, analysis: Dict) -> Optional[str]:
         """
         Get AI-generated ACTIONABLE rebalancing strategy.
@@ -438,10 +469,18 @@ class Rebalancer:
             
             {l3_context}
             
-            **🔬 MACRO REGIME ANALYSIS (DeepSeek R1):**
-            Based on VIX and Fed data from Economist:
+            **🔬 MACRO REGIME ANALYSIS (Level 9 - Active AI Manager):**
             - Regime: {regime_desc}
             - Risk Level: {risk_level}
+            - Confidence: {regime_data.get('confidence', 0.5):.0%}
+            - Signals: {', '.join(regime_data.get('signals', ['N/A'])[:3])}
+            
+            **📊 DYNAMIC SECTOR TARGETS (BASED ON CURRENT REGIME):**
+            {self._format_regime_targets(regime_data)}
+            
+            **⚠️ YOUR JOB: Move the portfolio TOWARDS these targets!**
+            - If a sector is ABOVE target → suggest TRIM
+            - If a sector is BELOW target → suggest BUY/ACCUMULATE
             
             **🛡️ DYNAMIC STRATEGY RULES (MANDATORY):**
             {strategy_context}
