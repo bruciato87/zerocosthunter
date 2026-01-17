@@ -46,26 +46,49 @@ class PatternRecognizer:
     Uses pivot point detection and geometric analysis.
     """
     
-    # Ticker aliases (same as market_data.py)
+    # Ticker aliases (fallback if DB cache miss)
     TICKER_ALIASES = {
         "RENDER": "RENDER-USD",
         "BTC": "BTC-USD",
         "ETH": "ETH-USD",
         "SOL": "SOL-USD",
         "XRP": "XRP-USD",
+        "TCT": "0700.HK",
+        "3XC": "1810.HK",
+        "NUKL": "U3O8.DE",
+        "JAZZ": "JAZZ",
     }
     
     def __init__(self):
         logger.info("PatternRecognizer initialized")
     
+    def _get_resolved_ticker(self, ticker: str) -> str:
+        """
+        Resolve ticker using DB cache first, then local aliases.
+        """
+        ticker_u = ticker.upper()
+        
+        # 1. Check DB cache first
+        try:
+            from db_handler import DBHandler
+            db = DBHandler()
+            cached = db.get_ticker_cache(ticker_u)
+            if cached:
+                return cached.get("resolved_ticker", ticker_u)
+        except:
+            pass
+        
+        # 2. Fallback to local aliases
+        return self.TICKER_ALIASES.get(ticker_u, ticker_u)
+    
     def _get_price_data(self, ticker: str, period: str = "6mo") -> Optional[pd.DataFrame]:
         """Fetch OHLC data for pattern analysis."""
         try:
-            search_ticker = self.TICKER_ALIASES.get(ticker.upper(), ticker.upper())
+            search_ticker = self._get_resolved_ticker(ticker)
             stock = yf.Ticker(search_ticker)
             df = stock.history(period=period)
             if df.empty:
-                logger.warning(f"No data for {search_ticker}")
+                logger.warning(f"No data for {ticker} (resolved: {search_ticker})")
                 return None
             return df
         except Exception as e:

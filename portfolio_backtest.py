@@ -81,17 +81,31 @@ class PortfolioBacktest:
                 value = float(qty) * float(price) if qty and price else 0
                 weights[ticker] = value / total_value if total_value > 0 else 0
             
-            # Normalize tickers for yfinance
+            # Normalize tickers for yfinance using DB cache
             yf_tickers = []
             ticker_map = {}  # yf_ticker -> original_ticker
             
-            crypto_list = ['BTC', 'ETH', 'SOL', 'XRP', 'RENDER', 'DOGE']
-            for t in tickers:
+            # Try to use DB cache for resolution
+            def resolve_ticker(t):
+                """Resolve ticker using DB cache first, then fallback logic."""
+                try:
+                    from db_handler import DBHandler
+                    db = DBHandler()
+                    cached = db.get_ticker_cache(t.upper())
+                    if cached:
+                        return cached.get("resolved_ticker", t)
+                except:
+                    pass
+                
+                # Fallback logic for crypto
+                crypto_list = ['BTC', 'ETH', 'SOL', 'XRP', 'RENDER', 'DOGE', 'ADA', 'DOT', 'LINK', 'AVAX', 'MATIC']
                 base = t.replace('-USD', '').replace('-EUR', '')
-                if base in crypto_list and not t.endswith('-USD'):
-                    yf_t = f"{base}-USD"
-                else:
-                    yf_t = t
+                if base.upper() in crypto_list and not t.endswith('-USD') and not t.endswith('-EUR'):
+                    return f"{base}-USD"
+                return t
+            
+            for t in tickers:
+                yf_t = resolve_ticker(t)
                 yf_tickers.append(yf_t)
                 ticker_map[yf_t] = t
             
