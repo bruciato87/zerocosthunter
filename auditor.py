@@ -65,25 +65,16 @@ class Auditor:
                 live_price, _ = self.market.get_crypto_data_coingecko(ticker)
                 
                 if not live_price:
-                    # Fallback to Yahoo
+                    # Fallback to Yahoo with ticker_resolver
                     try:
                         import yfinance as yf
+                        from ticker_resolver import resolve_ticker
                         
-                        attempts = []
-                        if ticker.upper() in self.KNOWN_CRYPTO:
-                            attempts = [f"{ticker}-USD", ticker]
-                        else:
-                            attempts = [ticker, f"{ticker}-USD"]
-
-                        for sym in attempts:
-                            try:
-                                t = yf.Ticker(sym)
-                                hist = t.history(period="1d")
-                                if not hist.empty:
-                                    live_price = hist['Close'].iloc[-1]
-                                    break
-                            except: continue
-                            
+                        sym = resolve_ticker(ticker)
+                        t = yf.Ticker(sym)
+                        hist = t.history(period="1d")
+                        if not hist.empty:
+                            live_price = hist['Close'].iloc[-1]
                     except: pass
                 
                 if not live_price:
@@ -185,25 +176,17 @@ class Auditor:
                 price, _ = self.market.get_crypto_data_coingecko(ticker)
                 
                 if not price:
-                    # Fallback Yahoo
+                    # Fallback Yahoo with ticker_resolver
                     import yfinance as yf
+                    from ticker_resolver import resolve_ticker
                     
-                    # Determine attempt order based on asset type heuristic
-                    attempts = []
-                    if ticker.upper() in self.KNOWN_CRYPTO:
-                        attempts = [f"{ticker}-USD", ticker]
-                    else:
-                        # For unknown assets, assume Stock first (TICKER), then Crypto (TICKER-USD)
-                        attempts = [ticker, f"{ticker}-USD"]
-                    
-                    for sym in attempts:
-                        try:
-                            t = yf.Ticker(sym)
-                            hist = t.history(period="1d")
-                            if not hist.empty:
-                                price = hist['Close'].iloc[-1]
-                                break
-                        except: pass
+                    try:
+                        sym = resolve_ticker(ticker)
+                        t = yf.Ticker(sym)
+                        hist = t.history(period="1d")
+                        if not hist.empty:
+                            price = hist['Close'].iloc[-1]
+                    except: pass
                 
                 entry_price = price
             

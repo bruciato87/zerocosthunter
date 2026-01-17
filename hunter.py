@@ -207,8 +207,9 @@ class NewsHunter:
             
             original_ticker = ticker
             
-            if ticker.upper() in known_crypto:
-                ticker = f"{ticker}-USD"
+            # Use ticker_resolver for initial resolution
+            from ticker_resolver import resolve_ticker
+            ticker = resolve_ticker(ticker)
             
             t = yf.Ticker(ticker)
             yf_news = t.news

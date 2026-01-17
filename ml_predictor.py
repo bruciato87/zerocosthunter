@@ -260,18 +260,18 @@ class MLPredictor:
         try:
             import yfinance as yf
             import ta
+            from ticker_resolver import resolve_ticker
             
-            search_ticker = ticker
-            if not any(c in ticker for c in ['-', '.']):
-                search_ticker = f"{ticker}-USD"
+            # Use centralized ticker resolver for self-learning cache
+            search_ticker = resolve_ticker(ticker)
             
             t = yf.Ticker(search_ticker)
             hist = t.history(period="3mo")
             
             if hist.empty or len(hist) < 30:
-                if '-USD' in search_ticker:
-                    search_ticker = ticker
-                    t = yf.Ticker(search_ticker)
+                # Fallback: try original ticker if resolved didn't work
+                if search_ticker != ticker:
+                    t = yf.Ticker(ticker)
                     hist = t.history(period="3mo")
                     
             if hist.empty or len(hist) < 30:

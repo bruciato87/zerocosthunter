@@ -73,10 +73,10 @@ class Advisor:
         if clean_ticker in self.sector_cache:
             return self.sector_cache[clean_ticker]
         
-        # 2. Fetch from Yahoo (Slow) - Use Alias from MarketData
+        # 2. Fetch from Yahoo (Slow) - Use ticker_resolver
         try:
-            # Resolve alias using MarketData
-            search_ticker = self.market.TICKER_ALIASES.get(ticker, ticker)
+            from ticker_resolver import resolve_ticker
+            search_ticker = resolve_ticker(ticker)
             
             t = yf.Ticker(search_ticker)
             info = t.info

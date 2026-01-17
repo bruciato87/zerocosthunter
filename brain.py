@@ -817,20 +817,15 @@ class Brain:
                         # Strategy:
                         # 1. We assume Ticker is USD based (e.g. RNDR-USD, NVDA).
                         # 2. We have Value in EUR.
-                        # 3. Increase Robustness: specific fix for Render
-                        fetch_ticker = ticker
-                        if "RNDR" in ticker:
-                             fetch_ticker = "RENDER-USD"
-                        elif "MSCIWORLD" in ticker or "CORE MSCI" in ticker.upper():
-                             # Fallback if Vision returned generic name
-                             fetch_ticker = "EUNL.DE" 
-                             ticker = "EUNL.DE" # Update saved ticker too
+                        # Use ticker_resolver for robust resolution
+                        from ticker_resolver import resolve_ticker
+                        fetch_ticker = resolve_ticker(ticker)
                         
                         t = yf.Ticker(fetch_ticker)
                         hist = t.history(period="1d")
                         
                         if hist.empty:
-                             # Try fallback
+                             # Try original ticker as fallback
                              t = yf.Ticker(ticker)
                              hist = t.history(period="1d")
                              
