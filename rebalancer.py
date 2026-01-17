@@ -506,6 +506,12 @@ class Rebalancer:
             - **PRIORITÀ 4:** (Solo dopo) Considera il bilanciamento settoriale
             - **PRIORITÀ 5:** Se Sharpe < 0 o Diversification Score < 60, suggerisci di ridurre asset altamente correlati
             
+            - **⏰ ORARI MERCATO (FONDAMENTALE):**
+              - Se mercato EU è CLOSED: NON suggerire BUY/SELL per ETF europei (.DE, .F, .MI) → suggerisci solo HOLD o menziona "domani"
+              - Se mercato US è CLOSED: NON suggerire BUY/SELL per stocks USA (NVDA, META, AAPL, etc.) → suggerisci solo HOLD o menziona "alla riapertura"
+              - Crypto (BTC, ETH, etc.) sono SEMPRE tradabili 24/7
+              - Se tutti i mercati sono chiusi, concentrati SOLO su Crypto o suggerisci di attendere
+            
             - **TICKER SUGGERIBILI:** Asset nel portfolio: {', '.join([a['ticker'] for a in analysis['assets']])}
             - **ECCEZIONE:** Se un segnale recente (BUY ≥80% conf) è per un ticker NON nel portfolio, suggeriscilo comunque indicando "(NUOVO)"
             - Per capitale fresco, indica asset specifici se ci sono segnali forti, altrimenti settori
