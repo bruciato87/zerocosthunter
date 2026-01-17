@@ -313,18 +313,24 @@ class MarketData:
                 t_obj = yf.Ticker(t_test)
                 hist = t_obj.history(period="1d")
                 if not hist.empty:
-                    # If it's a raw ticker (no dot) and not crypto, assumed USD?
-                    # Usually stocks without suffix on Yahoo are US Stocks (USD).
-                    # If ticker had suffix (e.g. .DE), price is EUR.
+                    # Determine currency based on ticker suffix
                     price = hist['Close'].iloc[-1]
                     if include_change: change_pct = extract_change(t_obj)
                     
-                    if '.' in t_test: 
-                         result = (price, t_test) # EUR
-                         currency = "EUR"
+                    # Currency detection based on suffix
+                    if t_test.endswith('.HK'):
+                        # Hong Kong stocks - convert HKD to EUR
+                        hkd_eur = eur_usd_rate * 7.8  # HKD/EUR approximate
+                        result = (price / hkd_eur, t_test)
+                        currency = "HKD"
+                    elif '.' in t_test:
+                        # European markets (.DE, .F, .MI, .PA, .MC, .AS) - already in EUR
+                        result = (price, t_test)
+                        currency = "EUR"
                     else:
-                         result = (price / eur_usd_rate, t_test) # Convert USD (heuristic)
-                         currency = "USD"
+                        # US stocks (no suffix) - convert USD to EUR
+                        result = (price / eur_usd_rate, t_test)
+                        currency = "USD"
                     
                     # [PERFORMANCE] Store in memory cache
                     self._price_cache[cache_key] = {
