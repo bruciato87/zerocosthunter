@@ -13,11 +13,10 @@ logger = logging.getLogger(__name__)
 # OpenRouter Model Tier List (best quality first)
 # These are FREE models on OpenRouter, ordered by capability
 OPENROUTER_MODEL_TIERS = [
-    "deepseek/deepseek-r1:free",           # SOTA Reasoner
-    "google/gemini-2.0-flash-thinking-exp:free", # Strong Reasoner
+    "google/gemini-2.0-flash-thinking-exp:free", # Strong Reasoner (Reliable)
+    "deepseek/deepseek-chat:free",           # Reliable V3
     "google/gemini-2.0-flash-exp:free",      # Fast, 1M context
     "meta-llama/llama-3.3-70b-instruct:free", # Reliable, Good Context
-    "deepseek/deepseek-chat:free",           # Reliable V3
 ]
 
 class Brain:
@@ -71,23 +70,15 @@ class Brain:
             }
             
             # Fetch pricing for all models
-            response = requests.get(f"{self.openrouter_base_url}/api/v1/models", timeout=30)
+            # Fetch pricing for all models
+            url = "https://openrouter.ai/api/v1/models"
+            response = requests.get(url, headers=headers, timeout=30)
             response.raise_for_status()
             models_data = response.json()
             
-            data_list = models_data.get("data", [])
-            available_models = set()
-            
-            for m in data_list:
-                # Handle both list iteration and potential dict structure if API changes
-                # The original code had a bug here, assuming data_list could be a dict.
-                # It's always a list based on OpenRouter API.
-                
-                model_id = m.get("id")
-                pricing = m.get("pricing", {})
-                context = m.get("context_length", 0)
             # Handle list response from OpenRouter
             data_list = models_data.get("data", [])
+            available_models = set()
             
             for item in data_list:
                 model_id = item.get("id")
@@ -114,7 +105,9 @@ class Brain:
              for m in OPENROUTER_MODEL_TIERS:
                  if m not in excluded_models:
                      return m
-             return OPENROUTER_MODEL_TIERS[0]
+             
+             # If all failed/excluded, raise Exception to trigger Gemini fallback
+             raise Exception("OpenRouter: All static models excluded.")
 
         # --- Dynamic Quality Scoring System ---
         # Define preferences for baseline scoring (Top Tier Keywords)
