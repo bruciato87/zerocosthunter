@@ -97,7 +97,10 @@ class Brain:
 
                 if prompt == 0 and completion == 0:
                     if context_length >= 32000:
-                        available_models.add(model_id)
+                        # Blacklist models known to report fake context lengths
+                        blacklisted = ['chimera', 'tngtech']
+                        if not any(bl in model_id.lower() for bl in blacklisted):
+                            available_models.add(model_id)
 
         except Exception as e:
              logger.warning(f"OpenRouter model discovery failed: {e}")
@@ -159,6 +162,10 @@ class Brain:
             if 'mini' in lower_id: score -= 20
             if '8b' in lower_id: score -= 20
             if '7b' in lower_id: score -= 20
+            
+            # 5. Penalty for unreliable/fake context models
+            if 'chimera' in lower_id: score -= 500  # Known to report fake context
+            if 'tngtech' in lower_id: score -= 500
             
             # 5. Brand Reliability Bonus (Catch-all for new versions)
             if 'deepseek' in lower_id: score += 45
