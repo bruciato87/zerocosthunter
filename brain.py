@@ -49,14 +49,18 @@ class Brain:
         else:
             logger.warning("Brain initialized: OpenRouter=❌ (no API key), Gemini={'✅' if self.gemini_api_key else '❌'}")
 
-    def _get_best_free_model(self) -> str:
+    def _get_best_free_model(self, excluded_models: list = None) -> str:
         """
         Dynamically fetches available models from OpenRouter and selects the best FREE one.
         Uses fuzzy matching against a preference list to auto-discover new versions.
         """
-        # Return cached result if fresh (< 1 hour)
+        if excluded_models is None:
+            excluded_models = []
+
+        # Return cached result if fresh (< 1 hour) AND valid (not excluded)
         if self._cached_best_model and (time.time() - self._cache_timestamp < 3600):
-            return self._cached_best_model
+            if self._cached_best_model not in excluded_models:
+                return self._cached_best_model
 
         try:
             # OpenRouter requires these headers for full model visibility
@@ -128,6 +132,9 @@ class Brain:
         scored_candidates = []
         
         for model_id in available_models:
+            if model_id in excluded_models:
+                continue
+                
             score = 0
             lower_id = model_id.lower()
             
