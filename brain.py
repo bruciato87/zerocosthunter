@@ -140,6 +140,7 @@ class Brain:
         """
         Call OpenRouter API (OpenAI-compatible).
         Auto-selects best free model if model is not specified.
+        Handles 404 errors by invalidating cache and finding a new model.
         """
         if not self.openrouter_api_key:
             raise Exception("OPENROUTER_API_KEY not configured")
@@ -151,7 +152,7 @@ class Brain:
         headers = {
             "Authorization": f"Bearer {self.openrouter_api_key}",
             "Content-Type": "application/json",
-            "HTTP-Referer": "https://zerocosthunter.vercel.app",  # Required by OpenRouter
+            "HTTP-Referer": "https://zerocosthunter.vercel.app",
             "X-Title": "ZeroCostHunter"
         }
         
@@ -164,65 +165,87 @@ class Brain:
         
         if json_mode:
             payload["response_format"] = {"type": "json_object"}
-        
-        response = requests.post(
-            f"{self.openrouter_base_url}/chat/completions",
-            headers=headers,
-            json=payload,
-            timeout=120
-        )
-        
-        if response.status_code == 200:
-            data = response.json()
-            choice = data['choices'][0]['message']
-            content = choice.get('content', '')
             
-            # Handle reasoning models (like DeepSeek R1)
-            reasoning = choice.get('reasoning_content', '')
-            if reasoning and not content:
-                logger.info(f"Using reasoning_content as response (content was empty)")
-                content = reasoning
+        try:
+            response = requests.post(
+                f"{self.openrouter_base_url}/chat/completions",
+                headers=headers,
+                json=payload,
+                timeout=120
+            )
             
-            # JSON Repair if needed
-            if json_mode:
-                import re
-                json_match = re.search(r'```json\s*(\{.*?\})\s*```', content, re.DOTALL)
-                if json_match:
-                    content = json_match.group(1)
-                else:
-                    json_match_raw = re.search(r'(\{.*\})', content, re.DOTALL)
-                    if json_match_raw:
-                        content = json_match_raw.group(1)
+            # Handle Success
+            if response.status_code == 200:
+                data = response.json()
+                choice = data['choices'][0]['message']
+                content = choice.get('content', '')
                 
-                # Validate JSON
+                # Handle reasoning models (DeepSeek R1)
+                reasoning = choice.get('reasoning_content', '')
+                if reasoning and not content:
+                    logger.info("Using reasoning_content as response")
+                    content = reasoning
+                
+                # JSON Repair
+                if json_mode and content:
+                    import re
+                    # Try to extract JSON from markdown block
+                    json_match = re.search(r'```json\s*(\{.*?\})\s*```', content, re.DOTALL)
+                    if json_match:
+                        content = json_match.group(1)
+                    else:
+                        # Try to extract raw JSON object
+                        json_match_raw = re.search(r'(\{.*\})', content, re.DOTALL)
+                        if json_match_raw:
+                            content = json_match_raw.group(1)
+                    
+                    # Validate
+                    try:
+                        json.loads(content)
+                    except:
+                        raise ValueError(f"Invalid JSON from {model}")
+
+                # Tracking
                 try:
-                    json.loads(content)
-                except Exception as e:
-                    logger.error(f"OpenRouter returned invalid JSON: {e}")
-                    raise ValueError(f"Invalid JSON from {model}: {e}")
+                    from db_handler import DBHandler
+                    db = DBHandler()
+                    db.increment_api_counter("openrouter", run_id=self.current_run_id)
+                    db.log_model_used(model)
+                except:
+                    pass
+                
+                logger.info(f"OpenRouter call successful (model: {model})")
+                return content
             
-            # Track API usage
-            try:
-                from db_handler import DBHandler
-                db = DBHandler()
-                # Track both the provider (openrouter) and specific model used
-                db.increment_api_counter("openrouter", run_id=self.current_run_id)
-                db.log_model_used(model)  # Track which model was selected
-            except Exception:
-                pass
+            # Handle 404 (Model Vanished) -> Retry once
+            if response.status_code == 404:
+                logger.warning(f"OpenRouter 404 for {model}. Invalidating cache...")
+                self._cached_best_model = None
+                self._cache_timestamp = 0
+                
+                new_model = self._get_best_free_model()
+                if new_model != model:
+                    logger.info(f"Retrying with fresh model: {new_model}")
+                    payload["model"] = new_model
+                    # Recursive retry (one level deep effectively)
+                    response = requests.post(
+                        f"{self.openrouter_base_url}/chat/completions",
+                        headers=headers,
+                        json=payload,
+                        timeout=120
+                    )
+                    if response.status_code == 200:
+                        # Basic extraction for retry (simplified)
+                        return response.json()["choices"][0]["message"]["content"]
+
+            # Handle other errors
+            logger.error(f"OpenRouter API error ({response.status_code}): {response.text}")
+            raise Exception(f"OpenRouter API error ({response.status_code}): {response.text}")
             
-            logger.info(f"OpenRouter call successful (model: {model})")
-            return content
-        
-        elif response.status_code == 429:
-            # Rate limited - try next model in tier
-            logger.warning(f"OpenRouter rate limited for {model}, trying fallback...")
-            raise Exception(f"RATE_LIMITED:{model}")
-        
-        else:
-            error_msg = response.json().get("error", {}).get("message", "Unknown error")
-            logger.error(f"OpenRouter API error ({response.status_code}): {error_msg}")
-            raise Exception(f"OpenRouter error: {error_msg}")
+        except requests.exceptions.Timeout:
+            raise Exception("OpenRouter Timeout")
+        except Exception as e:
+            raise e
 
     def _call_gemini_fallback(self, prompt: str, json_mode: bool = False) -> str:
         """Direct Gemini API call as last-resort fallback."""
@@ -250,8 +273,14 @@ class Brain:
         except Exception:
             pass
         
+        text = response.text
+        
+        # Cleanup JSON if needed (consistency with OpenRouter)
+        if json_mode and text:
+            text = text.replace('```json', '').replace('```', '').strip()
+            
         logger.info("Gemini fallback call successful")
-        return response.text
+        return text
 
     def _generate_with_fallback(self, prompt: str, json_mode: bool = False, model: str = None, prefer_free: bool = True) -> str:
         """
