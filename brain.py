@@ -197,9 +197,14 @@ class Brain:
         max_retries = 3
 
         for attempt in range(max_retries):
-            # Select model (skip failed ones)
-            if model is None or (attempt > 0 and not model):
-                model = self._get_best_free_model(excluded_models=excluded_models)
+            # On first attempt, use passed model OR discover. On retries, ALWAYS rediscover.
+            if attempt == 0 and model:
+                selected_model = model
+            else:
+                selected_model = self._get_best_free_model(excluded_models=excluded_models)
+            
+            # Use selected_model for this attempt
+            current_model = selected_model
 
             headers = {
                 "Authorization": f"Bearer {self.openrouter_api_key}",
@@ -209,7 +214,7 @@ class Brain:
             }
 
             payload = {
-                "model": model,
+                "model": current_model,
                 "messages": messages,
                 "temperature": temperature,
                 "max_tokens": 8192,  # Increased for large analyses
@@ -236,7 +241,7 @@ class Brain:
                     
                     # 1. Track Usage
                     self.last_run_details = {
-                        "model": model,
+                        "model": current_model,
                         "usage": data.get("usage", {}),
                         "provider": "OpenRouter"
                     }
@@ -260,10 +265,10 @@ class Brain:
                                 content = match.group(1)
                             json.loads(content)
                         except:
-                             logger.warning(f"Invalid JSON from {model}, retrying...")
+                             logger.warning(f"Invalid JSON from {current_model}, retrying...")
                              # If JSON is invalid, treat as failure unless it's the last attempt
                              if attempt < max_retries - 1:
-                                 excluded_models.append(model)
+                                 excluded_models.append(current_model)
                                  continue
                     
                     # Log Success
@@ -271,15 +276,15 @@ class Brain:
                         from db_handler import DBHandler
                         db = DBHandler()
                         db.increment_api_counter("openrouter", run_id=self.current_run_id)
-                        db.log_model_used(model)
+                        db.log_model_used(current_model)
                     except: pass
                     
                     return content
                 
                 # Failover triggers (404 Not Found, 429 Rate Limit, 400 Bad Request/Context, 5xx Server)
                 elif response.status_code in [400, 404, 429, 500, 502, 503]:
-                    logger.warning(f"OpenRouter Error ({response.status_code}) with {model}: {response.text}")
-                    excluded_models.append(model)
+                    logger.warning(f"OpenRouter Error ({response.status_code}) with {current_model}: {response.text}")
+                    excluded_models.append(current_model)
                     self._cached_best_model = None # Invalidate cache
                     time.sleep(2) # Brief cooldown
                     # Loop continues
@@ -289,12 +294,18 @@ class Brain:
                     raise Exception(f"OpenRouter API Fatal ({response.status_code}): {response.text}")
 
             except Exception as e:
-                logger.warning(f"OpenRouter Attempt {attempt+1} failed with {model}: {e}")
-                excluded_models.append(model)
+                logger.warning(f"OpenRouter Attempt {attempt+1} failed with {current_model}: {e}")
+                excluded_models.append(current_model)
                 if attempt == max_retries - 1:
                     raise e
                 time.sleep(2) # Brief cooldown
         
+        # Track the last model attempted even on total failure
+        self.last_run_details = {
+            "model": excluded_models[-1] if excluded_models else "Unknown",
+            "usage": {"total_tokens": "FAILED (Rate Limited)"},
+            "provider": "OpenRouter (FAILED)"
+        }
         raise Exception("OpenRouter: All model attempts failed.")
 
     def _call_gemini_fallback(self, prompt: str, json_mode: bool = False) -> str:
@@ -407,6 +418,13 @@ class Brain:
                         time.sleep(wait_time)
                         backoff *= 1.5
                         continue
+                # Track failure before re-raising
+                self.last_run_details = {
+                    "model": "gemini-2.0-flash-exp (FAILED)",
+                    "usage": {"total_tokens": "FAILED (Rate Limited)"},
+                    "provider": "Google Direct (FAILED)"
+                }
+                logger.error(f"Gemini Fallback completely failed: {e}")
                 raise e
         return ""
     
