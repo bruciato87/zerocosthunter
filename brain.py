@@ -109,48 +109,70 @@ class Brain:
                              available_models.add(model_id)
                     except: pass
 
-            # Ranking Preferences (Dynamic)
-            # Prioritize Gemini 2.0 Flash (1M context) and Llama 3 70B
+            # --- Dynamic Quality Scoring System ---
+            # Define preferences for baseline scoring (Top Tier Keywords)
             preferences = [
-                'google/gemini-2.0-flash-exp:free', # King of context (1M)
-                'google/gemini-2.0-pro-exp:free',
-                'meta-llama/llama-3.3-70b-instruct:free',
-                'meta-llama/llama-3.1-70b-instruct:free',
-                'mistralai/mistral-large-2411:free', # Often has large context
-                'qwen/qwen-2.5-72b-instruct:free'
+                'gemini-2.0-flash', 
+                'gemini-2.0-pro',
+                'llama-3.3-70b', 
+                'llama-3.1-70b',
+                'mistral-large', 
+                'qwen-2.5-72b',
+                'phi-4'
             ]
-            
-            # 1. Exact match in preferences
-            for pref in preferences:
-                if pref in available_models:
-                    self._cached_best_model = pref
-                    self._cache_timestamp = time.time()
-                    logger.info(f"OpenRouter: Selected best free model (High Context): {pref}")
-                    return pref
-            
-            # 2. Fuzzy match high-quality keywords
-            fallback_keywords = ['gemini', 'llama-3.3', '70b', 'mistral-large']
-            for keyword in fallback_keywords:
-                 candidates = [m for m in available_models if keyword in m]
-                 if candidates:
-                     best = candidates[0]
-                     self._cached_best_model = best
-                     self._cache_timestamp = time.time()
-                     logger.info(f"OpenRouter: Fuzzy selected (High Context): {best}")
-                     return best
 
-            # 3. Fallback to valid static default if discovery allows it
-            # Ensure our static fallback is in available_models logic? 
-            # If discovery returns empty set, we default to static but risk 400 error.
+            # Score available models to find the "Most Powerful" one automatically.
+            scored_candidates = []
             
-            if available_models:
-                best = list(available_models)[0]
-                self._cached_best_model = best
-                self._cache_timestamp = time.time()
-                return best
+            for model_id in available_models:
+                score = 0
+                lower_id = model_id.lower()
                 
+                # 1. Preference List Bonus (Verified Top Tier)
+                try:
+                    # Give points based on reverse rank in preferences (Higher in list = more points)
+                    # Use substring matching for robustness
+                    for idx, pref in enumerate(preferences):
+                        if pref in model_id:
+                            score += (1000 - idx * 100) # Big bonus
+                            break
+                except: pass
+                
+                # 2. "Power" Keywords Heuristic
+                if 'r1' in lower_id: score += 150        # Reasoner models (DeepSeek R1) are top tier
+                if 'pro' in lower_id: score += 90
+                if 'ultra' in lower_id: score += 90
+                if 'plus' in lower_id: score += 50
+                if 'max' in lower_id: score += 50
+                
+                # 3. Model Size Heuristic (Bigger is usually smarter)
+                if '405b' in lower_id: score += 200
+                if '70b' in lower_id: score += 80
+                if '72b' in lower_id: score += 80
+                if 'large' in lower_id: score += 60
+                
+                # 4. negative/neutral qualifiers
+                if 'flash' in lower_id: score += 40      # Good but usually optimized for speed
+                if 'turbo' in lower_id: score += 30
+                if 'distill' in lower_id: score -= 10
+                if 'mini' in lower_id: score -= 20
+                if '8b' in lower_id: score -= 20
+                if '7b' in lower_id: score -= 20
+                
+                scored_candidates.append((score, model_id))
+            
+            # Sort by score descending
+            scored_candidates.sort(key=lambda x: x[0], reverse=True)
+            
+            if scored_candidates:
+                best_score, best_model = scored_candidates[0]
+                self._cached_best_model = best_model
+                self._cache_timestamp = time.time()
+                logger.info(f"OpenRouter: Auto-ranked best model: {best_model} (Score: {best_score})")
+                return best_model
+            
+            # Fallback (Static)
             logger.warning("OpenRouter: No verified high-context free models found via API. Using static fallback.")
-            # Use Gemini Flash Exp as static default as it has high context
             return "google/gemini-2.0-flash-exp:free"
 
         except Exception as e:
