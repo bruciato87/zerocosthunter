@@ -257,25 +257,64 @@ class Brain:
                     if reasoning and not content:
                         content = reasoning
                     
-                    # 3. JSON Repair
+                    # 3. JSON Repair - Robust extraction from various LLM response formats
                     if json_mode and content:
                         import re
-                        # Clean markdown wrappers
-                        content = content.replace("```json", "").replace("```", "").strip()
-                        # Verify simple validity
+                        import json
+                        
+                        original_content = content
+                        json_valid = False
+                        
+                        # Strategy 1: Clean markdown code blocks
+                        content = re.sub(r'^```(?:json)?\s*', '', content.strip())
+                        content = re.sub(r'\s*```$', '', content.strip())
+                        
+                        # Strategy 2: Try direct parse first
                         try:
-                            import json
-                            # Try to find { } block if there's garbage around
-                            match = re.search(r'(\{.*\})', content, re.DOTALL)
-                            if match:
-                                content = match.group(1)
                             json.loads(content)
+                            json_valid = True
                         except:
-                             logger.warning(f"Invalid JSON from {current_model}, retrying...")
-                             # If JSON is invalid, treat as failure unless it's the last attempt
-                             if attempt < max_retries - 1:
-                                 excluded_models.append(current_model)
-                                 continue
+                            pass
+                        
+                        # Strategy 3: Extract JSON array [...] (common for predictions)
+                        if not json_valid:
+                            array_match = re.search(r'(\[[\s\S]*\])', content)
+                            if array_match:
+                                try:
+                                    json.loads(array_match.group(1))
+                                    content = array_match.group(1)
+                                    json_valid = True
+                                except:
+                                    pass
+                        
+                        # Strategy 4: Extract JSON object {...}
+                        if not json_valid:
+                            obj_match = re.search(r'(\{[\s\S]*\})', content)
+                            if obj_match:
+                                try:
+                                    json.loads(obj_match.group(1))
+                                    content = obj_match.group(1)
+                                    json_valid = True
+                                except:
+                                    pass
+                        
+                        # Strategy 5: Remove common LLM artifacts and retry
+                        if not json_valid:
+                            # Remove thinking/explanation before JSON
+                            cleaned = re.sub(r'^.*?(?=[\[\{])', '', original_content, flags=re.DOTALL)
+                            cleaned = re.sub(r'[\]\}][^\]\}]*$', lambda m: m.group(0)[0], cleaned)
+                            try:
+                                json.loads(cleaned.strip())
+                                content = cleaned.strip()
+                                json_valid = True
+                            except:
+                                pass
+                        
+                        if not json_valid:
+                            logger.warning(f"Invalid JSON from {current_model}, retrying...")
+                            if attempt < max_retries - 1:
+                                excluded_models.append(current_model)
+                                continue
                     
                     # Log Success
                     try:
