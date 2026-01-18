@@ -13,12 +13,11 @@ logger = logging.getLogger(__name__)
 # OpenRouter Model Tier List (best quality first)
 # These are FREE models on OpenRouter, ordered by capability
 OPENROUTER_MODEL_TIERS = [
-    "google/gemini-2.0-flash-exp:free",      # Recent Google flagaship (free tier)
-    "meta-llama/llama-3.3-70b-instruct:free",# Powerful when available
-    "meta-llama/llama-3.1-8b-instruct:free", # Very reliable fallback
-    "google/gemini-flash-1.5-8b",            # Google lightweight
-    "mistralai/mistral-7b-instruct:free",    # Mistral standard
-    "microsoft/phi-3-mini-128k-instruct:free",# Efficient small model
+    "google/gemini-2.0-flash-exp:free",      # 1M context (Best)
+    "google/gemini-2.0-pro-exp:free",        # High capacity
+    "meta-llama/llama-3.3-70b-instruct:free", # 128k context usually
+    "microsoft/phi-3-mini-128k-instruct:free", # 128k context explicit
+    "qwen/qwen-2.5-72b-instruct:free",       # 32k+ context
 ]
 
 class Brain:
@@ -64,17 +63,24 @@ class Brain:
                 "X-Title": "ZeroCostHunter"
             }
             
-            resp = requests.get(f"{self.openrouter_base_url}/models", headers=headers, timeout=10)
-            if resp.status_code != 200:
-                logger.warning(f"Failed to fetch OpenRouter models: {resp.status_code}")
-                return OPENROUTER_MODEL_TIERS[0]
+            # Fetch pricing for all models
+            response = requests.get(f"{self.openrouter_base_url}/api/v1/models", timeout=30)
+            response.raise_for_status()
+            models_data = response.json()
             
-            data = resp.json()
-            free_models = []
+            data_list = models_data.get("data", [])
+            available_models = set()
             
-            for m in data.get('data', []):
-                pricing = m.get('pricing', {})
-                # Check for strictly free models
+            for m in data_list:
+                # Handle both list iteration and potential dict structure if API changes
+                # The original code had a bug here, assuming data_list could be a dict.
+                # It's always a list based on OpenRouter API.
+                
+                model_id = m.get("id")
+                pricing = m.get("pricing", {})
+                context = m.get("context_length", 0)
+                
+                # Filter 1: Must be strictly free
                 try:
                     p_prompt = float(pricing.get('prompt', '1') or '1')
                     p_completion = float(pricing.get('completion', '1') or '1')
@@ -82,59 +88,74 @@ class Brain:
                     continue
                     
                 if p_prompt == 0 and p_completion == 0:
-                    free_models.append(m['id'])
-            
-            if not free_models:
-                logger.warning("No free models found on OpenRouter! Using default fallback.")
-                return OPENROUTER_MODEL_TIERS[0]
+                    # Filter 2: Must have large context (>= 32k) to handle news batches
+                    # Generous fallback: if context is 0/undefined, assume it might be okay (risky but better than nothing)
+                    # But for safety, we prefer explicit high context.
+                    if context >= 32000:
+                        available_models.add(model_id)
 
-            logger.info(f"OpenRouter: Found {len(free_models)} free models available.")
+            # If no high-context free models found, try relax context constraint? 
+            # No, because 26k tokens on 8k model fails 100%.
+            if not available_models:
+                logger.warning("No FREE models with >32k context found. Relaxing filter to >16k...")
+                for m in data_list:
+                    model_id = m.get("id")
+                    pricing = m.get("pricing", {})
+                    context = m.get("context_length", 0)
+                    try:
+                        p_prompt = float(pricing.get('prompt', '1') or '1')
+                        p_completion = float(pricing.get('completion', '1') or '1')
+                        if p_prompt == 0 and p_completion == 0 and context >= 16000:
+                             available_models.add(model_id)
+                    except: pass
 
-            # Dynamic Preference List (Keywords to match)
-            # Order matters: Best Reasoning -> Best General -> Good Fallbacks
+            # Ranking Preferences (Dynamic)
+            # Prioritize Gemini 2.0 Flash (1M context) and Llama 3 70B
             preferences = [
-                'deepseek/deepseek-r1',          # DeepSeek R1 (Top Tier)
-                'google/gemini-2.0-flash',       # Google 2.0 (Fast & Smart)
-                'meta-llama/llama-3.3-70b',      # Llama 3.3 (Solid 70B)
-                'deepseek/deepseek-chat',        # DeepSeek V3 (Chat)
-                'deepseek/deepseek-v3',          # DeepSeek V3 (Alt ID)
-                'qwen/qwen-2.5-72b',             # Qwen 72B
-                'qwen/qwen-2.5-coder',           # Qwen Coder
-                'microsoft/phi-4',               # Phi-4
-                'meta-llama/llama-3.1-70b',      # Llama 3.1 70B
+                'google/gemini-2.0-flash-exp:free', # King of context (1M)
+                'google/gemini-2.0-pro-exp:free',
+                'meta-llama/llama-3.3-70b-instruct:free',
+                'meta-llama/llama-3.1-70b-instruct:free',
+                'mistralai/mistral-large-2411:free', # Often has large context
+                'qwen/qwen-2.5-72b-instruct:free'
             ]
             
-            # Find best match
+            # 1. Exact match in preferences
             for pref in preferences:
-                candidates = [m for m in free_models if pref in m]
-                if candidates:
-                    # Prefer exact matches or shorter IDs (usually canonical)
-                    best_match = sorted(candidates, key=len)[0]
-                    self._cached_best_model = best_match
+                if pref in available_models:
+                    self._cached_best_model = pref
                     self._cache_timestamp = time.time()
-                    logger.info(f"OpenRouter: Auto-selected best free model: {best_match}")
-                    return best_match
+                    logger.info(f"OpenRouter: Selected best free model (High Context): {pref}")
+                    return pref
             
-            # Fallback: Pick any high-param model usually good
-            fallback_keywords = ['70b', 'deepseek', 'gemini', 'llama']
+            # 2. Fuzzy match high-quality keywords
+            fallback_keywords = ['gemini', 'llama-3.3', '70b', 'mistral-large']
             for keyword in fallback_keywords:
-                 candidates = [m for m in free_models if keyword in m]
+                 candidates = [m for m in available_models if keyword in m]
                  if candidates:
                      best = candidates[0]
                      self._cached_best_model = best
                      self._cache_timestamp = time.time()
-                     logger.info(f"OpenRouter: Fallback auto-selected: {best}")
+                     logger.info(f"OpenRouter: Fuzzy selected (High Context): {best}")
                      return best
 
-            # Last resort: just take the first free one
-            final_fallback = free_models[0]
-            self._cached_best_model = final_fallback
-            self._cache_timestamp = time.time()
-            return final_fallback
+            # 3. Fallback to valid static default if discovery allows it
+            # Ensure our static fallback is in available_models logic? 
+            # If discovery returns empty set, we default to static but risk 400 error.
             
+            if available_models:
+                best = list(available_models)[0]
+                self._cached_best_model = best
+                self._cache_timestamp = time.time()
+                return best
+                
+            logger.warning("OpenRouter: No verified high-context free models found via API. Using static fallback.")
+            # Use Gemini Flash Exp as static default as it has high context
+            return "google/gemini-2.0-flash-exp:free"
+
         except Exception as e:
             logger.warning(f"OpenRouter model fetch failed: {e}")
-            return OPENROUTER_MODEL_TIERS[0]
+            return "google/gemini-2.0-flash-exp:free"
 
     def _call_openrouter(self, messages: list, temperature: float = 0.3, json_mode: bool = False, model: str = None) -> str:
         """
