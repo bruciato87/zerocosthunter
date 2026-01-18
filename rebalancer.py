@@ -526,12 +526,11 @@ class Rebalancer:
             Rispondi SOLO con le azioni, senza preamboli.
             """
             
-            # Use Brain's fallback system (respects APP_MODE: PREPROD/PROD)
-            # Use 'deepseek-reasoner' (R1) for complex logic, fallback to Gemini
+            # Use Brain's fallback system (OpenRouter auto-selects best free model)
             from brain import Brain
             brain = Brain()
-            # DeepSeek R1 enabled for GitHub Actions (Long-running async task)
-            response_text = brain._generate_with_fallback(prompt, json_mode=False, model="deepseek-reasoner")
+            # OpenRouter will auto-select best reasoning model (DeepSeek R1 if available)
+            response_text = brain._generate_with_fallback(prompt, json_mode=False)
             
             # [V12] Save AI suggestions for learning
             self._save_suggestions_to_db(response_text, analysis, regime_data)
@@ -719,7 +718,7 @@ class Rebalancer:
                                 "Is this a smart move? Answer in 1 short sentence starting with '💡 FLASH TIP:'."
                             )
                             from brain import Brain
-                            return Brain()._generate_with_fallback(prompt, json_mode=False, model="deepseek-reasoner").strip()
+                            return Brain()._generate_with_fallback(prompt, json_mode=False).strip()
                         except:
                             # Fallback to simple rule text if AI fails
                             return f"📉 **FLASH TRIM Opportunity**: Vendi parte di {asset['ticker']} (RSI {rsi:.0f}). Net Gain: ~€{net_profit:.0f} (dopo fees/tax)."

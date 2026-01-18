@@ -1109,9 +1109,9 @@ class Brain:
         """
 
         try:
-            logger.info(f"Generating Deep Dive for {ticker} (DeepSeek Reasoner → Gemini)...")
-            # Use Reasoner (R1) for Deep Dive to provide Chain of Thought and logic
-            result = self._generate_with_fallback(prompt, json_mode=False, model="deepseek-reasoner")
+            logger.info(f"Generating Deep Dive for {ticker} (OpenRouter auto-select)...")
+            # OpenRouter auto-selects best reasoning model (DeepSeek R1 if available)
+            result = self._generate_with_fallback(prompt, json_mode=False)
             return result
         except Exception as e:
             logger.error(f"Deep Dive failed: {e}")
