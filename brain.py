@@ -355,50 +355,36 @@ class Brain:
         """
         messages = [{"role": "user", "content": prompt}]
         
-        # 1. Try OpenRouter (primary)
+        # 1. Try OpenRouter (primary) with Dynamic Selection
         if self.openrouter_api_key:
-            # Get list of models to try (start with best, fallback to others)
-            models_to_try = OPENROUTER_MODEL_TIERS.copy()
-            
-            # If specific model requested, try it first
-            if model and model in models_to_try:
-                models_to_try.remove(model)
-                models_to_try.insert(0, model)
-            
-            for i, try_model in enumerate(models_to_try):
-                try:
-                    result = self._call_openrouter(messages, json_mode=json_mode, model=try_model)
-                    return result
-                except Exception as e:
-                    error_str = str(e)
-                    
-                    # Rate limited - try next model
-                    if "RATE_LIMITED" in error_str or "429" in error_str:
-                        logger.warning(f"Model {try_model} rate limited, trying next...")
-                        continue
-                    
-                    # Model unavailable - try next
-                    if "model not found" in error_str.lower() or "unavailable" in error_str.lower():
-                        logger.warning(f"Model {try_model} unavailable, trying next...")
-                        continue
-                    
-                    # Other error - log and try next
-                    logger.warning(f"OpenRouter error with {try_model}: {e}")
-                    if i < len(models_to_try) - 1:
-                        continue
-                    else:
-                        logger.error("All OpenRouter models failed, trying Gemini fallback...")
-        
-        # 2. Fallback to direct Gemini API
-        if self.gemini_client:
             try:
-                result = self._call_gemini_with_retries(prompt, json_mode)
+                # We pass model=None to let _call_openrouter find the best free model dynamically
+                # unless a specific model override is strictly requested.
+                target_model = model
+                
+                # If the user passed a model that is IN the tier list, it's likely a suggestion, 
+                # but we prefer dynamic discovery to ensure we get a working one.
+                # So only use 'model' if it's a specific requirement (rare).
+                # For now, we trust the caller. If model is None, it scans.
+                
+                result = self._call_openrouter(messages, json_mode=json_mode, model=target_model)
                 return result
+                
             except Exception as e:
-                logger.error(f"Gemini fallback also failed: {e}")
-                raise e
+                logger.warning(f"All OpenRouter attempts failed: {e}")
+                logger.error("Switching to GEMINI DIRECT FALLBACK...")
         
-        raise Exception("No AI provider available (OpenRouter and Gemini both failed)")
+        # 2. Fallback to Direct Gemini (with Retries)
+        if self.gemini_api_key or self.gemini_client:
+            try:
+                # Use retry wrapper for robustness
+                text = self._call_gemini_with_retries(prompt, json_mode=json_mode)
+                return text
+            except Exception as e:
+                logger.error(f"Gemini Fallback completely failed: {e}")
+                return "" # Total failure
+        
+        return ""
 
     def _call_gemini_with_retries(self, prompt: str, json_mode: bool) -> str:
         """Helper for Gemini with backoff retries."""
