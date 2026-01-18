@@ -35,10 +35,24 @@ def run_pipeline():
 async def run_async_pipeline():
     logger.info("Starting Zero-Cost Investment Hunter Pipeline...")
     
+    # Generate unique run_id for tracking API calls this run
+    from datetime import datetime
+    import time
+    run_id = f"RUN_{int(time.time())}"
+    
     # 0. Log Start (for Dashboard visibility even if timeout occurs)
     try:
         tmp_db = DBHandler()
         tmp_db.log_system_event("INFO", "Hunter", "Pipeline Started")
+        
+        # --- API USAGE REPORT AT START ---
+        api_usage = tmp_db.get_api_usage()
+        logger.info(f"📊 API Usage Report [START]:")
+        logger.info(f"   📅 Date: {api_usage.get('date')}")
+        logger.info(f"   🔷 Gemini: {api_usage.get('gemini', 0)}/{api_usage.get('limits', {}).get('gemini', 50)} calls today")
+        logger.info(f"   💎 DeepSeek: {api_usage.get('deepseek', 0)} calls today")
+        logger.info(f"   ⏰ Reset at: {api_usage.get('reset_at_local', 'N/A')} ({api_usage.get('hours_until_reset', 0):.1f}h from now)")
+        logger.info(f"   🆔 Run ID: {run_id}")
     except:
         pass
 
@@ -47,6 +61,8 @@ async def run_async_pipeline():
         db = DBHandler()
         hunter = NewsHunter()
         brain = Brain()
+        # Store run_id in brain for later use
+        brain.current_run_id = run_id
         notifier = TelegramNotifier()
         market = MarketData()
         auditor = Auditor(market_instance=market)
@@ -816,6 +832,22 @@ async def run_async_pipeline():
         logger.info(f"Maintenance: {health['message']}")
     except Exception as e:
         logger.warning(f"Maintenance check failed: {e}")
+
+    # --- API USAGE REPORT AT END ---
+    try:
+        api_usage = db.get_api_usage()
+        run_stats = api_usage.get('runs', {}).get(run_id, {})
+        gemini_this_run = run_stats.get('gemini', 0)
+        deepseek_this_run = run_stats.get('deepseek', 0)
+        
+        logger.info(f"📊 API Usage Report [END]:")
+        logger.info(f"   🆔 Run ID: {run_id}")
+        logger.info(f"   📞 This Run: Gemini={gemini_this_run}, DeepSeek={deepseek_this_run}")
+        logger.info(f"   📅 Total Today: Gemini={api_usage.get('gemini', 0)}/{api_usage.get('limits', {}).get('gemini', 50)}")
+        logger.info(f"   ⏳ Remaining: {api_usage.get('gemini_remaining', 0)} Gemini calls")
+        logger.info(f"   ⏰ Reset in: {api_usage.get('hours_until_reset', 0):.1f}h ({api_usage.get('reset_at_local', 'N/A')})")
+    except Exception as e:
+        logger.warning(f"API usage report failed: {e}")
 
     db.log_system_event("INFO", "Hunter", "Pipeline Finished")
     logger.info(f"Pipeline finished. Processed {processed_count} actionable signals.")

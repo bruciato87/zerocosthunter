@@ -121,7 +121,7 @@ class Brain:
             # Should not reach here
             return ""
 
-    def _call_gemini(self, prompt: str, json_mode: bool = False) -> str:
+    def _call_gemini(self, prompt: str, json_mode: bool = False, run_id: str = None) -> str:
         """Call Gemini API as fallback."""
         config = types.GenerateContentConfig(temperature=0.3)
         if json_mode:
@@ -136,16 +136,16 @@ class Brain:
             config=config
         )
         
-        # Track API usage and check for 80% warning
+        # Track API usage with run_id for per-run tracking
         try:
             from db_handler import DBHandler
             db = DBHandler()
-            counters = db.increment_api_counter("gemini")
+            counters = db.increment_api_counter("gemini", run_id=run_id)
             
-            # Send warning at 80% of daily limit (800/1000)
+            # Send warning at 80% of daily limit (40/50)
             gemini_count = counters.get("gemini", 0)
-            if gemini_count == 800:
-                self._send_usage_warning(gemini_count, 1000)
+            if gemini_count == 40:
+                self._send_usage_warning(gemini_count, 50)
         except Exception:
             pass
         

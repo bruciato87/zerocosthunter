@@ -323,9 +323,10 @@ class DBHandler:
             return False
 
     # --- API USAGE TRACKING ---
-    def increment_api_counter(self, provider: str) -> dict:
+    def increment_api_counter(self, provider: str, run_id: str = None) -> dict:
         """
         Increment daily API call counter for a provider.
+        Optionally tracks calls per run_id.
         Returns current counters dict.
         """
         try:
@@ -339,10 +340,20 @@ class DBHandler:
             
             # Reset if new day
             if counters.get("date") != today:
-                counters = {"date": today, "gemini": 0, "deepseek": 0}
+                counters = {"date": today, "gemini": 0, "deepseek": 0, "runs": {}}
+            
+            # Ensure runs dict exists
+            if "runs" not in counters:
+                counters["runs"] = {}
             
             # Increment provider counter
             counters[provider] = counters.get(provider, 0) + 1
+            
+            # Track per-run if run_id provided
+            if run_id:
+                if run_id not in counters["runs"]:
+                    counters["runs"][run_id] = {"gemini": 0, "deepseek": 0, "started_at": datetime.utcnow().isoformat()}
+                counters["runs"][run_id][provider] = counters["runs"][run_id].get(provider, 0) + 1
             
             # Save to DB
             if "id" in settings:
@@ -356,27 +367,50 @@ class DBHandler:
 
     def get_api_usage(self) -> dict:
         """
-        Get current API usage stats.
-        Returns: {"date": "2026-01-15", "gemini": 45, "deepseek": 12, "limits": {...}}
+        Get current API usage stats with reset time info.
+        Returns: {
+            "date": "2026-01-18",
+            "gemini": 45,
+            "deepseek": 12,
+            "runs": {...},
+            "limits": {"gemini": 50, "deepseek": None},
+            "reset_at_utc": "2026-01-19T00:00:00Z",
+            "hours_until_reset": 15.5,
+            "gemini_remaining": 5
+        }
         """
         try:
-            today = datetime.utcnow().strftime('%Y-%m-%d')
+            from datetime import timezone
+            now_utc = datetime.now(timezone.utc)
+            today = now_utc.strftime('%Y-%m-%d')
+            
             settings = self.get_settings()
             counters = settings.get("api_counters") or {}
             
             if not isinstance(counters, dict) or counters.get("date") != today:
-                counters = {"date": today, "gemini": 0, "deepseek": 0}
+                counters = {"date": today, "gemini": 0, "deepseek": 0, "runs": {}}
             
-            # Add limits info
+            # Calculate reset time (midnight UTC next day)
+            tomorrow = now_utc.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+            hours_until_reset = (tomorrow - now_utc).total_seconds() / 3600
+            
+            # Add limits info (Gemini 2.5 Flash free tier - reduced in Dec 2025)
+            gemini_limit = 50  # Conservative estimate for free tier
             counters["limits"] = {
-                "gemini": 1000,  # gemini-2.5-flash-lite RPD
+                "gemini": gemini_limit,
                 "deepseek": None  # Pay-per-use, no daily limit
             }
+            
+            # Add reset time info
+            counters["reset_at_utc"] = tomorrow.strftime('%Y-%m-%dT%H:%M:%SZ')
+            counters["reset_at_local"] = f"{tomorrow.strftime('%Y-%m-%d')} 01:00 (Italy)"  # UTC+1
+            counters["hours_until_reset"] = round(hours_until_reset, 1)
+            counters["gemini_remaining"] = max(0, gemini_limit - counters.get("gemini", 0))
             
             return counters
         except Exception as e:
             logger.error(f"Error getting API usage: {e}")
-            return {"date": today, "gemini": 0, "deepseek": 0, "limits": {"gemini": 1000, "deepseek": None}}
+            return {"date": today, "gemini": 0, "deepseek": 0, "limits": {"gemini": 50, "deepseek": None}}
 
     def check_if_analyzed_recently(self, ticker: str, new_sentiment: str, hours: int = 24) -> bool:
         """
