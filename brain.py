@@ -38,6 +38,7 @@ class Brain:
         # Cache for best model (refreshed each run)
         self._cached_best_model = None
         self._cache_timestamp = 0
+        self._cached_scored_candidates = []  # NEW: Cache full ranked list
         
         # Track last execution details for reporting
         self.last_run_details = {}
@@ -52,11 +53,21 @@ class Brain:
         """
         Dynamically fetches available models from OpenRouter and selects the best FREE one.
         Uses fuzzy matching against a preference list to auto-discover new versions.
+        OPTIMIZATION: Uses cached candidate list on retry to avoid repeated API calls.
         """
         if excluded_models is None:
             excluded_models = []
 
-        # Return cached result if fresh (< 1 hour) AND valid (not excluded)
+        # OPTIMIZATION: If we have a fresh cached list, use it instead of calling API
+        if self._cached_scored_candidates and (time.time() - self._cache_timestamp < 300):
+            # Find best non-excluded model from cached list
+            for score, model_id in self._cached_scored_candidates:
+                if model_id not in excluded_models:
+                    logger.info(f"Using cached model: {model_id} (Score: {score})")
+                    return model_id
+            # All cached models excluded, will fall through to API call below
+
+        # Return cached result if fresh (<1 hour) AND valid (not excluded)
         if self._cached_best_model and (time.time() - self._cache_timestamp < 3600):
             if self._cached_best_model not in excluded_models:
                 return self._cached_best_model
@@ -179,9 +190,10 @@ class Brain:
         if scored_candidates:
             best_score, best_model = scored_candidates[0]
             logger.info(f"Dynamic Model Selection Winner: {best_model} (Score: {best_score}) from {len(scored_candidates)} candidates")
+            # Cache both best model and full ranked list for retries
             self._cached_best_model = best_model
+            self._cached_scored_candidates = scored_candidates  # NEW: Cache full list
             self._cache_timestamp = time.time()
-            logger.info(f"OpenRouter: Auto-ranked best model: {best_model} (Score: {best_score})")
             return best_model
         
         # Fallback (Static) if discovery yields nothing
