@@ -50,7 +50,8 @@ class Benchmark:
                     ticker,
                     start=start_date.strftime("%Y-%m-%d"),
                     end=end_date.strftime("%Y-%m-%d"),
-                    progress=False
+                    progress=False,
+                    auto_adjust=False
                 )
                 
                 if len(data) < 2:
