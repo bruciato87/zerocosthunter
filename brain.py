@@ -13,11 +13,11 @@ logger = logging.getLogger(__name__)
 # OpenRouter Model Tier List (best quality first)
 # These are FREE models on OpenRouter, ordered by capability
 OPENROUTER_MODEL_TIERS = [
-    "google/gemini-2.0-flash-exp:free",      # 1M context (Best)
-    "google/gemini-2.0-pro-exp:free",        # High capacity
-    "meta-llama/llama-3.3-70b-instruct:free", # 128k context usually
-    "microsoft/phi-3-mini-128k-instruct:free", # 128k context explicit
-    "qwen/qwen-2.5-72b-instruct:free",       # 32k+ context
+    "deepseek/deepseek-r1:free",           # SOTA Reasoner
+    "google/gemini-2.0-flash-thinking-exp:free", # Strong Reasoner
+    "google/gemini-2.0-flash-exp:free",      # Fast, 1M context
+    "meta-llama/llama-3.3-70b-instruct:free", # Reliable, Good Context
+    "deepseek/deepseek-chat:free",           # Reliable V3
 ]
 
 class Brain:
@@ -115,13 +115,13 @@ class Brain:
         # --- Dynamic Quality Scoring System ---
         # Define preferences for baseline scoring (Top Tier Keywords)
         preferences = [
+            'deepseek-r1',
+            'gemini-2.0-flash-thinking',
             'gemini-2.0-flash', 
             'gemini-2.0-pro',
             'llama-3.3-70b', 
-            'llama-3.1-70b',
-            'mistral-large', 
-            'qwen-2.5-72b',
-            'phi-4'
+            'deepseek-chat',
+            'qwen-2.5-72b'
         ]
 
         # Score available models to find the "Most Powerful" one automatically.
@@ -160,6 +160,11 @@ class Brain:
             if '8b' in lower_id: score -= 20
             if '7b' in lower_id: score -= 20
             
+            # 5. Brand Reliability Bonus (Catch-all for new versions)
+            if 'deepseek' in lower_id: score += 45
+            if 'anthropic' in lower_id: score += 45
+            if 'openai' in lower_id: score += 40
+            
             scored_candidates.append((score, model_id))
         
         # Sort by score descending
@@ -167,6 +172,7 @@ class Brain:
         
         if scored_candidates:
             best_score, best_model = scored_candidates[0]
+            logger.info(f"Dynamic Model Selection Winner: {best_model} (Score: {best_score}) from {len(scored_candidates)} candidates")
             self._cached_best_model = best_model
             self._cache_timestamp = time.time()
             logger.info(f"OpenRouter: Auto-ranked best model: {best_model} (Score: {best_score})")
@@ -206,11 +212,13 @@ class Brain:
                 "model": model,
                 "messages": messages,
                 "temperature": temperature,
-                "max_tokens": 8192  # Increased for large analyses
+                "max_tokens": 8192,  # Increased for large analyses
+                "top_p": 0.9  # Standardize top_p
             }
 
-            if json_mode:
-                payload["response_format"] = {"type": "json_object"}
+            # NOTE: We DO NOT send response_format={"type": "json_object"} anymore.
+            # Many "Free" models (Llama 3, Mistral, etc.) on OpenRouter do not support it and throw 400 errors.
+            # We rely entirely on the prompt instructions and the Regex parser below.
 
             try:
                 response = requests.post(
@@ -273,7 +281,8 @@ class Brain:
                     logger.warning(f"OpenRouter Error ({response.status_code}) with {model}: {response.text}")
                     excluded_models.append(model)
                     self._cached_best_model = None # Invalidate cache
-                    # Loop continues to next attempt with new model
+                    time.sleep(2) # Brief cooldown
+                    # Loop continues
                 
                 else:
                     # Unknown fatal error
@@ -284,6 +293,7 @@ class Brain:
                 excluded_models.append(model)
                 if attempt == max_retries - 1:
                     raise e
+                time.sleep(2) # Brief cooldown
         
         raise Exception("OpenRouter: All model attempts failed.")
 
