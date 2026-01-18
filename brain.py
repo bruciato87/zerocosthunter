@@ -97,9 +97,10 @@ class Brain:
 
                 if prompt == 0 and completion == 0:
                     if context_length >= 32000:
-                        # Blacklist models known to report fake context lengths or have broken providers
-                        blacklisted = ['chimera', 'tngtech', 'deepseek-r1-0528']  # ModelRun limits R1 to 8k
-                        if not any(bl in model_id.lower() for bl in blacklisted):
+                        # WHITELIST approach: Only trust verified providers/models
+                        # Many free models report fake context or have broken providers
+                        trusted_providers = ['google/', 'meta-llama/', 'mistralai/', 'qwen/', 'nvidia/', 'nousresearch/']
+                        if any(tp in model_id.lower() for tp in trusted_providers):
                             available_models.add(model_id)
 
         except Exception as e:
@@ -163,14 +164,12 @@ class Brain:
             if '8b' in lower_id: score -= 20
             if '7b' in lower_id: score -= 20
             
-            # 5. Penalty for unreliable/fake context models
-            if 'chimera' in lower_id: score -= 500  # Known to report fake context
-            if 'tngtech' in lower_id: score -= 500
-            
-            # 5. Brand Reliability Bonus (Catch-all for new versions)
-            if 'deepseek' in lower_id: score += 45
-            if 'anthropic' in lower_id: score += 45
-            if 'openai' in lower_id: score += 40
+            # 5. Brand Reliability Bonus (trusted providers from whitelist)
+            if 'google/' in lower_id: score += 100  # Most reliable on free tier
+            if 'meta-llama/' in lower_id: score += 80
+            if 'mistralai/' in lower_id: score += 70
+            if 'qwen/' in lower_id: score += 60
+            if 'nvidia/' in lower_id: score += 50
             
             scored_candidates.append((score, model_id))
         
