@@ -10,42 +10,118 @@ import requests
 # Configure logging
 logger = logging.getLogger(__name__)
 
+# OpenRouter Model Tier List (best quality first)
+# These are FREE models on OpenRouter, ordered by capability
+OPENROUTER_MODEL_TIERS = [
+    "deepseek/deepseek-r1-0528:free",          # Best reasoning (671B MoE)
+    "deepseek/deepseek-chat-v3-0324:free",     # Fast + Smart
+    "meta-llama/llama-3.3-70b-instruct:free",  # Strong general purpose
+    "google/gemini-2.5-flash-preview:free",    # Google's fast model
+    "qwen/qwen3-coder-480b-a35b:free",         # Coding specialist
+    "mistralai/mistral-small-3.1-24b:free",    # Efficient
+    "nvidia/nemotron-3-nano-30b-a3b:free",     # NVIDIA's offering
+]
+
 class Brain:
     def __init__(self):
-        # Load APP_MODE from database (dynamic via /mode command), fallback to env var
-        try:
-            from db_handler import DBHandler
-            db = DBHandler()
-            settings = db.get_settings()
-            self.app_mode = settings.get("app_mode", "PREPROD").upper()
-        except Exception:
-            self.app_mode = os.environ.get("APP_MODE", "PREPROD").upper()
+        # OpenRouter API key (primary)
+        self.openrouter_api_key = os.environ.get("OPENROUTER_API_KEY")
+        self.openrouter_base_url = "https://openrouter.ai/api/v1"
         
-        # Gemini - always available (primary in PREPROD, fallback in PROD)
+        # Fallback: Direct Gemini (if OpenRouter fails AND key is available)
         self.gemini_api_key = os.environ.get("GEMINI_API_KEY")
         self.gemini_client = genai.Client(
             api_key=self.gemini_api_key,
             http_options={'timeout': 300000}
         ) if self.gemini_api_key else None
         
-        # DeepSeek - only used in PROD mode
-        self.deepseek_api_key = os.environ.get("DEEPSEEK_API_KEY")
-        self.deepseek_base_url = "https://api.deepseek.com/v1"
+        # Track current run_id for per-run API tracking
+        self.current_run_id = None
         
-        # Use DeepSeek only if: PROD mode AND key is available
-        self.use_deepseek = (self.app_mode == "PROD" and bool(self.deepseek_api_key))
+        # Cache for best model (refreshed each run)
+        self._cached_best_model = None
+        self._cache_timestamp = 0
         
-        logger.info(f"Brain initialized: Mode={self.app_mode}, DeepSeek={'✅' if self.use_deepseek else '❌'}, Gemini={'✅' if self.gemini_api_key else '❌'}")
+        # Log initialization
+        if self.openrouter_api_key:
+            logger.info(f"Brain initialized: OpenRouter=✅, Gemini Fallback={'✅' if self.gemini_api_key else '❌'}")
+        else:
+            logger.warning("Brain initialized: OpenRouter=❌ (no API key), Gemini={'✅' if self.gemini_api_key else '❌'}")
 
-    def _call_deepseek(self, messages: list, temperature: float = 0.3, json_mode: bool = False, model: str = "deepseek-chat") -> str:
-        """Call DeepSeek API (OpenAI-compatible)."""
+    def _get_best_free_model(self, force_refresh: bool = False) -> str:
+        """
+        Fetch available models from OpenRouter and return the best free model.
+        Uses cached result for 5 minutes unless force_refresh=True.
+        """
+        # Return cached if valid (5 min TTL)
+        if not force_refresh and self._cached_best_model and (time.time() - self._cache_timestamp < 300):
+            return self._cached_best_model
+        
+        try:
+            # Fetch models list from OpenRouter
+            headers = {"Authorization": f"Bearer {self.openrouter_api_key}"}
+            response = requests.get(
+                f"{self.openrouter_base_url}/models",
+                headers=headers,
+                timeout=10
+            )
+            
+            if response.status_code != 200:
+                logger.warning(f"OpenRouter models API failed: {response.status_code}")
+                return OPENROUTER_MODEL_TIERS[0]  # Default to best tier
+            
+            models_data = response.json().get("data", [])
+            
+            # Build set of available model IDs
+            available_models = set()
+            for model in models_data:
+                model_id = model.get("id", "")
+                pricing = model.get("pricing", {})
+                
+                # Check if free (prompt and completion both 0)
+                prompt_price = float(pricing.get("prompt", "1") or "1")
+                completion_price = float(pricing.get("completion", "1") or "1")
+                
+                if prompt_price == 0 and completion_price == 0:
+                    available_models.add(model_id)
+            
+            # Find best available model from our tier list
+            for tier_model in OPENROUTER_MODEL_TIERS:
+                if tier_model in available_models:
+                    self._cached_best_model = tier_model
+                    self._cache_timestamp = time.time()
+                    logger.info(f"OpenRouter: Selected best free model: {tier_model}")
+                    return tier_model
+            
+            # Fallback to first tier if none found (shouldn't happen)
+            logger.warning("OpenRouter: No tier models available, using default")
+            return OPENROUTER_MODEL_TIERS[0]
+            
+        except Exception as e:
+            logger.warning(f"OpenRouter model fetch failed: {e}")
+            return OPENROUTER_MODEL_TIERS[0]
+
+    def _call_openrouter(self, messages: list, temperature: float = 0.3, json_mode: bool = False, model: str = None) -> str:
+        """
+        Call OpenRouter API (OpenAI-compatible).
+        Auto-selects best free model if model is not specified.
+        """
+        if not self.openrouter_api_key:
+            raise Exception("OPENROUTER_API_KEY not configured")
+        
+        # Auto-select best free model if not specified
+        if model is None:
+            model = self._get_best_free_model()
+        
         headers = {
-            "Authorization": f"Bearer {self.deepseek_api_key}",
-            "Content-Type": "application/json"
+            "Authorization": f"Bearer {self.openrouter_api_key}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://zerocosthunter.vercel.app",  # Required by OpenRouter
+            "X-Title": "ZeroCostHunter"
         }
         
         payload = {
-            "model": model,  # "deepseek-chat" (V3) or "deepseek-reasoner" (R1)
+            "model": model,
             "messages": messages,
             "temperature": temperature,
             "max_tokens": 4096
@@ -55,7 +131,7 @@ class Brain:
             payload["response_format"] = {"type": "json_object"}
         
         response = requests.post(
-            f"{self.deepseek_base_url}/chat/completions",
+            f"{self.openrouter_base_url}/chat/completions",
             headers=headers,
             json=payload,
             timeout=120
@@ -64,65 +140,60 @@ class Brain:
         if response.status_code == 200:
             data = response.json()
             choice = data['choices'][0]['message']
-            
-            # Extract Reasoning (Chain of Thought) if present (R1 model)
-            reasoning = choice.get('reasoning_content', '')
-            if reasoning:
-                logger.info(f"🧠 DeepSeek Thought Process:\n{reasoning[:500]}...") # Log first 500 chars
-            
             content = choice.get('content', '')
             
-            # R1 Fix: If content is empty but reasoning exists, use reasoning as output
-            # (R1 sometimes puts the full answer in reasoning_content for non-JSON tasks)
-            if not content and reasoning and model == "deepseek-reasoner":
-                logger.info("R1: Using reasoning_content as response (content was empty)")
+            # Handle reasoning models (like DeepSeek R1)
+            reasoning = choice.get('reasoning_content', '')
+            if reasoning and not content:
+                logger.info(f"Using reasoning_content as response (content was empty)")
                 content = reasoning
             
-            # JSON Repair: If json_mode is requested but content has extra text
+            # JSON Repair if needed
             if json_mode:
                 import re
-                # Try to find JSON block ```json ... ``` or just { ... }
                 json_match = re.search(r'```json\s*(\{.*?\})\s*```', content, re.DOTALL)
                 if json_match:
                     content = json_match.group(1)
                 else:
-                    # Try finding the first { and last }
                     json_match_raw = re.search(r'(\{.*\})', content, re.DOTALL)
                     if json_match_raw:
                         content = json_match_raw.group(1)
-            
-            # Verify JSON Validity
-            if json_mode:
+                
+                # Validate JSON
                 try:
-                    import json
                     json.loads(content)
                 except Exception as e:
-                    logger.error(f"DeepSeek returned invalid JSON: {e}")
-                    # If repair failed, let it crash to trigger fallback to Gemini
-                    raise ValueError(f"Invalid JSON from DeepSeek: {e}")
-
-            # Track usage
-            usage = data.get('usage', {})
-            total_tokens = usage.get('total_tokens', 0)
+                    logger.error(f"OpenRouter returned invalid JSON: {e}")
+                    raise ValueError(f"Invalid JSON from {model}: {e}")
             
+            # Track API usage
             try:
                 from db_handler import DBHandler
-                DBHandler().increment_api_counter("deepseek")
-            except: pass
+                db = DBHandler()
+                # Track both the provider (openrouter) and specific model used
+                db.increment_api_counter("openrouter", run_id=self.current_run_id)
+                db.log_model_used(model)  # Track which model was selected
+            except Exception:
+                pass
             
+            logger.info(f"OpenRouter call successful (model: {model})")
             return content
+        
+        elif response.status_code == 429:
+            # Rate limited - try next model in tier
+            logger.warning(f"OpenRouter rate limited for {model}, trying fallback...")
+            raise Exception(f"RATE_LIMITED:{model}")
+        
         else:
-            if response.status_code == 402:
-                # Payment required - credits exhausted
-                raise Exception("DEEPSEEK_CREDITS_EXHAUSTED")
-            
-            response.raise_for_status()
-            
-            # Should not reach here
-            return ""
+            error_msg = response.json().get("error", {}).get("message", "Unknown error")
+            logger.error(f"OpenRouter API error ({response.status_code}): {error_msg}")
+            raise Exception(f"OpenRouter error: {error_msg}")
 
-    def _call_gemini(self, prompt: str, json_mode: bool = False, run_id: str = None) -> str:
-        """Call Gemini API as fallback."""
+    def _call_gemini_fallback(self, prompt: str, json_mode: bool = False) -> str:
+        """Direct Gemini API call as last-resort fallback."""
+        if not self.gemini_client:
+            raise Exception("No Gemini client available for fallback")
+        
         config = types.GenerateContentConfig(temperature=0.3)
         if json_mode:
             config = types.GenerateContentConfig(
@@ -131,96 +202,91 @@ class Brain:
             )
         
         response = self.gemini_client.models.generate_content(
-            model='gemini-2.5-flash',  # Standard model for better reasoning
+            model='gemini-2.5-flash',
             contents=prompt,
             config=config
         )
         
-        # Track API usage with run_id for per-run tracking
+        # Track fallback usage
         try:
             from db_handler import DBHandler
             db = DBHandler()
-            counters = db.increment_api_counter("gemini", run_id=run_id)
-            
-            # Send warning at 80% of daily limit (40/50)
-            gemini_count = counters.get("gemini", 0)
-            if gemini_count == 40:
-                self._send_usage_warning(gemini_count, 50)
+            db.increment_api_counter("gemini_fallback", run_id=self.current_run_id)
         except Exception:
             pass
         
+        logger.info("Gemini fallback call successful")
         return response.text
-    
-    def _send_usage_warning(self, current: int, limit: int):
-        """Send Telegram warning when approaching API limit."""
-        try:
-            from telegram_bot import TelegramNotifier
-            import asyncio
-            
-            pct = (current / limit) * 100
-            msg = (
-                f"⚠️ **API Usage Warning**\n\n"
-                f"Gemini: {current}/{limit} ({pct:.0f}%)\n\n"
-                f"Considera di passare a PROD mode (`/mode PROD`) per usare DeepSeek."
-            )
-            
-            notifier = TelegramNotifier()
-            asyncio.get_event_loop().run_until_complete(notifier.send_alert(msg))
-        except Exception as e:
-            logger.warning(f"Failed to send usage warning: {e}")
 
-    def _generate_with_fallback(self, prompt: str, json_mode: bool = False, model: str = "deepseek-chat", prefer_free: bool = False) -> str:
+    def _generate_with_fallback(self, prompt: str, json_mode: bool = False, model: str = None, prefer_free: bool = True) -> str:
         """
-        Try DeepSeek first, fallback to Gemini on failure.
-        If prefer_free is True, try Gemini first and fallback to DeepSeek.
-        """
+        Smart AI generation with automatic fallback.
         
-        # 1. Logic for prefer_free (Gemini First)
-        if prefer_free and self.gemini_client:
+        Flow:
+        1. Try OpenRouter with best free model
+        2. If rate limited, try next model in tier list
+        3. If all OpenRouter fails, try direct Gemini API
+        
+        Args:
+            prompt: The prompt to send
+            json_mode: Whether to request JSON response
+            model: Specific model to use (optional, auto-selects if None)
+            prefer_free: Always True now (OpenRouter free tier)
+        """
+        messages = [{"role": "user", "content": prompt}]
+        
+        # 1. Try OpenRouter (primary)
+        if self.openrouter_api_key:
+            # Get list of models to try (start with best, fallback to others)
+            models_to_try = OPENROUTER_MODEL_TIERS.copy()
+            
+            # If specific model requested, try it first
+            if model and model in models_to_try:
+                models_to_try.remove(model)
+                models_to_try.insert(0, model)
+            
+            for i, try_model in enumerate(models_to_try):
+                try:
+                    result = self._call_openrouter(messages, json_mode=json_mode, model=try_model)
+                    return result
+                except Exception as e:
+                    error_str = str(e)
+                    
+                    # Rate limited - try next model
+                    if "RATE_LIMITED" in error_str or "429" in error_str:
+                        logger.warning(f"Model {try_model} rate limited, trying next...")
+                        continue
+                    
+                    # Model unavailable - try next
+                    if "model not found" in error_str.lower() or "unavailable" in error_str.lower():
+                        logger.warning(f"Model {try_model} unavailable, trying next...")
+                        continue
+                    
+                    # Other error - log and try next
+                    logger.warning(f"OpenRouter error with {try_model}: {e}")
+                    if i < len(models_to_try) - 1:
+                        continue
+                    else:
+                        logger.error("All OpenRouter models failed, trying Gemini fallback...")
+        
+        # 2. Fallback to direct Gemini API
+        if self.gemini_client:
             try:
-                # Use Gemini as primary
-                return self._call_gemini_with_retries(prompt, json_mode)
-            except Exception as e:
-                logger.warning(f"Gemini (primary) failed: {e}. Falling back to DeepSeek...")
-                # Fallback to DeepSeek if enabled
-                if self.use_deepseek and self.deepseek_api_key:
-                    try:
-                        messages = [{"role": "user", "content": prompt}]
-                        return self._call_deepseek(messages, json_mode=json_mode, model=model)
-                    except Exception as de:
-                        logger.error(f"DeepSeek fallback also failed: {de}")
-                        raise de
-                raise e
-
-        # 2. Logic for Standard (DeepSeek First - Default)
-        if self.use_deepseek and self.deepseek_api_key:
-            try:
-                messages = [{"role": "user", "content": prompt}]
-                result = self._call_deepseek(messages, json_mode=json_mode, model=model)
-                logger.info(f"DeepSeek ({model}) API call successful")
+                result = self._call_gemini_with_retries(prompt, json_mode)
                 return result
             except Exception as e:
-                error_str = str(e)
-                if "DEEPSEEK_CREDITS_EXHAUSTED" in error_str or "402" in error_str:
-                    logger.warning("DeepSeek credits exhausted! Switching to Gemini permanently.")
-                    self.use_deepseek = False
-                else:
-                    logger.warning(f"DeepSeek failed: {e}. Trying Gemini fallback...")
+                logger.error(f"Gemini fallback also failed: {e}")
+                raise e
         
-        # Fallback to Gemini
-        if self.gemini_client:
-            return self._call_gemini_with_retries(prompt, json_mode)
-        
-        raise Exception("No AI provider available")
+        raise Exception("No AI provider available (OpenRouter and Gemini both failed)")
 
     def _call_gemini_with_retries(self, prompt: str, json_mode: bool) -> str:
         """Helper for Gemini with backoff retries."""
-        max_retries = 5
-        backoff = 10
+        max_retries = 3
+        backoff = 5
         for attempt in range(max_retries + 1):
             try:
-                result = self._call_gemini(prompt, json_mode=json_mode)
-                logger.info("Gemini call successful")
+                result = self._call_gemini_fallback(prompt, json_mode=json_mode)
                 return result
             except Exception as e:
                 error_str = str(e)

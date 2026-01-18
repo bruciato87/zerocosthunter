@@ -47,10 +47,17 @@ async def run_async_pipeline():
         
         # --- API USAGE REPORT AT START ---
         api_usage = tmp_db.get_api_usage()
+        last_model = api_usage.get('last_model', 'None (first run)')
+        models_used = api_usage.get('models', {})
+        
         logger.info(f"📊 API Usage Report [START]:")
         logger.info(f"   📅 Date: {api_usage.get('date')}")
-        logger.info(f"   🔷 Gemini: {api_usage.get('gemini', 0)}/{api_usage.get('limits', {}).get('gemini', 50)} calls today")
-        logger.info(f"   💎 DeepSeek: {api_usage.get('deepseek', 0)} calls today")
+        logger.info(f"   🤖 Last Model: {last_model}")
+        logger.info(f"   🔷 OpenRouter calls today: {api_usage.get('openrouter', 0)}")
+        if models_used:
+            for model, count in list(models_used.items())[:3]:  # Show top 3 models
+                model_short = model.split('/')[-1].replace(':free', '')
+                logger.info(f"      └ {model_short}: {count} calls")
         logger.info(f"   ⏰ Reset at: {api_usage.get('reset_at_local', 'N/A')} ({api_usage.get('hours_until_reset', 0):.1f}h from now)")
         logger.info(f"   🆔 Run ID: {run_id}")
     except:
@@ -837,14 +844,24 @@ async def run_async_pipeline():
     try:
         api_usage = db.get_api_usage()
         run_stats = api_usage.get('runs', {}).get(run_id, {})
-        gemini_this_run = run_stats.get('gemini', 0)
-        deepseek_this_run = run_stats.get('deepseek', 0)
+        openrouter_this_run = run_stats.get('openrouter', 0)
+        last_model = api_usage.get('last_model', 'N/A')
+        model_short = last_model.split('/')[-1].replace(':free', '') if last_model != 'N/A' else 'N/A'
         
         logger.info(f"📊 API Usage Report [END]:")
         logger.info(f"   🆔 Run ID: {run_id}")
-        logger.info(f"   📞 This Run: Gemini={gemini_this_run}, DeepSeek={deepseek_this_run}")
-        logger.info(f"   📅 Total Today: Gemini={api_usage.get('gemini', 0)}/{api_usage.get('limits', {}).get('gemini', 50)}")
-        logger.info(f"   ⏳ Remaining: {api_usage.get('gemini_remaining', 0)} Gemini calls")
+        logger.info(f"   🤖 Model Used: {model_short}")
+        logger.info(f"   📞 This Run: {openrouter_this_run} OpenRouter calls")
+        logger.info(f"   📅 Total Today: {api_usage.get('openrouter', 0)} OpenRouter calls")
+        
+        # Show per-model breakdown
+        models_used = api_usage.get('models', {})
+        if models_used:
+            logger.info(f"   📊 Per-Model Stats:")
+            for model, count in list(models_used.items())[:5]:
+                m_short = model.split('/')[-1].replace(':free', '')
+                logger.info(f"      └ {m_short}: {count}")
+        
         logger.info(f"   ⏰ Reset in: {api_usage.get('hours_until_reset', 0):.1f}h ({api_usage.get('reset_at_local', 'N/A')})")
     except Exception as e:
         logger.warning(f"API usage report failed: {e}")

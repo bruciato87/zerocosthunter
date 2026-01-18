@@ -340,11 +340,13 @@ class DBHandler:
             
             # Reset if new day
             if counters.get("date") != today:
-                counters = {"date": today, "gemini": 0, "deepseek": 0, "runs": {}}
+                counters = {"date": today, "openrouter": 0, "gemini_fallback": 0, "runs": {}, "models": {}}
             
-            # Ensure runs dict exists
+            # Ensure dicts exist
             if "runs" not in counters:
                 counters["runs"] = {}
+            if "models" not in counters:
+                counters["models"] = {}
             
             # Increment provider counter
             counters[provider] = counters.get(provider, 0) + 1
@@ -352,7 +354,7 @@ class DBHandler:
             # Track per-run if run_id provided
             if run_id:
                 if run_id not in counters["runs"]:
-                    counters["runs"][run_id] = {"gemini": 0, "deepseek": 0, "started_at": datetime.utcnow().isoformat()}
+                    counters["runs"][run_id] = {"openrouter": 0, "gemini_fallback": 0, "started_at": datetime.utcnow().isoformat(), "model_used": None}
                 counters["runs"][run_id][provider] = counters["runs"][run_id].get(provider, 0) + 1
             
             # Save to DB
@@ -363,20 +365,50 @@ class DBHandler:
             return counters
         except Exception as e:
             logger.error(f"Error incrementing API counter: {e}")
-            return {"date": today, "gemini": 0, "deepseek": 0}
+            return {"date": today, "openrouter": 0, "gemini_fallback": 0}
+
+    def log_model_used(self, model_id: str):
+        """
+        Log which OpenRouter model was used.
+        Tracks per-model usage for visibility.
+        """
+        try:
+            today = datetime.utcnow().strftime('%Y-%m-%d')
+            settings = self.get_settings()
+            counters = settings.get("api_counters") or {}
+            
+            if not isinstance(counters, dict) or counters.get("date") != today:
+                counters = {"date": today, "openrouter": 0, "gemini_fallback": 0, "runs": {}, "models": {}}
+            
+            if "models" not in counters:
+                counters["models"] = {}
+            
+            # Increment per-model counter
+            counters["models"][model_id] = counters["models"].get(model_id, 0) + 1
+            
+            # Track last model used
+            counters["last_model"] = model_id
+            
+            # Save to DB
+            if "id" in settings:
+                self.supabase.table("user_settings").update({"api_counters": counters}).eq("id", settings["id"]).execute()
+            
+            logger.info(f"Model Used: {model_id} (count: {counters['models'][model_id]})")
+        except Exception as e:
+            logger.error(f"Error logging model used: {e}")
 
     def get_api_usage(self) -> dict:
         """
         Get current API usage stats with reset time info.
         Returns: {
             "date": "2026-01-18",
-            "gemini": 45,
-            "deepseek": 12,
+            "openrouter": 45,
+            "gemini_fallback": 2,
             "runs": {...},
-            "limits": {"gemini": 50, "deepseek": None},
+            "models": {"deepseek/deepseek-r1-0528:free": 40, ...},
+            "last_model": "deepseek/deepseek-r1-0528:free",
             "reset_at_utc": "2026-01-19T00:00:00Z",
-            "hours_until_reset": 15.5,
-            "gemini_remaining": 5
+            "hours_until_reset": 15.5
         }
         """
         try:
@@ -388,29 +420,28 @@ class DBHandler:
             counters = settings.get("api_counters") or {}
             
             if not isinstance(counters, dict) or counters.get("date") != today:
-                counters = {"date": today, "gemini": 0, "deepseek": 0, "runs": {}}
+                counters = {"date": today, "openrouter": 0, "gemini_fallback": 0, "runs": {}, "models": {}}
             
             # Calculate reset time (midnight UTC next day)
             tomorrow = now_utc.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
             hours_until_reset = (tomorrow - now_utc).total_seconds() / 3600
             
-            # Add limits info (Gemini 2.5 Flash free tier - reduced in Dec 2025)
-            gemini_limit = 50  # Conservative estimate for free tier
+            # OpenRouter free tier info (varies by model, using general estimate)
+            # Most free models have ~50-200 RPD
             counters["limits"] = {
-                "gemini": gemini_limit,
-                "deepseek": None  # Pay-per-use, no daily limit
+                "openrouter_daily": "~50-200 per model",
+                "gemini_fallback": 50
             }
             
             # Add reset time info
             counters["reset_at_utc"] = tomorrow.strftime('%Y-%m-%dT%H:%M:%SZ')
             counters["reset_at_local"] = f"{tomorrow.strftime('%Y-%m-%d')} 01:00 (Italy)"  # UTC+1
             counters["hours_until_reset"] = round(hours_until_reset, 1)
-            counters["gemini_remaining"] = max(0, gemini_limit - counters.get("gemini", 0))
             
             return counters
         except Exception as e:
             logger.error(f"Error getting API usage: {e}")
-            return {"date": today, "gemini": 0, "deepseek": 0, "limits": {"gemini": 50, "deepseek": None}}
+            return {"date": today, "openrouter": 0, "gemini_fallback": 0, "limits": {}}
 
     def check_if_analyzed_recently(self, ticker: str, new_sentiment: str, hours: int = 24) -> bool:
         """

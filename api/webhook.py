@@ -237,66 +237,58 @@ async def mode_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     db = DBHandler()
     args = context.args
     
-    # Get current mode from settings
-    settings = db.get_settings()
-    current_mode = settings.get("app_mode", "PREPROD")
+    # Show OpenRouter info (mode switching no longer needed)
+    usage = db.get_api_usage()
+    last_model = usage.get("last_model", "N/A")
+    model_short = last_model.split('/')[-1].replace(':free', '') if last_model != 'N/A' else 'Nessun modello usato oggi'
+    total_calls = usage.get("openrouter", 0)
     
-    if not args:
-        # Show current mode
-        mode_emoji = "🧪" if current_mode == "PREPROD" else "🚀"
-        msg = (
-            f"🔧 **Modalità Operativa**\n\n"
-            f"Attuale: {mode_emoji} **{current_mode}**\n\n"
-            f"**PREPROD** 🧪: Solo Gemini (gratis, 1000+ req/giorno)\n"
-            f"**PROD** 🚀: DeepSeek primario + Gemini fallback\n\n"
-            f"**Per cambiare:**\n"
-            f"`/mode PREPROD` oppure `/mode PROD`"
-        )
-        await update.message.reply_text(msg, parse_mode="Markdown")
-        return
-    
-    new_mode = args[0].upper()
-    if new_mode not in ["PREPROD", "PROD"]:
-        await update.message.reply_text("❌ Modalità non valida. Usa: `/mode PREPROD` o `/mode PROD`", parse_mode="Markdown")
-        return
-    
-    # Update mode in database
-    db.update_settings(app_mode=new_mode)
-    
-    mode_emoji = "🧪" if new_mode == "PREPROD" else "🚀"
-    await update.message.reply_text(
-        f"✅ Modalità cambiata a {mode_emoji} **{new_mode}**\n\n"
-        f"{'Ora usi solo Gemini (gratis).' if new_mode == 'PREPROD' else 'Ora usi DeepSeek + Gemini fallback.'}",
-        parse_mode="Markdown"
+    msg = (
+        f"🤖 **AI Engine: OpenRouter**\n\n"
+        f"🎯 **Ultimo Modello:** {model_short}\n"
+        f"📊 **Chiamate Oggi:** {total_calls}\n"
+        f"⏰ **Reset:** {usage.get('reset_at_local', 'N/A')}\n\n"
+        f"**Come Funziona:**\n"
+        f"Il sistema seleziona automaticamente il miglior modello AI gratuito disponibile:\n"
+        f"1️⃣ DeepSeek R1 (reasoning)\n"
+        f"2️⃣ DeepSeek Chat V3\n"
+        f"3️⃣ Llama 3.3 70B\n"
+        f"4️⃣ Gemini Flash\n"
+        f"5️⃣ ...e altri\n\n"
+        f"_Non serve più cambiare modalità!_"
     )
+    await update.message.reply_text(msg, parse_mode="Markdown")
 
 async def usage_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Show API usage statistics."""
     db = DBHandler()
     usage = db.get_api_usage()
     
-    gemini_count = usage.get("gemini", 0)
-    deepseek_count = usage.get("deepseek", 0)
-    gemini_limit = usage.get("limits", {}).get("gemini", 1000)
+    openrouter_count = usage.get("openrouter", 0)
+    fallback_count = usage.get("gemini_fallback", 0)
+    models = usage.get("models", {})
     date = usage.get("date", "N/A")
+    last_model = usage.get("last_model", "N/A")
     
-    # Calculate percentage
-    gemini_pct = (gemini_count / gemini_limit * 100) if gemini_limit else 0
-    
-    # Choose emoji based on usage level
-    if gemini_pct < 50:
-        gemini_emoji = "🟢"
-    elif gemini_pct < 80:
-        gemini_emoji = "🟡"
+    # Build per-model breakdown
+    models_text = ""
+    if models:
+        for model, count in sorted(models.items(), key=lambda x: x[1], reverse=True)[:5]:
+            model_short = model.split('/')[-1].replace(':free', '')
+            models_text += f"  └ {model_short}: {count}\n"
     else:
-        gemini_emoji = "🔴"
+        models_text = "  _Nessun modello usato oggi_\n"
+    
+    hours_left = usage.get("hours_until_reset", 0)
+    reset_time = usage.get("reset_at_local", "01:00 Italy")
     
     msg = (
         f"📊 **API Usage Today** ({date})\n"
         f"━━━━━━━━━━━━━━━━━━\n\n"
-        f"{gemini_emoji} **Gemini:** {gemini_count}/{gemini_limit} ({gemini_pct:.1f}%)\n"
-        f"🔵 **DeepSeek:** {deepseek_count} (pay-per-use)\n\n"
-        f"⏰ Reset: 00:00 UTC"
+        f"🤖 **OpenRouter:** {openrouter_count} chiamate\n"
+        f"{models_text}\n"
+        f"🔄 **Gemini Fallback:** {fallback_count}\n\n"
+        f"⏰ **Reset in:** {hours_left:.1f}h ({reset_time})"
     )
     await update.message.reply_text(msg, parse_mode="Markdown")
 
