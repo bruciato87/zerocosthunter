@@ -40,6 +40,9 @@ class Brain:
         self._cached_best_model = None
         self._cache_timestamp = 0
         
+        # Track last execution details for reporting
+        self.last_run_details = {}
+        
         # Log initialization
         if self.openrouter_api_key:
             logger.info(f"Brain initialized: OpenRouter=✅, Gemini Fallback={'✅' if self.gemini_api_key else '❌'}")
@@ -79,216 +82,210 @@ class Brain:
                 model_id = m.get("id")
                 pricing = m.get("pricing", {})
                 context = m.get("context_length", 0)
+            # Handle list response from OpenRouter
+            data_list = models_data.get("data", [])
+            
+            for item in data_list:
+                model_id = item.get("id")
+                if not model_id: continue
                 
-                # Filter 1: Must be strictly free
-                try:
-                    p_prompt = float(pricing.get('prompt', '1') or '1')
-                    p_completion = float(pricing.get('completion', '1') or '1')
-                except:
+                if model_id in excluded_models:
                     continue
-                    
-                if p_prompt == 0 and p_completion == 0:
-                    # Filter 2: Must have large context (>= 32k) to handle news batches
-                    # Generous fallback: if context is 0/undefined, assume it might be okay (risky but better than nothing)
-                    # But for safety, we prefer explicit high context.
-                    if context >= 32000:
+
+                # Pricing check (Free only)
+                pricing = item.get("pricing", {})
+                prompt = float(pricing.get("prompt", "1"))
+                completion = float(pricing.get("completion", "1"))
+                
+                # Context length check (Min 32k for large updates)
+                context_length = int(item.get("context_length", 0))
+
+                if prompt == 0 and completion == 0:
+                    if context_length >= 32000:
                         available_models.add(model_id)
 
-            # If no high-context free models found, try relax context constraint? 
-            # No, because 26k tokens on 8k model fails 100%.
-            if not available_models:
-                logger.warning("No FREE models with >32k context found. Relaxing filter to >16k...")
-                for m in data_list:
-                    model_id = m.get("id")
-                    pricing = m.get("pricing", {})
-                    context = m.get("context_length", 0)
-                    try:
-                        p_prompt = float(pricing.get('prompt', '1') or '1')
-                        p_completion = float(pricing.get('completion', '1') or '1')
-                        if p_prompt == 0 and p_completion == 0 and context >= 16000:
-                             available_models.add(model_id)
-                    except: pass
-
-            # --- Dynamic Quality Scoring System ---
-            # Define preferences for baseline scoring (Top Tier Keywords)
-            preferences = [
-                'gemini-2.0-flash', 
-                'gemini-2.0-pro',
-                'llama-3.3-70b', 
-                'llama-3.1-70b',
-                'mistral-large', 
-                'qwen-2.5-72b',
-                'phi-4'
-            ]
-
-            # Score available models to find the "Most Powerful" one automatically.
-            scored_candidates = []
-            
-            for model_id in available_models:
-                score = 0
-                lower_id = model_id.lower()
-                
-                # 1. Preference List Bonus (Verified Top Tier)
-                try:
-                    # Give points based on reverse rank in preferences (Higher in list = more points)
-                    # Use substring matching for robustness
-                    for idx, pref in enumerate(preferences):
-                        if pref in model_id:
-                            score += (1000 - idx * 100) # Big bonus
-                            break
-                except: pass
-                
-                # 2. "Power" Keywords Heuristic
-                if 'r1' in lower_id: score += 150        # Reasoner models (DeepSeek R1) are top tier
-                if 'pro' in lower_id: score += 90
-                if 'ultra' in lower_id: score += 90
-                if 'plus' in lower_id: score += 50
-                if 'max' in lower_id: score += 50
-                
-                # 3. Model Size Heuristic (Bigger is usually smarter)
-                if '405b' in lower_id: score += 200
-                if '70b' in lower_id: score += 80
-                if '72b' in lower_id: score += 80
-                if 'large' in lower_id: score += 60
-                
-                # 4. negative/neutral qualifiers
-                if 'flash' in lower_id: score += 40      # Good but usually optimized for speed
-                if 'turbo' in lower_id: score += 30
-                if 'distill' in lower_id: score -= 10
-                if 'mini' in lower_id: score -= 20
-                if '8b' in lower_id: score -= 20
-                if '7b' in lower_id: score -= 20
-                
-                scored_candidates.append((score, model_id))
-            
-            # Sort by score descending
-            scored_candidates.sort(key=lambda x: x[0], reverse=True)
-            
-            if scored_candidates:
-                best_score, best_model = scored_candidates[0]
-                self._cached_best_model = best_model
-                self._cache_timestamp = time.time()
-                logger.info(f"OpenRouter: Auto-ranked best model: {best_model} (Score: {best_score})")
-                return best_model
-            
-            # Fallback (Static)
-            logger.warning("OpenRouter: No verified high-context free models found via API. Using static fallback.")
-            return "google/gemini-2.0-flash-exp:free"
-
         except Exception as e:
-            logger.warning(f"OpenRouter model fetch failed: {e}")
-            return "google/gemini-2.0-flash-exp:free"
+             logger.warning(f"OpenRouter model discovery failed: {e}")
+             # Fallback to static selection excluding bad ones
+             for m in OPENROUTER_MODEL_TIERS:
+                 if m not in excluded_models:
+                     return m
+             return OPENROUTER_MODEL_TIERS[0]
+
+        # --- Dynamic Quality Scoring System ---
+        # Define preferences for baseline scoring (Top Tier Keywords)
+        preferences = [
+            'gemini-2.0-flash', 
+            'gemini-2.0-pro',
+            'llama-3.3-70b', 
+            'llama-3.1-70b',
+            'mistral-large', 
+            'qwen-2.5-72b',
+            'phi-4'
+        ]
+
+        # Score available models to find the "Most Powerful" one automatically.
+        scored_candidates = []
+        
+        for model_id in available_models:
+            score = 0
+            lower_id = model_id.lower()
+            
+            # 1. Preference List Bonus (Verified Top Tier)
+            try:
+                for idx, pref in enumerate(preferences):
+                    if pref in model_id:
+                        score += (1000 - idx * 100) # Big bonus
+                        break
+            except: pass
+            
+            # 2. "Power" Keywords Heuristic
+            if 'r1' in lower_id: score += 150
+            if 'pro' in lower_id: score += 90
+            if 'ultra' in lower_id: score += 90
+            if 'plus' in lower_id: score += 50
+            if 'max' in lower_id: score += 50
+            
+            # 3. Model Size Heuristic
+            if '405b' in lower_id: score += 200
+            if '70b' in lower_id: score += 80
+            if '72b' in lower_id: score += 80
+            if 'large' in lower_id: score += 60
+            
+            # 4. negative/neutral qualifiers
+            if 'flash' in lower_id: score += 40
+            if 'turbo' in lower_id: score += 30
+            if 'distill' in lower_id: score -= 10
+            if 'mini' in lower_id: score -= 20
+            if '8b' in lower_id: score -= 20
+            if '7b' in lower_id: score -= 20
+            
+            scored_candidates.append((score, model_id))
+        
+        # Sort by score descending
+        scored_candidates.sort(key=lambda x: x[0], reverse=True)
+        
+        if scored_candidates:
+            best_score, best_model = scored_candidates[0]
+            self._cached_best_model = best_model
+            self._cache_timestamp = time.time()
+            logger.info(f"OpenRouter: Auto-ranked best model: {best_model} (Score: {best_score})")
+            return best_model
+        
+        # Fallback (Static) if discovery yields nothing
+        if available_models: # Relax context filter?
+             # Try 16k fallback logic here if needed, or just return first available
+             pass
+
+        logger.warning("OpenRouter: No verified high-context free models found via API. Using static fallback.")
+        return "google/gemini-2.0-flash-exp:free"
 
     def _call_openrouter(self, messages: list, temperature: float = 0.3, json_mode: bool = False, model: str = None) -> str:
         """
-        Call OpenRouter API (OpenAI-compatible).
-        Auto-selects best free model if model is not specified.
-        Handles 404 errors by invalidating cache and finding a new model.
+        Call OpenRouter API with auto-failover and usage tracking.
         """
         if not self.openrouter_api_key:
             raise Exception("OPENROUTER_API_KEY not configured")
-        
-        # Auto-select best free model if not specified
-        if model is None:
-            model = self._get_best_free_model()
-        
-        headers = {
-            "Authorization": f"Bearer {self.openrouter_api_key}",
-            "Content-Type": "application/json",
-            "HTTP-Referer": "https://zerocosthunter.vercel.app",
-            "X-Title": "ZeroCostHunter"
-        }
-        
-        payload = {
-            "model": model,
-            "messages": messages,
-            "temperature": temperature,
-            "max_tokens": 4096
-        }
-        
-        if json_mode:
-            payload["response_format"] = {"type": "json_object"}
-            
-        try:
-            response = requests.post(
-                f"{self.openrouter_base_url}/chat/completions",
-                headers=headers,
-                json=payload,
-                timeout=120
-            )
-            
-            # Handle Success
-            if response.status_code == 200:
-                data = response.json()
-                choice = data['choices'][0]['message']
-                content = choice.get('content', '')
+
+        excluded_models = []
+        max_retries = 3
+
+        for attempt in range(max_retries):
+            # Select model (skip failed ones)
+            if model is None or (attempt > 0 and not model):
+                model = self._get_best_free_model(excluded_models=excluded_models)
+
+            headers = {
+                "Authorization": f"Bearer {self.openrouter_api_key}",
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://zerocosthunter.vercel.app",
+                "X-Title": "ZeroCostHunter"
+            }
+
+            payload = {
+                "model": model,
+                "messages": messages,
+                "temperature": temperature,
+                "max_tokens": 8192  # Increased for large analyses
+            }
+
+            if json_mode:
+                payload["response_format"] = {"type": "json_object"}
+
+            try:
+                response = requests.post(
+                    f"{self.openrouter_base_url}/chat/completions",
+                    headers=headers,
+                    json=payload,
+                    timeout=120
+                )
                 
-                # Handle reasoning models (DeepSeek R1)
-                reasoning = choice.get('reasoning_content', '')
-                if reasoning and not content:
-                    logger.info("Using reasoning_content as response")
-                    content = reasoning
-                
-                # JSON Repair
-                if json_mode and content:
-                    import re
-                    # Try to extract JSON from markdown block
-                    json_match = re.search(r'```json\s*(\{.*?\})\s*```', content, re.DOTALL)
-                    if json_match:
-                        content = json_match.group(1)
-                    else:
-                        # Try to extract raw JSON object
-                        json_match_raw = re.search(r'(\{.*\})', content, re.DOTALL)
-                        if json_match_raw:
-                            content = json_match_raw.group(1)
+                # Success checks
+                if response.status_code == 200:
+                    data = response.json()
+                    choice = data["choices"][0]["message"]
+                    content = choice.get("content", "")
                     
-                    # Validate
+                    # 1. Track Usage
+                    self.last_run_details = {
+                        "model": model,
+                        "usage": data.get("usage", {}),
+                        "provider": "OpenRouter"
+                    }
+                    
+                    # 2. DeepSeek Logic (Reasoning Content)
+                    reasoning = choice.get("reasoning_content", "")
+                    if reasoning and not content:
+                        content = reasoning
+                    
+                    # 3. JSON Repair
+                    if json_mode and content:
+                        import re
+                        # Clean markdown wrappers
+                        content = content.replace("```json", "").replace("```", "").strip()
+                        # Verify simple validity
+                        try:
+                            import json
+                            # Try to find { } block if there's garbage around
+                            match = re.search(r'(\{.*\})', content, re.DOTALL)
+                            if match:
+                                content = match.group(1)
+                            json.loads(content)
+                        except:
+                             logger.warning(f"Invalid JSON from {model}, retrying...")
+                             # If JSON is invalid, treat as failure unless it's the last attempt
+                             if attempt < max_retries - 1:
+                                 excluded_models.append(model)
+                                 continue
+                    
+                    # Log Success
                     try:
-                        json.loads(content)
-                    except:
-                        raise ValueError(f"Invalid JSON from {model}")
-
-                # Tracking
-                try:
-                    from db_handler import DBHandler
-                    db = DBHandler()
-                    db.increment_api_counter("openrouter", run_id=self.current_run_id)
-                    db.log_model_used(model)
-                except:
-                    pass
+                        from db_handler import DBHandler
+                        db = DBHandler()
+                        db.increment_api_counter("openrouter", run_id=self.current_run_id)
+                        db.log_model_used(model)
+                    except: pass
+                    
+                    return content
                 
-                logger.info(f"OpenRouter call successful (model: {model})")
-                return content
-            
-            # Handle 404 (Model Vanished) -> Retry once
-            if response.status_code == 404:
-                logger.warning(f"OpenRouter 404 for {model}. Invalidating cache...")
-                self._cached_best_model = None
-                self._cache_timestamp = 0
+                # Failover triggers (404 Not Found, 429 Rate Limit, 400 Bad Request/Context, 5xx Server)
+                elif response.status_code in [400, 404, 429, 500, 502, 503]:
+                    logger.warning(f"OpenRouter Error ({response.status_code}) with {model}: {response.text}")
+                    excluded_models.append(model)
+                    self._cached_best_model = None # Invalidate cache
+                    # Loop continues to next attempt with new model
                 
-                new_model = self._get_best_free_model()
-                if new_model != model:
-                    logger.info(f"Retrying with fresh model: {new_model}")
-                    payload["model"] = new_model
-                    # Recursive retry (one level deep effectively)
-                    response = requests.post(
-                        f"{self.openrouter_base_url}/chat/completions",
-                        headers=headers,
-                        json=payload,
-                        timeout=120
-                    )
-                    if response.status_code == 200:
-                        # Basic extraction for retry (simplified)
-                        return response.json()["choices"][0]["message"]["content"]
+                else:
+                    # Unknown fatal error
+                    raise Exception(f"OpenRouter API Fatal ({response.status_code}): {response.text}")
 
-            # Handle other errors
-            logger.error(f"OpenRouter API error ({response.status_code}): {response.text}")
-            raise Exception(f"OpenRouter API error ({response.status_code}): {response.text}")
-            
-        except requests.exceptions.Timeout:
-            raise Exception("OpenRouter Timeout")
-        except Exception as e:
-            raise e
+            except Exception as e:
+                logger.warning(f"OpenRouter Attempt {attempt+1} failed with {model}: {e}")
+                excluded_models.append(model)
+                if attempt == max_retries - 1:
+                    raise e
+        
+        raise Exception("OpenRouter: All model attempts failed.")
 
     def _call_gemini_fallback(self, prompt: str, json_mode: bool = False) -> str:
         """Direct Gemini API call as last-resort fallback."""
@@ -308,6 +305,18 @@ class Brain:
             config=config
         )
         
+        # Track usage (Approximated as Direct API doesn't return token counts easily in this client version)
+        self.last_run_details = {
+            "model": "google/gemini-2.0-flash-exp (Direct)",
+            "usage": {"total_tokens": "N/A (Direct Fallback)"},
+            "provider": "Google Direct"
+        }
+        
+        content = response.text
+        if json_mode:
+             content = content.replace("```json", "").replace("```", "").strip()
+             
+        # Track fallback usage
         # Track fallback usage
         try:
             from db_handler import DBHandler
@@ -316,14 +325,8 @@ class Brain:
         except Exception:
             pass
         
-        text = response.text
-        
-        # Cleanup JSON if needed (consistency with OpenRouter)
-        if json_mode and text:
-            text = text.replace('```json', '').replace('```', '').strip()
-            
         logger.info("Gemini fallback call successful")
-        return text
+        return content
 
     def _generate_with_fallback(self, prompt: str, json_mode: bool = False, model: str = None, prefer_free: bool = True) -> str:
         """

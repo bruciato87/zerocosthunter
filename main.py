@@ -882,10 +882,29 @@ async def run_async_pipeline():
     
     # Send completion notification to Telegram
     try:
+        # Build AI Tech Footer
+        ai_footer = ""
+        try:
+            details = brain.last_run_details
+            if details:
+                model_name = details.get('model', 'Unknown').split('/')[-1].replace(':free', '')
+                try:
+                    usage = details.get('usage', {})
+                    # Handle difference between OpenRouter (dict) and Gemini Direct (dict with N/A)
+                    if isinstance(usage, dict):
+                         total_tok = usage.get('total_tokens', '?')
+                         if total_tok == '?': total_tok = "Direct"
+                    else:
+                         total_tok = str(usage)
+                except: total_tok = "?"
+                
+                ai_footer = f"\n\n🤖 AI Model: `{model_name}`\n🎟️ Tokens: `{total_tok}`"
+        except: pass
+
         if processed_count > 0:
-            await notifier.send_alert(f"✅ **Caccia Completata!**\n📊 Processati {processed_count} segnali validi.{flash_tip}")
+            await notifier.send_alert(f"✅ **Caccia Completata!**\n📊 Processati {processed_count} segnali validi.{flash_tip}{ai_footer}")
         else:
-            await notifier.send_alert(f"✅ **Caccia Completata!**\n🔍 Nessun nuovo segnale significativo trovato.{flash_tip}")
+            await notifier.send_alert(f"✅ **Caccia Completata!**\n🔍 Nessun nuovo segnale significativo trovato.{flash_tip}{ai_footer}")
     except Exception as e:
         logger.warning(f"Failed to send completion notification: {e}")
 
