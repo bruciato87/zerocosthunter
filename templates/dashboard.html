@@ -832,9 +832,7 @@
                     });
 
                     // Inject Data
-                    const dates = {{ chart_labels | tojson
-                }
-            };
+                    const dates = {{ chart_labels | tojson }};
             const values = {{ chart_data | safe }};
 
             if (dates && values && dates.length === values.length) {
