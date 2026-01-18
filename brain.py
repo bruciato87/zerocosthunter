@@ -97,8 +97,8 @@ class Brain:
 
                 if prompt == 0 and completion == 0:
                     if context_length >= 32000:
-                        # Blacklist models known to report fake context lengths
-                        blacklisted = ['chimera', 'tngtech']
+                        # Blacklist models known to report fake context lengths or have broken providers
+                        blacklisted = ['chimera', 'tngtech', 'deepseek-r1-0528']  # ModelRun limits R1 to 8k
                         if not any(bl in model_id.lower() for bl in blacklisted):
                             available_models.add(model_id)
 
