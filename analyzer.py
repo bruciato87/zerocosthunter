@@ -87,6 +87,16 @@ class Analyzer:
                 portfolio_context=portfolio_context
             )
             
+            # Add AI Model Footer
+            try:
+                details = self.brain.last_run_details
+                if details:
+                    model_name = details.get('model', 'Unknown').split('/')[-1].replace(':free', '')
+                    usage = details.get('usage', {})
+                    total_tok = usage.get('total_tokens', 'N/A') if isinstance(usage, dict) else str(usage)
+                    analysis_report += f"\n\n🤖 AI: `{model_name}` | 🎟️ `{total_tok}`"
+            except: pass
+            
             # 5. Send to Telegram
             logger.info(f"Sending report to {target_chat_id}...")
             await self.notifier.send_message(chat_id=target_chat_id, message=analysis_report)

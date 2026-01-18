@@ -532,6 +532,9 @@ class Rebalancer:
             # OpenRouter will auto-select best reasoning model (DeepSeek R1 if available)
             response_text = brain._generate_with_fallback(prompt, json_mode=False)
             
+            # Save brain reference for AI footer
+            self._last_brain = brain
+            
             # [V12] Save AI suggestions for learning
             self._save_suggestions_to_db(response_text, analysis, regime_data)
             
@@ -679,6 +682,17 @@ class Rebalancer:
         
         report += "\n" + "━" * 28
         report += f"\n_Generato: {datetime.now().strftime('%Y-%m-%d %H:%M')}_"
+        
+        # Add AI Model Footer
+        try:
+            if hasattr(self, '_last_brain') and self._last_brain:
+                details = self._last_brain.last_run_details
+                if details:
+                    model_name = details.get('model', 'Unknown').split('/')[-1].replace(':free', '')
+                    usage = details.get('usage', {})
+                    total_tok = usage.get('total_tokens', 'N/A') if isinstance(usage, dict) else str(usage)
+                    report += f"\n\n🤖 AI: `{model_name}` | 🎟️ `{total_tok}`"
+        except: pass
         
         return report
     
