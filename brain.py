@@ -47,16 +47,6 @@ class Brain:
         else:
             logger.warning("Brain initialized: OpenRouter=❌ (no API key), Gemini={'✅' if self.gemini_api_key else '❌'}")
 
-    def _get_best_free_model(self, force_refresh: bool = False) -> str:
-        """
-        Fetch available models from OpenRouter and return the best free model.
-        Uses cached result for 5 minutes unless force_refresh=True.
-        """
-        # Return cached if valid (5 min TTL)
-        if not force_refresh and self._cached_best_model and (time.time() - self._cache_timestamp < 300):
-            return self._cached_best_model
-        
-        try:
     def _get_best_free_model(self) -> str:
         """
         Dynamically fetches available models from OpenRouter and selects the best FREE one.
