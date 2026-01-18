@@ -13,13 +13,12 @@ logger = logging.getLogger(__name__)
 # OpenRouter Model Tier List (best quality first)
 # These are FREE models on OpenRouter, ordered by capability
 OPENROUTER_MODEL_TIERS = [
-    "deepseek/deepseek-r1-0528:free",          # Best reasoning (671B MoE)
-    "deepseek/deepseek-chat-v3-0324:free",     # Fast + Smart
+    "deepseek/deepseek-r1:free",               # Best reasoning (if available)
+    "google/gemini-2.0-flash-exp:free",        # Google's latest fast model
     "meta-llama/llama-3.3-70b-instruct:free",  # Strong general purpose
-    "google/gemini-2.5-flash-preview:free",    # Google's fast model
-    "qwen/qwen3-coder-480b-a35b:free",         # Coding specialist
-    "mistralai/mistral-small-3.1-24b:free",    # Efficient
-    "nvidia/nemotron-3-nano-30b-a3b:free",     # NVIDIA's offering
+    "deepseek/deepseek-chat:free",             # DeepSeek V3 standard
+    "qwen/qwen-2.5-coder-32b-instruct:free",   # Coding specialist
+    "microsoft/phi-4:free",                    # Efficient small model
 ]
 
 class Brain:
@@ -58,44 +57,90 @@ class Brain:
             return self._cached_best_model
         
         try:
-            # Fetch models list from OpenRouter
-            headers = {"Authorization": f"Bearer {self.openrouter_api_key}"}
-            response = requests.get(
-                f"{self.openrouter_base_url}/models",
-                headers=headers,
-                timeout=10
-            )
+    def _get_best_free_model(self) -> str:
+        """
+        Dynamically fetches available models from OpenRouter and selects the best FREE one.
+        Uses fuzzy matching against a preference list to auto-discover new versions.
+        """
+        # Return cached result if fresh (< 1 hour)
+        if self._cached_best_model and (time.time() - self._cache_timestamp < 3600):
+            return self._cached_best_model
+
+        try:
+            # OpenRouter requires these headers for full model visibility
+            headers = {
+                "Authorization": f"Bearer {self.openrouter_api_key}",
+                "HTTP-Referer": "https://zerocosthunter.vercel.app",
+                "X-Title": "ZeroCostHunter"
+            }
             
-            if response.status_code != 200:
-                logger.warning(f"OpenRouter models API failed: {response.status_code}")
-                return OPENROUTER_MODEL_TIERS[0]  # Default to best tier
+            resp = requests.get(f"{self.openrouter_base_url}/models", headers=headers, timeout=10)
+            if resp.status_code != 200:
+                logger.warning(f"Failed to fetch OpenRouter models: {resp.status_code}")
+                return OPENROUTER_MODEL_TIERS[0]
             
-            models_data = response.json().get("data", [])
+            data = resp.json()
+            free_models = []
             
-            # Build set of available model IDs
-            available_models = set()
-            for model in models_data:
-                model_id = model.get("id", "")
-                pricing = model.get("pricing", {})
-                
-                # Check if free (prompt and completion both 0)
-                prompt_price = float(pricing.get("prompt", "1") or "1")
-                completion_price = float(pricing.get("completion", "1") or "1")
-                
-                if prompt_price == 0 and completion_price == 0:
-                    available_models.add(model_id)
+            for m in data.get('data', []):
+                pricing = m.get('pricing', {})
+                # Check for strictly free models
+                try:
+                    p_prompt = float(pricing.get('prompt', '1') or '1')
+                    p_completion = float(pricing.get('completion', '1') or '1')
+                except:
+                    continue
+                    
+                if p_prompt == 0 and p_completion == 0:
+                    free_models.append(m['id'])
             
-            # Find best available model from our tier list
-            for tier_model in OPENROUTER_MODEL_TIERS:
-                if tier_model in available_models:
-                    self._cached_best_model = tier_model
+            if not free_models:
+                logger.warning("No free models found on OpenRouter! Using default fallback.")
+                return OPENROUTER_MODEL_TIERS[0]
+
+            logger.info(f"OpenRouter: Found {len(free_models)} free models available.")
+
+            # Dynamic Preference List (Keywords to match)
+            # Order matters: Best Reasoning -> Best General -> Good Fallbacks
+            preferences = [
+                'deepseek/deepseek-r1',          # DeepSeek R1 (Top Tier)
+                'google/gemini-2.0-flash',       # Google 2.0 (Fast & Smart)
+                'meta-llama/llama-3.3-70b',      # Llama 3.3 (Solid 70B)
+                'deepseek/deepseek-chat',        # DeepSeek V3 (Chat)
+                'deepseek/deepseek-v3',          # DeepSeek V3 (Alt ID)
+                'qwen/qwen-2.5-72b',             # Qwen 72B
+                'qwen/qwen-2.5-coder',           # Qwen Coder
+                'microsoft/phi-4',               # Phi-4
+                'meta-llama/llama-3.1-70b',      # Llama 3.1 70B
+            ]
+            
+            # Find best match
+            for pref in preferences:
+                candidates = [m for m in free_models if pref in m]
+                if candidates:
+                    # Prefer exact matches or shorter IDs (usually canonical)
+                    best_match = sorted(candidates, key=len)[0]
+                    self._cached_best_model = best_match
                     self._cache_timestamp = time.time()
-                    logger.info(f"OpenRouter: Selected best free model: {tier_model}")
-                    return tier_model
+                    logger.info(f"OpenRouter: Auto-selected best free model: {best_match}")
+                    return best_match
             
-            # Fallback to first tier if none found (shouldn't happen)
-            logger.warning("OpenRouter: No tier models available, using default")
-            return OPENROUTER_MODEL_TIERS[0]
+            # Fallback: Pick any high-param model usually good
+            fallback_keywords = ['70b', 'deepseek', 'gemini', 'llama']
+            for keyword in fallback_keywords:
+                 candidates = [m for m in free_models if keyword in m]
+                 if candidates:
+                     best = candidates[0]
+                     self._cached_best_model = best
+                     self._cache_timestamp = time.time()
+                     logger.info(f"OpenRouter: Fallback auto-selected: {best}")
+                     return best
+
+            # Last resort: just take the first free one
+            final_fallback = free_models[0]
+            self._cached_best_model = final_fallback
+            self._cache_timestamp = time.time()
+            return final_fallback
             
         except Exception as e:
             logger.warning(f"OpenRouter model fetch failed: {e}")
@@ -202,7 +247,7 @@ class Brain:
             )
         
         response = self.gemini_client.models.generate_content(
-            model='gemini-2.5-flash',
+            model='gemini-2.0-flash-exp',
             contents=prompt,
             config=config
         )
@@ -758,7 +803,7 @@ class Brain:
             # Vision requires Gemini (DeepSeek doesn't support images)
             logger.info("Parsing portfolio image with Gemini Vision...")
             response = self.gemini_client.models.generate_content(
-                model='gemini-2.5-flash',
+                model='gemini-2.0-flash-exp',
                 contents=[
                     prompt,
                     types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
@@ -1030,7 +1075,7 @@ class Brain:
             # Vision requires Gemini (DeepSeek doesn't support images)
             logger.info("Parsing sale image with Gemini Vision...")
             response = self.gemini_client.models.generate_content(
-                model='gemini-2.5-flash',
+                model='gemini-2.0-flash-exp',
                 contents=[
                     prompt,
                     types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
