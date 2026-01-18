@@ -8,7 +8,13 @@ Runs daily at 7:00 AM CET before market open.
 import logging
 import os
 from typing import Dict, List, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+try:
+    from zoneinfo import ZoneInfo
+except ImportError:
+    # Backport for python < 3.9 if needed, though 3.11 is used
+    from datetime import timezone as _timezone
+    ZoneInfo = lambda x: _timezone(timedelta(hours=1)) if "Europe" in x else _timezone.utc
 
 logger = logging.getLogger("Rebalancer")
 
