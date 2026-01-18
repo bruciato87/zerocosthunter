@@ -827,6 +827,89 @@ class DBHandler:
                 logger.info(f"Marked suggestion as executed: {action} {ticker}")
         except Exception as e:
             logger.warning(f"Failed to mark suggestion as executed: {e}")
+    
+    # --- DASHBOARD STATS (L13) ---
+    
+    def get_ticker_cache_stats(self) -> dict:
+        """
+        Get ticker cache statistics for dashboard display.
+        """
+        try:
+            # Total cached tickers
+            total_response = self.supabase.table("ticker_cache") \
+                .select("user_ticker", count="exact") \
+                .execute()
+            total_cached = total_response.count if hasattr(total_response, 'count') else len(total_response.data or [])
+            
+            # Recent cache entries (last 7 days)
+            cutoff = (datetime.now() - timedelta(days=7)).isoformat()
+            recent_response = self.supabase.table("ticker_cache") \
+                .select("user_ticker, resolved_ticker, is_crypto, last_verified_at") \
+                .gte("last_verified_at", cutoff) \
+                .order("last_verified_at", desc=True) \
+                .limit(10) \
+                .execute()
+            
+            return {
+                "total_cached": total_cached,
+                "recent_entries": recent_response.data or [],
+                "crypto_count": sum(1 for r in (recent_response.data or []) if r.get("is_crypto"))
+            }
+        except Exception as e:
+            logger.warning(f"Failed to get ticker cache stats: {e}")
+            return {"total_cached": 0, "recent_entries": [], "crypto_count": 0}
+    
+    def get_rebalancer_learning_stats(self) -> dict:
+        """
+        Get rebalancer learning statistics for dashboard display.
+        """
+        try:
+            # All-time stats
+            all_response = self.supabase.table("rebalancer_history") \
+                .select("action, was_executed, was_good_advice, outcome_pnl_pct") \
+                .execute()
+            
+            if not all_response.data:
+                return {
+                    "total_suggestions": 0,
+                    "executed": 0,
+                    "win_rate": 0,
+                    "avg_pnl": 0,
+                    "by_action": {}
+                }
+            
+            data = all_response.data
+            total = len(data)
+            executed = sum(1 for r in data if r.get("was_executed"))
+            good = sum(1 for r in data if r.get("was_good_advice"))
+            
+            # PnL stats
+            pnl_values = [r.get("outcome_pnl_pct", 0) for r in data 
+                          if r.get("outcome_pnl_pct") is not None]
+            avg_pnl = sum(pnl_values) / len(pnl_values) if pnl_values else 0
+            
+            # By action breakdown
+            actions = {}
+            for r in data:
+                action = r.get("action", "UNKNOWN")
+                if action not in actions:
+                    actions[action] = {"count": 0, "executed": 0, "good": 0}
+                actions[action]["count"] += 1
+                if r.get("was_executed"):
+                    actions[action]["executed"] += 1
+                if r.get("was_good_advice"):
+                    actions[action]["good"] += 1
+            
+            return {
+                "total_suggestions": total,
+                "executed": executed,
+                "win_rate": (good / executed * 100) if executed > 0 else 0,
+                "avg_pnl": avg_pnl,
+                "by_action": actions
+            }
+        except Exception as e:
+            logger.warning(f"Failed to get rebalancer learning stats: {e}")
+            return {"total_suggestions": 0, "executed": 0, "win_rate": 0, "avg_pnl": 0, "by_action": {}}
 
 if __name__ == "__main__":
     # Test connection

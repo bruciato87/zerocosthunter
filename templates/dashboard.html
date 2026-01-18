@@ -338,6 +338,84 @@
                     {% endif %}
                 </div>
 
+                <!-- ROW 1.4: SELF-LEARNING STATS (L13) -->
+                <div
+                    class="col-span-1 md:col-span-6 bg-gradient-to-br from-emerald-900/20 to-gray-900 rounded-xl p-5 border border-emerald-500/30 shadow-lg">
+                    <div class="card-header mb-4">
+                        <span class="card-title text-emerald-400">🧠 Ticker Cache (Self-Learning)</span>
+                        {% if ticker_cache_stats %}
+                        <span
+                            class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-900/30 text-emerald-400 border border-emerald-800">
+                            {{ ticker_cache_stats.total_cached }} cached
+                        </span>
+                        {% endif %}
+                    </div>
+                    {% if ticker_cache_stats and ticker_cache_stats.recent_entries %}
+                    <div class="space-y-2">
+                        <div class="text-xs text-gray-500 mb-2">Recent Resolutions</div>
+                        <div class="flex flex-wrap gap-1">
+                            {% for entry in ticker_cache_stats.recent_entries[:8] %}
+                            <span class="px-2 py-1 rounded text-[10px] bg-gray-800 border border-gray-700
+                                {% if entry.is_crypto %}text-yellow-400{% else %}text-white{% endif %}">
+                                {{ entry.user_ticker }} → {{ entry.resolved_ticker }}
+                            </span>
+                            {% endfor %}
+                        </div>
+                        <div class="text-[10px] text-gray-500 mt-2">
+                            🪙 Crypto: {{ ticker_cache_stats.crypto_count }} | 📈 Stocks: {{
+                            ticker_cache_stats.total_cached - ticker_cache_stats.crypto_count }}
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4 text-gray-500 text-xs">No cache data yet</div>
+                    {% endif %}
+                </div>
+
+                <div
+                    class="col-span-1 md:col-span-6 bg-gradient-to-br from-amber-900/20 to-gray-900 rounded-xl p-5 border border-amber-500/30 shadow-lg">
+                    <div class="card-header mb-4">
+                        <span class="card-title text-amber-400">📊 Rebalancer Learning</span>
+                        {% if rebalancer_learning and rebalancer_learning.total_suggestions > 0 %}
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold
+                            {% if rebalancer_learning.win_rate >= 60 %}bg-green-900/30 text-green-400 border border-green-800
+                            {% elif rebalancer_learning.win_rate >= 40 %}bg-yellow-900/30 text-yellow-400 border border-yellow-800
+                            {% else %}bg-red-900/30 text-red-400 border border-red-800{% endif %}">
+                            {{ "%.0f"|format(rebalancer_learning.win_rate) }}% Win
+                        </span>
+                        {% endif %}
+                    </div>
+                    {% if rebalancer_learning and rebalancer_learning.total_suggestions > 0 %}
+                    <div class="grid grid-cols-3 gap-3">
+                        <div class="bg-gray-800/50 rounded-lg p-3 border border-gray-700 text-center">
+                            <div class="text-xl font-bold text-white">{{ rebalancer_learning.total_suggestions }}</div>
+                            <div class="text-[10px] text-gray-500">Suggestions</div>
+                        </div>
+                        <div class="bg-gray-800/50 rounded-lg p-3 border border-gray-700 text-center">
+                            <div class="text-xl font-bold text-emerald-400">{{ rebalancer_learning.executed }}</div>
+                            <div class="text-[10px] text-gray-500">Executed</div>
+                        </div>
+                        <div class="bg-gray-800/50 rounded-lg p-3 border border-gray-700 text-center">
+                            <div
+                                class="text-xl font-bold font-mono 
+                                {% if rebalancer_learning.avg_pnl >= 0 %}text-green-400{% else %}text-red-400{% endif %}">
+                                {{ "{:+.1f}".format(rebalancer_learning.avg_pnl) }}%
+                            </div>
+                            <div class="text-[10px] text-gray-500">Avg PnL</div>
+                        </div>
+                    </div>
+                    {% if rebalancer_learning.by_action %}
+                    <div class="mt-3 text-[10px] text-gray-400">
+                        {% for action, data in rebalancer_learning.by_action.items() %}
+                        <span class="mr-2">{{ action }}: {{ data.count }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    {% else %}
+                    <div class="text-center py-4 text-gray-500 text-xs">No learning data yet - Use /rebalance to start
+                    </div>
+                    {% endif %}
+                </div>
+
 
                 <!-- ROW 1.5: BENCHMARK COMPARISON -->
                 {% if benchmark_data and benchmark_data.benchmarks %}
@@ -754,21 +832,23 @@
                     });
 
                     // Inject Data
-                    const dates = {{ chart_labels | tojson }};
-                    const values = {{ chart_data | safe }};
+                    const dates = {{ chart_labels | tojson
+                }
+            };
+            const values = {{ chart_data | safe }};
 
-                    if (dates && values && dates.length === values.length) {
-                        const data = dates.map((d, i) => ({ time: d, value: values[i] }));
-                        areaSeries.setData(data);
-                        chart.timeScale().fitContent();
-                    }
+            if (dates && values && dates.length === values.length) {
+                const data = dates.map((d, i) => ({ time: d, value: values[i] }));
+                areaSeries.setData(data);
+                chart.timeScale().fitContent();
+            }
 
-                    // Resize Observer
-                    new ResizeObserver(entries => {
-                        if (entries.length === 0 || entries[0].target !== chartContainer) { return; }
-                        const newRect = entries[0].contentRect;
-                        chart.applyOptions({ width: newRect.width, height: newRect.height });
-                    }).observe(chartContainer);
+            // Resize Observer
+            new ResizeObserver(entries => {
+                if (entries.length === 0 || entries[0].target !== chartContainer) { return; }
+                const newRect = entries[0].contentRect;
+                chart.applyOptions({ width: newRect.width, height: newRect.height });
+            }).observe(chartContainer);
                 }
             });
 

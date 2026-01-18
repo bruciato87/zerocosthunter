@@ -1007,6 +1007,15 @@ def dashboard():
         logger.error(f"ML Stats Fetch Error: {e}")
         ml_stats = {}
 
+    # 14. Self-Learning Stats (L13)
+    try:
+        ticker_cache_stats = db.get_ticker_cache_stats()
+        rebalancer_learning = db.get_rebalancer_learning_stats()
+    except Exception as e:
+        logger.error(f"Self-Learning Stats Fetch Error: {e}")
+        ticker_cache_stats = {}
+        rebalancer_learning = {}
+
     return render_template('dashboard.html', 
                            signals=signals, 
                            portfolio=portfolio, 
@@ -1031,7 +1040,9 @@ def dashboard():
                            sector_rotation=sector_rotation,
                            backtest_results=backtest_results,
                            benchmark_data=benchmark_data,
-                           ml_stats=ml_stats)
+                           ml_stats=ml_stats,
+                           ticker_cache_stats=ticker_cache_stats,
+                           rebalancer_learning=rebalancer_learning)
 
 
 @app.route('/api/webhook', methods=['POST'])
