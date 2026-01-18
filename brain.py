@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 OPENROUTER_MODEL_TIERS = [
     "google/gemini-2.0-flash-thinking-exp:free", # Strong Reasoner (Reliable)
     "deepseek/deepseek-chat:free",           # Reliable V3
-    "google/gemini-2.0-flash-exp:free",      # Fast, 1M context
+    "google/gemini-2.5-flash:free",      # Fast, 1M context
     "meta-llama/llama-3.3-70b-instruct:free", # Reliable, Good Context
 ]
 
@@ -190,7 +190,7 @@ class Brain:
              pass
 
         logger.warning("OpenRouter: No verified high-context free models found via API. Using static fallback.")
-        return "google/gemini-2.0-flash-exp:free"
+        return "google/gemini-2.5-flash:free"
 
     def _call_openrouter(self, messages: list, temperature: float = 0.3, json_mode: bool = False, model: str = None) -> str:
         """
@@ -327,14 +327,14 @@ class Brain:
             )
         
         response = self.gemini_client.models.generate_content(
-            model='gemini-2.0-flash-exp',
+            model='gemini-2.5-flash',
             contents=prompt,
             config=config
         )
         
         # Track usage (Approximated as Direct API doesn't return token counts easily in this client version)
         self.last_run_details = {
-            "model": "google/gemini-2.0-flash-exp (Direct)",
+            "model": "google/gemini-2.5-flash (Direct)",
             "usage": {"total_tokens": "N/A (Direct Fallback)"},
             "provider": "Google Direct"
         }
@@ -426,7 +426,7 @@ class Brain:
                         continue
                 # Track failure before re-raising
                 self.last_run_details = {
-                    "model": "gemini-2.0-flash-exp (FAILED)",
+                    "model": "gemini-2.5-flash (FAILED)",
                     "usage": {"total_tokens": "FAILED (Rate Limited)"},
                     "provider": "Google Direct (FAILED)"
                 }
@@ -888,7 +888,7 @@ class Brain:
             # Vision requires Gemini (DeepSeek doesn't support images)
             logger.info("Parsing portfolio image with Gemini Vision...")
             response = self.gemini_client.models.generate_content(
-                model='gemini-2.0-flash-exp',
+                model='gemini-2.5-flash',
                 contents=[
                     prompt,
                     types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
@@ -1160,7 +1160,7 @@ class Brain:
             # Vision requires Gemini (DeepSeek doesn't support images)
             logger.info("Parsing sale image with Gemini Vision...")
             response = self.gemini_client.models.generate_content(
-                model='gemini-2.0-flash-exp',
+                model='gemini-2.5-flash',
                 contents=[
                     prompt,
                     types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
