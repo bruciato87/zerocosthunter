@@ -108,7 +108,6 @@ class Analyzer:
                     usage = details.get('usage', {})
                     total_tok = usage.get('total_tokens', 'N/A') if isinstance(usage, dict) else str(usage)
                     analysis_report += f"\n\n🤖 AI: `{model_name}` | 🎟️ `{total_tok}`"
-                    analysis_report += f"\n\n🤖 AI: `{model_name}` | 🎟️ `{total_tok}`"
             except: pass
             
             # 4b. Quant Path: Save ML Prediction Data
