@@ -419,6 +419,7 @@ async def run_async_pipeline():
     # --- L2 PREDICTIVE: MARKET REGIME ---
     # Adjust strategy aggressiveness based on market regime
     market_regime_data = None
+    regime = "NEUTRAL"
     try:
         from market_regime import MarketRegimeClassifier
         regime_classifier = MarketRegimeClassifier()
@@ -623,11 +624,18 @@ async def run_async_pipeline():
             
             # --- PREDICTIVE SYSTEM L4: MACHINE LEARNING ---
             try:
-                ml_modifier = ml_predictor.get_confidence_modifier(ticker, sentiment)
+                # Quant Path: Inject Sentiment & Regime
+                sentiment_score = int(confidence * 100)
+                
+                # Predict ONCE (Saves to DB with new context)
+                ml_pred = ml_predictor.predict(ticker, sentiment_score, regime)
+                
+                # Get modifier from the prediction object
+                ml_modifier = ml_predictor.get_confidence_modifier_from_pred(ml_pred, sentiment)
+                
                 original_conf = confidence
                 confidence = min(1.0, confidence * ml_modifier)
                 
-                ml_pred = ml_predictor.predict(ticker)
                 ml_type = "ML" if ml_pred.is_ml else "Rule"
                 
                 if ml_modifier != 1.0:

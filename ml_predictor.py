@@ -447,8 +447,8 @@ class MLPredictor:
             logger.error(f"ML prediction failed: {e}")
             return self._rule_based_predict(features)
     
-    def predict(self, ticker: str) -> MLPrediction:
-        """Main prediction method."""
+    def predict(self, ticker: str, sentiment_score: int = None, market_regime: str = None) -> MLPrediction:
+        """Main prediction method. Now accepts external context (Quant Path)."""
         features = self._get_features(ticker)
         
         if not features:
@@ -469,8 +469,8 @@ class MLPredictor:
             direction, confidence = self._rule_based_predict(features)
             is_ml = False
         
-        # Save prediction
-        self._save_prediction(ticker, direction, confidence, features)
+        # Save prediction with new context
+        self._save_prediction(ticker, direction, confidence, features, sentiment_score, market_regime)
         
         return MLPrediction(
             ticker=ticker,
@@ -481,7 +481,7 @@ class MLPredictor:
             is_ml=is_ml
         )
     
-    def _save_prediction(self, ticker: str, direction: str, confidence: float, features: Dict):
+    def _save_prediction(self, ticker: str, direction: str, confidence: float, features: Dict, sentiment_score: int = None, market_regime: str = None):
         """Save prediction to DB."""
         try:
             from db_handler import DBHandler
@@ -491,15 +491,20 @@ class MLPredictor:
                 "ticker": ticker.upper(),
                 "predicted_direction": direction,
                 "ml_confidence": confidence,
-                "features": json.dumps({k: round(v, 4) if isinstance(v, float) else v for k, v in features.items()})
+                "features": json.dumps({k: round(v, 4) if isinstance(v, float) else v for k, v in features.items()}),
+                "sentiment_score": sentiment_score,
+                "market_regime": market_regime
             }).execute()
         except Exception as e:
             logger.warning(f"Failed to save prediction: {e}")
     
-    def get_confidence_modifier(self, ticker: str, ai_sentiment: str) -> float:
+    def get_confidence_modifier(self, ticker: str, ai_sentiment: str, sentiment_score: int = None, market_regime: str = None) -> float:
         """Get confidence modifier based on ML agreement with AI."""
-        prediction = self.predict(ticker)
-        
+        prediction = self.predict(ticker, sentiment_score, market_regime)
+        return self.get_confidence_modifier_from_pred(prediction, ai_sentiment)
+
+    def get_confidence_modifier_from_pred(self, prediction: MLPrediction, ai_sentiment: str) -> float:
+        """Calculate modifier from an existing prediction object."""
         bullish = {"BUY", "ACCUMULATE", "STRONG BUY"}
         bearish = {"SELL", "PANIC SELL", "STRONG SELL"}
         
