@@ -448,6 +448,11 @@ async def run_async_pipeline():
         reasoning = pred.get("reasoning")
         confidence = float(pred.get("confidence", 0.0))
         source = pred.get("source", "Unknown")
+        
+        # Initialize values that may be used later (prevent UnboundLocalError)
+        target_price = pred.get("target_price")
+        upside_percentage = float(pred.get("upside_percentage", 0)) if pred.get("upside_percentage") else 0
+        risk_score = pred.get("risk_score", 5)  # Default medium risk
 
         if not ticker: 
             continue
