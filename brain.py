@@ -136,7 +136,7 @@ class Brain:
                         
                         # DeepSeek R1 (free tier) has ~8k real limit despite claiming 163k.
                         # Only enable it if the task requires small context OR is "analyze" (reasoning priority)
-                        if min_context_needed <= 10000 or task_type == "analyze":
+                        if min_context_needed <= 10000 or task_type in ["analyze", "rebalance"]:
                             trusted_providers.append('deepseek/')
                         
                         if any(tp in model_id.lower() for tp in trusted_providers):
@@ -155,7 +155,7 @@ class Brain:
         # --- TASK-AWARE PREFERENCE SYSTEM ---
         # Different tasks have different optimal model profiles
         
-        if task_type == "analyze":
+        if task_type in ["analyze", "rebalance"]:
             # Deep analysis: Prioritize REASONING models (DeepSeek R1, large Llamas)
             preferences = [
                 'deepseek-r1',          # Best reasoning
