@@ -530,6 +530,12 @@ async def run_async_pipeline():
         if db.check_if_analyzed_recently(ticker, sentiment):
             continue
         
+        # --- SMART SENTIMENT CONVERSION ---
+        # Convert BUY → ACCUMULATE if asset is already owned (more appropriate action)
+        if sentiment == "BUY" and is_owned(ticker, portfolio_map):
+            sentiment = "ACCUMULATE"
+            logger.info(f"Converted {ticker}: BUY → ACCUMULATE (already owned)")
+        
         # --- SIGNAL INTELLIGENCE LAYER (NEW) ---
         # Apply advanced filtering and adjustments
         try:
