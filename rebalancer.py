@@ -530,7 +530,7 @@ class Rebalancer:
             from brain import Brain
             brain = Brain()
             # OpenRouter will auto-select best reasoning model (DeepSeek R1 if available)
-            response_text = brain._generate_with_fallback(prompt, json_mode=False)
+            response_text = brain._generate_with_fallback(prompt, json_mode=False, task_type="rebalance")
             
             # Save brain reference for AI footer
             self._last_brain = brain
@@ -539,6 +539,7 @@ class Rebalancer:
             self._save_suggestions_to_db(response_text, analysis, regime_data)
             
             return response_text.strip()
+
             
         except Exception as e:
             logger.warning(f"AI suggestion failed: {e}")
@@ -655,7 +656,7 @@ class Rebalancer:
         if ai_strategy:
             # Sanitize markdown: escape problematic characters
             ai_strategy_safe = ai_strategy.replace("_", "\\_").replace("*", "\\*") if "_" in ai_strategy or "*" in ai_strategy else ai_strategy
-            report += "🎯 **PIANO D'AZIONE (Hybrid AI - R1):**\n"
+            report += "🎯 **PIANO D'AZIONE (Hybrid AI Strategy):**\n"
             report += ai_strategy_safe + "\n\n"
         
         # Sector allocation (compact)
@@ -732,7 +733,7 @@ class Rebalancer:
                                 "Is this a smart move? Answer in 1 short sentence starting with '💡 FLASH TIP:'."
                             )
                             from brain import Brain
-                            return Brain()._generate_with_fallback(prompt, json_mode=False).strip()
+                            return Brain()._generate_with_fallback(prompt, json_mode=False, task_type="rebalance").strip()
                         except:
                             # Fallback to simple rule text if AI fails
                             return f"📉 **FLASH TRIM Opportunity**: Vendi parte di {asset['ticker']} (RSI {rsi:.0f}). Net Gain: ~€{net_profit:.0f} (dopo fees/tax)."
