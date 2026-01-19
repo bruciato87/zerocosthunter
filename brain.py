@@ -486,7 +486,7 @@ class Brain:
              try:
                  # Logic for OpenRouter Call
                  # ... existing code calls _call_openrouter ...
-                 return self._call_openrouter([{"role": "user", "content": prompt}], json_mode, model, min_context_needed=min_context_needed)
+                return self._call_openrouter([{"role": "user", "content": prompt}], json_mode=json_mode, model=model, min_context_needed=min_context_needed)
              except Exception as e:
                  logger.warning(f"OpenRouter failed, falling back: {e}")
         elif force_gemini:
