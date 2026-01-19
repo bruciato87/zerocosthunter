@@ -432,7 +432,7 @@ async def run_async_pipeline():
         # Adjust min_confidence based on regime
         original_min_conf = min_conf
         if recommendation == "aggressive" and regime in ["BULL", "ACCUMULATION"]:
-            min_conf = max(0.65, min_conf - 0.05)  # Lower threshold in bull market
+            min_conf = max(0.60, min_conf - 0.15)  # Much lower threshold in bull market (was 0.65)
             logger.info(f"L2 Regime [{regime}]: Aggressive mode - min_conf {original_min_conf} → {min_conf}")
         elif recommendation == "defensive" and regime in ["BEAR", "DISTRIBUTION"]:
             min_conf = min(0.85, min_conf + 0.05)  # Higher threshold in bear market
