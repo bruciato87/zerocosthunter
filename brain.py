@@ -1337,7 +1337,7 @@ class Brain:
         try:
             logger.info(f"Generating Deep Dive for {ticker} (OpenRouter auto-select)...")
             # OpenRouter auto-selects best reasoning model (DeepSeek R1 allowed if context < 10k)
-            result = self._generate_with_fallback(prompt, json_mode=False, min_context_needed=8000, task_type="sentiment")
+            result = self._generate_with_fallback(prompt, json_mode=False, min_context_needed=8000, task_type="analyze")
             return result
         except Exception as e:
             logger.error(f"Deep Dive failed: {e}")
