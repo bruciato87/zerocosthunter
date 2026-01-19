@@ -23,12 +23,16 @@ class Analyzer:
         from hunter import NewsHunter
         from brain import Brain
         from telegram_bot import TelegramNotifier
+        from market_regime import MarketRegimeClassifier
+        from ml_predictor import MLPredictor
         
         self.db = DBHandler()
         self.market = MarketData()
         self.hunter = NewsHunter()
         self.brain = Brain()
         self.notifier = TelegramNotifier()
+        self.regime_classifier = MarketRegimeClassifier()
+        self.ml_predictor = MLPredictor()
         
     async def analyze_ticker(self, ticker: str, target_chat_id: str):
         """
@@ -44,6 +48,15 @@ class Analyzer:
             # 2. Fetch Technicals
             logger.info("Fetching technicals...")
             technical_summary = self.market.get_technical_summary(ticker)
+            
+            # 2b. Check Market Regime (Quant Path)
+            regime = "NEUTRAL"
+            try:
+                regime_data = self.regime_classifier.classify()
+                regime = regime_data.get("regime", "NEUTRAL")
+                logger.info(f"Market Regime: {regime}")
+            except Exception as e:
+                logger.warning(f"Regime Check failed: {e}")
             
             # 3. Check Portfolio Context
             portfolio = self.db.get_portfolio()
@@ -95,7 +108,35 @@ class Analyzer:
                     usage = details.get('usage', {})
                     total_tok = usage.get('total_tokens', 'N/A') if isinstance(usage, dict) else str(usage)
                     analysis_report += f"\n\n🤖 AI: `{model_name}` | 🎟️ `{total_tok}`"
+                    analysis_report += f"\n\n🤖 AI: `{model_name}` | 🎟️ `{total_tok}`"
             except: pass
+            
+            # 4b. Quant Path: Save ML Prediction Data
+            try:
+                # Extract Sentiment Score (Rough approx for now or parse from report)
+                # For Deep Dive, R1 output is text. We use mapping based on verdict.
+                verdict_map = {
+                    "BUY": 85, "ACCUMULATE": 75, "HOLD": 50, 
+                    "WAIT": 40, "SELL": 20, "TRIM": 30
+                }
+                # Simple extraction from report text (Looking for "Decisione: [VERDICT]")
+                import re
+                verdict_match = re.search(r"Decisione:\s*\*?\[?([A-Z]+)\]?", analysis_report)
+                sentiment_score = 50
+                verdict = "HOLD"
+                
+                if verdict_match:
+                    verdict = verdict_match.group(1).upper()
+                    sentiment_score = verdict_map.get(verdict, 50)
+                
+                logger.info(f"Quant Data: Verdict={verdict}, Score={sentiment_score}, Regime={regime}")
+                
+                # Predict & Save
+                self.ml_predictor.predict(ticker, sentiment_score, regime)
+                logger.info("✅ ML Data Point saved (Quant Path)")
+                
+            except Exception as e:
+                logger.warning(f"Quant Path save failed: {e}")
             
             # 5. Send to Telegram
             logger.info(f"Sending report to {target_chat_id}...")
