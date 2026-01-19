@@ -110,8 +110,8 @@ class Brain:
                     if context_length >= 32000:
                         # WHITELIST approach: Only trust verified providers/models
                         # Removed google/ - always rate-limited on free tier
-                        # Added deepseek/ for DeepSeek R1 reasoning model
-                        trusted_providers = ['meta-llama/', 'mistralai/', 'qwen/', 'nvidia/', 'nousresearch/', 'deepseek/']
+                        # Removed deepseek/ - 8k real context limit causes 400 errors with full news
+                        trusted_providers = ['meta-llama/', 'mistralai/', 'qwen/', 'nvidia/', 'nousresearch/']
                         if any(tp in model_id.lower() for tp in trusted_providers):
                             available_models.add(model_id)
 
@@ -128,7 +128,6 @@ class Brain:
         # --- Dynamic Quality Scoring System ---
         # Define preferences for baseline scoring (Reasoning + Power models)
         preferences = [
-            'deepseek-r1',      # Best reasoning model
             'llama-3.1-405b',   # Largest open model
             'qwen3-coder',      # 480B reasoning/coding
             'hermes-3-llama-3.1-405b',  # Fine-tuned 405B
@@ -181,7 +180,6 @@ class Brain:
             if '7b' in lower_id: score -= 20
             
             # 5. Brand Reliability Bonus (trusted providers from whitelist)
-            if 'deepseek/' in lower_id: score += 120  # DeepSeek R1 is excellent
             if 'meta-llama/' in lower_id: score += 100  # Most reliable
             if 'qwen/' in lower_id: score += 90   # Qwen3 is very capable
             if 'mistralai/' in lower_id: score += 80
