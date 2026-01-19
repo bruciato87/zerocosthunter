@@ -100,6 +100,26 @@ class Analyzer:
                 portfolio_context=portfolio_context
             )
             
+            # 4a. Risk Management (ATR Upgrade)
+            try:
+                atr_data = self.market.calculate_atr(ticker)
+                atr_val = atr_data.get("atr", 0)
+                price_eur, _ = self.market.get_smart_price_eur(ticker)
+                
+                if atr_val > 0 and price_eur > 0:
+                    sl_atr = price_eur - (2.0 * atr_val)
+                    tp_atr = price_eur + (4.0 * atr_val)
+                    
+                    risk_section = (
+                        f"\n\n🛡️ **Quant Risk (ATR-based)**\n"
+                        f"- Stop Loss: €{sl_atr:.2f}\n"
+                        f"- Take Profit: €{tp_atr:.2f}\n"
+                        f"- Volatility: {atr_data.get('volatility', 'unknown').upper()}"
+                    )
+                    analysis_report += risk_section
+            except Exception as e:
+                logger.warning(f"ATR Risk calc failed: {e}")
+            
             # Add AI Model Footer
             try:
                 details = self.brain.last_run_details

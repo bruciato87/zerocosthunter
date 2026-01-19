@@ -293,26 +293,30 @@ class DBHandler:
             logger.error(f"Audit Stats Error: {e}")
             return {"win_rate": 0, "total_trades": 0, "wins": 0, "losses": 0, "open": 0, "closed": 0}
 
-    def log_prediction(self, ticker: str, sentiment: str, reasoning: str, prediction_sentence: str, confidence_score: float, source_url: str, risk_score: int = 5, target_price: str = None, upside_percentage: float = 0.0):
-        """Save AI analysis to predictions table."""
+    def log_prediction(self, ticker: str, sentiment: str, reasoning: str, prediction_sentence: str, confidence_score: float, source_url: str, risk_score: int = 5, target_price: str = None, upside_percentage: float = 0.0, stop_loss: float = None, take_profit: float = None):
+        """Log a new signal/prediction to the database."""
         try:
             data = {
                 "ticker": ticker,
                 "sentiment": sentiment,
                 "reasoning": reasoning,
-                "prediction_sentence": prediction_sentence,
+                "prediction": prediction_sentence,
                 "confidence_score": confidence_score,
-                "source_news_url": source_url,
+                "source_url": source_url,
+                "generated_at": datetime.utcnow().isoformat(),
                 "risk_score": risk_score,
                 "target_price": target_price,
                 "upside_percentage": upside_percentage,
-                "created_at": datetime.utcnow().isoformat()
+                "stop_loss": stop_loss,
+                "take_profit": take_profit
             }
+            
             response = self.supabase.table("predictions").insert(data).execute()
             logger.info(f"Logged prediction for {ticker}: {sentiment}")
             return response.data[0]['id'] if response.data else None
         except Exception as e:
             logger.error(f"Error logging prediction for {ticker}: {e}")
+            return None
 
     def get_settings(self):
         """Fetch user settings (single row). Returns dict with defaults if empty."""

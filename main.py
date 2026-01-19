@@ -686,6 +686,39 @@ async def run_async_pipeline():
         stop_loss = pred.get("stop_loss")
         take_profit = pred.get("take_profit")
         
+        # --- RISK MANAGEMENT: DYNAMIC ATR (Quant Path) ---
+        try:
+            # 1. Calculate ATR
+            atr_data = market.calculate_atr(ticker)
+            atr_val = atr_data.get("atr", 0)
+            
+            # 2. Extract specific price for calculation
+            # Use current price from market data (already fetched or fetch fresh)
+            calc_price, _ = market.get_smart_price_eur(ticker)
+            
+            if atr_val > 0 and calc_price > 0:
+                # 3. Calculate Dynamic SL/TP
+                # SL = Price - 2x ATR (Standard Swing)
+                # TP = Price + 4x ATR (1:2 Risk/Reward)
+                
+                sl_atr = calc_price - (2.0 * atr_val)
+                tp_atr = calc_price + (4.0 * atr_val)
+                
+                # Override AI Hallucinations
+                old_sl = stop_loss
+                stop_loss = round(max(0, sl_atr), 2)
+                take_profit = round(tp_atr, 2)
+                
+                logger.info(f"Risk Mgmt [{ticker}]: ATR {atr_val:.2f} -> SL {stop_loss} (was {old_sl}), TP {take_profit}")
+                
+                # Append to reasoning for transparency
+                reasoning += f"\n🛡️ Risk: SL €{stop_loss} (ATR), TP €{take_profit}"
+            else:
+                 logger.warning(f"Risk Mgmt [{ticker}]: ATR/Price invalid (ATR={atr_val}, Price={calc_price})")
+
+        except Exception as e:
+            logger.warning(f"Risk Mgmt failed for {ticker}: {e}")
+        
         # --- TARGET PRICE VALIDATION ---
         # If AI returns absurd target (>100% above current price), recalculate from upside
         try:
@@ -708,7 +741,8 @@ async def run_async_pipeline():
             logger.warning(f"Target price validation failed for {ticker}: {e}")
 
         # 5. Log to DB and Notify
-        signal_id = db.log_prediction(ticker, sentiment, reasoning, reasoning, confidence, source, risk_score, target_price, upside_percentage)
+        # 5. Log to DB and Notify
+        signal_id = db.log_prediction(ticker, sentiment, reasoning, reasoning, confidence, source, risk_score, target_price, upside_percentage, stop_loss, take_profit)
         
         # --- AUDITOR INTEGRATION ---
         # If BUY/ACCUMULATE signal, start tracking performance
