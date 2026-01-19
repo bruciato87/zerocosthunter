@@ -109,8 +109,8 @@ class Brain:
                 if prompt == 0 and completion == 0:
                     if context_length >= 32000:
                         # WHITELIST approach: Only trust verified providers/models
-                        # Many free models report fake context or have broken providers
-                        trusted_providers = ['google/', 'meta-llama/', 'mistralai/', 'qwen/', 'nvidia/', 'nousresearch/']
+                        # Removed google/ - always rate-limited on free tier, use direct fallback instead
+                        trusted_providers = ['meta-llama/', 'mistralai/', 'qwen/', 'nvidia/', 'nousresearch/']
                         if any(tp in model_id.lower() for tp in trusted_providers):
                             available_models.add(model_id)
 
@@ -176,11 +176,11 @@ class Brain:
             if '7b' in lower_id: score -= 20
             
             # 5. Brand Reliability Bonus (trusted providers from whitelist)
-            if 'google/' in lower_id: score += 100  # Most reliable on free tier
-            if 'meta-llama/' in lower_id: score += 80
-            if 'mistralai/' in lower_id: score += 70
-            if 'qwen/' in lower_id: score += 60
-            if 'nvidia/' in lower_id: score += 50
+            # Removed google/ - use direct Gemini fallback instead
+            if 'meta-llama/' in lower_id: score += 100  # Most reliable on OpenRouter free tier
+            if 'mistralai/' in lower_id: score += 80
+            if 'qwen/' in lower_id: score += 70
+            if 'nvidia/' in lower_id: score += 60
             
             scored_candidates.append((score, model_id))
         
