@@ -49,11 +49,15 @@ class Brain:
         else:
             logger.warning("Brain initialized: OpenRouter=❌ (no API key), Gemini={'✅' if self.gemini_api_key else '❌'}")
 
-    def _get_best_free_model(self, excluded_models: list = None) -> str:
+    def _get_best_free_model(self, excluded_models: list = None, min_context_needed: int = 32000) -> str:
         """
         Dynamically fetches available models from OpenRouter and selects the best FREE one.
         Uses fuzzy matching against a preference list to auto-discover new versions.
         OPTIMIZATION: Uses cached candidate list on retry to avoid repeated API calls.
+        
+        Args:
+            min_context_needed: Minimum context window required. 
+                                DeepSeek R1 (8k limit) is excluded if this is > 10000.
         """
         if excluded_models is None:
             excluded_models = []
@@ -107,11 +111,17 @@ class Brain:
                 context_length = int(item.get("context_length", 0))
 
                 if prompt == 0 and completion == 0:
-                    if context_length >= 32000:
+                    if context_length >= min_context_needed:
                         # WHITELIST approach: Only trust verified providers/models
                         # Removed google/ - always rate-limited on free tier
-                        # Removed deepseek/ - 8k real context limit causes 400 errors with full news
+                        
                         trusted_providers = ['meta-llama/', 'mistralai/', 'qwen/', 'nvidia/', 'nousresearch/']
+                        
+                        # DeepSeek R1 (free tier) has ~8k real limit despite claiming 163k.
+                        # Only enable it if the task requires small context (e.g. sentiment, single PnL)
+                        if min_context_needed <= 10000:
+                            trusted_providers.append('deepseek/')
+                        
                         if any(tp in model_id.lower() for tp in trusted_providers):
                             available_models.add(model_id)
 
@@ -127,7 +137,10 @@ class Brain:
 
         # --- Dynamic Quality Scoring System ---
         # Define preferences for baseline scoring (Reasoning + Power models)
+        # --- Dynamic Quality Scoring System ---
+        # Define preferences for baseline scoring (Reasoning + Power models)
         preferences = [
+            'deepseek-r1',      # Best reasoning model (only if context allows)
             'llama-3.1-405b',   # Largest open model
             'qwen3-coder',      # 480B reasoning/coding
             'hermes-3-llama-3.1-405b',  # Fine-tuned 405B
@@ -180,6 +193,7 @@ class Brain:
             if '7b' in lower_id: score -= 20
             
             # 5. Brand Reliability Bonus (trusted providers from whitelist)
+            if 'deepseek/' in lower_id: score += 120  # DeepSeek R1 is excellent (when context allows)
             if 'meta-llama/' in lower_id: score += 100  # Most reliable
             if 'qwen/' in lower_id: score += 90   # Qwen3 is very capable
             if 'mistralai/' in lower_id: score += 80
@@ -208,9 +222,11 @@ class Brain:
         logger.warning("OpenRouter: No verified high-context free models found via API. Using static fallback.")
         return "google/gemini-2.5-flash:free"
 
-    def _call_openrouter(self, messages: list, temperature: float = 0.3, json_mode: bool = False, model: str = None) -> str:
+    def _call_openrouter(self, messages: list, temperature: float = 0.3, json_mode: bool = False, model: str = None, min_context_needed: int = 32000) -> str:
         """
         Call OpenRouter API with auto-failover and usage tracking.
+        Args:
+            min_context_needed: Minimum context window required.
         """
         if not self.openrouter_api_key:
             raise Exception("OPENROUTER_API_KEY not configured")
@@ -223,7 +239,7 @@ class Brain:
             if attempt == 0 and model:
                 selected_model = model
             else:
-                selected_model = self._get_best_free_model(excluded_models=excluded_models)
+                selected_model = self._get_best_free_model(excluded_models=excluded_models, min_context_needed=min_context_needed)
             
             # Use selected_model for this attempt
             current_model = selected_model
@@ -356,14 +372,17 @@ class Brain:
                 elif response.status_code in [400, 404, 429, 500, 502, 503]:
                     logger.warning(f"OpenRouter Error ({response.status_code}) with {current_model}: {response.text}")
                     excluded_models.append(current_model)
-                    self._cached_best_model = None # Invalidate cache
-                    time.sleep(2) # Brief cooldown
-                    # Loop continues
+                    
+                    # If error was 400 (Bad Request - likely Context Length), invalidate cache to force re-selection
+                    if response.status_code == 400:
+                        self._cached_scored_candidates = []
+                        
+                    # Wait before retry
+                    time.sleep(2 + attempt) 
                 
-                else:
-                    # Unknown fatal error
-                    raise Exception(f"OpenRouter API Fatal ({response.status_code}): {response.text}")
-
+                else: 
+                    response.raise_for_status()
+                    
             except Exception as e:
                 logger.warning(f"OpenRouter Attempt {attempt+1} failed with {current_model}: {e}")
                 excluded_models.append(current_model)
@@ -420,7 +439,7 @@ class Brain:
         logger.info("Gemini fallback call successful")
         return content
 
-    def _generate_with_fallback(self, prompt: str, json_mode: bool = False, model: str = None, prefer_free: bool = True) -> str:
+    def _generate_with_fallback(self, prompt: str, json_mode: bool = False, model: str = None, prefer_free: bool = True, min_context_needed: int = 32000) -> str:
         """
         Smart AI generation with automatic fallback.
         
@@ -434,6 +453,7 @@ class Brain:
             json_mode: Whether to request JSON response
             model: Specific model to use (optional, auto-selects if None)
             prefer_free: Always True now (OpenRouter free tier)
+            min_context_needed: Helper for model selection (DeepSeek allowed if <10k)
         """
         messages = [{"role": "user", "content": prompt}]
         
@@ -449,7 +469,7 @@ class Brain:
                 # So only use 'model' if it's a specific requirement (rare).
                 # For now, we trust the caller. If model is None, it scans.
                 
-                result = self._call_openrouter(messages, json_mode=json_mode, model=target_model)
+                result = self._call_openrouter(messages, json_mode=json_mode, model=target_model, min_context_needed=min_context_needed)
                 return result
                 
             except Exception as e:
@@ -853,7 +873,7 @@ class Brain:
 
         try:
             logger.info("Sending news batch to AI (Prefer FREE Gemini → DeepSeek fallback)...")
-            response_text = self._generate_with_fallback(prompt, json_mode=True, prefer_free=True)
+            response_text = self._generate_with_fallback(prompt, json_mode=True, prefer_free=True, min_context_needed=32000)
             
             # Parse JSON
             try:
@@ -1305,8 +1325,8 @@ class Brain:
 
         try:
             logger.info(f"Generating Deep Dive for {ticker} (OpenRouter auto-select)...")
-            # OpenRouter auto-selects best reasoning model (DeepSeek R1 if available)
-            result = self._generate_with_fallback(prompt, json_mode=False)
+            # OpenRouter auto-selects best reasoning model (DeepSeek R1 allowed if context < 10k)
+            result = self._generate_with_fallback(prompt, json_mode=False, min_context_needed=8000)
             return result
         except Exception as e:
             logger.error(f"Deep Dive failed: {e}")
