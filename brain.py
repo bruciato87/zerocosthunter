@@ -109,8 +109,9 @@ class Brain:
                 if prompt == 0 and completion == 0:
                     if context_length >= 32000:
                         # WHITELIST approach: Only trust verified providers/models
-                        # Removed google/ - always rate-limited on free tier, use direct fallback instead
-                        trusted_providers = ['meta-llama/', 'mistralai/', 'qwen/', 'nvidia/', 'nousresearch/']
+                        # Removed google/ - always rate-limited on free tier
+                        # Added deepseek/ for DeepSeek R1 reasoning model
+                        trusted_providers = ['meta-llama/', 'mistralai/', 'qwen/', 'nvidia/', 'nousresearch/', 'deepseek/']
                         if any(tp in model_id.lower() for tp in trusted_providers):
                             available_models.add(model_id)
 
@@ -125,15 +126,15 @@ class Brain:
              raise Exception("OpenRouter: All static models excluded.")
 
         # --- Dynamic Quality Scoring System ---
-        # Define preferences for baseline scoring (Top Tier Keywords)
+        # Define preferences for baseline scoring (Reasoning + Power models)
         preferences = [
-            'deepseek-r1',
-            'gemini-2.0-flash-thinking',
-            'gemini-2.0-flash', 
-            'gemini-2.0-pro',
+            'deepseek-r1',      # Best reasoning model
+            'llama-3.1-405b',   # Largest open model
+            'qwen3-coder',      # 480B reasoning/coding
+            'hermes-3-llama-3.1-405b',  # Fine-tuned 405B
             'llama-3.3-70b', 
-            'deepseek-chat',
-            'qwen-2.5-72b'
+            'mistral-small-3.1',
+            'qwen3-next-80b'
         ]
 
         # Score available models to find the "Most Powerful" one automatically.
@@ -154,17 +155,21 @@ class Brain:
                         break
             except: pass
             
-            # 2. "Power" Keywords Heuristic
-            if 'r1' in lower_id: score += 150
+            # 2. "Power" & Reasoning Keywords Heuristic
+            if 'r1' in lower_id: score += 200  # DeepSeek R1 reasoning
+            if 'coder' in lower_id: score += 150  # Coding/reasoning focus
+            if 'thinking' in lower_id: score += 150
             if 'pro' in lower_id: score += 90
             if 'ultra' in lower_id: score += 90
             if 'plus' in lower_id: score += 50
             if 'max' in lower_id: score += 50
             
-            # 3. Model Size Heuristic
-            if '405b' in lower_id: score += 200
-            if '70b' in lower_id: score += 80
-            if '72b' in lower_id: score += 80
+            # 3. Model Size Heuristic (bigger = more capable)
+            if '405b' in lower_id: score += 250  # Massive models
+            if '480b' in lower_id: score += 250
+            if '80b' in lower_id: score += 150
+            if '70b' in lower_id: score += 120
+            if '72b' in lower_id: score += 120
             if 'large' in lower_id: score += 60
             
             # 4. negative/neutral qualifiers
@@ -176,10 +181,11 @@ class Brain:
             if '7b' in lower_id: score -= 20
             
             # 5. Brand Reliability Bonus (trusted providers from whitelist)
-            # Removed google/ - use direct Gemini fallback instead
-            if 'meta-llama/' in lower_id: score += 100  # Most reliable on OpenRouter free tier
+            if 'deepseek/' in lower_id: score += 120  # DeepSeek R1 is excellent
+            if 'meta-llama/' in lower_id: score += 100  # Most reliable
+            if 'qwen/' in lower_id: score += 90   # Qwen3 is very capable
             if 'mistralai/' in lower_id: score += 80
-            if 'qwen/' in lower_id: score += 70
+            if 'nousresearch/' in lower_id: score += 70
             if 'nvidia/' in lower_id: score += 60
             
             scored_candidates.append((score, model_id))
