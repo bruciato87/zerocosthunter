@@ -43,6 +43,17 @@ class Brain:
         # Track last execution details for reporting
         self.last_run_details = {}
         
+        # Load App Mode from DB Settings (PROD = Hybrid, PREPROD = Gemini Only)
+        try:
+            from db_handler import DBHandler
+            db = DBHandler()
+            settings = db.get_settings()
+            self.app_mode = settings.get("app_mode", "PROD")
+            logger.info(f"Brain Mode: {self.app_mode}")
+        except Exception as e:
+            logger.warning(f"Failed to load settings, defaulting to PROD: {e}")
+            self.app_mode = "PROD"
+        
         # Log initialization
         if self.openrouter_api_key:
             logger.info(f"Brain initialized: OpenRouter=✅, Gemini Fallback={'✅' if self.gemini_api_key else '❌'}")
