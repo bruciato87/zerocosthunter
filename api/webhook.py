@@ -299,6 +299,89 @@ from economist import Economist
 
 # ... (Previous imports)
 
+# ... (Previous imports)
+
+async def add_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Manually add an asset.
+    Usage: /add TICKER QTY PRICE [SL] [TP]
+    """
+    chat_id = update.effective_chat.id
+    args = context.args
+    if len(args) < 3:
+        await update.message.reply_text(
+            "❌ **Uso:** `/add TICKER QTY PRICE [SL] [TP]`\n"
+            "Es: `/add AAPL 10 150`\n"
+            "Es: `/add NVDA 50 100 90 150` (con SL=90, TP=150)", 
+            parse_mode="Markdown"
+        )
+        return
+
+    try:
+        ticker = args[0].upper()
+        qty = float(args[1])
+        price = float(args[2])
+        sl = float(args[3]) if len(args) > 3 else 0
+        tp = float(args[4]) if len(args) > 4 else 0
+
+        db = DBHandler()
+        db.add_to_portfolio(
+            ticker=ticker,
+            amount=qty,
+            price=price,
+            chat_id=chat_id,
+            is_confirmed=True,
+            stop_loss=sl,
+            take_profit=tp
+        )
+        
+        msg = f"✅ **Asset Aggiunto!**\n\n📌 {ticker}\n🔢 Qty: {qty}\n💰 Prezzo: €{price}"
+        if sl > 0 or tp > 0:
+            msg += f"\n\n🛡️ **Protezione Attiva:**\n🔴 SL: €{sl}\n🟢 TP: €{tp}"
+            
+        await update.message.reply_text(msg)
+    except ValueError:
+        await update.message.reply_text("❌ Errore: Assicurati che QTY e PRICE siano numeri validi.")
+    except Exception as e:
+        logger.error(f"Add command error: {e}")
+        await update.message.reply_text(f"❌ Errore: {e}")
+
+async def protect_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Update SL/TP for an asset.
+    Usage: /protect TICKER SL TP
+    """
+    chat_id = update.effective_chat.id
+    args = context.args
+    if len(args) < 3:
+        await update.message.reply_text(
+            "❌ **Uso:** `/protect TICKER SL TP`\n"
+            "Es: `/protect NVDA 90 150` (SL=90, TP=150)\n"
+            "Usa 0 per disabilitare un livello.",
+            parse_mode="Markdown"
+        )
+        return
+
+    try:
+        ticker = args[0].upper()
+        sl = float(args[1])
+        tp = float(args[2])
+
+        db = DBHandler()
+        if db.update_asset_protection(chat_id, ticker, stop_loss=sl, take_profit=tp):
+            await update.message.reply_text(
+                f"🛡️ **Protezione Aggiornata per {ticker}**\n\n"
+                f"🔴 Stop Loss: €{sl}\n"
+                f"🟢 Take Profit: €{tp}"
+            )
+        else:
+            await update.message.reply_text(f"❌ Asset {ticker} non trovato o errore DB.")
+    except ValueError:
+        await update.message.reply_text("❌ Errore: SL e TP devono essere numeri.")
+    except Exception as e:
+        logger.error(f"Protect command error: {e}")
+        await update.message.reply_text(f"❌ Errore: {e}")
+
 async def setup_bot_commands(bot):
     """Configures the menu button in Telegram UI."""
     commands = [
@@ -317,7 +400,9 @@ async def setup_bot_commands(bot):
         BotCommand("benchmark", "📊 Portfolio vs S&P500/BTC"),
         BotCommand("report", "📑 Weekly Report Completo"),
         BotCommand("rebalance", "⚖️ Analisi Ribilanciamento"),
+        BotCommand("add", "➕ Aggiungi Asset Manualmente"),
         BotCommand("sell", "💸 Registra Vendita"),
+        BotCommand("protect", "🛡️ Imposta StopLoss/TakeProfit"),
         BotCommand("mode", "🔧 PREPROD/PROD Mode"),
         BotCommand("usage", "📊 API Usage Stats"),
         BotCommand("trainml", "🤖 ML Model (stato/addestra)"),

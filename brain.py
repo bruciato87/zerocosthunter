@@ -60,7 +60,7 @@ class Brain:
         else:
             logger.warning("Brain initialized: OpenRouter=❌ (no API key), Gemini={'✅' if self.gemini_api_key else '❌'}")
 
-    def _get_best_free_model(self, excluded_models: list = None, min_context_needed: int = 32000) -> str:
+    def _get_best_free_model(self, excluded_models: list = None, min_context_needed: int = 32000, task_type: str = "default") -> str:
         """
         Dynamically fetches available models from OpenRouter and selects the best FREE one.
         Uses fuzzy matching against a preference list to auto-discover new versions.
@@ -69,6 +69,12 @@ class Brain:
         Args:
             min_context_needed: Minimum context window required. 
                                 DeepSeek R1 (8k limit) is excluded if this is > 10000.
+            task_type: Type of task calling this function. Options:
+                       - "hunt": News batch analysis (medium context, reliability > power)
+                       - "analyze": Deep dive single ticker (reasoning > speed)
+                       - "rebalance": Portfolio analysis (medium)
+                       - "sentiment": Simple classification (small, fast)
+                       - "default": Balanced selection
         """
         if excluded_models is None:
             excluded_models = []
@@ -124,13 +130,13 @@ class Brain:
                 if prompt == 0 and completion == 0:
                     if context_length >= min_context_needed:
                         # WHITELIST approach: Only trust verified providers/models
-                        # Removed google/ - always rate-limited on free tier
+                        # Added google/ for Gemma models (stable)
                         
-                        trusted_providers = ['meta-llama/', 'mistralai/', 'qwen/', 'nvidia/', 'nousresearch/']
+                        trusted_providers = ['meta-llama/', 'mistralai/', 'qwen/', 'nvidia/', 'nousresearch/', 'google/']
                         
                         # DeepSeek R1 (free tier) has ~8k real limit despite claiming 163k.
-                        # Only enable it if the task requires small context (e.g. sentiment, single PnL)
-                        if min_context_needed <= 10000:
+                        # Only enable it if the task requires small context OR is "analyze" (reasoning priority)
+                        if min_context_needed <= 10000 or task_type == "analyze":
                             trusted_providers.append('deepseek/')
                         
                         if any(tp in model_id.lower() for tp in trusted_providers):
@@ -146,19 +152,47 @@ class Brain:
              # If all failed/excluded, raise Exception to trigger Gemini fallback
              raise Exception("OpenRouter: All static models excluded.")
 
-        # --- Dynamic Quality Scoring System ---
-        # Define preferences for baseline scoring (Reasoning + Power models)
-        # --- Dynamic Quality Scoring System ---
-        # Define preferences for baseline scoring (Reasoning + Power models)
-        preferences = [
-            'deepseek-r1',      # Best reasoning model (only if context allows)
-            'llama-3.1-405b',   # Largest open model
-            'qwen3-coder',      # 480B reasoning/coding
-            'hermes-3-llama-3.1-405b',  # Fine-tuned 405B
-            'llama-3.3-70b', 
-            'mistral-small-3.1',
-            'qwen3-next-80b'
-        ]
+        # --- TASK-AWARE PREFERENCE SYSTEM ---
+        # Different tasks have different optimal model profiles
+        
+        if task_type == "analyze":
+            # Deep analysis: Prioritize REASONING models (DeepSeek R1, large Llamas)
+            preferences = [
+                'deepseek-r1',          # Best reasoning
+                'llama-3.1-405b',       # Largest open model
+                'hermes-3-llama-3.1-405b',
+                'qwen3-coder',          # Strong reasoning
+                'llama-3.3-70b',
+            ]
+        elif task_type == "hunt":
+            # News batch: Prioritize RELIABILITY over raw power
+            # Avoid 405B (often rate-limited), prefer stable 70B models
+            preferences = [
+                'gemma-3-27b',          # Google-backed, very stable
+                'llama-3.3-70b',        # Good balance
+                'mistral-small-3.1',    # Fast and reliable
+                'qwen2.5-72b',          # Strong
+                'llama-3.1-70b',
+                'llama-3.1-405b',       # Only as last resort
+            ]
+        elif task_type == "sentiment" or task_type == "simple":
+            # Simple tasks: Small, fast models
+            preferences = [
+                'gemma-3-27b',
+                'mistral-small-3.1',
+                'llama-3.1-8b',
+                'gemma-2-9b',
+            ]
+        else:
+            # Default: Balanced (original logic)
+            preferences = [
+                'llama-3.3-70b',
+                'gemma-3-27b',
+                'qwen3-coder',
+                'mistral-small-3.1',
+                'llama-3.1-405b',
+                'deepseek-r1',
+            ]
 
         # Score available models to find the "Most Powerful" one automatically.
         scored_candidates = []
@@ -233,11 +267,12 @@ class Brain:
         logger.warning("OpenRouter: No verified high-context free models found via API. Using static fallback.")
         return "google/gemini-2.5-flash:free"
 
-    def _call_openrouter(self, messages: list, temperature: float = 0.3, json_mode: bool = False, model: str = None, min_context_needed: int = 32000) -> str:
+    def _call_openrouter(self, messages: list, temperature: float = 0.3, json_mode: bool = False, model: str = None, min_context_needed: int = 32000, task_type: str = "default") -> str:
         """
         Call OpenRouter API with auto-failover and usage tracking.
         Args:
             min_context_needed: Minimum context window required.
+            task_type: Type of task (hunt/analyze/rebalance/sentiment) for smart model selection.
         """
         if not self.openrouter_api_key:
             raise Exception("OPENROUTER_API_KEY not configured")
@@ -250,7 +285,7 @@ class Brain:
             if attempt == 0 and model:
                 selected_model = model
             else:
-                selected_model = self._get_best_free_model(excluded_models=excluded_models, min_context_needed=min_context_needed)
+                selected_model = self._get_best_free_model(excluded_models=excluded_models, min_context_needed=min_context_needed, task_type=task_type)
             
             # Use selected_model for this attempt
             current_model = selected_model
@@ -462,7 +497,7 @@ class Brain:
         logger.info("Gemini fallback call successful")
         return content
 
-    def _generate_with_fallback(self, prompt: str, json_mode: bool = False, model: str = None, prefer_free: bool = True, min_context_needed: int = 32000) -> str:
+    def _generate_with_fallback(self, prompt: str, json_mode: bool = False, model: str = None, prefer_free: bool = True, min_context_needed: int = 32000, task_type: str = "default") -> str:
         """
         Smart AI generation with automatic fallback.
         
@@ -472,6 +507,7 @@ class Brain:
         3. If all OpenRouter fails, try direct Gemini API
         
         Args:
+            task_type: Type of task (hunt/analyze/rebalance/sentiment) for smart model selection.
         Versatile generation:
         1. Try OpenRouter (if API Key exists AND mode != PREPROD)
         2. Fallback to Gemini Direct (if configured)
@@ -484,9 +520,9 @@ class Brain:
         if self.openrouter_api_key and not force_gemini:
              # Regular Hybrid Flow
              try:
-                 # Logic for OpenRouter Call
-                 # ... existing code calls _call_openrouter ...
-                return self._call_openrouter([{"role": "user", "content": prompt}], json_mode=json_mode, model=model, min_context_needed=min_context_needed)
+                 # Logic for OpenRouter Call with task-aware model selection
+                 logger.info(f"OpenRouter call with task_type: {task_type}")
+                return self._call_openrouter([{"role": "user", "content": prompt}], json_mode=json_mode, model=model, min_context_needed=min_context_needed, task_type=task_type)
              except Exception as e:
                  logger.warning(f"OpenRouter failed, falling back: {e}")
         elif force_gemini:
@@ -848,7 +884,7 @@ class Brain:
 
         try:
             logger.info("Sending news batch to AI (Prefer FREE Gemini → DeepSeek fallback)...")
-            response_text = self._generate_with_fallback(prompt, json_mode=True, prefer_free=True, min_context_needed=32000)
+            response_text = self._generate_with_fallback(prompt, json_mode=True, prefer_free=True, min_context_needed=32000, task_type="hunt")
             
             # Parse JSON
             try:
@@ -1301,7 +1337,7 @@ class Brain:
         try:
             logger.info(f"Generating Deep Dive for {ticker} (OpenRouter auto-select)...")
             # OpenRouter auto-selects best reasoning model (DeepSeek R1 allowed if context < 10k)
-            result = self._generate_with_fallback(prompt, json_mode=False, min_context_needed=8000)
+            result = self._generate_with_fallback(prompt, json_mode=False, min_context_needed=8000, task_type="sentiment")
             return result
         except Exception as e:
             logger.error(f"Deep Dive failed: {e}")

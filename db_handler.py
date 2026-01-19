@@ -47,29 +47,54 @@ class DBHandler:
             return {}
         return {item['ticker']: item for item in data}
 
-    def add_to_portfolio(self, ticker: str, amount: float, price: float, sector: str = "Unknown", asset_name: str = None, asset_type: str = "Unknown", is_confirmed: bool = True, chat_id: int = None):
+    def add_to_portfolio(self, ticker: str, amount: float, price: float, sector: str = "Unknown", asset_name: str = None, asset_type: str = "Unknown", is_confirmed: bool = True, chat_id: int = None, stop_loss: float = 0, take_profit: float = 0):
         """Add or update a holding. Supports 'Draft' mode via is_confirmed=False."""
         try:
             data = {
-                "ticker": ticker,
+                "ticker": ticker.upper(),
                 "quantity": amount,
                 "avg_price": price,
                 "sector": sector,
                 "asset_name": asset_name,
                 "asset_type": asset_type,
-                "is_confirmed": is_confirmed
+                "is_confirmed": is_confirmed,
+                "stop_loss": stop_loss,
+                "take_profit": take_profit
             }
             if chat_id:
                 data["chat_id"] = chat_id
 
             # upsert=True is default behavior if ID matches, but for ticker we rely on unique constraint
             # Note: unique constraint on 'ticker' might be an issue if multiple users draft the same ticker.
-            # For a single-user bot, it's fine. For multi-user, unique should be (ticker, chat_id).
-            # We'll assume single user for now or that 'ticker' is unique globally in this table.
             self.supabase.table("portfolio").upsert(data, on_conflict="ticker").execute()
-            logger.info(f"Updated portfolio: {ticker} (Confirmed: {is_confirmed})")
+            logger.info(f"Updated portfolio: {ticker} (Confirmed: {is_confirmed}, SL: {stop_loss}, TP: {take_profit})")
         except Exception as e:
             logger.error(f"Error updating portfolio for {ticker}: {e}")
+
+    def update_asset_protection(self, chat_id: int, ticker: str, stop_loss: float = None, take_profit: float = None):
+        """Updates SL/TP for an existing asset."""
+        try:
+            updates = {}
+            if stop_loss is not None:
+                updates["stop_loss"] = stop_loss
+            if take_profit is not None:
+                updates["take_profit"] = take_profit
+            
+            if not updates: return False
+
+            # Match on Ticker. ChatID is used for verification if schema allows, 
+            # but currently portfolio tables typically rely on Ticker uniqueness in this basic schema.
+            # We add logic to ensure we target the right row if possible.
+            query = self.supabase.table("portfolio").update(updates).eq("ticker", ticker.upper())
+            if chat_id:
+                query = query.eq("chat_id", chat_id)
+                
+            query.execute()
+            logger.info(f"Protected {ticker}: {updates}")
+            return True
+        except Exception as e:
+            logger.error(f"Error updating protection for {ticker}: {e}")
+            return False
 
     def confirm_portfolio(self, chat_id: int):
         """Mark all drafts for a user as confirmed."""
