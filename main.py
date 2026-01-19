@@ -108,7 +108,13 @@ async def run_async_pipeline():
             logger.error(f"ML Weekly Training Failed: {e}")
 
     # 2. Fetch News
+    import time as timing_module
+    _run_start_time = timing_module.time()
+    _news_fetch_start = timing_module.time()
+    
     news_items = hunter.fetch_news()
+    _news_fetch_time = timing_module.time() - _news_fetch_start
+    
     if not news_items:
         print("Hunter: No news found. Exiting.", flush=True)
         return
@@ -385,6 +391,7 @@ async def run_async_pipeline():
     # -----------------------------------------
 
     logger.info("Analyzing news with Gemini...")
+    _ai_start_time = timing_module.time()
     try:
         predictions = brain.analyze_news_batch(
             unique_news_items, 
@@ -394,8 +401,10 @@ async def run_async_pipeline():
             macro_context=macro_context,
             whale_context=whale_context
         )
-        logger.info(f"Gemini analysis complete. Received {len(predictions)} predictions.")
+        _ai_time = timing_module.time() - _ai_start_time
+        logger.info(f"Gemini analysis complete. Received {len(predictions)} predictions in {_ai_time:.1f}s.")
     except Exception as e:
+        _ai_time = timing_module.time() - _ai_start_time
         logger.error(f"CRITICAL: Gemini analysis FAILED: {e}")
         predictions = []
 
@@ -867,7 +876,25 @@ async def run_async_pipeline():
         logger.warning(f"API usage report failed: {e}")
 
     db.log_system_event("INFO", "Hunter", "Pipeline Finished")
-    logger.info(f"Pipeline finished. Processed {processed_count} actionable signals.")
+    _total_run_time = timing_module.time() - _run_start_time
+    logger.info(f"Pipeline finished. Processed {processed_count} signals in {_total_run_time:.1f}s.")
+    
+    # Save run metrics to DB
+    try:
+        run_metrics = {
+            "total_time": _total_run_time,
+            "ai_time": _ai_time,
+            "news_fetch_time": _news_fetch_time,
+            "signals_count": processed_count,
+            "model_used": brain.last_run_details.get("model", "unknown"),
+            "json_repair_needed": brain.last_run_details.get("json_repair_needed", False),
+            "repair_strategy": brain.last_run_details.get("repair_strategy", "none"),
+            "retry_count": brain.last_run_details.get("retry_count", 0),
+            "news_items_processed": len(unique_news_items)
+        }
+        db.save_run_metrics(run_metrics)
+    except Exception as e:
+        logger.warning(f"Failed to save run metrics: {e}")
     
     # --- FLASH REBALANCE CHECK (New L5 Feature) ---
     flash_tip = ""

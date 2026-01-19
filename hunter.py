@@ -67,16 +67,27 @@ class NewsHunter:
     def _fetch_full_text(self, url):
         """
         Attempt to scrape full text using multiple strategies:
+        0. Check cache first (2h TTL)
         1. Direct Chrome Impersonation
         2. Direct Safari Impersonation (Fallback)
         3. Google Cache (Last Resort)
         """
         try:
+            # STRATEGY 0: Check cache first
+            from db_handler import DBHandler
+            db = DBHandler()
+            cached_content, is_cached = db.get_cached_news(url, ttl_hours=2)
+            if is_cached and cached_content:
+                return cached_content
+            
             # STRATEGY 1: Direct Chrome
             response = self._fetch_url_impersonate(url, "chrome120")
             
             if response.status_code == 200:
-                return trafilatura.extract(response.text)
+                content = trafilatura.extract(response.text)
+                if content:
+                    db.save_news_cache(url, content)  # Save to cache
+                return content
             
             elif response.status_code == 401:
                 # 401 is usually a Content Paywall (WSJ, etc). No point retrying.
@@ -89,7 +100,10 @@ class NewsHunter:
                 response = self._fetch_url_impersonate(url, "safari15_5")
                 if response.status_code == 200:
                    logger.info(f"Safari bypass successful for {url}!")
-                   return trafilatura.extract(response.text)
+                   content = trafilatura.extract(response.text)
+                   if content:
+                       db.save_news_cache(url, content)  # Save to cache
+                   return content
             
             # STRATEGY 3: Google Cache Fallback
             if response.status_code in [403, 503]:
@@ -99,8 +113,10 @@ class NewsHunter:
                 response = self._fetch_url_impersonate(cache_url, "chrome110")
                 if response.status_code == 200:
                      logger.info(f"Google Cache hit for {url}!")
-                     # Trafilatura is good at extracting the article from the messy Cache wrapper
-                     return trafilatura.extract(response.text)
+                     content = trafilatura.extract(response.text)
+                     if content:
+                         db.save_news_cache(url, content)  # Save to cache
+                     return content
             
             logger.warning(f"All scrape strategies failed ({response.status_code}) for {url}")
             return None

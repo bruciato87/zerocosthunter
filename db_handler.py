@@ -976,6 +976,96 @@ class DBHandler:
             logger.warning(f"Failed to get rebalancer learning stats: {e}")
             return {"total_suggestions": 0, "executed": 0, "win_rate": 0, "avg_pnl": 0, "by_action": {}}
 
+    # =========================================================================
+    # PERFORMANCE METRICS TRACKING
+    # =========================================================================
+    
+    def save_run_metrics(self, metrics: dict):
+        """
+        Save performance metrics for a hunt run.
+        Metrics dict should contain: total_time, ai_time, news_fetch_time,
+        signals_count, model_used, json_repair_needed, repair_strategy, retry_count
+        """
+        try:
+            data = {
+                "run_date": datetime.now().isoformat(),
+                "total_time_seconds": metrics.get("total_time", 0),
+                "ai_time_seconds": metrics.get("ai_time", 0),
+                "news_fetch_time_seconds": metrics.get("news_fetch_time", 0),
+                "signals_count": metrics.get("signals_count", 0),
+                "model_used": metrics.get("model_used", "unknown"),
+                "json_repair_needed": metrics.get("json_repair_needed", False),
+                "repair_strategy": metrics.get("repair_strategy", "none"),
+                "retry_count": metrics.get("retry_count", 0),
+                "news_items_processed": metrics.get("news_items_processed", 0)
+            }
+            self.supabase.table("run_metrics").insert(data).execute()
+            logger.info(f"Run Metrics Saved: {metrics.get('signals_count', 0)} signals in {metrics.get('total_time', 0):.1f}s")
+        except Exception as e:
+            logger.warning(f"Failed to save run metrics: {e}")
+
+    def get_run_metrics_summary(self, days: int = 7):
+        """Get summary of run metrics for the last N days."""
+        try:
+            cutoff = (datetime.now() - timedelta(days=days)).isoformat()
+            result = self.supabase.table("run_metrics").select("*").gte("run_date", cutoff).execute()
+            
+            if not result.data:
+                return {"runs": 0, "avg_time": 0, "avg_signals": 0}
+            
+            runs = result.data
+            return {
+                "runs": len(runs),
+                "avg_time": sum(r.get("total_time_seconds", 0) for r in runs) / len(runs),
+                "avg_signals": sum(r.get("signals_count", 0) for r in runs) / len(runs),
+                "avg_ai_time": sum(r.get("ai_time_seconds", 0) for r in runs) / len(runs),
+                "repair_rate": sum(1 for r in runs if r.get("json_repair_needed")) / len(runs) * 100
+            }
+        except Exception as e:
+            logger.warning(f"Failed to get run metrics summary: {e}")
+            return {"runs": 0, "avg_time": 0, "avg_signals": 0}
+
+    # =========================================================================
+    # NEWS CACHING
+    # =========================================================================
+    
+    def get_cached_news(self, url: str, ttl_hours: int = 2):
+        """
+        Get cached news content if fresh enough.
+        Returns (content, is_cached) or (None, False) if not cached/expired.
+        """
+        try:
+            result = self.supabase.table("news_cache").select("content,cached_at").eq("url", url).limit(1).execute()
+            
+            if result.data:
+                cached = result.data[0]
+                cached_at = datetime.fromisoformat(cached["cached_at"].replace("Z", "+00:00"))
+                age_hours = (datetime.now(cached_at.tzinfo) - cached_at).total_seconds() / 3600
+                
+                if age_hours < ttl_hours:
+                    logger.debug(f"News cache HIT: {url[:50]}... (age: {age_hours:.1f}h)")
+                    return cached["content"], True
+                else:
+                    logger.debug(f"News cache EXPIRED: {url[:50]}... (age: {age_hours:.1f}h)")
+            return None, False
+        except Exception as e:
+            logger.debug(f"News cache error: {e}")
+            return None, False
+
+    def save_news_cache(self, url: str, content: str):
+        """Save news content to cache with current timestamp."""
+        try:
+            # Upsert to update if exists
+            data = {
+                "url": url,
+                "content": content[:10000],  # Limit content size
+                "cached_at": datetime.now().isoformat()
+            }
+            self.supabase.table("news_cache").upsert(data, on_conflict="url").execute()
+            logger.debug(f"News cached: {url[:50]}...")
+        except Exception as e:
+            logger.debug(f"Failed to cache news: {e}")
+
 if __name__ == "__main__":
     # Test connection
     try:

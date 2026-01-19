@@ -282,6 +282,7 @@ class Brain:
                         
                         original_content = content
                         json_valid = False
+                        repair_strategy = "none"  # Track which strategy worked
                         
                         # Strategy 1: Clean markdown code blocks
                         content = re.sub(r'^```(?:json)?\s*', '', content.strip())
@@ -291,6 +292,7 @@ class Brain:
                         try:
                             json.loads(content)
                             json_valid = True
+                            repair_strategy = "direct" if content == original_content.strip() else "markdown_clean"
                         except:
                             pass
                         
@@ -302,6 +304,7 @@ class Brain:
                                     json.loads(array_match.group(1))
                                     content = array_match.group(1)
                                     json_valid = True
+                                    repair_strategy = "array_extract"
                                 except:
                                     pass
                         
@@ -313,6 +316,7 @@ class Brain:
                                     json.loads(obj_match.group(1))
                                     content = obj_match.group(1)
                                     json_valid = True
+                                    repair_strategy = "object_extract"
                                 except:
                                     pass
                         
@@ -325,10 +329,16 @@ class Brain:
                                 json.loads(cleaned.strip())
                                 content = cleaned.strip()
                                 json_valid = True
+                                repair_strategy = "artifact_removal"
                             except:
                                 pass
                         
+                        # Store repair info in last_run_details
+                        self.last_run_details["json_repair_needed"] = repair_strategy != "direct"
+                        self.last_run_details["repair_strategy"] = repair_strategy
+                        
                         if not json_valid:
+                            self.last_run_details["repair_strategy"] = "failed"
                             logger.warning(f"Invalid JSON from {current_model}, retrying...")
                             if attempt < max_retries - 1:
                                 excluded_models.append(current_model)
