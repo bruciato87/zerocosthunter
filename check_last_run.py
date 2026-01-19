@@ -36,6 +36,12 @@ def check_last_run():
         print(f"🛠️ Strategy:      {run.get('repair_strategy', 'none')}")
         print(f"🔄 Retries:       {run.get('retry_count', 0)}")
         print("="*40 + "\n")
+        
+        # Fetch Logs
+        print("📜 LAST 15 LOGS (DEBUG):")
+        logs = db.supabase.table("logs").select("*").order("created_at", desc=True).limit(15).execute().data
+        for l in logs[::-1]: # Chronological
+            print(f"[{l['created_at'].split('T')[1][:8]}] {l['level']} [{l['module']}]: {l['message']}")
 
     except Exception as e:
         print(f"Error fetching metrics: {e}")
