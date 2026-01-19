@@ -463,15 +463,28 @@ async def run_async_pipeline():
             continue
 
         # FILTER 3: Logic Check (Cannot SELL/HOLD/ACCUMULATE what you don't own)
-        # Use flexible matching for -USD variants (RENDER-USD matches RENDER)
-        def is_owned(t, pmap):
-            if t in pmap:
+        # Use flexible matching for currency variants (XRP-USD matches XRP-EUR, RENDER matches RENDER-USD)
+        def is_owned(signal_ticker, pmap):
+            """Enhanced ownership check - matches base ticker regardless of currency suffix."""
+            signal_upper = signal_ticker.upper()
+            
+            # Exact match
+            if signal_upper in pmap:
                 return True
-            base = t.replace('-USD', '').replace('-EUR', '')
-            if base in pmap:
-                return True
-            if f"{t}-USD" in pmap:
-                return True
+            
+            # Extract base ticker (remove -USD, -EUR suffixes)
+            base_signal = signal_upper.replace('-USD', '').replace('-EUR', '').replace('-GBP', '')
+            
+            # Check each portfolio ticker for a base match
+            for portfolio_ticker in pmap.keys():
+                portfolio_upper = portfolio_ticker.upper()
+                base_portfolio = portfolio_upper.replace('-USD', '').replace('-EUR', '').replace('-GBP', '')
+                
+                # Base match (XRP == XRP regardless of suffix)
+                if base_signal == base_portfolio:
+                    logger.debug(f"Ownership match: {signal_ticker} ≈ {portfolio_ticker}")
+                    return True
+            
             return False
         
         if sentiment in ["SELL", "PANIC SELL", "HOLD", "ACCUMULATE"] and not is_owned(ticker, portfolio_map):

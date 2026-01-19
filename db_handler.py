@@ -495,8 +495,10 @@ class DBHandler:
             last_sentiment = response.data[0]['sentiment']
             
             if last_sentiment == new_sentiment:
-                logger.info(f"Duplicate Signal: {ticker} was already {last_sentiment} recently. Skipping.")
-                return True # SKIP (Duplicate)
+                # NOTE: Changed behavior - we LOG duplicates but DO NOT SKIP them
+                # User wants to be notified of signals even if sentiment is same (new news = actionable info)
+                logger.info(f"Repeat Signal: {ticker} still {last_sentiment} (previous analysis confirms trend)")
+                return False  # ALLOW - user wants all signals from new news
             else:
                 logger.info(f"Sentiment Shift: {ticker} changed from {last_sentiment} to {new_sentiment}. Allowing.")
                 return False # ALLOW (Change)
