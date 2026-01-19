@@ -522,7 +522,7 @@ class Brain:
              try:
                  # Logic for OpenRouter Call with task-aware model selection
                  logger.info(f"OpenRouter call with task_type: {task_type}")
-                return self._call_openrouter([{"role": "user", "content": prompt}], json_mode=json_mode, model=model, min_context_needed=min_context_needed, task_type=task_type)
+                 return self._call_openrouter([{"role": "user", "content": prompt}], json_mode=json_mode, model=model, min_context_needed=min_context_needed, task_type=task_type)
              except Exception as e:
                  logger.warning(f"OpenRouter failed, falling back: {e}")
         elif force_gemini:
