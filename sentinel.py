@@ -144,7 +144,20 @@ class Sentinel:
                      # Let's send it. Telegram bot is noisy by design for Sentinel.
                      notifications.append({"chat_id": chat_id, "text": msg})
 
-                # --- B. TRAILING STOP ASSISTANT ---
+                # --- B. DIGITAL TWIN PROTECTION (SL/TP Monitoring) ---
+                # Check if price hits user-defined SL or TP
+                stop_loss = p.get('stop_loss')
+                take_profit = p.get('take_profit')
+                
+                if stop_loss and price <= stop_loss:
+                     msg = f"🛑 **STOP LOSS HIT**: {ticker} ha toccato €{price:.2f} (SL: €{stop_loss:.2f})\n📉 Consigliata chiusura immediata."
+                     notifications.append({"chat_id": chat_id, "text": msg})
+
+                if take_profit and price >= take_profit:
+                     msg = f"💰 **TAKE PROFIT HIT**: {ticker} ha raggiunto €{price:.2f} (TP: €{take_profit:.2f})\n🥂 Consigliata presa di profitto."
+                     notifications.append({"chat_id": chat_id, "text": msg})
+
+                # --- C. TRAILING STOP ASSISTANT ---
                 # Trigger if Total Gain > 20%
                 if avg_price > 0:
                     gain_pct = ((price - avg_price) / avg_price) * 100
@@ -152,8 +165,10 @@ class Sentinel:
                         stop_price = avg_price * 1.15 # Lock in 15% gain
                         msg = f"💰 **Profit Protection**: {ticker} sta guadagnando il +{gain_pct:.1f}%!\nConsiglio: Imposta uno Stop Loss a €{stop_price:.2f} (+15%) per proteggere i profitti."
                         
-                        # Dedup: Only notify if we hit new milestones? 
-                        # For V1 safety, notify. User can manage.
+                        # Only notify if no TP is set (priority to explicit TP)
+                        if not take_profit:
+                            # notifications.append({"chat_id": chat_id, "text": msg}) # Disabled to reduce noise if SL/TP exists
+                            pass
                         notifications.append({"chat_id": chat_id, "text": msg})
 
             except Exception as e:

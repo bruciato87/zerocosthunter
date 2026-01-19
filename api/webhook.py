@@ -757,8 +757,15 @@ async def show_portfolio(update: Update, context: ContextTypes.DEFAULT_TYPE):
             icon = "🪙" if cat == "Crypto" else "📈" if cat == "Stock" else "📊"
             
             # Cleaner, less indented format with spacing
+            # Cleaner, less indented format with spacing
+            # Include SL/TP if available
+            sl_info = f"🛑 SL: €{a['stop_loss']:.2f}" if a.get('stop_loss') else "🛑 SL: N/A"
+            tp_info = f"💰 TP: €{a['take_profit']:.2f}" if a.get('take_profit') else "💰 TP: N/A"
+            
             msg += f"\n{icon} **{a.get('asset_name') or a['display_ticker']}**\n"
             msg += f"   `{a['display_ticker']}`  •  `{val_str}`  •  {a['quantity']} pz\n"
+            if a.get('stop_loss') or a.get('take_profit'):
+                msg += f"   _{sl_info}  |  {tp_info}_\n"
 
     msg += f"\n━━━━━━━━━━━━━━━━━━━━\n💰 **TOTALE PORTAFOGLIO:** `€{total_val:,.2f}`"
     await update.message.reply_text(msg)
