@@ -1,6 +1,9 @@
 import logging
 import datetime
+import datetime
 from db_handler import DBHandler
+from paper_trader import PaperTrader
+
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -8,6 +11,8 @@ logger = logging.getLogger(__name__)
 class Sentinel:
     def __init__(self, db_handler=None):
         self.db = db_handler if db_handler else DBHandler()
+        self.paper_trader = PaperTrader(self.db)
+
 
     def check_alerts(self, market_data):
         """
@@ -17,6 +22,11 @@ class Sentinel:
         
         # 1. Price Alerts
         notifications.extend(self._check_price_alerts(market_data))
+        
+        # 2. Paper Portfolio Protection (SL/TP Auto-Execute)
+        # This executes trades directly, doesn't just notify.
+        self._check_paper_protection(market_data)
+
         
         # 2. Volatility Breaker & Trailing Stop (Portfolio Scan)
         # We need portfolio data. 
@@ -150,4 +160,60 @@ class Sentinel:
                 logger.error(f"Sentinel: Risk check error for {ticker}: {e}")
         
         return notifications
+
+    def _check_paper_protection(self, market_data):
+        """
+        Checks Paper Portfolio for Stop Loss and Take Profit hits.
+        Executes AUTO-SELL if triggered.
+        """
+        try:
+            # Get admin view of all paper positions
+            positions = self.paper_trader.get_portfolio(chat_id=None)
+            if not positions: return
+
+            logger.info(f"Sentinel: Monitoring {len(positions)} paper positions for SL/TP...")
+
+            for pos in positions:
+                ticker = pos['ticker']
+                sl = float(pos.get('stop_loss') or 0)
+                tp = float(pos.get('take_profit') or 0)
+                
+                if sl == 0 and tp == 0: continue
+
+                try:
+                    price, _ = market_data.get_smart_price_eur(ticker)
+                    if price <= 0: continue
+
+                    trigger = None
+                    reason = ""
+                    
+                    # Check SL (Price drops below SL)
+                    if sl > 0 and price <= sl:
+                        trigger = "STOP_LOSS"
+                        reason = f"Sentinel: STOP LOSS triggered at €{price:.2f} (SL: €{sl:.2f})"
+                    
+                    # Check TP (Price rises above TP)
+                    elif tp > 0 and price >= tp:
+                        trigger = "TAKE_PROFIT"
+                        reason = f"Sentinel: TAKE PROFIT triggered at €{price:.2f} (TP: €{tp:.2f})"
+                    
+                    if trigger:
+                        chat_id = pos['chat_id']
+                        qty = float(pos['quantity'])
+                        logger.info(f"Sentinel: Executing {trigger} for {ticker}...")
+                        
+                        self.paper_trader.execute_trade(
+                            chat_id=chat_id,
+                            ticker=ticker,
+                            action="SELL",
+                            quantity=qty,
+                            price_eur=price,
+                            reason=reason
+                        )
+                except Exception as e:
+                    logger.error(f"Sentinel: Error checking paper pos {ticker}: {e}")
+
+        except Exception as e:
+            logger.error(f"Sentinel: Paper protection scan failed: {e}")
+
 

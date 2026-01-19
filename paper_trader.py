@@ -23,15 +23,56 @@ class PaperTrader:
             logger.error(f"PaperTrader: Error fetching portfolio: {e}")
             return []
 
-    def execute_trade(self, chat_id: int, ticker: str, action: str, quantity: float, price_eur: float, reason: str = ""):
+    
+    def _get_or_create_account(self, chat_id: int):
+        """Get account cash balance or create if not exists (Default €10k)."""
+        try:
+            res = self.db.supabase.table("paper_accounts").select("*").eq("chat_id", chat_id).execute()
+            if res.data:
+                return res.data[0]
+            else:
+                # Create new account
+                new_acc = {"chat_id": chat_id, "cash_balance": 10000.00}
+                self.db.supabase.table("paper_accounts").insert(new_acc).execute()
+                return new_acc
+        except Exception as e:
+            logger.error(f"PaperTrader: Failed to get account for {chat_id}: {e}")
+            return None
+
+    def execute_trade(self, chat_id: int, ticker: str, action: str, quantity: float, price_eur: float, reason: str = "", sl: float = None, tp: float = None):
         """
-        Executes a simulated trade.
+        Executes a simulated trade with Cash Check and Risk Management.
         action: 'BUY' or 'SELL'
+        sl: Stop Loss Price (Optional)
+        tp: Take Profit Price (Optional)
         """
         try:
             ticker = ticker.upper()
             action = action.upper()
             total_val = quantity * price_eur
+            
+            # --- CASH MANAGEMENT ---
+            account = self._get_or_create_account(chat_id)
+            if not account:
+                logger.warning(f"PaperTrader: No account found/created for {chat_id}. Aborting trade.")
+                return False
+                
+            cash = float(account.get('cash_balance', 0))
+            
+            if action == 'BUY':
+                if cash < total_val:
+                    logger.warning(f"PaperTrader: Insufficient funds for {ticker}. Cash: €{cash:.2f}, Required: €{total_val:.2f}")
+                    return False
+                # Deduct Cash
+                new_cash = cash - total_val
+                
+            elif action == 'SELL':
+                # Add Cash
+                new_cash = cash + total_val
+
+            # Update Cash Balance
+            self.db.supabase.table("paper_accounts").update({"cash_balance": new_cash}).eq("chat_id", chat_id).execute()
+            # -----------------------
 
             # 1. Log the Trade
             trade_data = {
@@ -58,25 +99,35 @@ class PaperTrader:
                     new_qty = old_qty + quantity
                     new_avg = ((old_qty * old_avg) + (quantity * price_eur)) / new_qty
                     
-                    self.db.supabase.table("paper_portfolio").update({
+                    update_data = {
                         "quantity": new_qty,
                         "avg_price": new_avg
-                    }).eq("id", holding['id']).execute()
+                    }
+                    # Update SL/TP only if provided (or strict override logic?)
+                    # For now, if provided, valid. If not, keep old or None?
+                    # Let's overwrite if provided.
+                    if sl: update_data["stop_loss"] = sl
+                    if tp: update_data["take_profit"] = tp
+                    
+                    self.db.supabase.table("paper_portfolio").update(update_data).eq("id", holding['id']).execute()
                 else:
                     # New Position
-                    self.db.supabase.table("paper_portfolio").insert({
+                    new_pos = {
                         "chat_id": chat_id,
                         "ticker": ticker,
                         "quantity": quantity,
-                        "avg_price": price_eur
-                    }).execute()
+                        "avg_price": price_eur,
+                        "stop_loss": sl,
+                        "take_profit": tp
+                    }
+                    self.db.supabase.table("paper_portfolio").insert(new_pos).execute()
 
             elif action == 'SELL':
                 if not holding:
                     logger.warning(f"PaperTrader: Cannot SELL {ticker}, not owned.")
+                    # Revert cash add? Yes.
+                    self.db.supabase.table("paper_accounts").update({"cash_balance": cash}).eq("chat_id", chat_id).execute()
                     return False
-                
-                # Update realized PnL in trade log? (Skipped for V1 simplicity)
                 
                 new_qty = holding['quantity'] - quantity
                 if new_qty <= 0:
@@ -88,7 +139,7 @@ class PaperTrader:
                         "quantity": new_qty
                     }).eq("id", holding['id']).execute()
 
-            logger.info(f"PaperTrader: {action} {quantity} {ticker} @ €{price_eur} executed.")
+            logger.info(f"PaperTrader: {action} {quantity} {ticker} @ €{price_eur} executed. Cash remaining: €{new_cash:.2f}")
             return True
 
         except Exception as e:

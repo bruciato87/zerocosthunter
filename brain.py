@@ -358,7 +358,18 @@ class Brain:
                                 excluded_models.append(current_model)
                                 continue
                     
-                    # Log Success
+                    
+                    # Log Model Usage to Class State (Critical for Reporting)
+                    self.last_run_details = {
+                        "model": current_model,
+                        # OpenRouter returns usage in 'usage' field usually
+                        "usage": response.json().get("usage", {}),
+                        "provider": "OpenRouter",
+                        "repair_strategy": "none", # Will be overwritten if repair is needed later
+                        "retry_count": attempt
+                    }
+
+                    # Log Success to DB
                     try:
                         from db_handler import DBHandler
                         db = DBHandler()
@@ -367,6 +378,7 @@ class Brain:
                     except: pass
                     
                     return content
+
                 
                 # Failover triggers (404 Not Found, 429 Rate Limit, 400 Bad Request/Context, 5xx Server)
                 elif response.status_code in [400, 404, 429, 500, 502, 503]:
@@ -449,42 +461,29 @@ class Brain:
         3. If all OpenRouter fails, try direct Gemini API
         
         Args:
-            prompt: The prompt to send
-            json_mode: Whether to request JSON response
-            model: Specific model to use (optional, auto-selects if None)
-            prefer_free: Always True now (OpenRouter free tier)
-            min_context_needed: Helper for model selection (DeepSeek allowed if <10k)
+        Versatile generation:
+        1. Try OpenRouter (if API Key exists AND mode != PREPROD)
+        2. Fallback to Gemini Direct (if configured)
         """
-        messages = [{"role": "user", "content": prompt}]
         
-        # 1. Try OpenRouter (primary) with Dynamic Selection
-        if self.openrouter_api_key:
-            try:
-                # We pass model=None to let _call_openrouter find the best free model dynamically
-                # unless a specific model override is strictly requested.
-                target_model = model
-                
-                # If the user passed a model that is IN the tier list, it's likely a suggestion, 
-                # but we prefer dynamic discovery to ensure we get a working one.
-                # So only use 'model' if it's a specific requirement (rare).
-                # For now, we trust the caller. If model is None, it scans.
-                
-                result = self._call_openrouter(messages, json_mode=json_mode, model=target_model, min_context_needed=min_context_needed)
-                return result
-                
-            except Exception as e:
-                logger.warning(f"All OpenRouter attempts failed: {e}")
-                logger.error("Switching to GEMINI DIRECT FALLBACK...")
+        # --- MODE CHECK ---
+        # If PREPROD, force Gemini (skip OpenRouter)
+        force_gemini = (self.app_mode == "PREPROD")
         
-        # 2. Fallback to Direct Gemini (with Retries)
+        if self.openrouter_api_key and not force_gemini:
+             # Regular Hybrid Flow
+             try:
+                 # Logic for OpenRouter Call
+                 # ... existing code calls _call_openrouter ...
+                 return self._call_openrouter([{"role": "user", "content": prompt}], json_mode, model, min_context_needed=min_context_needed)
+             except Exception as e:
+                 logger.warning(f"OpenRouter failed, falling back: {e}")
+        elif force_gemini:
+             logger.info("🔧 PREPROD MODE: Skipping OpenRouter, forcing Gemini Direct.")
+
+        # Fallback / Direct Gemini
         if self.gemini_api_key or self.gemini_client:
-            try:
-                # Use retry wrapper for robustness
-                text = self._call_gemini_with_retries(prompt, json_mode=json_mode)
-                return text
-            except Exception as e:
-                logger.error(f"Gemini Fallback completely failed: {e}")
-                return "" # Total failure
+            return self._call_gemini_with_retries(prompt, json_mode)
         
         return ""
 
@@ -673,49 +672,8 @@ class Brain:
         except Exception as e:
             logger.warning(f"FX context failed: {e}")
 
-        # [PATTERN RECOGNITION CONTEXT - LEVEL 3]
+        # [REMOVED PATTERN RECOGNITION CONTEXT - Handled by SignalIntelligence Layer]
         pattern_bg = ""
-        try:
-            from pattern_recognition import PatternRecognizer
-            pr = PatternRecognizer()
-            
-            # Extract unique tickers from news items
-            tickers_in_news = set()
-            for item in news_list:
-                # Try to extract ticker if present in the item
-                if 'ticker' in item:
-                    tickers_in_news.add(item['ticker'])
-            
-            # If we have performance context, add those tickers too
-            if performance_context:
-                for ticker in list(performance_context.keys())[:5]:  # Top 5
-                    tickers_in_news.add(ticker)
-            
-            # Generate pattern summaries for each ticker
-            pattern_lines = []
-            for ticker in list(tickers_in_news)[:5]:  # Limit to 5 to avoid prompt bloat
-                summary = pr.get_pattern_summary(ticker)
-                if "No significant" not in summary:
-                    pattern_lines.append(summary)
-            
-            if pattern_lines:
-                pattern_bg = f"""
-            [CHART PATTERN ANALYSIS - LEVEL 3]
-            Visual pattern detection has identified the following formations:
-            
-            {"".join(pattern_lines)}
-            
-            **PATTERN INTEGRATION RULES:**
-            - If a BULLISH pattern (Inverse H&S, Double Bottom, Bull Flag, Descending Wedge) is detected:
-              → BOOST confidence for BUY/ACCUMULATE signals (+5-10%)
-              → Add pattern to reasoning: "Chart shows [pattern] formation"
-            - If a BEARISH pattern (H&S, Double Top, Bear Flag, Ascending Wedge) is detected:
-              → REDUCE confidence for BUY signals OR suggest WAIT/HOLD
-              → For SELL signals: BOOST confidence
-            - Pattern Target Move % can inform your Target Price estimation
-            """
-        except Exception as e:
-            logger.warning(f"Pattern context failed: {e}")
 
         # Prepare the prompt
         news_text = "\n\n".join([f"Source: {item['source']}\nTitle: {item['title']}\nSummary: {item['summary']}" for item in news_list])
@@ -840,6 +798,9 @@ class Brain:
         3.  **Upside Percentage:**
             - Numeric value of potential gain (e.g. 15.5 for +15.5%).
             - Return 0.0 if unknown/negative.
+        4.  **Risk Management (Stop Loss / Take Profit):**
+            - **Stop Loss (SL):** Estimate a technical invalidation level (e.g. -5% to -8%). Return FLOAT price.
+            - **Take Profit (TP):** Estimate a target level (e.g. +10% to +20%). Return FLOAT price.
             
         **OUTPUT FORMAT:** JSON list.
         
@@ -851,10 +812,11 @@ class Brain:
         - Extract **Ticker**, **Type**, **Sentiment**.
         - Write **Reasoning** in **ITALIAN**, concise but insightful. Cite Macro/Whale if relevant.
         - **Risk Score** (1-10), **Target Price**, **Upside %**.
+        - **Stop Loss** and **Take Profit** levels.
         - **Confidence Score** (0.0 to 1.0).
         
         **JSON FIELDS:** 
-        ticker, asset_type, sentiment, reasoning, confidence, risk_score (int), target_price (str), upside_percentage (float)
+        ticker, asset_type, sentiment, reasoning, confidence, risk_score (int), target_price (str), upside_percentage (float), stop_loss (float), take_profit (float)
 
         Return strictly a JSON list.
         Example:
@@ -866,7 +828,9 @@ class Brain:
                 "confidence": 0.85,
                 "risk_score": 4,
                 "target_price": "$200",
-                "upside_percentage": 12.5
+                "upside_percentage": 12.5,
+                "stop_loss": 185.50,
+                "take_profit": 230.00
             }}
         ]
         """

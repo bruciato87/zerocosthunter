@@ -651,9 +651,8 @@ async def run_async_pipeline():
             logger.warning(f"Signal Intelligence failed for {ticker}: {e}")
         # -----------------------------------------
 
-        risk_score = pred.get("risk_score", 5)
-        target_price = pred.get("target_price")
-        upside_percentage = pred.get("upside_percentage", 0.0)
+        stop_loss = pred.get("stop_loss")
+        take_profit = pred.get("take_profit")
         
         # --- TARGET PRICE VALIDATION ---
         # If AI returns absurd target (>100% above current price), recalculate from upside
@@ -715,7 +714,7 @@ async def run_async_pipeline():
                     
                     # Log buy or sell
                     if sentiment in ["BUY", "ACCUMULATE"]:
-                         paper_trader.execute_trade(999999999, ticker, "BUY", qty, p_price, f"Auto-Signal: {confidence:.2f}")
+                         paper_trader.execute_trade(999999999, ticker, "BUY", qty, p_price, f"Auto-Signal: {confidence:.2f}", sl=stop_loss, tp=take_profit)
                     elif sentiment in ["SELL"]:
                          # For sell, we need to know how much we have. PaperTrader handles logic?
                          # The execute_trade SELL logic handles partials.
@@ -740,6 +739,11 @@ async def run_async_pipeline():
              if upside_percentage > 0:
                  prophet_badge += f" (Up +{upside_percentage}%)"
              prophet_badge += f"\n🎲 **Risk Score:** {risk_score}/10"
+        
+        if stop_loss:
+            prophet_badge += f"\n🛑 **Stop Loss:** €{stop_loss}"
+        if take_profit:
+            prophet_badge += f"\n💰 **Take Profit:** €{take_profit}"
 
         alert_msg = (
             f"{icon} **Signal Detected: {ticker} ({asset_type})**\n"

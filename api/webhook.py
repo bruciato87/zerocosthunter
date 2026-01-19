@@ -232,32 +232,34 @@ async def settings_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ Errore/Nessuna modifica. Usa il formato: `/settings confidence=80`")
 
 async def mode_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Switch between PREPROD (Gemini only) and PROD (DeepSeek + Gemini) modes."""
-    logger.info(f"MODE COMMAND CALLED. Args: {context.args}")
+    """Switch between PREPROD (Gemini Only) and PROD (Hybrid) modes."""
     db = DBHandler()
-    args = context.args
+    current_settings = db.get_settings()
+    current_mode = current_settings.get("app_mode", "PROD")
     
-    # Show OpenRouter info (mode switching no longer needed)
-    usage = db.get_api_usage()
-    last_model = usage.get("last_model", "N/A")
-    model_short = last_model.split('/')[-1].replace(':free', '') if last_model != 'N/A' else 'Nessun modello usato oggi'
-    total_calls = usage.get("openrouter", 0)
+    new_mode = "PROD"
+    if context.args:
+        arg = context.args[0].upper()
+        if arg in ["PREPROD", "GEMINI"]:
+            new_mode = "PREPROD"
+        elif arg in ["PROD", "HYBRID"]:
+            new_mode = "PROD"
+    else:
+        # Toggle
+        new_mode = "PREPROD" if current_mode == "PROD" else "PROD"
+        
+    db.update_settings(app_mode=new_mode)
+    
+    status_icon = "🔧" if new_mode == "PREPROD" else "🚀"
+    mode_desc = "Gemini Direct ONLY" if new_mode == "PREPROD" else "Hybrid (OpenRouter + Fallback)"
     
     msg = (
-        f"🤖 **AI Engine: OpenRouter**\n\n"
-        f"🎯 **Ultimo Modello:** {model_short}\n"
-        f"📊 **Chiamate Oggi:** {total_calls}\n"
-        f"⏰ **Reset:** {usage.get('reset_at_local', 'N/A')}\n\n"
-        f"**Come Funziona:**\n"
-        f"Il sistema seleziona automaticamente il miglior modello AI gratuito disponibile:\n"
-        f"1️⃣ DeepSeek R1 (reasoning)\n"
-        f"2️⃣ DeepSeek Chat V3\n"
-        f"3️⃣ Llama 3.3 70B\n"
-        f"4️⃣ Gemini Flash\n"
-        f"5️⃣ ...e altri\n\n"
-        f"_Non serve più cambiare modalità!_"
+        f"{status_icon} **Mode Switched: {new_mode}**\n\n"
+        f"Logic: `{mode_desc}`\n"
+        f"✅ Settings updated."
     )
     await update.message.reply_text(msg, parse_mode="Markdown")
+
 
 async def usage_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Show API usage statistics."""
