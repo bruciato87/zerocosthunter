@@ -20,7 +20,7 @@ class Critic:
     """
     
     def __init__(self):
-        self.model = "google/gemini-2.0-flash-lite-preview-02-05:free" # Fast, smart enough for critique
+        self.model = "gemini-2.5-flash" # Verified available model
         # Fallback to Llama 3 if Gemini fails
         self.fallback_model = "meta-llama/llama-3.3-70b-instruct:free"
 
@@ -78,10 +78,14 @@ class Critic:
             from brain import Brain
             brain = Brain()
             # We use a lower temperature for the Critic to be consistent and analytical
-            response = brain._generate_with_fallback(prompt, models=[self.model, self.fallback_model], temperature=0.1)
+            # We use a lower temperature for the Critic to be consistent and analytical
+            # Note: _generate_with_fallback handles model selection. We pass prefer_free=True.
+            response = brain._generate_with_fallback(prompt, model=self.model, prefer_free=True, json_mode=True)
             
             # Parse JSON
             try:
+                logger.info(f"Raw Critic Response: {response}")
+                # Clean markdown code blocks if present
                 # Clean markdown code blocks if present
                 clean_response = response.replace('```json', '').replace('```', '').strip()
                 data = json.loads(clean_response)
@@ -102,6 +106,8 @@ class Critic:
 
 if __name__ == "__main__":
     # Test
+    from dotenv import load_dotenv
+    load_dotenv()
     logging.basicConfig(level=logging.INFO)
     c = Critic()
     

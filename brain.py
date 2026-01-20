@@ -66,7 +66,7 @@ class Brain:
         if self.openrouter_api_key:
             logger.info(f"Brain initialized: OpenRouter=✅, Gemini Fallback={'✅' if self.gemini_api_key else '❌'}")
         else:
-            logger.warning("Brain initialized: OpenRouter=❌ (no API key), Gemini={'✅' if self.gemini_api_key else '❌'}")
+            logger.warning(f"Brain initialized: OpenRouter=❌ (no API key), Gemini={'✅' if self.gemini_api_key else '❌'}")
             
         # Initialize Critic
         self.critic = Critic()
@@ -470,7 +470,7 @@ class Brain:
         }
         raise Exception("OpenRouter: All model attempts failed.")
 
-    def _call_gemini_fallback(self, prompt: str, json_mode: bool = False) -> str:
+    def _call_gemini_fallback(self, prompt: str, json_mode: bool = False, model: str = None) -> str:
         """Direct Gemini API call as last-resort fallback."""
         if not self.gemini_client:
             raise Exception("No Gemini client available for fallback")
@@ -482,20 +482,31 @@ class Brain:
                 temperature=0.3
             )
         
+        target_model = model if model else 'gemini-2.5-flash'
+        logger.info(f"Gemini Fallback: Using model {target_model}")
+        
         response = self.gemini_client.models.generate_content(
-            model='gemini-2.5-flash',
+            model=target_model,
             contents=prompt,
             config=config
         )
         
         # Track usage (Approximated as Direct API doesn't return token counts easily in this client version)
         self.last_run_details = {
-            "model": "google/gemini-2.5-flash (Direct)",
+            "model": f"google/{target_model} (Direct)",
             "usage": {"total_tokens": "N/A (Direct Fallback)"},
             "provider": "Google Direct"
         }
         
-        content = response.text
+        if not response:
+            logger.error("Gemini returned None response.")
+            return ""
+            
+        try:
+            content = response.text
+        except Exception as e:
+             logger.error(f"Error accessing response.text: {e}")
+             return ""
         if json_mode:
              content = content.replace("```json", "").replace("```", "").strip()
              
@@ -544,17 +555,17 @@ class Brain:
 
         # Fallback / Direct Gemini
         if self.gemini_api_key or self.gemini_client:
-            return self._call_gemini_with_retries(prompt, json_mode)
+            return self._call_gemini_with_retries(prompt, json_mode, model=model)
         
         return ""
 
-    def _call_gemini_with_retries(self, prompt: str, json_mode: bool) -> str:
+    def _call_gemini_with_retries(self, prompt: str, json_mode: bool, model: str = None) -> str:
         """Helper for Gemini with backoff retries."""
         max_retries = 3
         backoff = 5
         for attempt in range(max_retries + 1):
             try:
-                result = self._call_gemini_fallback(prompt, json_mode=json_mode)
+                result = self._call_gemini_fallback(prompt, json_mode=json_mode, model=model)
                 return result
             except Exception as e:
                 error_str = str(e)
