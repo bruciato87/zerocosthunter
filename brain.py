@@ -6,6 +6,14 @@ import json
 from market_data import MarketData
 import time
 import requests
+import json
+from market_data import MarketData
+from critic import Critic
+import time
+import json
+from market_data import MarketData
+from critic import Critic
+import time
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -59,6 +67,12 @@ class Brain:
             logger.info(f"Brain initialized: OpenRouter=✅, Gemini Fallback={'✅' if self.gemini_api_key else '❌'}")
         else:
             logger.warning("Brain initialized: OpenRouter=❌ (no API key), Gemini={'✅' if self.gemini_api_key else '❌'}")
+            
+        # Initialize Critic
+        self.critic = Critic()
+            
+        # Initialize Critic
+        self.critic = Critic()
 
     def _get_best_free_model(self, excluded_models: list = None, min_context_needed: int = 32000, task_type: str = "default") -> str:
         """
@@ -890,6 +904,13 @@ class Brain:
             try:
                 analysis_results = json.loads(response_text)
                 logger.info(f"AI returned {len(analysis_results)} potential signals.")
+                
+                # [PHASE A] CRITIC VALIDATION
+                if analysis_results:
+                    logger.info(f"Refining {len(analysis_results)} signals with The Critic...")
+                    # Pass the original prompt as context (it contains news, macro, etc.)
+                    analysis_results = self._verify_with_critic(analysis_results, prompt)
+                
                 return analysis_results
             except json.JSONDecodeError:
                 logger.error("Failed to parse AI response as JSON.")
@@ -899,6 +920,71 @@ class Brain:
         except Exception as e:
             logger.error(f"Error during AI analysis: {e}")
             return []
+
+    def _verify_with_critic(self, signals, context_data):
+        """
+        Passes high-confidence signals to the Critic for a second opinion.
+        """
+        verified_signals = []
+        
+        for sig in signals:
+            try:
+                # Only critique High Confidence (>=0.7) or strong BULLISH signals
+                # HOLD/WAIT signals don't need risk management critique (they are already safe)
+                if sig.get('confidence', 0) >= 0.7 or sig.get('sentiment') in ['BUY', 'ACCUMULATE', 'STRONG BUY']:
+                    
+                    # Prepare Context string for Critic (Extract from signal)
+                    signal_context = f"""
+                    News Summary: {sig.get('reasoning')}
+                    Target Price: {sig.get('target_price', 'N/A')}
+                    Original Confidence: {sig.get('confidence')}
+                    Risk Score: {sig.get('risk_score')}
+                    """
+                    
+                    # Call Critic
+                    # We pass the FULL Prompt as context_data to give the Critic the same info the Hunter had
+                    verdict_obj = self.critic.critique_signal(
+                        {
+                            "ticker": sig.get('ticker'),
+                            "direction": sig.get('sentiment'),
+                            "confidence": sig.get('confidence'),
+                            "reasoning": sig.get('reasoning')
+                        },
+                        context_data # Full context
+                    )
+                    
+                    # Store Critic Data in Signal
+                    sig['critic_verdict'] = verdict_obj.verdict
+                    sig['critic_score'] = verdict_obj.score
+                    sig['critic_reasoning'] = verdict_obj.reasoning
+                    
+                    # Decision Logic
+                    if verdict_obj.verdict == "REJECT":
+                        logger.warning(f"⛔ CRITIC VETOED {sig['ticker']}: {verdict_obj.reasoning}")
+                        # Downgrade to HOLD
+                        sig['sentiment'] = 'HOLD'
+                        # Heavily penalize confidence
+                        sig['confidence'] = max(0.1, float(sig.get('confidence', 0.5)) - 0.4)
+                        sig['reasoning'] += f"\n\n🛑 [CRITIC VETO]: {verdict_obj.reasoning}"
+                    else:
+                        logger.info(f"✅ CRITIC APPROVED {sig['ticker']} (Score: {verdict_obj.score})")
+                        # Slight Boost if score is perfect
+                        if verdict_obj.score > 90:
+                            sig['confidence'] = min(0.99, float(sig.get('confidence', 0.5)) + 0.05)
+                
+                else:
+                    # Skip Critic for low confidence
+                    sig['critic_verdict'] = "SKIPPED"
+                    sig['critic_score'] = None
+                    sig['critic_reasoning'] = "Confidence too low for critique."
+                
+                verified_signals.append(sig)
+                
+            except Exception as e:
+                logger.error(f"Critic verification failed for {sig.get('ticker')}: {e}")
+                verified_signals.append(sig) # Pass through on error
+                
+        return verified_signals
 
     def parse_portfolio_from_image(self, image_path):
         """

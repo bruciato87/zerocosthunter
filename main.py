@@ -454,6 +454,11 @@ async def run_async_pipeline():
         target_price = pred.get("target_price")
         upside_percentage = float(pred.get("upside_percentage", 0)) if pred.get("upside_percentage") else 0
         risk_score = pred.get("risk_score", 5)  # Default medium risk
+        
+        # Critic Fields
+        critic_verdict = pred.get("critic_verdict")
+        critic_score = pred.get("critic_score")
+        critic_reasoning = pred.get("critic_reasoning")
 
         if not ticker: 
             continue
@@ -742,7 +747,11 @@ async def run_async_pipeline():
 
         # 5. Log to DB and Notify
         # 5. Log to DB and Notify
-        signal_id = db.log_prediction(ticker, sentiment, reasoning, reasoning, confidence, source, risk_score, target_price, upside_percentage, stop_loss, take_profit)
+        signal_id = db.log_prediction(
+            ticker, sentiment, reasoning, reasoning, confidence, source, 
+            risk_score, target_price, upside_percentage, stop_loss, take_profit,
+            critic_verdict=critic_verdict, critic_score=critic_score, critic_reasoning=critic_reasoning
+        )
         
         # --- AUDITOR INTEGRATION ---
         # If BUY/ACCUMULATE signal, start tracking performance
