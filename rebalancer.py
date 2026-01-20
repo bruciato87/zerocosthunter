@@ -654,10 +654,22 @@ class Rebalancer:
         # AI Strategy (FIRST - most important)
         ai_strategy = self._get_ai_suggestion(analysis)
         if ai_strategy:
-            # Sanitize markdown: escape problematic characters
-            ai_strategy_safe = ai_strategy.replace("_", "\\_").replace("*", "\\*") if "_" in ai_strategy or "*" in ai_strategy else ai_strategy
+            logger.info(f"AI Strategy received ({len(ai_strategy)} chars)")
+            # Sanitize markdown: escape ALL problematic Telegram Markdown characters
+            # Telegram MarkdownV1 treats these as special: _ * ` [
+            ai_strategy_safe = ai_strategy
+            # Remove or escape underscores (most common issue)
+            ai_strategy_safe = ai_strategy_safe.replace("_", " ")
+            # Escape backticks (can break code blocks)
+            ai_strategy_safe = ai_strategy_safe.replace("`", "'")
+            # Remove square brackets (link syntax)
+            ai_strategy_safe = ai_strategy_safe.replace("[", "(").replace("]", ")")
+            
             report += "🎯 **PIANO D'AZIONE (Hybrid AI Strategy):**\n"
             report += ai_strategy_safe + "\n\n"
+        else:
+            logger.warning("AI Strategy returned None - no recommendations available")
+            report += "🎯 **PIANO D'AZIONE:** Nessuna raccomandazione specifica al momento.\n\n"
         
         # Sector allocation (compact)
         report += "📈 **Allocazione Settori:**\n"
