@@ -530,10 +530,18 @@ class Rebalancer:
             from brain import Brain
             brain = Brain()
             # OpenRouter will auto-select best reasoning model (DeepSeek R1 if available)
+            logger.info("Calling Brain for AI strategy...")
             response_text = brain._generate_with_fallback(prompt, json_mode=False, task_type="rebalance")
             
             # Save brain reference for AI footer
             self._last_brain = brain
+            
+            # Check if response is valid
+            if not response_text or not response_text.strip():
+                logger.warning(f"AI returned empty response: '{response_text}'")
+                return None
+            
+            logger.info(f"AI response received: {len(response_text)} chars")
             
             # [V12] Save AI suggestions for learning
             self._save_suggestions_to_db(response_text, analysis, regime_data)
@@ -542,7 +550,9 @@ class Rebalancer:
 
             
         except Exception as e:
-            logger.warning(f"AI suggestion failed: {e}")
+            logger.error(f"AI suggestion failed with exception: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
             return None
     
     def _save_suggestions_to_db(self, response_text: str, analysis: dict, regime_data: dict):
