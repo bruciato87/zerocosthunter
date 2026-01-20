@@ -303,7 +303,6 @@ class DBHandler:
                 "prediction": prediction_sentence,
                 "confidence_score": confidence_score,
                 "source_url": source_url,
-                "generated_at": datetime.utcnow().isoformat(),
                 "risk_score": risk_score,
                 "target_price": target_price,
                 "upside_percentage": upside_percentage,
