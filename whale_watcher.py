@@ -338,22 +338,50 @@ class WhaleWatcher:
 
     def get_dashboard_stats(self):
         """
-        Simplified stats for UI.
+        Parses the text report to return structured stats for the UI.
+        Keeps Dashboard backward compatible with V2 logic.
         """
-        # For dashboard speed, run a lighter version or reuse logic
-        # For now, we'll just run analyze_flow parse results to dict to avoid duplicating logic
-        # Ideally this should return a dict directly.
-        
-        # Let's do a quick fetch for dashboard speed (only Spot + top 3)
-        context = self.analyze_flow() # This might be slow for dashboard... 
-        # But we need consistency.
-        
-        lines = context.splitlines()
-        status = "NEUTRAL"
-        for l in lines:
-            if "Global Status" in l: status = l.split(":")[1].strip()
+        try:
+            context = self.analyze_flow()
+            lines = context.splitlines()
             
-        return {"status": status, "full_report": context}
+            stats = {
+                "status": "NEUTRAL",
+                "buy_vol_m": 0.0,
+                "sell_vol_m": 0.0,
+                "net_flow_m": 0.0,
+                "weighted_net_m": 0.0,
+                "full_report": context
+            }
+            
+            import re
+            
+            # Simple Regex Extraction from the standard report format
+            # Status: Global Status: NEUTRAL
+            # Net Flow: - Net Flow: $3.6M
+            
+            for l in lines:
+                l = l.strip()
+                if "Global Status:" in l:
+                    stats["status"] = l.split(":")[1].strip()
+                elif "- Total Buy:" in l:
+                     match = re.search(r"\$([\d\.]+)M", l)
+                     if match: stats["buy_vol_m"] = float(match.group(1))
+                elif "- Total Sell:" in l:
+                     match = re.search(r"\$([\d\.]+)M", l)
+                     if match: stats["sell_vol_m"] = float(match.group(1))
+                elif "- Net Flow:" in l:
+                     match = re.search(r"\$([-\d\.]+)M", l)
+                     if match: stats["net_flow_m"] = float(match.group(1))
+                elif "- Weighted Net:" in l:
+                     match = re.search(r"\$([-\d\.]+)M", l)
+                     if match: stats["weighted_net_m"] = float(match.group(1))
+
+            return stats
+            
+        except Exception as e:
+            logger.error(f"Dashboard Stats Parsing Failed: {e}")
+            return {"status": "ERROR", "full_report": str(e)}
 
 
 if __name__ == "__main__":
