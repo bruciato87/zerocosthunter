@@ -536,10 +536,34 @@ class Rebalancer:
             # Save brain reference for AI footer
             self._last_brain = brain
             
-            # Check if response is valid
+            # Check if response is valid - if empty, try Gemini fallback
             if not response_text or not response_text.strip():
-                logger.warning(f"AI returned empty response: '{response_text}'")
-                return None
+                logger.warning(f"Primary AI returned empty, trying Gemini fallback...")
+                try:
+                    response_text = brain._call_gemini_with_retries(prompt, json_mode=False)
+                    if response_text and response_text.strip():
+                        logger.info(f"Gemini fallback succeeded: {len(response_text)} chars")
+                        
+                        # Update tracking for Gemini fallback
+                        brain.last_run_details = {
+                            "model": "gemini-2.5-flash (Fallback)",
+                            "usage": {"total_tokens": "N/A"},
+                            "provider": "Google Direct (Fallback)"
+                        }
+                        
+                        # Log fallback usage to DB
+                        try:
+                            from db_handler import DBHandler
+                            db = DBHandler()
+                            db.increment_api_counter("gemini_fallback")
+                            db.log_model_used("gemini-2.5-flash-fallback")
+                        except: pass
+                    else:
+                        logger.warning("Gemini fallback also returned empty")
+                        return None
+                except Exception as gemini_err:
+                    logger.error(f"Gemini fallback failed: {gemini_err}")
+                    return None
             
             logger.info(f"AI response received: {len(response_text)} chars")
             
@@ -678,8 +702,16 @@ class Rebalancer:
             report += "🎯 **PIANO D'AZIONE (Hybrid AI Strategy):**\n"
             report += ai_strategy_safe + "\n\n"
         else:
-            logger.warning("AI Strategy returned None - no recommendations available")
-            report += "🎯 **PIANO D'AZIONE:** Nessuna raccomandazione specifica al momento.\n\n"
+            # AI failed - generate fallback recommendations from rules
+            logger.warning("AI Strategy returned None - using rule-based fallback")
+            suggestions = self.generate_rebalance_suggestions(analysis)
+            if suggestions and len(suggestions) > 0:
+                report += "🎯 **PIANO D'AZIONE (Fallback):**\n"
+                for s in suggestions[:3]:
+                    report += f"{s}\n"
+                report += "\n"
+            else:
+                report += "🎯 **PIANO D'AZIONE:** Portfolio bilanciato, nessuna azione richiesta.\n\n"
         
         # Sector allocation (compact)
         report += "📈 **Allocazione Settori:**\n"
