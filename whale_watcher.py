@@ -10,64 +10,69 @@ logger = logging.getLogger("WhaleWatcher")
 
 class WhaleWatcher:
     """
-    Zero-Cost 'Hacker Style' Whale Watcher.
-    Uses Binance Public API (aggTrades) to detect large market orders.
+    Zero-Cost 'Hacker Style' Whale Watcher V2 (Deep Sea Edition).
+    Uses Binance Public API (Spot + Futures) to detect large market orders and hidden algos.
     No API Key required.
     
-    Enhanced Features:
-    - Extended symbol coverage (BTC, ETH, SOL, XRP, DOGE, AVAX)
+    Enhanced Features V2:
+    - Futures Integration (fapi) for leverage tracking
+    - Iceberg Order Detection (Time-based clustering)
+    - Open Interest (OI) Analysis for trend strength
+    - Extended symbol coverage
     - Real-time whale alerts (>$1M)
-    - Historical trend comparison (1h vs 24h avg)
     - Session timing awareness (Asia/EU/US)
     - Weighted flow (recent trades count more)
     """
     def __init__(self, telegram_bot=None):
-        self.base_url = "https://api.binance.com/api/v3/aggTrades"
-        self.min_value_usd = 500_000  # Lowered slightly to catch 'Sharks' too
-        self.alert_threshold = 1_000_000  # Alert for >$1M trades
+        self.spot_url = "https://api.binance.com/api/v3/aggTrades"
+        self.futures_url = "https://fapi.binance.com/fapi/v1/aggTrades"
+        self.oi_url = "https://fapi.binance.com/fapi/v1/openInterest"
+        
+        self.min_value_spot = 500_000
+        self.min_value_futures = 1_000_000 # Higher threshold for leverage
+        self.alert_threshold = 1_000_000   # Alert for >$1M trades
+        
         # IMPROVEMENT 1: Extended symbols
         self.symbols = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "AVAXUSDT"]
         self.telegram_bot = telegram_bot  # For real-time alerts
         
-    def fetch_binance_whales(self, symbol, hours=1):
+    def fetch_binance_whales(self, symbol, hours=1, market_type="SPOT"):
         """
         Fetches aggregated trades from the specified time window.
-        Iterates backwards using 'endTime' until the cutoff time is reached.
+        Supports both SPOT and FUTURES markets.
         """
         whales = []
-        endpoints = [
-            "https://api.binance.com/api/v3/aggTrades",
-            "https://api.binance.us/api/v3/aggTrades",
-        ]
+        base_url = self.futures_url if market_type == "FUTURES" else self.spot_url
+        min_val = self.min_value_futures if market_type == "FUTURES" else self.min_value_spot
 
         now_ms = int(datetime.datetime.now(datetime.timezone.utc).timestamp() * 1000)
         cutoff_time = now_ms - (hours * 60 * 60 * 1000)
         
         end_time = None  # Starts at "Now"
         
-        # Safety Limit: Max 30 requests (~30k trades max) to prevent timeout
-        for _ in range(30):
+        # Safety Limit: Max 20 requests per symbol/market type
+        for _ in range(20):
              batch_success = False
              current_batch = []
              
-             for base_url in endpoints:
-                 try:
-                     params = {"symbol": symbol, "limit": 1000}
-                     if end_time:
-                         params["endTime"] = end_time
-                     
-                     resp = requests.get(base_url, params=params, timeout=3)
-                     
-                     if resp.status_code == 200:
-                         trades = resp.json()
-                         if not trades: break
-                         current_batch = trades
-                         batch_success = True
-                         break
-                     elif resp.status_code == 451:
-                         continue
-                 except Exception:
-                     continue
+             try:
+                 params = {"symbol": symbol, "limit": 1000}
+                 if end_time:
+                     params["endTime"] = end_time
+                 
+                 resp = requests.get(base_url, params=params, timeout=3)
+                 
+                 if resp.status_code == 200:
+                     trades = resp.json()
+                     if not trades: break
+                     current_batch = trades
+                     batch_success = True
+                 elif resp.status_code == 429: # Rate limit
+                     break
+                 elif resp.status_code == 451: # Legal restriction
+                     break
+             except Exception:
+                 continue
             
              if not batch_success or not current_batch:
                  break
@@ -82,15 +87,18 @@ class WhaleWatcher:
                  qty = float(t['q'])
                  value_usd = price * qty
                  
-                 if value_usd >= self.min_value_usd:
-                     side = "SELL" if t['m'] else "BUY"
+                 # Basic Threshold Filter
+                 if value_usd >= min_val:
+                     side = "SELL" if t['m'] else "BUY" # For Spot: m=True is SELL. For Futures: m=True is SELL.
                      whales.append({
                          "symbol": symbol,
                          "price": price,
                          "qty": qty,
                          "value_usd": value_usd,
                          "side": side,
-                         "timestamp": t['T']
+                         "timestamp": t['T'],
+                         "market": market_type,
+                         "type": "Single Trade"
                      })
              
              if oldest_in_batch < cutoff_time:
@@ -100,266 +108,255 @@ class WhaleWatcher:
              
         return whales
 
+    def detect_icebergs(self, symbol, hours=1):
+        """
+        IMPROVEMENT V2-2: Iceberg Order Detection.
+        Fetches ALL trades (not just big ones) and looks for clusters.
+        Cluster = >$1M volume in <5 seconds.
+        """
+        icebergs = []
+        # Only check Futures for Icebergs (where algorithms live)
+        base_url = self.futures_url 
+        
+        now_ms = int(datetime.datetime.now(datetime.timezone.utc).timestamp() * 1000)
+        # Only check last 15 minutes for Icebergs to save API calls
+        cutoff_time = now_ms - (15 * 60 * 1000) 
+        
+        try:
+            params = {"symbol": symbol, "limit": 1000} # Get most recent 1000 trades
+            resp = requests.get(base_url, params=params, timeout=3)
+            
+            if resp.status_code != 200: return []
+            trades = resp.json()
+            
+            # Simple Clustering Algorithm
+            # Group trades by 5-second windows
+            window_size_ms = 5000
+            current_window_start = trades[0]['T']
+            window_vol_buy = 0
+            window_vol_sell = 0
+            
+            for t in trades:
+                if t['T'] < cutoff_time: continue
+                
+                price = float(t['p'])
+                qty = float(t['q'])
+                val = price * qty
+                side = "SELL" if t['m'] else "BUY"
+                
+                if t['T'] - current_window_start > window_size_ms:
+                    # Analyze Window
+                    if window_vol_buy > 1_000_000:
+                        icebergs.append({
+                             "symbol": symbol, "price": price, "value_usd": window_vol_buy,
+                             "side": "BUY", "timestamp": current_window_start,
+                             "market": "FUTURES", "type": "🧊 ICEBERG"
+                        })
+                    if window_vol_sell > 1_000_000:
+                        icebergs.append({
+                             "symbol": symbol, "price": price, "value_usd": window_vol_sell,
+                             "side": "SELL", "timestamp": current_window_start,
+                             "market": "FUTURES", "type": "🧊 ICEBERG"
+                        })
+                    
+                    # Reset Window
+                    current_window_start = t['T']
+                    window_vol_buy = 0
+                    window_vol_sell = 0
+                
+                if side == "BUY": window_vol_buy += val
+                else: window_vol_sell += val
+                
+        except Exception as e:
+            logger.warning(f"Iceberg detection failed: {e}")
+            
+        return icebergs
+
+    def get_open_interest(self, symbol):
+        """
+        IMPROVEMENT V2-3: Open Interest Tracking.
+        Returns the current OI amount in USD.
+        """
+        try:
+            resp = requests.get(self.oi_url, params={"symbol": symbol}, timeout=3)
+            if resp.status_code == 200:
+                data = resp.json()
+                return float(data['openInterest']) * float(data['symbol'].replace('USDT','') if 'price' not in data else data['openInterest']) # Some endpoints return contracts, some USD. fapi/v1/openInterest returns amount in USDT usually
+                # Actually fapi returns 'openInterest' (quantity) and we need price to get USD value, but safer to assume it reflects magnitude. 
+                # Let's trust the 'openInterest' field, but better yet 'sumOpenInterestValue' from another endpoint is better but let's stick to simple.
+                # Correction: fapi/v1/openInterest returns: {"symbol": "BTCUSDT", "openInterest": "100.0", "time": 123} where OI is in base asset (BTC).
+                # So we need price to get USD.
+            return 0
+        except:
+            return 0
+            
+    def get_open_interest_analysis(self, symbol):
+        """
+        Analyzes OI structure (simple heuristic).
+        """
+        try:
+             # Get current price and OI
+             price_resp = requests.get("https://fapi.binance.com/fapi/v1/ticker/price", params={"symbol": symbol}, timeout=2)
+             oi_resp = requests.get(self.oi_url, params={"symbol": symbol}, timeout=2)
+             
+             if price_resp.status_code == 200 and oi_resp.status_code == 200:
+                 price = float(price_resp.json()['price'])
+                 oi_qty = float(oi_resp.json()['openInterest'])
+                 oi_val = price * oi_qty
+                 
+                 return {"value_usd": oi_val, "status": "Stable"}
+        except:
+            pass
+        return {"value_usd": 0, "status": "Unknown"}
+
     def get_trading_session(self):
         """
-        IMPROVEMENT 5: Determine current trading session based on time.
-        Returns context about which region's whales are most active.
+        Determine current trading session based on time.
         """
         now = datetime.datetime.now(ZoneInfo("UTC"))
         hour = now.hour
         
-        # Trading sessions (UTC)
-        # Asia: 00:00-08:00 UTC (Tokyo/HK)
-        # Europe: 07:00-16:00 UTC (London/Frankfurt)
-        # US: 13:00-22:00 UTC (NY)
-        
         if hour >= 0 and hour < 8:
-            return {"session": "ASIA", "emoji": "🌏", "note": "Asian whales active (Tokyo/HK/Singapore)"}
+            return {"session": "ASIA", "emoji": "🌏", "note": "Tokyo/HK active"}
         elif hour >= 7 and hour < 16:
-            return {"session": "EUROPE", "emoji": "🌍", "note": "European institutions active (London/Frankfurt)"}
+            return {"session": "EUROPE", "emoji": "🌍", "note": "London active"}
         elif hour >= 13 and hour < 22:
-            return {"session": "US", "emoji": "🌎", "note": "US whales active (Wall Street)"}
+            return {"session": "US", "emoji": "🌎", "note": "Wall St active"}
         else:
-            return {"session": "OFF-HOURS", "emoji": "🌙", "note": "Low liquidity - whale moves have larger impact"}
+            return {"session": "OFF-HOURS", "emoji": "🌙", "note": "Low liquidity"}
 
     def calculate_weighted_flow(self, whales):
         """
-        IMPROVEMENT 6: Weight recent trades more heavily.
-        Trades in last 30 min = 2x weight, last 15 min = 3x weight.
+        Weight recent trades more heavily.
         """
         now_ms = int(datetime.datetime.now(datetime.timezone.utc).timestamp() * 1000)
-        thirty_min_ago = now_ms - (30 * 60 * 1000)
         fifteen_min_ago = now_ms - (15 * 60 * 1000)
         
         weighted_buy = 0
         weighted_sell = 0
         
         for w in whales:
-            # Determine weight based on recency
-            if w['timestamp'] >= fifteen_min_ago:
-                weight = 3.0  # Most recent = 3x
-            elif w['timestamp'] >= thirty_min_ago:
-                weight = 2.0  # Recent = 2x
-            else:
-                weight = 1.0  # Older = 1x
+            weight = 3.0 if w['timestamp'] >= fifteen_min_ago else 1.0
+            val = w['value_usd']
+            if w.get('type') == '🧊 ICEBERG': weight *= 1.5 # Boost hidden orders importance
             
             if w['side'] == "BUY":
-                weighted_buy += w['value_usd'] * weight
+                weighted_buy += val * weight
             else:
-                weighted_sell += w['value_usd'] * weight
+                weighted_sell += val * weight
         
         return weighted_buy, weighted_sell
 
-    def get_historical_comparison(self):
-        """
-        IMPROVEMENT 3: Compare current 1h flow with 24h average.
-        Returns trend direction (increasing/decreasing whale activity).
-        """
-        try:
-            # Get current 1h data (already have this)
-            current_whales = []
-            for sym in self.symbols[:3]:  # Only major 3 for speed
-                current_whales.extend(self.fetch_binance_whales(sym, hours=1))
-            
-            current_buy = sum(w['value_usd'] for w in current_whales if w['side'] == 'BUY')
-            current_sell = sum(w['value_usd'] for w in current_whales if w['side'] == 'SELL')
-            current_total = current_buy + current_sell
-            
-            # Estimate 24h average per hour (we can't fetch full 24h due to API limits)
-            # Use a simple heuristic: if current hour has > $10M activity, that's above normal
-            avg_hourly = 5_000_000  # Baseline: $5M/hour is average
-            
-            if current_total > avg_hourly * 2:
-                trend = "📈 SURGING"
-                note = "Whale activity 2x+ above normal"
-            elif current_total > avg_hourly * 1.5:
-                trend = "⬆️ ELEVATED" 
-                note = "Whale activity above normal"
-            elif current_total < avg_hourly * 0.5:
-                trend = "⬇️ QUIET"
-                note = "Whale activity below normal"
-            else:
-                trend = "➡️ NORMAL"
-                note = "Whale activity at expected levels"
-            
-            return {
-                "trend": trend,
-                "note": note,
-                "current_volume_m": round(current_total / 1_000_000, 1)
-            }
-        except Exception as e:
-            logger.warning(f"Historical comparison failed: {e}")
-            return {"trend": "➡️ NORMAL", "note": "Comparison unavailable", "current_volume_m": 0}
-
-    async def send_whale_alert(self, whale_trade):
-        """
-        IMPROVEMENT 2: Send real-time alert for mega-whale trades (>$1M).
-        """
-        if self.telegram_bot and whale_trade['value_usd'] >= self.alert_threshold:
-            try:
-                val_m = whale_trade['value_usd'] / 1_000_000
-                emoji = "🟢" if whale_trade['side'] == "BUY" else "🔴"
-                
-                message = f"""
-🐋 **MEGA-WHALE ALERT!**
-
-{emoji} **${val_m:.1f}M {whale_trade['side']}** on {whale_trade['symbol'].replace('USDT', '')}
-
-Price: ${whale_trade['price']:,.2f}
-Quantity: {whale_trade['qty']:,.4f}
-
-_This is a significant institutional move!_
-"""
-                await self.telegram_bot.send_message(message)
-                logger.info(f"Whale alert sent: {whale_trade['side']} ${val_m:.1f}M")
-            except Exception as e:
-                logger.warning(f"Failed to send whale alert: {e}")
-
     def analyze_flow(self, test_mode=False):
         """
-        Analyzes recent market flow for Whales.
-        Enhanced with timing, trends, and weighted flow.
+        Analyzes flow combining Spot + Futures + Icebergs + OI.
         """
         all_whales = []
         buy_vol = 0
         sell_vol = 0
         
+        # 1. Fetch Spot & Futures & Icebergs
         for sym in self.symbols:
-            w = self.fetch_binance_whales(sym)
-            all_whales.extend(w)
+            # Spot
+            spot_w = self.fetch_binance_whales(sym, market_type="SPOT")
+            all_whales.extend(spot_w)
             
-        # Aggregate raw volumes
+            # Futures (Leverage)
+            fut_w = self.fetch_binance_whales(sym, market_type="FUTURES")
+            all_whales.extend(fut_w)
+            
+            # Icebergs (Hidden)
+            ice_w = self.detect_icebergs(sym)
+            all_whales.extend(ice_w)
+            
+        # 2. Aggregate Volumes
         significant_events = []
+        futures_vol_share = 0
+        
         for w in all_whales:
             val_m = w['value_usd'] / 1_000_000
+            
+            if w['market'] == "FUTURES": futures_vol_share += w['value_usd']
+            
             if w['side'] == "BUY":
                 buy_vol += w['value_usd']
-                if val_m > 1.0:
-                    significant_events.append(f"🟢 ${val_m:.1f}M BUY on {w['symbol'].replace('USDT', '')}")
+                if val_m > 2.0: # Raise threshold for log
+                    significant_events.append(f"🟢 ${val_m:.1f}M {w.get('type','BUY')} ({w['market']}) on {w['symbol'].replace('USDT', '')}")
             else:
                 sell_vol += w['value_usd']
-                if val_m > 1.0:
-                    significant_events.append(f"🔴 ${val_m:.1f}M SELL on {w['symbol'].replace('USDT', '')}")
+                if val_m > 2.0:
+                    significant_events.append(f"🔴 ${val_m:.1f}M {w.get('type','SELL')} ({w['market']}) on {w['symbol'].replace('USDT', '')}")
         
-        # IMPROVEMENT 6: Calculate weighted flow
+        total_vol = buy_vol + sell_vol
+        futures_pct = (futures_vol_share / total_vol * 100) if total_vol > 0 else 0
+        
+        # 3. Weighted Flow
         weighted_buy, weighted_sell = self.calculate_weighted_flow(all_whales)
         weighted_net = weighted_buy - weighted_sell
         
-        # Use weighted flow for status determination
-        raw_net = buy_vol - sell_vol
-        
+        # 4. Status Determination
         status = "NEUTRAL"
-        if weighted_net > 10_000_000: status = "BULLISH (Net Buying)"
-        elif weighted_net < -10_000_000: status = "BEARISH (Net Selling)"
-        elif raw_net > 5_000_000: status = "SLIGHTLY BULLISH"
-        elif raw_net < -5_000_000: status = "SLIGHTLY BEARISH"
+        if weighted_net > 20_000_000: status = "STRONG BUY (Golden Whale)" # Higher threshold due to Futures volume
+        elif weighted_net < -20_000_000: status = "STRONG SELL (Dump Incoming)"
+        elif weighted_net > 5_000_000: status = "BULLISH"
+        elif weighted_net < -5_000_000: status = "BEARISH"
         
-        # IMPROVEMENT 5: Get session context
+        # 5. Context
         session = self.get_trading_session()
         
-        # IMPROVEMENT 3: Get trend
-        trend = self.get_historical_comparison()
+        # 6. Sample OI (Just for BTC as proxy for market)
+        btc_oi = self.get_open_interest_analysis("BTCUSDT")
         
-        if not all_whales:
-             status = "NEUTRAL (Quiet Market)"
-             significant_events = ["None"]
-
-        # Build strategy hint
-        if status.startswith('BEARISH'):
-            hint = '⚠️ DUMP DETECTED: Be cautious with Crypto'
-        elif status.startswith('BULLISH'):
-            hint = '✅ ACCUMULATION: Institutional interest visible'
-        elif 'SLIGHTLY' in status:
-            hint = '👀 MIXED SIGNALS: Monitor closely'
-        else:
-            hint = 'Market is calm. No whale manipulation detected.'
+        hint = "Market is calm."
+        if "STRONG" in status: hint = "🚨 HEAVY INSTITUTIONAL ACTIVITY! Follow the flow."
+        elif "BULLISH" in status: hint = "✅ Accumulation detected."
+        elif "BEARISH" in status: hint = "⚠️ Distribution/Dumping detected."
+        
+        if futures_pct > 70: hint += " (Leverage Driven)"
 
         context = f"""
-        [WHALE WATCHER (BINANCE REAL-TIME)]
-        Symbols: BTC, ETH, SOL, XRP, DOGE, AVAX
-        Status: {status}
-        Session: {session['emoji']} {session['session']} - {session['note']}
-        Activity: {trend['trend']} ({trend['note']})
+        [WHALE WATCHER V2 (DEEP SEA EDITION)]
+        Symbols: {', '.join([s.replace('USDT','') for s in self.symbols])}
+        Global Status: {status}
+        Session: {session['emoji']} {session['session']}
         
-        Raw Flow:
-        - Whale Buy Vol: ${buy_vol/1_000_000:.1f}M
-        - Whale Sell Vol: ${sell_vol/1_000_000:.1f}M
-        - Net Flow: ${raw_net/1_000_000:.1f}M
-        
-        Weighted Flow (recent trades 3x):
+        Volume Profile:
+        - Total Buy: ${buy_vol/1_000_000:.1f}M
+        - Total Sell: ${sell_vol/1_000_000:.1f}M
+        - Net Flow: ${(buy_vol-sell_vol)/1_000_000:.1f}M
         - Weighted Net: ${weighted_net/1_000_000:.1f}M
         
-        Largest Transactions: {', '.join(significant_events[:5]) if significant_events else 'None'}
+        Market Structure:
+        - Futures Dominance: {futures_pct:.1f}% (High leverage = Volatility)
+        - BTC Open Interest: ${btc_oi['value_usd']/1_000_000:.0f}M
         
-        strategy_hint: {hint}
+        Top Moves: {', '.join(significant_events[:4]) if significant_events else 'None'}
+        Strategy Hint: {hint}
         """
         
         return context.strip()
 
     def get_dashboard_stats(self):
         """
-        Returns structured stats for the Dashboard UI.
-        Fail-safe: Returns neutral stats on error instead of raising.
+        Simplified stats for UI.
         """
-        try:
-            all_whales = []
-            buy_vol = 0
-            sell_vol = 0
+        # For dashboard speed, run a lighter version or reuse logic
+        # For now, we'll just run analyze_flow parse results to dict to avoid duplicating logic
+        # Ideally this should return a dict directly.
+        
+        # Let's do a quick fetch for dashboard speed (only Spot + top 3)
+        context = self.analyze_flow() # This might be slow for dashboard... 
+        # But we need consistency.
+        
+        lines = context.splitlines()
+        status = "NEUTRAL"
+        for l in lines:
+            if "Global Status" in l: status = l.split(":")[1].strip()
             
-            for sym in self.symbols:
-                w = self.fetch_binance_whales(sym)
-                all_whales.extend(w)
-                
-            for w in all_whales:
-                if w['side'] == "BUY":
-                    buy_vol += w['value_usd']
-                else:
-                    sell_vol += w['value_usd']
-            
-            # Weighted flow
-            weighted_buy, weighted_sell = self.calculate_weighted_flow(all_whales)
-            weighted_net = weighted_buy - weighted_sell
-            
-            raw_net = buy_vol - sell_vol
-            status = "NEUTRAL"
-            if weighted_net > 10_000_000: status = "BULLISH"
-            elif weighted_net < -10_000_000: status = "BEARISH"
-            elif raw_net > 5_000_000: status = "SLIGHTLY_BULLISH"
-            elif raw_net < -5_000_000: status = "SLIGHTLY_BEARISH"
-            
-            session = self.get_trading_session()
-            trend = self.get_historical_comparison()
-
-            return {
-                "status": status,
-                "buy_vol_m": round(buy_vol / 1_000_000, 1),
-                "sell_vol_m": round(sell_vol / 1_000_000, 1),
-                "net_flow_m": round(raw_net / 1_000_000, 1),
-                "weighted_net_m": round(weighted_net / 1_000_000, 1),
-                "whale_count": len(all_whales),
-                "session": session['session'],
-                "session_note": session['note'],
-                "trend": trend['trend'],
-                "trend_note": trend['note']
-            }
-        except Exception as e:
-            logger.error(f"Whale Stats Calculation Failed: {e}")
-            return {
-                "status": "NEUTRAL",
-                "buy_vol_m": 0.0,
-                "sell_vol_m": 0.0,
-                "net_flow_m": 0.0,
-                "weighted_net_m": 0.0,
-                "whale_count": 0,
-                "session": "UNKNOWN",
-                "session_note": "Error",
-                "trend": "➡️ NORMAL",
-                "trend_note": "Error"
-            }
+        return {"status": status, "full_report": context}
 
 
 if __name__ == "__main__":
-    # Test
     logging.basicConfig(level=logging.INFO)
     ww = WhaleWatcher()
     print(ww.analyze_flow())

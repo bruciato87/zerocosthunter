@@ -25,6 +25,7 @@ class Analyzer:
         from telegram_bot import TelegramNotifier
         from market_regime import MarketRegimeClassifier
         from ml_predictor import MLPredictor
+        from whale_watcher import WhaleWatcher
         
         self.db = DBHandler()
         self.market = MarketData()
@@ -33,6 +34,7 @@ class Analyzer:
         self.notifier = TelegramNotifier()
         self.regime_classifier = MarketRegimeClassifier()
         self.ml_predictor = MLPredictor()
+        self.whale_watcher = WhaleWatcher()
         
     async def analyze_ticker(self, ticker: str, target_chat_id: str):
         """
@@ -57,6 +59,14 @@ class Analyzer:
                 logger.info(f"Market Regime: {regime}")
             except Exception as e:
                 logger.warning(f"Regime Check failed: {e}")
+                
+            # 2c. Check Whale Flow (Whale Watcher Integration)
+            whale_context = "N/A"
+            try:
+                whale_context = self.whale_watcher.analyze_flow()
+                logger.info(f"Whale Context: {whale_context.splitlines()[2].strip() if len(whale_context.splitlines()) > 2 else 'Loaded'}")
+            except Exception as e:
+                logger.warning(f"Whale Watcher failed: {e}")
             
             # 3. Check Portfolio Context
             portfolio = self.db.get_portfolio()
@@ -97,7 +107,9 @@ class Analyzer:
                 ticker=ticker,
                 news_list=news_items,
                 technical_data=technical_summary,
-                portfolio_context=portfolio_context
+                portfolio_context=portfolio_context,
+                macro_context=f"Market Regime: {regime}",
+                whale_context=whale_context
             )
             
             # 4a. Risk Management (ATR Upgrade)

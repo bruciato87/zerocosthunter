@@ -294,10 +294,11 @@ class Rebalancer:
                 whale = WhaleWatcher()
                 
                 macro = eco.get_dashboard_stats()
-                whale_data = whale.get_dashboard_stats()
+                macro = eco.get_dashboard_stats()
+                whale_context_str = whale.analyze_flow()
                 market_status = eco.get_market_status()
                 
-                market_context = f"VIX: {macro.get('vix', 'N/A')}, Macro Risk: {macro.get('risk_level', 'N/A')}, Whale: {whale_data.get('status', 'N/A')}"
+                market_context = f"VIX: {macro.get('vix', 'N/A')}, Macro Risk: {macro.get('risk_level', 'N/A')}\n\n{whale_context_str}"
                 market_hours = f"🇺🇸 US: {market_status['us_stocks']}, 🇪🇺 EU: {market_status['eu_stocks']}, ₿ Crypto: {market_status['crypto']}"
             except Exception as e:
                 logger.warning(f"Market context failed: {e}")
