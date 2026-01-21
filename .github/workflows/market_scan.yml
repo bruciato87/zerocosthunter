@@ -5,8 +5,8 @@ on:
     # Hourly Hunt: 6:00, 8:00-22:00 UTC (7AM, 9AM-11PM Italy) - Skip 7:00 for rebalance
     - cron: '0 6 * * *'
     - cron: '0 8-22 * * *'
-    # Daily Rebalancing at 7:15 UTC (8:15 AM Italy) - AFTER first hunt
-    - cron: '15 7 * * *'
+    # Daily Rebalancing at 14:45 UTC (15:45 CET - USA Open)
+    - cron: '45 14 * * *'
     # Weekly Summary on Sunday at 18:00 UTC (19:00 Italy)
     - cron: '0 18 * * 0'
   # Allow manual trigger from GitHub UI
@@ -71,8 +71,8 @@ jobs:
 
   rebalance:
     runs-on: ubuntu-latest
-    # Run at 7:15 UTC daily (AFTER first hunt at 6:00) or manual
-    if: github.event.schedule == '15 7 * * *' || (github.event_name == 'workflow_dispatch' && github.event.inputs.job_type == 'rebalance')
+    # Run at 14:45 UTC daily (USA Open) or manual
+    if: github.event.schedule == '45 14 * * *' || (github.event_name == 'workflow_dispatch' && github.event.inputs.job_type == 'rebalance')
     
     steps:
     - name: Check out code
