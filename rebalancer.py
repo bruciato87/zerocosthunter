@@ -568,6 +568,25 @@ class Rebalancer:
             
             logger.info(f"AI response received: {len(response_text)} chars")
             
+            # --- CRITIC AGENT VALIDATION (New in Phase A.2) ---
+            # Enforce consistency between Regime and Strategy
+            try:
+                from critic import Critic
+                critic = Critic()
+                regime_desc = regime_data.get('description', 'NEUTRAL')
+                portfolio_val = analysis.get('total_value', 0)
+                
+                # Overwrite response with Critic's verified version
+                valid_response = critic.critique_rebalance_strategy(response_text, regime_desc, portfolio_val)
+                
+                if valid_response and valid_response != response_text:
+                    response_text = valid_response
+                    logger.info("Strategy refined by Critic Agent.")
+                    
+            except Exception as critic_err:
+                logger.error(f"Critic validation failed: {critic_err}")
+                # Continue with original response_text if Critic fails
+            
             # [V12] Save AI suggestions for learning
             self._save_suggestions_to_db(response_text, analysis, regime_data)
             

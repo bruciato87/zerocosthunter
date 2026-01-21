@@ -104,6 +104,66 @@ class Critic:
             logger.error(f"Critic execution failed: {e}")
             return CriticVerdict("APPROVE", 50, ["Critic Offline"], f"Critic check failed ({e}). Defaulting to cautious approval.")
 
+    def critique_rebalance_strategy(self, strategy_text: str, regime: str, portfolio_value: float) -> str:
+        """
+        Critiques and potentially rewrites a rebalancing strategy to ensure regime consistency.
+        Example: If Regime is BEARISH, blocks buying meme coins or increasing high-risk exposure.
+        """
+        logger.info(f"🧐 Critic evaluating rebalance strategy (Regime: {regime})...")
+        
+        prompt = f"""
+        You are the SENIOR RISK MANAGER (The Critic).
+        Current Market Regime: **{regime}**
+        Portfolio Value: €{portfolio_value:.0f}
+        
+        PROPOSED STRATEGY (by Junior Algo):
+        {strategy_text}
+        
+        YOUR TASK:
+        Review the proposed actions for consistency with the regime.
+        
+        RULES:
+        1. If Regime is BEARISH/DEFENSIVE:
+           - VETO any "BUY" suggestion for High Risk assets (Meme Coins like DOGE, SHIB, PEPE, or Small Caps).
+           - VETO increasing exposure to volatile Crypto (unless it's just rebalancing major coins BTC/ETH).
+           - APPROVE "TRIM" or "HOLD" or "Accumulate Gold/Cash/Stablecoins".
+           - IF you VETO an action, REPLACE it with "🟡 HOLD [Ticker] - Risk too high for Bearish Regime" or "🟢 BUY [Defensive Asset]".
+           
+        2. If Regime is BULLISH:
+           - Allow aggressive moves if they make sense.
+           
+        3. GENERAL:
+           - Ensure fees don't eat profits (Policy: Net Gain must justify €1 fee + 26% tax).
+           
+        OUTPUT:
+        Return the FINAL STRATEGY text (Markdown).
+        - If the original is safe, return it exactly as is.
+        - If changes are needed, return the EDITED version.
+        - Maintain the exact formatting (🟢, 🔴, 🟡 bullet points).
+        - Do NOT add conversational filler like "Here is the revised strategy". Just the list.
+        """
+        
+        try:
+            from brain import Brain
+            brain = Brain()
+            # Use a smart model for this logic check
+            response = brain._generate_with_fallback(prompt, model=self.model, prefer_free=True, json_mode=False)
+            
+            if not response:
+                return strategy_text # Fallback to original if AI fails
+                
+            # Log if changes were made
+            if response.strip() != strategy_text.strip():
+                logger.warning("⛔ CRITIC MODIFIED THE STRATEGY! (Risk Override Applied)")
+                logger.info(f"Original: {strategy_text[:50]}...")
+                logger.info(f"Revised: {response[:50]}...")
+                
+            return response.strip()
+            
+        except Exception as e:
+            logger.error(f"Critic rebalance check failed: {e}")
+            return strategy_text # Fail open (allow original) if Critic breaks
+
 if __name__ == "__main__":
     # Test
     from dotenv import load_dotenv
