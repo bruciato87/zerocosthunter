@@ -11,13 +11,19 @@ class TelegramNotifier:
         self.token = os.environ.get("TELEGRAM_BOT_TOKEN")
         self.chat_id = os.environ.get("TELEGRAM_CHAT_ID")
         
-        if not self.token or not self.chat_id:
-            logger.warning("Telegram credentials missing. Notifications disabled.")
+        if not self.token:
+            logger.critical("❌ TELEGRAM_BOT_TOKEN IS MISSING! Notifications will NOT be sent.")
+        if not self.chat_id:
+            logger.critical("❌ TELEGRAM_CHAT_ID IS MISSING! Notifications will NOT be sent.")
 
     async def send_alert(self, message):
         """Send a formatted message to the default user."""
         await self.send_message(self.chat_id, message)
     
+    def send_sync(self, message):
+        """Synchronously send a message (helper for scripts)."""
+        asyncio.run(self.send_alert(message))
+
     async def send_message(self, chat_id, message):
         """Send a message to a specific chat_id."""
         if not self.token:
@@ -25,7 +31,8 @@ class TelegramNotifier:
             return
         
         if not chat_id:
-            chat_id = self.chat_id
+            logger.error("❌ Attempted to send message but Chat ID is None.")
+            return
 
         try:
             # Create a fresh Bot instance for each request to avoid event loop conflicts
@@ -44,5 +51,6 @@ class TelegramNotifier:
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     t = TelegramNotifier()
     t.send_sync("Test message from Zero-Cost Hunter.")
