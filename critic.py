@@ -157,12 +157,69 @@ class Critic:
                 logger.warning("⛔ CRITIC MODIFIED THE STRATEGY! (Risk Override Applied)")
                 logger.info(f"Original: {strategy_text[:50]}...")
                 logger.info(f"Revised: {response[:50]}...")
+                return f"\n\n👮‍♂️ **Risk Manager Update (Critic)**:\n{response.strip()}" # Return modified strategy with header
                 
             return response.strip()
             
         except Exception as e:
             logger.error(f"Critic rebalance check failed: {e}")
             return strategy_text # Fail open (allow original) if Critic breaks
+
+    def critique_deep_dive(self, ticker: str, analysis_text: str, market_context: str) -> str:
+        """
+        Critiques a Deep Dive Analysis report.
+        Ensures the tone matches the market context (e.g., checks for over-optimism in a Bear Market).
+        """
+        prompt = f"""
+        You are the CHIEF RISK OFFICER of a Hedge Fund.
+        A Senior Analyst has submitted the following Deep Dive Report for {ticker}:
+        
+        ---
+        {analysis_text}
+        ---
+        
+        CURRENT MARKET REGIME: {market_context}
+        
+        YOUR TASK:
+        Review the report for "Irrational Exuberance" or dangerous omissions.
+        
+        RULES:
+        1. If the Market is BEARISH and the report is "Strong Buy" without mentioning risks -> FLAGGED.
+        2. If the Market is BULLISH and the report is "Sell" without strong catalyst -> FLAGGED.
+        3. If the report is balanced and accurate -> APPROVED.
+        
+        OUTPUT JSON ONLY:
+        {{
+            "verdict": "APPROVED" | "CAUTION" | "DANGEROUS",
+            "risk_score": 0-10 (0=Safe, 10=Extremely Risky),
+            "comment": "Short comment (max 15 words) visible to the user."
+        }}
+        """
+        
+        try:
+            from brain import Brain
+            brain = Brain()
+            response = brain._generate_with_fallback(prompt, model=self.model, prefer_free=True, json_mode=True)
+            
+            import json
+            import re
+            
+            # Clean JSON
+            clean_json = re.sub(r"```json|```", "", response).strip()
+            data = json.loads(clean_json)
+            
+            verdict = data.get("verdict", "APPROVED")
+            comment = data.get("comment", "")
+            
+            icon = "✅"
+            if verdict == "CAUTION": icon = "⚠️"
+            if verdict == "DANGEROUS": icon = "🛑"
+            
+            return f"\n\n{icon} **Risk Officer (Critic)**: {verdict}\n> {comment}"
+            
+        except Exception as e:
+            logger.error(f"Critic deep dive failed: {e}")
+            return "\n\n⚠️ **Critic Unavailable** (System Error)"
 
 if __name__ == "__main__":
     # Test

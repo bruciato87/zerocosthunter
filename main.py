@@ -164,9 +164,11 @@ async def run_async_pipeline():
     # Signal Intelligence is already initialized at start
     pass
 
-    # [PERFORMANCE] Pre-warm cache: Extract unique tickers and fetch technicals once
-    logger.info("Pre-warming cache with unique tickers...")
+    # [PERFORMANCE] Explicit Local Caching to avoid repeated API/DB calls
+    logger.info("Initializing Local Cache for unique tickers...")
     unique_tickers = set()
+    
+    # Identify all unique tickers mentioned in news
     for item in news_items:
         text_content = (item.get('title', '') + " " + item.get('summary', '')).upper()
         for key, symbol in MONITORED_TICKERS.items():
@@ -177,19 +179,35 @@ async def run_async_pipeline():
                 unique_tickers.add(norm_ticker)
                 break
     
-    # Also add portfolio tickers
+    # Add all portfolio tickers too (for context/synthetic checks)
     for p_ticker in portfolio_map.keys():
         unique_tickers.add(p_ticker)
     
-    # Pre-fetch all unique tickers (this populates the cache)
-    logger.info(f"Pre-warming {len(unique_tickers)} unique tickers...")
+    # Pre-fetch technicals into LOCAL MEMORY dictionary
+    local_tech_cache = {}
+    local_price_cache = {}
+    
+    logger.info(f"⚡ Batch Fetching Data for {len(unique_tickers)} unique tickers...")
+    
     for ticker in unique_tickers:
         try:
-            market.get_technical_summary(ticker)  # Populates cache
-            market.get_smart_price_eur(ticker)    # Populates cache
-        except Exception:
-            pass
-    logger.info(f"Cache pre-warmed. Starting enrichment...")
+            # 1. Technical Summary
+            # This might hit DB/API initially, but we do it ONCE per ticker
+            tech = market.get_technical_summary(ticker)
+            local_tech_cache[ticker] = tech
+            
+            # 2. Smart Price (EUR)
+            price, _ = market.get_smart_price_eur(ticker)
+            local_price_cache[ticker] = price
+            
+            # logger.info(f"Cached {ticker}: {price} EUR")
+            
+        except Exception as e:
+            logger.warning(f"Failed to cache data for {ticker}: {e}")
+            local_tech_cache[ticker] = "Data Unavailable"
+            local_price_cache[ticker] = 0.0
+
+    logger.info(f"✅ Local Cache Ready. Enriched {len(unique_tickers)} tickers.")
 
     for item in news_items:
         text_content = (item.get('title', '') + " " + item.get('summary', '')).upper()
@@ -204,12 +222,8 @@ async def run_async_pipeline():
         
         if detected_ticker:
             # 1. Normalize Ticker
-            # A) Hardcoded Canonical Map (BTC -> BTC-USD)
             if detected_ticker in CANONICAL_MAP:
                 detected_ticker = CANONICAL_MAP[detected_ticker]
-            
-            # B) Dynamic Portfolio Match (Catch-all for future assets)
-            # If "ADA" is found but I own "ADA-USD", normalize to "ADA-USD"
             elif f"{detected_ticker}-USD" in portfolio_map:
                 detected_ticker = f"{detected_ticker}-USD"
             elif f"{detected_ticker}USD" in portfolio_map:
@@ -217,14 +231,18 @@ async def run_async_pipeline():
             
             # Persist normalized ticker
             item['ticker'] = detected_ticker
-
             extras = []
             
-            # 2. Technicals
-            tech_summary = market.get_technical_summary(detected_ticker)
+            # 2. Technicals (FROM LOCAL CACHE)
+            # Use get() with fallback to avoid key errors
+            tech_summary = local_tech_cache.get(detected_ticker)
+            if not tech_summary:
+                # Fallback: try to fetch if missed by unique set
+                tech_summary = market.get_technical_summary(detected_ticker)
+            
             extras.append(f"Technical: {tech_summary}")
             
-            # 2.5 Signal Intelligence Context (NEW)
+            # 2.5 Signal Intelligence Context
             if si:
                 try:
                     p_context = list(portfolio_map.values()) if portfolio_map else []
@@ -233,43 +251,37 @@ async def run_async_pipeline():
                 except Exception as e:
                     logger.warning(f"Signal Intelligence failed for {detected_ticker}: {e}")
             
-            # 3. Portfolio - with flexible matching
+            # 3. Portfolio
             # Helper: find portfolio entry with ticker variants
             def find_portfolio_entry(ticker, portfolio):
-                """Match ticker to portfolio considering -USD variants."""
-                if ticker in portfolio:
-                    return ticker, portfolio[ticker]
-                # Try without -USD suffix
+                if ticker in portfolio: return ticker, portfolio[ticker]
                 base = ticker.replace('-USD', '').replace('-EUR', '')
-                if base in portfolio:
-                    return base, portfolio[base]
-                # Try with -USD suffix
-                if f"{ticker}-USD" in portfolio:
-                    return f"{ticker}-USD", portfolio[f"{ticker}-USD"]
+                if base in portfolio: return base, portfolio[base]
+                if f"{ticker}-USD" in portfolio: return f"{ticker}-USD", portfolio[f"{ticker}-USD"]
                 return None, None
             
             portfolio_ticker, holding = find_portfolio_entry(detected_ticker, portfolio_map)
+            
             if holding:
-                # Use MarketData for consistent EUR pricing (avg_price is stored in EUR)
-                current_price_eur, _ = market.get_smart_price_eur(detected_ticker)
-                
+                # Use LOCAL PRICE CACHE
+                current_price_eur = local_price_cache.get(detected_ticker, 0.0)
+                if current_price_eur == 0.0:
+                     current_price_eur, _ = market.get_smart_price_eur(detected_ticker)
+
                 pnl_str = ""
                 if current_price_eur > 0 and holding['avg_price'] > 0:
                     pnl_pct = ((current_price_eur - holding['avg_price']) / holding['avg_price']) * 100
                     sign = "+" if pnl_pct >= 0 else ""
                     pnl_str = f" | PnL: {sign}{pnl_pct:.2f}%"
-                    logger.info(f"PnL for {detected_ticker}: €{current_price_eur:.4f} vs avg €{holding['avg_price']:.4f} = {pnl_pct:.2f}%")
+                    logger.info(f"PnL for {detected_ticker}: {pnl_pct:.2f}%")
 
                 p_summary = f"OWNED {holding['quantity']} @ €{holding['avg_price']:.2f}{pnl_str}"
                 extras.append(f"Portfolio: {p_summary}")
-                logger.info(f"Enriched {detected_ticker} with Portfolio data: {p_summary}")
             else:
-                # CRITICAL: Explicitly tell AI that asset is NOT owned to prevent hallucinations
                 extras.append("Portfolio: NOT OWNED (New Entry)")
-                logger.info(f"Marked {detected_ticker} as NOT OWNED")
 
             item['summary'] += "\n\n[" + " | ".join(extras) + "]"
-            logger.info(f"Enriched {detected_ticker} news.")
+            logger.debug(f"Enriched {detected_ticker} news.")
 
     # --- SYNTHETIC PORTFOLIO INJECTION ---
     # Ensure ALL portfolio assets are analyzed. Use CANONICAL tickers.

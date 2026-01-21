@@ -26,6 +26,7 @@ class Analyzer:
         from market_regime import MarketRegimeClassifier
         from ml_predictor import MLPredictor
         from whale_watcher import WhaleWatcher
+        from critic import Critic
         
         self.db = DBHandler()
         self.market = MarketData()
@@ -35,6 +36,7 @@ class Analyzer:
         self.regime_classifier = MarketRegimeClassifier()
         self.ml_predictor = MLPredictor()
         self.whale_watcher = WhaleWatcher()
+        self.critic = Critic()
         
     async def analyze_ticker(self, ticker: str, target_chat_id: str):
         """
@@ -111,6 +113,13 @@ class Analyzer:
                 macro_context=f"Market Regime: {regime}",
                 whale_context=whale_context
             )
+            
+            # 4x. CRITIC CHECK (New)
+            try:
+                critic_note = self.critic.critique_deep_dive(ticker, analysis_report, f"Market Regime: {regime}")
+                analysis_report += critic_note
+            except Exception as e:
+                logger.error(f"Critic integration failed: {e}")
             
             # 4a. Risk Management (ATR Upgrade)
             try:
