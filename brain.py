@@ -483,6 +483,10 @@ class Brain:
             )
         
         target_model = model if model else 'gemini-2.0-flash'
+        
+        # Sanitize model name for Direct Gemini API (remove OpenRouter prefixes/suffixes)
+        target_model = target_model.replace("google/", "").replace(":free", "")
+        
         logger.info(f"Gemini Fallback: Using model {target_model}")
         
         response = self.gemini_client.models.generate_content(

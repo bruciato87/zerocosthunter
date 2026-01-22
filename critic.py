@@ -20,7 +20,7 @@ class Critic:
     """
     
     def __init__(self):
-        self.model = "gemini-2.0-flash" # Verified available model
+        self.model = "google/gemini-2.0-flash:free" # Use OpenRouter ID
         # Fallback to Llama 3 if Gemini fails
         self.fallback_model = "meta-llama/llama-3.3-70b-instruct:free"
 
