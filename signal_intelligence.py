@@ -774,24 +774,4 @@ class SignalIntelligence:
         return "\n".join(lines)
 
 
-# CLI test
-if __name__ == "__main__":
-    import logging
-    logging.basicConfig(level=logging.INFO)
-    
-    si = SignalIntelligence()
-    
-    # Test with BTC
-    print("=" * 50)
-    print("Testing Signal Intelligence for BTC")
-    print("=" * 50)
-    
-    analysis = si.analyze_signal("BTC", "BUY", 0.85)
-    print(f"Original: {analysis['original_sentiment']} @ {analysis['original_confidence']:.2f}")
-    print(f"Adjusted: {analysis['adjusted_sentiment']} @ {analysis['adjusted_confidence']:.2f}")
-    print(f"Actions: {analysis['actions']}")
-    print(f"Warnings: {analysis['warnings']}")
-    
-    print("\n" + "=" * 50)
-    print("AI Context:")
-    print(si.generate_context_for_ai("BTC"))
+

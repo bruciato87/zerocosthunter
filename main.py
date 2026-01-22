@@ -578,6 +578,36 @@ async def run_async_pipeline():
     logger.info(f"Deduplicated News Items: {len(news_items)} -> {len(unique_news_items)}")
     # -----------------------------------------
 
+    # --- L2 PREDICTIVE: MARKET REGIME ---
+    # Adjust strategy aggressiveness based on market regime
+    market_regime_data = None
+    regime = "NEUTRAL"
+    market_regime_summary = "MARKET REGIME: UNKNOWN" # Default
+    try:
+        from market_regime import MarketRegimeClassifier
+        regime_classifier = MarketRegimeClassifier()
+        market_regime_data = regime_classifier.classify()
+        
+        regime = market_regime_data.get("regime", "NEUTRAL")
+        regime_conf = market_regime_data.get("confidence", 0.5)
+        recommendation = market_regime_data.get("recommendation", "normal")
+        
+        market_regime_summary = f"MARKET REGIME: {regime} ({regime_conf:.0%}) - {recommendation.upper()} MODE"
+        logger.info(f"L2 Regime Summary: {market_regime_summary}")
+
+        # Adjust min_confidence based on regime
+        original_min_conf = min_conf
+        if recommendation == "aggressive" and regime in ["BULL", "ACCUMULATION"]:
+            min_conf = max(0.60, min_conf - 0.15)  # Much lower threshold in bull market (was 0.65)
+            logger.info(f"L2 Regime [{regime}]: Aggressive mode - min_conf {original_min_conf} -> {min_conf}")
+        elif recommendation == "defensive" and regime in ["BEAR", "DISTRIBUTION"]:
+            min_conf = min(0.85, min_conf + 0.05)  # Higher threshold in bear market
+            logger.info(f"L2 Regime [{regime}]: Defensive mode - min_conf {original_min_conf} -> {min_conf}")
+        else:
+            logger.info(f"L2 Regime [{regime}]: Normal mode ({regime_conf:.0%})")
+    except Exception as e:
+        logger.warning(f"L2 Market Regime failed: {e}")
+
     logger.info("Analyzing news with Gemini...")
     _ai_start_time = timing_module.time()
     try:
@@ -587,7 +617,8 @@ async def run_async_pipeline():
             insider_context=insider_context,
             portfolio_context=advisor_analysis,
             macro_context=macro_context,
-            whale_context=whale_context
+            whale_context=whale_context,
+            market_regime_summary=market_regime_summary
         )
         _ai_time = timing_module.time() - _ai_start_time
         logger.info(f"Gemini analysis complete. Received {len(predictions)} predictions in {_ai_time:.1f}s.")
@@ -604,31 +635,7 @@ async def run_async_pipeline():
     only_portfolio = user_settings.get("only_portfolio", False)
     logger.info(f"Smart Filters Active: Min Confidence={min_conf}, Only Portfolio={only_portfolio}")
 
-    # --- L2 PREDICTIVE: MARKET REGIME ---
-    # Adjust strategy aggressiveness based on market regime
-    market_regime_data = None
-    regime = "NEUTRAL"
-    try:
-        from market_regime import MarketRegimeClassifier
-        regime_classifier = MarketRegimeClassifier()
-        market_regime_data = regime_classifier.classify()
-        
-        regime = market_regime_data.get("regime", "NEUTRAL")
-        regime_conf = market_regime_data.get("confidence", 0.5)
-        recommendation = market_regime_data.get("recommendation", "normal")
-        
-        # Adjust min_confidence based on regime
-        original_min_conf = min_conf
-        if recommendation == "aggressive" and regime in ["BULL", "ACCUMULATION"]:
-            min_conf = max(0.60, min_conf - 0.15)  # Much lower threshold in bull market (was 0.65)
-            logger.info(f"L2 Regime [{regime}]: Aggressive mode - min_conf {original_min_conf} → {min_conf}")
-        elif recommendation == "defensive" and regime in ["BEAR", "DISTRIBUTION"]:
-            min_conf = min(0.85, min_conf + 0.05)  # Higher threshold in bear market
-            logger.info(f"L2 Regime [{regime}]: Defensive mode - min_conf {original_min_conf} → {min_conf}")
-        else:
-            logger.info(f"L2 Regime [{regime}]: Normal mode ({regime_conf:.0%})")
-    except Exception as e:
-        logger.warning(f"L2 Market Regime failed: {e}")
+
 
     # 4. Process Predictions
     for pred in predictions:

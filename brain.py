@@ -594,7 +594,7 @@ class Brain:
                 raise e
         return ""
     
-    def analyze_news_batch(self, news_list, performance_context=None, insider_context=None, portfolio_context=None, macro_context=None, whale_context=None):
+    def analyze_news_batch(self, news_list, performance_context=None, insider_context=None, portfolio_context=None, macro_context=None, whale_context=None, market_regime_summary=None):
         """
         [2024 UPDATE] V3.0 Hybrid Brain with Memory & Insider & Advisor Info & Macro Strategy & Whale Watcher.
         Analyze a batch of news items to find high-quality trading opportunities.
@@ -603,6 +603,7 @@ class Brain:
         - portfolio_context: Dict analysis from Advisor (sectors, tips).
         - macro_context: String summary from Economist (VIX, FED, Yields).
         - whale_context: String summary from WhaleWatcher (On-Chain Flows).
+        - market_regime_summary: String summary from MarketRegimeClassifier (L2 Predictive).
         """
         if not news_list:
             logger.info("No news to analyze.")
@@ -764,6 +765,10 @@ class Brain:
         {fx_bg}
         {pattern_bg}
         
+        [L2 MARKET REGIME - CRITICAL CONTEXT]
+        {market_regime_summary if market_regime_summary else "MARKET REGIME: NEUTRAL (Default)"}
+        **STRATEGY RULE:** Align all confidence scores and risk assessments with this regime.
+        
         **SYSTEM ROLE:**
         You are a Senior Investment Analyst & Quantitative Trader.
         Your goal is to validate market news with Technical Data AND produce a concrete Quantitative Prediction.
@@ -924,7 +929,7 @@ class Brain:
                 if analysis_results:
                     logger.info(f"Refining {len(analysis_results)} signals with The Critic...")
                     # Pass the original prompt as context (it contains news, macro, etc.)
-                    analysis_results = self._verify_with_critic(analysis_results, prompt)
+                    analysis_results = self._verify_with_critic(analysis_results, prompt, market_regime_summary)
                 
                 return analysis_results
             except json.JSONDecodeError:
@@ -936,12 +941,16 @@ class Brain:
             logger.error(f"Error during AI analysis: {e}")
             return []
 
-    def _verify_with_critic(self, signals, context_data):
+    def _verify_with_critic(self, signals, context_data, market_regime_summary=None):
         """
         Passes high-confidence signals to the Critic for a second opinion.
         """
         verified_signals = []
         
+        critic_context = context_data
+        if market_regime_summary:
+            critic_context += f"\n\n[L2 MARKET REGIME - OVERRIDE]\n{market_regime_summary}\nINSTRUCTION: Did the Hunter ignore this regime? If so, REJECT."
+
         for sig in signals:
             try:
                 # Only critique High Confidence (>=0.7) or strong BULLISH signals
@@ -965,7 +974,7 @@ class Brain:
                             "confidence": sig.get('confidence'),
                             "reasoning": sig.get('reasoning')
                         },
-                        context_data # Full context
+                        critic_context # Full context with Regime
                     )
                     
                     # Store Critic Data in Signal
