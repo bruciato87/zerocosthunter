@@ -217,10 +217,6 @@ async def run_async_pipeline():
         'VETERAN', 'FIRST', 'SECOND', 'THIRD', 'LAST', 'NEXT', 'PAST',
         'NEAR', 'FAR', 'AWAY', 'BACK', 'LEFT', 'RIGHT', 'SIDE', 'WAYS',
         'THINGS', 'STUFF', 'LOOK', 'SEEM', 'MANY', 'MUCH', 'MOST', 'LEAST',
-        'AGAINST', 'WELCOME', 'STREET', 'DONALD', 'FIRMS', 'LEVEL', 'BASED',
-        'VETERAN', 'FIRST', 'SECOND', 'THIRD', 'LAST', 'NEXT', 'PAST',
-        'NEAR', 'FAR', 'AWAY', 'BACK', 'LEFT', 'RIGHT', 'SIDE', 'WAYS',
-        'THINGS', 'STUFF', 'LOOK', 'SEEM', 'MANY', 'MUCH', 'MOST', 'LEAST',
         'SUCH', 'SAME', 'DIFFERENT', 'INSIDE', 'OUTSIDE', 'UNDER', 'ABOVE',
         # Media/Generic Words (v3 updates)
         'CNBC', 'AHEAD', 'SPARKED', 'REVERSES', 'PLAN', 'SCHEME', 'USING',

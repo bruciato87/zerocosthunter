@@ -858,15 +858,25 @@ class DBHandler:
         try:
             # unique and upper
             targets = list(set([t.upper() for t in user_tickers]))
+            results = {}
             
-            response = self.supabase.table("ticker_cache") \
-                .select("user_ticker, resolved_ticker, is_crypto, currency, last_verified_at, fail_count") \
-                .in_("user_ticker", targets) \
-                .execute()
+            # CHUNK REQUESTS (Max 50 per call) to avoid URL limit errors
+            BATCH_SIZE = 50
+            for i in range(0, len(targets), BATCH_SIZE):
+                chunk = targets[i:i + BATCH_SIZE]
+                try:
+                    response = self.supabase.table("ticker_cache") \
+                        .select("user_ticker, resolved_ticker, is_crypto, currency, last_verified_at, fail_count") \
+                        .in_("user_ticker", chunk) \
+                        .execute()
+                    
+                    if response.data:
+                        for item in response.data:
+                            results[item['user_ticker']] = item
+                except Exception as chunk_err:
+                     logger.error(f"Batch chunk failed: {chunk_err}")
             
-            if response.data:
-                return { item['user_ticker']: item for item in response.data }
-            return {}
+            return results
         except Exception as e:
             logger.error(f"Batch ticker lookup failed: {e}")
             return {}
