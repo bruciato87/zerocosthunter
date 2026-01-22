@@ -343,6 +343,8 @@ class SignalIntelligence:
         try:
             # Use centralized ticker resolver
             yf_ticker = resolve_ticker(ticker)
+            if not yf_ticker:
+                 return {"is_good_entry": False, "reason": "Ticker unresolvable/rejected"}
             
             data = yf.download(yf_ticker, period="30d", progress=False, auto_adjust=True)
             
