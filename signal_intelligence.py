@@ -412,6 +412,9 @@ class SignalIntelligence:
             if not portfolio:
                 return {"should_take_profit": False}
             
+            if not ticker:
+                return {"should_take_profit": False}
+            
             # Find the asset in portfolio
             asset_data = None
             total_value = 0.0
@@ -593,6 +596,9 @@ class SignalIntelligence:
             }
         """
         # Skip for crypto and ETFs/Indices (no earnings)
+        if not ticker:
+            return {"has_upcoming_earnings": False, "risk_level": "NONE", "reason": "No ticker provided"}
+
         if ticker.upper().replace('-USD', '') in ['BTC', 'ETH', 'SOL', 'XRP', 'DOGE', 'ADA', 'DOT', 'AVAX', 'LINK', 'RENDER', 'RNDR'] \
            or ticker in ['SPY', 'QQQ', 'DIA', 'IWM', 'EUNL.DE', 'GSPC', 'VIX']:
             return {"has_upcoming_earnings": False, "risk_level": "NONE", "reason": "Asset type has no earnings"}
