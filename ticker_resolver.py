@@ -61,6 +61,12 @@ def resolve_ticker(ticker: str) -> str:
         db = DBHandler()
         cached = db.get_ticker_cache(ticker_u)
         if cached:
+            # Check for known failures
+            fail_count = cached.get("fail_count", 0) or 0
+            if fail_count > 3:
+                logger.debug(f"Ticker cache REJECT (Too many failures): {ticker_u}")
+                return None # Explicitly reject
+
             resolved = cached.get("resolved_ticker", ticker_u)
             logger.debug(f"Ticker cache HIT: {ticker_u} -> {resolved}")
             return resolved

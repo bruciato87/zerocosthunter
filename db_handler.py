@@ -808,11 +808,9 @@ class DBHandler:
                 .execute()
             
             if response.data:
-                cache = response.data[0]
-                # Ignore cache if fail_count > 3 (needs re-discovery)
-                if (cache.get("fail_count", 0) or 0) > 3:
-                    return None
-                return cache
+                # Return the cache record regardless of fail_count
+                # Logic to ignore/reject is moved to ticker_resolver.py
+                return response.data[0]
             return None
         except Exception as e:
             logger.warning(f"Ticker cache lookup failed for {user_ticker}: {e}")
