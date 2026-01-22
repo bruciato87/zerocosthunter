@@ -349,8 +349,25 @@ class DBHandler:
                 logger.info(f"Settings updated: {updates}")
                 return True
             return False
+            return False
         except Exception as e:
             logger.error(f"Error updating settings: {e}")
+            return False
+
+    def update_settings_last_run(self, timestamp: str):
+        """Update the last_successful_hunt_ts setting."""
+        try:
+            settings = self.get_settings()
+            if "id" in settings:
+                self.supabase.table("user_settings") \
+                    .update({"last_successful_hunt_ts": timestamp}) \
+                    .eq("id", settings["id"]) \
+                    .execute()
+                logger.info(f"Updated last_successful_hunt_ts to {timestamp}")
+                return True
+            return False
+        except Exception as e:
+            logger.error(f"Error updating last run time: {e}")
             return False
 
     # --- API USAGE TRACKING ---

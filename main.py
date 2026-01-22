@@ -120,7 +120,52 @@ async def run_async_pipeline():
         return
 
     # 2.2 Load Portfolio
-    # 2.2 Load Portfolio
+    # 2.2 Get Last Run Time for Freshness Filter
+    last_run_time = None
+    try:
+        settings = db.get_settings()
+        last_run_str = settings.get("last_successful_hunt_ts")
+        if last_run_str:
+            from datetime import datetime
+            last_run_time = datetime.fromisoformat(last_run_str.replace('Z', '+00:00'))
+            logger.info(f"FRESHNESS: Filtering news published before {last_run_time}")
+    except Exception as e:
+        logger.warning(f"Could not fetch last run time: {e}")
+
+    # Freshness Filter Loop
+    fresh_news = []
+    skipped_count = 0
+    
+    if last_run_time:
+        for item in news_items:
+            # Helper to get datetime
+            pub_dt = None
+            if 'published_datetime' in item:
+                pub_dt = item['published_datetime']
+            elif 'published' in item:
+                try:
+                    from dateutil import parser
+                    pub_dt = parser.parse(item['published'])
+                    # Ensure timezone aware
+                    if pub_dt.tzinfo is None:
+                        from datetime import timezone
+                        pub_dt = pub_dt.replace(tzinfo=timezone.utc)
+                except: pass
+            
+            if pub_dt:
+                if pub_dt > last_run_time:
+                    fresh_news.append(item)
+                else:
+                    skipped_count += 1
+            else:
+                # No date? Keep it to be safe or Log warning. 
+                fresh_news.append(item)
+        
+        logger.info(f"Freshness Filter: Kept {len(fresh_news)} new items. Skipped {skipped_count} old items.")
+        news_items = fresh_news
+    else:
+        logger.info("Freshness Filter: No last run time found. Processing ALL news.")
+
     logger.info("Loading Portfolio...")
     portfolio_map = db.get_portfolio_map()
     if portfolio_map:
@@ -165,7 +210,14 @@ async def run_async_pipeline():
         # Common Prepositions/Verbs (Short Uppercase risks)
         'THE', 'AND', 'FOR', 'BUT', 'NOT', 'YOU', 'ARE', 'WAS', 'ITS', 'HAS',
         'HAD', 'CAN', 'GET', 'DID', 'WAY', 'TOO', 'USE', 'SEE', 'OWN', 'GOT',
-        'MET', 'WON', 'LOST', 'RUN', 'SET', 'PUT', 'SAY', 'LET', 'BIG', 'OLD'
+        'MET', 'WON', 'LOST', 'RUN', 'SET', 'PUT', 'SAY', 'LET', 'BIG', 'OLD',
+        'FULL', 'PART', 'TIME', 'YEAR', 'WEEK', 'DAY', 'HOUR', 'LIFE',
+        # Noise Words Discovered in Verification
+        'AGAINST', 'WELCOME', 'STREET', 'DONALD', 'FIRMS', 'LEVEL', 'BASED',
+        'VETERAN', 'FIRST', 'SECOND', 'THIRD', 'LAST', 'NEXT', 'PAST',
+        'NEAR', 'FAR', 'AWAY', 'BACK', 'LEFT', 'RIGHT', 'SIDE', 'WAYS',
+        'THINGS', 'STUFF', 'LOOK', 'SEEM', 'MANY', 'MUCH', 'MOST', 'LEAST',
+        'SUCH', 'SAME', 'DIFFERENT', 'INSIDE', 'OUTSIDE', 'UNDER', 'ABOVE'
     }
 
     # Canonical Map for De-duplication (Still useful for unifying aliases)
@@ -244,6 +296,7 @@ async def run_async_pipeline():
         return list(found)
 
     # Step 1: Count Frequencies across ALL news (Two-Pass Approach)
+    MAX_NEW_DISCOVERIES = 5
     from collections import Counter
     discovery_counter = Counter()
     portfolio_found = set()
@@ -1098,8 +1151,18 @@ async def run_async_pipeline():
             "news_items_processed": len(unique_news_items)
         }
         db.save_run_metrics(run_metrics)
+        
+        # UPDATE LAST SUCCESSFUL RUN TIMESTAMP
+        try:
+             from datetime import datetime, timezone
+             now_iso = datetime.now(timezone.utc).isoformat()
+             db.update_settings_last_run(now_iso)
+        except Exception as e:
+            logger.warning(f"Failed to update last_successful_hunt_ts: {e}")
+
     except Exception as e:
         logger.warning(f"Failed to save run metrics: {e}")
+
     
     # --- FLASH REBALANCE CHECK (New L5 Feature) ---
     flash_tip = ""
