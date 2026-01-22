@@ -4,8 +4,8 @@ def main():
     print("Updating user settings...")
     try:
         db = DBHandler()
-        # Force update to 0.60
-        success = db.update_settings(min_confidence=0.60)
+        # Force update to 0.50
+        success = db.update_settings(min_confidence=0.50)
         
         if success:
             print("✅ Settings updated successfully!")
