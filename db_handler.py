@@ -332,7 +332,7 @@ class DBHandler:
                 "ticker": ticker,
                 "sentiment": sentiment,
                 "reasoning": reasoning,
-                "prediction": prediction_sentence,
+                "prediction_sentence": prediction_sentence,
                 "confidence_score": confidence_score,
                 "source_url": source_url,
                 "risk_score": risk_score,
