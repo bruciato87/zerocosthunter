@@ -358,10 +358,10 @@ class DBHandler:
             response = self.supabase.table("user_settings").select("*").limit(1).execute()
             if response.data:
                 return response.data[0]
-            return {"min_confidence": 0.70, "only_portfolio": False, "app_mode": "PREPROD"} # Defaults
+            return {"min_confidence": 0.60, "only_portfolio": False, "app_mode": "PREPROD"} # Defaults
         except Exception as e:
             logger.error(f"Error fetching settings: {e}")
-            return {"min_confidence": 0.70, "only_portfolio": False, "app_mode": "PREPROD"}
+            return {"min_confidence": 0.60, "only_portfolio": False, "app_mode": "PREPROD"}
 
     def update_settings(self, min_confidence=None, only_portfolio=None, app_mode=None):
         """Update the single settings row."""
