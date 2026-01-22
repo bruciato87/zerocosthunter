@@ -399,6 +399,12 @@ class DBHandler:
                 return True
             return False
         except Exception as e:
+            # Handle Schema Mismatches gracefully
+            msg = str(e)
+            if "PGRST204" in msg or "Could not find the" in msg:
+                 logger.warning("⚠️ Schema Mismatch: 'last_successful_hunt_ts' column missing in user_settings. Skipping freshness update.")
+                 # No need to crash or log ERROR.
+                 return False
             logger.error(f"Error updating last run time: {e}")
             return False
 

@@ -203,6 +203,7 @@ async def run_async_pipeline():
         'PRICE', 'RATE', 'YIELD', 'BOND', 'NOTE', 'BILL', 'CASH', 'GOLD', 'OIL',
         'GAS', 'DATA', 'TECH', 'SOFT', 'HARD', 'FIRM', 'BANK', 'FUND', 'USER',
         'ZERO', 'COST', 'HUNT', 'TEXT', 'PAGE', 'SITE', 'HOME', 'MENU',
+        'MOXIE', 'TFEX', # Noise from log analysis
         # HTML/CSS Garbage
         'HTML', 'CSS', 'SRC', 'HREF', 'IMG', 'JPG', 'PNG', 'DIV', 'SPAN', 
         'CLASS', 'STYLE', 'WIDTH', 'HEIGHT', 'MARGIN', 'PADDING', 'FLOAT', 
