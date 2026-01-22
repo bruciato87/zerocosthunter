@@ -233,6 +233,38 @@ class DBHandler:
             logger.error(f"Error updating asset ticker: {e}")
             return False
 
+    def register_ticker_failure(self, user_ticker: str):
+        """
+        Increment the valid failure count for a ticker.
+        Used to identify persistent noise/bad tickers.
+        """
+        if not user_ticker: return
+        try:
+            t_u = user_ticker.upper()
+            # 1. Get current count
+            current = self.get_ticker_cache(t_u)
+            new_count = 1
+            if current:
+                new_count = (current.get("fail_count", 0) or 0) + 1
+            
+            # 2. Upsert
+            data = {
+                "user_ticker": t_u,
+                "fail_count": new_count,
+                "last_verified_at": "now()"
+            }
+            # Preserve existing resolved maps if any (unlikely for pure noise)
+            if current and "resolved_ticker" in current:
+                 data["resolved_ticker"] = current["resolved_ticker"]
+            else:
+                 # Default to self if new
+                 data["resolved_ticker"] = t_u
+
+            self.supabase.table("ticker_cache").upsert(data, on_conflict="user_ticker").execute()
+            logger.info(f"Ticker Failure Registered: {t_u} -> Count {new_count}")
+        except Exception as e:
+            logger.warning(f"Failed to register ticker failure for {user_ticker}: {e}")
+
     def update_asset_quantity(self, chat_id: int, ticker: str, new_quantity: float):
         """Manually update the quantity of a confirmed asset."""
         try:
@@ -815,6 +847,29 @@ class DBHandler:
         except Exception as e:
             logger.warning(f"Ticker cache lookup failed for {user_ticker}: {e}")
             return None
+
+    def get_ticker_cache_batch(self, user_tickers: list) -> dict:
+        """
+        Get cached resolutions for a list of tickers in one query.
+        Returns: { "USER_TICKER": { "resolved_ticker": "...", "fail_count": 0 } }
+        """
+        if not user_tickers:
+            return {}
+        try:
+            # unique and upper
+            targets = list(set([t.upper() for t in user_tickers]))
+            
+            response = self.supabase.table("ticker_cache") \
+                .select("user_ticker, resolved_ticker, is_crypto, currency, last_verified_at, fail_count") \
+                .in_("user_ticker", targets) \
+                .execute()
+            
+            if response.data:
+                return { item['user_ticker']: item for item in response.data }
+            return {}
+        except Exception as e:
+            logger.error(f"Batch ticker lookup failed: {e}")
+            return {}
     
     def save_ticker_cache(self, user_ticker: str, resolved_ticker: str, is_crypto: bool = False, currency: str = "USD"):
         """

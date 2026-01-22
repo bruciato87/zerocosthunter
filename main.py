@@ -253,85 +253,78 @@ async def run_async_pipeline():
     # Identify all unique tickers mentioned in news (Dynamic Extraction)
     local_resolved_cache = {} # Cache for this run to avoid repeatedly resolving same text
 
-    def extract_tickers_from_text(text):
-        """Extract valid tickers using Regex + Resolver"""
-        # Finds 3-8 letter UPPERCASE keys (Avoids IS, AT, TO, MY errors)
+    # Identifies all unique tickers mentioned in news (Dynamic Extraction)
+    # [PERFORMANCE] Two-Pass Bulk Resolution Strategy
+    
+    def get_raw_candidates(text):
+        """Extract potential candidates using Regex (No DB calls)"""
         candidates = set(re.findall(r'\b[A-Z0-9]{3,8}\b', text))
         
-        # Explicitly look for major Crypto Names (Title Case often used)
-        # We manually map them to tickers to ensure we don't miss "Bitcoin" in a title
+        # Explicit crypto mapping (Case sensitive)
         common_names = ["Bitcoin", "Ethereum", "Solana", "Ripple", "Cardano", "Dogecoin", "Polkadot", "Avalanche"]
         for name in common_names:
-            if name in text: # Case-sensitive check in raw text
-                # Find the ticker for this name
-                for k, v in CANONICAL_MAP.items():
+            if name in text:
+                 for k, v in CANONICAL_MAP.items():
                     if k.upper() == name.upper() or v.replace('-USD','').upper() == name.upper():
-                        # Add the TICKER (CS) not the name
-                        if k in CANONICAL_MAP: 
-                            candidates.add(k)
-                        else:
-                            candidates.add(name.upper()) # Fallback
+                        if k in CANONICAL_MAP: candidates.add(k)
+                        else: candidates.add(name.upper())
                         break
-
-        found = set()
+        
+        # Local Filtering (CPU only)
+        final = set()
         for cand in candidates:
             if cand in IGNORE_LIST: continue
-            
-            # NOISE FILTERS:
-            # 1. Reject pure numbers (2022, 150)
             if cand.isdigit(): continue
-            
-            # 2. Reject Number + Suffix (10K, 50M, 10X, 5G)
             if re.match(r'^\d+[KMBXG]$', cand): continue
-            
-            # Check local run cache first
-            if cand in local_resolved_cache:
-                if local_resolved_cache[cand]:
-                    found.add(local_resolved_cache[cand])
-                continue
+            final.add(cand)
+        return final
 
-            # Fallback: Validation
-            try:
-                resolved = resolve_ticker(cand)
-                
-                if resolved:
-                    if resolved in CANONICAL_MAP:
-                        resolved = CANONICAL_MAP[resolved]
-                    found.add(resolved)
-                    local_resolved_cache[cand] = resolved
-                else:
-                    local_resolved_cache[cand] = None # Known failure
-            except:
-                local_resolved_cache[cand] = None
+    # PASS 1: Collect ALL raw candidates from ALL news
+    logger.info("Scanning news for raw candidates...")
+    all_raw_candidates = set()
+    news_candidate_map = [] # Store (item, candidates) for Pass 2
+    
+    for item in news_items:
+        text_content = (item.get('title', '') + " " + item.get('summary', ''))
+        raws = get_raw_candidates(text_content)
+        all_raw_candidates.update(raws)
+        news_candidate_map.append((item, raws))
         
-        # Filter out None values just in case
-        return [f for f in found if f]
-
-    # Step 1: Count Frequencies across ALL news (Two-Pass Approach)
+    # BULK RESOLUTION (One DB Call)
+    logger.info(f"Resolving {len(all_raw_candidates)} unique candidates...")
+    from ticker_resolver import resolve_tickers
+    resolved_map = resolve_tickers(list(all_raw_candidates))
+    
+    # PASS 2: Count Frequencies using Resolved Data
     MAX_NEW_DISCOVERIES = 5
     from collections import Counter
     discovery_counter = Counter()
     portfolio_found = set()
     
-    # First Pass: Collect all candidates and count citations
-    for item in news_items:
-        # USE RAW TEXT (Maintain Case) for better regex accuracy
-        text_content = (item.get('title', '') + " " + item.get('summary', ''))
-        extracted = extract_tickers_from_text(text_content)
-        
-        for t in extracted:
-            norm_ticker = CANONICAL_MAP.get(t, t)
+    for item, raws in news_candidate_map:
+        processed_for_item = set()
+        for raw in raws:
+            # Get resolved value from bulk map
+            resolved = resolved_map.get(raw)
+            if not resolved: continue # Was rejected or failed
             
-            # Normalize portfolio matches consistently
+            # Canonicalize
+            norm_ticker = CANONICAL_MAP.get(resolved, resolved)
+            
+            # De-duplicate per article
+            if norm_ticker in processed_for_item: continue
+            processed_for_item.add(norm_ticker)
+            
+            # Normalize portfolio matches
             if f"{norm_ticker}-USD" in portfolio_map:
                 norm_ticker = f"{norm_ticker}-USD"
-            
+                
             if norm_ticker in portfolio_map:
                 portfolio_found.add(norm_ticker)
             else:
                 discovery_counter[norm_ticker] += 1
 
-    # Step 2: Prioritize Selection
+    # Step 3: Prioritize Selection
     # Always add portfolio assets found
     for p_ticker in portfolio_found:
         unique_tickers.add(p_ticker)
@@ -374,6 +367,8 @@ async def run_async_pipeline():
             logger.warning(f"Failed to cache data for {ticker}: {e}")
             local_tech_cache[ticker] = "Data Unavailable"
             local_price_cache[ticker] = 0.0
+            # [PERFORMANCE] Register failure to filter noise in future runs
+            db.register_ticker_failure(ticker)
 
     logger.info(f"✅ Local Cache Ready. Enriched {len(unique_tickers)} tickers.")
 

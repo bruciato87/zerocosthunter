@@ -96,7 +96,42 @@ def resolve_tickers(tickers: list) -> list:
     Returns:
         List of Yahoo Finance compatible tickers
     """
-    return [resolve_ticker(t) for t in tickers]
+    # Optimized batch resolution
+    from db_handler import DBHandler
+    db = DBHandler()
+    
+    # 1. Fetch from DB in one go
+    cache_map = db.get_ticker_cache_batch(tickers)
+    
+    results = {}
+    
+    for t in tickers:
+        t_u = t.upper()
+        # A. Check DB Cache
+        if t_u in cache_map:
+            record = cache_map[t_u]
+            fail_count = record.get("fail_count", 0) or 0
+            if fail_count > 3:
+                results[t] = None # Reject
+            else:
+                results[t] = record.get("resolved_ticker", t_u)
+            continue
+            
+        # B. Check Local Aliases
+        if t_u in TICKER_ALIASES:
+            results[t] = TICKER_ALIASES[t_u]
+            continue
+            
+        # C. Crypto Check
+        base = t_u.replace('-USD', '').replace('-EUR', '')
+        if base in CRYPTO_TICKERS and '-' not in t_u:
+            results[t] = f"{base}-USD"
+            continue
+            
+        # D. Default
+        results[t] = t_u
+        
+    return results
 
 
 def get_ticker_currency(ticker: str) -> str:
