@@ -737,9 +737,98 @@ class MarketData:
             return {"matrix": {}, "high_correlation_pairs": [], "diversification_score": 50}
 
 
+    # =========================================================================
+    # BACKTESTING SUPPORT - Historical Data with Disk Cache
+    # =========================================================================
+
+    def get_historical_data(self, ticker: str, days: int = 365, force_refresh: bool = False) -> pd.DataFrame:
+        """
+        Fetch historical OHLCV data for backtesting.
+        Uses local disk cache (.cache/history_{ticker}.json) to save API calls.
+        """
+        import os
+        import json
+        from datetime import datetime, timedelta
+
+        cache_dir = ".cache"
+        if not os.path.exists(cache_dir):
+            os.makedirs(cache_dir)
+            
+        ticker_u = ticker.upper()
+        # Resolve aliases
+        ticker_search = self.TICKER_ALIASES.get(ticker_u, ticker_u)
+        
+        # Crypto Alias Handling
+        crypto_list = ['BTC', 'ETH', 'SOL', 'XRP', 'RENDER', 'DOGE', 'ADA', 'DOT', 'LINK']
+        base = ticker_search.replace('-USD', '').replace('-EUR', '')
+        if base in crypto_list and not ticker_search.endswith('-USD'):
+            ticker_search = f"{base}-USD"
+
+        safe_ticker = ticker_search.replace('=', '').replace('^', '')
+        cache_file = os.path.join(cache_dir, f"history_{safe_ticker}.json")
+        
+        # 1. Check Cache
+        if not force_refresh and os.path.exists(cache_file):
+            try:
+                # Check file age (expire after 24h)
+                file_age = datetime.now().timestamp() - os.path.getmtime(cache_file)
+                if file_age < 86400: # 1 day
+                    with open(cache_file, 'r') as f:
+                        raw_data = json.load(f)
+                    
+                    # Convert back to DataFrame
+                    df = pd.DataFrame(raw_data)
+                    if not df.empty:
+                        df['Date'] = pd.to_datetime(df['Date'])
+                        df.set_index('Date', inplace=True)
+                        logger.info(f"Loaded {len(df)} rows from cache for {ticker_search}")
+                        return df
+            except Exception as e:
+                logger.warning(f"Failed to load cache for {ticker}: {e}")
+
+        # 2. Fetch from API
+        try:
+            logger.info(f"Fetching {days}d history for {ticker_search} from API...")
+            # Calculate start date string
+            start_date = (datetime.now() - timedelta(days=days)).strftime('%Y-%m-%d')
+            
+            data = yf.download(ticker_search, start=start_date, progress=False, auto_adjust=True)
+            
+            if data.empty:
+                logger.warning(f"No data found for {ticker_search}")
+                return pd.DataFrame()
+
+            # Handle MultiIndex
+            if hasattr(data.columns, 'levels'):
+                df = data.copy()
+                df.columns = df.columns.get_level_values(0)
+            else:
+                df = data.copy()
+
+            # reset index to make Date a column for JSON serialization
+            df.reset_index(inplace=True)
+            df['Date'] = df['Date'].dt.strftime('%Y-%m-%d %H:%M:%S')
+            
+            # Save to Cache
+            with open(cache_file, 'w') as f:
+                f.write(df.to_json(orient='records', date_format='iso'))
+            
+            # Restore Index for return
+            df['Date'] = pd.to_datetime(df['Date'])
+            df.set_index('Date', inplace=True)
+            
+            return df
+
+        except Exception as e:
+            logger.error(f"Failed to fetch history for {ticker}: {e}")
+            return pd.DataFrame()
+
+
 if __name__ == "__main__":
     # Test
     md = MarketData()
+    # history = md.get_historical_data("BTC", days=30) 
+    # print(history.tail())
     print(md.get_technical_summary("AAPL"))
     print(md.get_technical_summary("BTC-USD"))
     

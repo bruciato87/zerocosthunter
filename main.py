@@ -130,23 +130,45 @@ async def run_async_pipeline():
     logger.info("Enriching news with Technical Data & Portfolio Context...")
     
     # ... (Monitored Tickers Setup - Unchanged) ...
-    # Simple whitelist for Zero-Cost extraction (expandable)
-    MONITORED_TICKERS = {
-        "BTC": "BTC-USD", "BITCOIN": "BTC-USD",
-        "ETH": "ETH-USD", "ETHEREUM": "ETH-USD",
-        "SOL": "SOL-USD", "SOLANA": "SOL-USD",
-        "NVDA": "NVDA", "NVIDIA": "NVDA",
-        "TSLA": "TSLA", "TESLA": "TSLA",
-        "AAPL": "AAPL", "APPLE": "AAPL",
-        "MSFT": "MSFT", "MICROSOFT": "MSFT",
-        "AMZN": "AMZN", "AMAZON": "AMZN",
-        "GOOG": "GOOGL", "GOOGLE": "GOOGL",
-        "META": "META",
-        "AMD": "AMD",
-        "SPY": "SPY", "S&P 500": "SPY"
+    # Dynamic Ticker Detection Setup
+    from ticker_resolver import resolve_ticker
+    
+    # Common words to ignore to reduce API/DB spam
+    IGNORE_LIST = {
+        'THE', 'AND', 'FOR', 'NEW', 'CEO', 'IPO', 'AI', 'US', 'EU', 'UK', 'HK',
+        'API', 'APP', 'BIG', 'BUY', 'NOW', 'TOP', 'HOT', 'SOS', 'RUN', 'SET',
+        'EFT', 'ETF', 'CRYPTO', 'BITCOIN', 'ETHEREUM', 'SOLANA', 'RIPPLE', 
+        'CARDANO', 'DOGECOIN', 'POLKADOT', 'CHAINLINK', 'AVALANCHE', 'POLYGON',
+        'THIS', 'THAT', 'WITH', 'FROM', 'INTO', 'OVER', 'MORE', 'LESS', 'BEST',
+        'REAL', 'TIME', 'YEAR', 'WEEK', 'DAY', 'HOUR', 'LIFE', 'GOOD', 'BAD',
+        'LOW', 'HIGH', 'MAX', 'MIN', 'ONE', 'TWO', 'SIX', 'TEN', 'ALL', 'ANY',
+        'CAN', 'GET', 'HAS', 'HAD', 'NOT', 'BUT', 'WHY', 'HOW', 'WHO', 'ITS',
+        'WAR', 'TAX', 'LAW', 'JOB', 'PAY', 'FEE', 'WIN', 'LOSE', 'NET', 'GRO',
+        'GDP', 'CPI', 'PPI', 'FED', 'ECB', 'SEC', 'DOJ', 'FTX', 'SBF', 'KYC',
+        'AML', 'NFT', 'DAO', 'DEX', 'CEX', 'PUMP', 'DUMP', 'FOMO', 'FUD', 'ATH',
+        'ATL', 'ROI', 'APR', 'APY', 'TVL', 'MCAP', 'VOL', 'PNL', 'YTD', 'QTD',
+        'LTD', 'INC', 'CORP', 'LLC', 'PLC', 'AG', 'GMBH', 'SA', 'SPA', 'NV', 'BV',
+        'UP', 'DOWN', 'LEFT', 'RIGHT', 'NORTH', 'SOUTH', 'EAST', 'WEST',
+        'HITS', 'MISS', 'BEAT', 'DROP', 'FALL', 'RISE', 'JUMP', 'DIVE', 'SOAR',
+        'SURGE', 'TANK', 'CRASH', 'BOOM', 'BUST', 'HOLD', 'SELL', 'SWAP', 'LONG',
+        'SHORT', 'CALL', 'PUT', 'ASK', 'BID', 'AVG', 'EST', 'EPS', 'REV', 
+        'SAYS', 'SAID', 'WILL', 'WENT', 'GONE', 'SEEN', 'DONE', 'MADE', 'MAKE',
+        'KEEP', 'HELD', 'SOLD', 'BOUGHT', 'PAID', 'OWED', 'LENT', 'SENT', 'TOOK',
+        'GAVE', 'GOT', 'MET', 'SUES', 'SUE', 'WON', 'LOST', 'COST', 'VALUE', 
+        'PRICE', 'RATE', 'YIELD', 'BOND', 'NOTE', 'BILL', 'CASH', 'GOLD', 'OIL',
+        'GAS', 'DATA', 'TECH', 'SOFT', 'HARD', 'FIRM', 'BANK', 'FUND', 'USER',
+        'ZERO', 'COST', 'HUNT',
+        # HTML/CSS Garbage
+        'HTML', 'CSS', 'SRC', 'HREF', 'IMG', 'JPG', 'PNG', 'DIV', 'SPAN', 
+        'CLASS', 'STYLE', 'WIDTH', 'HEIGHT', 'MARGIN', 'PADDING', 'FLOAT', 
+        'ALT', 'TYPE', 'COM', 'HTTP', 'HTTPS', 'WWW', 'NET', 'ORG', 'GOV',
+        # Common Prepositions/Verbs (Short Uppercase risks)
+        'THE', 'AND', 'FOR', 'BUT', 'NOT', 'YOU', 'ARE', 'WAS', 'ITS', 'HAS',
+        'HAD', 'CAN', 'GET', 'DID', 'WAY', 'TOO', 'USE', 'SEE', 'OWN', 'GOT',
+        'MET', 'WON', 'LOST', 'RUN', 'SET', 'PUT', 'SAY', 'LET', 'BIG', 'OLD'
     }
 
-    # Canonical Map for De-duplication
+    # Canonical Map for De-duplication (Still useful for unifying aliases)
     CANONICAL_MAP = {
         "BTC": "BTC-USD", "BITCOIN": "BTC-USD",
         "ETH": "ETH-USD", "ETHEREUM": "ETH-USD",
@@ -154,12 +176,11 @@ async def run_async_pipeline():
         "RNDR": "RENDER-USD", "RENDER": "RENDER-USD",
         "RNDR-USD": "RENDER-USD",
         "BYD": "BYDDF", # Map BYD to USD OTC (prevents Boyd Gaming mixup)
-        "BYD COMPANY": "BYDDF"
+        "BYD COMPANY": "BYDDF",
+        "META": "META",
+        "GOOG": "GOOGL",
+        "GOOGL": "GOOGL"
     }
-
-    # Add Portfolio Tickers to Monitored list dynamically
-    for p_ticker in portfolio_map.keys():
-        MONITORED_TICKERS[p_ticker] = p_ticker
 
     # Signal Intelligence is already initialized at start
     pass
@@ -168,16 +189,98 @@ async def run_async_pipeline():
     logger.info("Initializing Local Cache for unique tickers...")
     unique_tickers = set()
     
-    # Identify all unique tickers mentioned in news
+    # Identify all unique tickers mentioned in news (Dynamic Extraction)
+    local_resolved_cache = {} # Cache for this run to avoid repeatedly resolving same text
+
+    def extract_tickers_from_text(text):
+        """Extract valid tickers using Regex + Resolver"""
+        # Finds 3-8 letter UPPERCASE keys (Avoids IS, AT, TO, MY errors)
+        candidates = set(re.findall(r'\b[A-Z0-9]{3,8}\b', text))
+        
+        # Explicitly look for major Crypto Names (Title Case often used)
+        # We manually map them to tickers to ensure we don't miss "Bitcoin" in a title
+        common_names = ["Bitcoin", "Ethereum", "Solana", "Ripple", "Cardano", "Dogecoin", "Polkadot", "Avalanche"]
+        for name in common_names:
+            if name in text: # Case-sensitive check in raw text
+                # Find the ticker for this name
+                for k, v in CANONICAL_MAP.items():
+                    if k.upper() == name.upper() or v.replace('-USD','').upper() == name.upper():
+                        # Add the TICKER (CS) not the name
+                        if k in CANONICAL_MAP: 
+                            candidates.add(k)
+                        else:
+                            candidates.add(name.upper()) # Fallback
+                        break
+
+        found = set()
+        for cand in candidates:
+            if cand in IGNORE_LIST: continue
+            
+            # NOISE FILTERS:
+            # 1. Reject pure numbers (2022, 150)
+            if cand.isdigit(): continue
+            
+            # 2. Reject Number + Suffix (10K, 50M, 10X, 5G)
+            if re.match(r'^\d+[KMBXG]$', cand): continue
+            
+            # Check local run cache first
+            if cand in local_resolved_cache:
+                if local_resolved_cache[cand]:
+                    found.add(local_resolved_cache[cand])
+                continue
+
+            # Fallback: Validation
+            try:
+                resolved = resolve_ticker(cand)
+                
+                if resolved in CANONICAL_MAP:
+                    resolved = CANONICAL_MAP[resolved]
+                
+                found.add(resolved)
+                local_resolved_cache[cand] = resolved
+            except:
+                local_resolved_cache[cand] = None
+        
+        return list(found)
+
+    # Step 1: Count Frequencies across ALL news (Two-Pass Approach)
+    from collections import Counter
+    discovery_counter = Counter()
+    portfolio_found = set()
+    
+    # First Pass: Collect all candidates and count citations
     for item in news_items:
-        text_content = (item.get('title', '') + " " + item.get('summary', '')).upper()
-        for key, symbol in MONITORED_TICKERS.items():
-            if re.search(r'\b' + re.escape(key) + r'\b', text_content):
-                norm_ticker = CANONICAL_MAP.get(symbol, symbol)
-                if f"{norm_ticker}-USD" in portfolio_map:
-                    norm_ticker = f"{norm_ticker}-USD"
-                unique_tickers.add(norm_ticker)
-                break
+        # USE RAW TEXT (Maintain Case) for better regex accuracy
+        text_content = (item.get('title', '') + " " + item.get('summary', ''))
+        extracted = extract_tickers_from_text(text_content)
+        
+        for t in extracted:
+            norm_ticker = CANONICAL_MAP.get(t, t)
+            
+            # Normalize portfolio matches consistently
+            if f"{norm_ticker}-USD" in portfolio_map:
+                norm_ticker = f"{norm_ticker}-USD"
+            
+            if norm_ticker in portfolio_map:
+                portfolio_found.add(norm_ticker)
+            else:
+                discovery_counter[norm_ticker] += 1
+
+    # Step 2: Prioritize Selection
+    # Always add portfolio assets found
+    for p_ticker in portfolio_found:
+        unique_tickers.add(p_ticker)
+        
+    # Select Top N New Discoveries by Frequency
+    if discovery_counter:
+        top_discoveries = discovery_counter.most_common(MAX_NEW_DISCOVERIES)
+        logger.info(f"Top Discoveries Candidates: {top_discoveries}")
+        
+        for ticker, count in top_discoveries:
+            unique_tickers.add(ticker)
+            logger.info(f"Discovery: Added {ticker} ({count} mentions) to hunt list.")
+    else:
+        logger.info("Discovery: No new tickers found.")
     
     # Add all portfolio tickers too (for context/synthetic checks)
     for p_ticker in portfolio_map.keys():
@@ -212,13 +315,24 @@ async def run_async_pipeline():
     for item in news_items:
         text_content = (item.get('title', '') + " " + item.get('summary', '')).upper()
         
-        # Find first matching ticker
+        # Find first matching ticker (Dynamic)
         detected_ticker = None
-        for key, symbol in MONITORED_TICKERS.items():
-            # word boundary check
-            if re.search(r'\b' + re.escape(key) + r'\b', text_content):
-                detected_ticker = symbol
-                break
+        
+        # Re-use extraction logic (prioritize Portfolio or Canonical assets)
+        extracted = extract_tickers_from_text(text_content)
+        
+        if extracted:
+            # Pick the "best" one (Priority: Portfolio > Canonical > First Found)
+            best_match = extracted[0]
+            for t in extracted:
+                if t in portfolio_map or f"{t}-USD" in portfolio_map:
+                    best_match = t
+                    break
+                if t in CANONICAL_MAP:
+                    best_match = CANONICAL_MAP[t]
+                    # Don't break yet, look for portfolio match
+            
+            detected_ticker = best_match
         
         if detected_ticker:
             # 1. Normalize Ticker
