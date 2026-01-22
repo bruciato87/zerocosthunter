@@ -135,7 +135,7 @@ class StrategyManager:
         
         Args:
             ticker: Asset ticker
-            ai_signal: AI suggested action (BUY, SELL, ACCUMULATE, TRIM, HOLD, WAIT)
+            ai_signal: AI suggested action (BUY, SELL, ACCUMULATE, TRIM, HOLD)
             current_pnl_pct: Current profit/loss percentage (e.g. 15.5 for +15.5%)
             current_allocation_pct: Current allocation in portfolio (e.g. 12.0 for 12%)
             potential_profit_eur: Potential profit in EUR if sold

@@ -85,7 +85,7 @@ class SignalIntelligence:
                     "reason": f"{new_sector} sector already at {current_alloc:.1f}% (max 50%)",
                     "sector": new_sector,
                     "current_allocation": current_alloc,
-                    "action": "Downgrade BUY to WAIT"
+                    "action": "Downgrade BUY to HOLD"
                 }
             
             # Warning zone: 40-50%
@@ -630,7 +630,7 @@ class SignalIntelligence:
                             "earnings_date": next_earnings.strftime('%Y-%m-%d'),
                             "days_until": days_until,
                             "risk_level": "HIGH",
-                            "action": "Downgrade BUY to WAIT"
+                            "action": "Downgrade BUY to HOLD"
                         }
                     elif days_until <= 7:
                         result = {
@@ -680,8 +680,8 @@ class SignalIntelligence:
         correlation = self.check_portfolio_correlation(ticker, sentiment, portfolio_context)
         result["checks"]["correlation"] = correlation
         if correlation.get("should_downgrade"):
-            result["adjusted_sentiment"] = "WAIT"
-            result["actions"].append(f"Downgraded to WAIT: {correlation['reason']}")
+            result["adjusted_sentiment"] = "HOLD"
+            result["actions"].append(f"Downgraded to HOLD: {correlation['reason']}")
         elif correlation.get("warning"):
             result["warnings"].append(correlation["warning"])
         
@@ -711,13 +711,13 @@ class SignalIntelligence:
         result["adjusted_confidence"] += regime.get("confidence_adjustment", 0)
         if regime.get("regime") == "RISK_OFF":
             result["warnings"].append(f"RISK_OFF regime (VIX={regime.get('vix', '?')}). Extra caution advised.")
-            # Don't downgrade to WAIT - just warn (user can decide)
+            # Don't downgrade to HOLD - just warn (user can decide)
         
         # 5. Earnings Calendar (for stocks)
         earnings = self.check_earnings_risk(ticker)
         result["checks"]["earnings"] = earnings
         if earnings.get("risk_level") == "HIGH" and sentiment == "BUY":
-            result["adjusted_sentiment"] = "WAIT"
+            result["adjusted_sentiment"] = "HOLD"
             result["actions"].append(f"Earnings in {earnings.get('days_until', '?')} days - high volatility risk")
         elif earnings.get("risk_level") == "MEDIUM":
             result["warnings"].append(f"Earnings on {earnings.get('earnings_date')} - elevated volatility")

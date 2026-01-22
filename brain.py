@@ -678,7 +678,7 @@ class Brain:
             {macro_context}
             **MACRO RULE:**
             - If Risk Level is HIGH (FED Mtg / VIX Spike): CRITICAL CAUTION.
-            - **Downgrade 'BUY' to 'WAIT'** unless the signal is overwhelmingly strong (Confidence > 95% and 'Buyout'/'Earnings Beat').
+            - **Downgrade 'BUY' to 'HOLD'** unless the signal is overwhelmingly strong (Confidence > 95% and 'Buyout'/'Earnings Beat').
             - Do NOT recommend Buying speculative assets (Crypto/Tech) during HIGH RISK.
             """
 
@@ -690,7 +690,7 @@ class Brain:
             **WHALE RULE:**
             - If **SELL PRESSURE (Dump Risk)** is detected (Large BTC/ETH Inflows to Exchanges):
                 - Be skeptical of Bullish news on Crypto.
-                - Prefer 'WAIT' or 'ACCUMULATE' with low targets.
+                - Prefer 'HOLD' or 'ACCUMULATE' with low targets.
             - If **BUY PRESSURE** (Inflow of Stablecoins):
                 - Confirm BULLISH signals with higher confidence.
             """
@@ -714,7 +714,7 @@ class Brain:
             - If WEEKEND: 'SKIP' ALL stock signals - they are NOT actionable now
             - ONLY Crypto assets (BTC, ETH, SOL, XRP, RENDER, etc.) are ALWAYS actionable 24/7
             - DO NOT suggest BUY/ACCUMULATE for stocks when their market is CLOSED
-            - If you must mention a stock during closed hours, set sentiment to 'WAIT' with note 'Market closed - review at open'
+            - If you must mention a stock during closed hours, set sentiment to 'HOLD' with note 'Market closed - review at open'
             """
         except Exception as e:
             logger.warning(f"Market hours context failed: {e}")
@@ -790,14 +790,14 @@ class Brain:
         **A) MACRO CONTEXT CHECK**
         - You will receive a `[MACRO STRATEGIST]` context block (Risk Level, VIX, Yields).
         - **IF RISK IS 'HIGH' (e.g. FED Meeting, VIX > 30):**
-            - **ACTION:** Downgrade ALL "BUY" signals to "WAIT" or "HOLD" unless the specific news is "Game Changing" (e.g. Earnings beat +20%).
+            - **ACTION:** Downgrade ALL "BUY" signals to "HOLD" unless the specific news is "Game Changing" (e.g. Earnings beat +20%).
             - **REASONING:** Explicitly mention "Macro Risk is High (Safety First)" in your reasoning.
         
         **B) WHALE WATCHER CHECK (Binance Flow)**
         - You will receive a `[WHALE WATCHER]` context block.
         - **IF FLOW IS 'BEARISH' (Net Selling / Dump Detected):**
             - **VETO POWER:** You CANNOT issue a "BUY" signal for BTC, ETH, SOL, or Crypto-related stocks (COIN, MSTR).
-            - **ACTION:** Downgrade "BUY" to "WAIT".
+            - **ACTION:** Downgrade "BUY" to "HOLD".
             - **REASONING:** Start with "Whales are selling..."
         - **IF FLOW IS 'BULLISH' (Net Buying):**
             - **BOOST:** This is a conviction multiplier. Increase Confidence Score by +0.1.
@@ -806,7 +806,7 @@ class Brain:
 
         **LANGUAGE & FORMAT:**
         - **Reasoning**: MUST be in **ITALIAN**.
-        - **Sentiment**: ONE of: ["BUY", "SELL", "ACCUMULATE", "PANIC SELL", "HOLD", "WAIT"].
+        - **Sentiment**: ONE of: ["BUY", "SELL", "ACCUMULATE", "PANIC SELL", "HOLD"].
         - **Required:** Your reasoning MUST cite the specific data point (Macro or Whale) if it influenced the decision.
         
         **CRITICAL FILTERS & BOOSTS:**
@@ -821,8 +821,8 @@ class Brain:
             -   **IF [Portfolio] tag is MISSING (New Entry):**
                 -   **MUST** use "**BUY**" if the opportunity is good.
                 -   **MUST NOT** use "ACCUMULATE" (reserved for existing positions).
-                -   **MUST NOT** use "SELL" or "PANIC SELL" (Cannot sell what is not owned).
-                -   If news is negative, strictly **OMIT/SKIP** the signal.
+                -   **MUST NOT** use "SELL", "PANIC SELL", or "HOLD" (Cannot sell/hold what is not owned).
+                -   If the sentiment is not a clear "BUY", **DO NOT INCLUDE THIS SIGNAL IN THE OUTPUT**. Skip it entirely.
         
         4.  **SENTIMENT TREND BOOST:**
             - You will see previous history tags (e.g. `[History: WIN (3/0) - Last: BUY]`).
@@ -851,7 +851,7 @@ class Brain:
         8.  **EARNINGS CALENDAR SAFETY (IMPROVEMENT 7):**
             - If news mentions "Earnings this week" or "Reporting tomorrow":
             - **FORBID BUY SIGNALS** unless you are 99% confident.
-            - **ACTION:** Suggest "WAIT" or "HOLD" through the event volatility.
+            - **ACTION:** Suggest "HOLD" through the event volatility.
             - **REASONING:** "High risk ahead of earnings."
 
         9.  **NEWS QUALITY SCORE (IMPROVEMENT 9):**
@@ -945,7 +945,7 @@ class Brain:
         for sig in signals:
             try:
                 # Only critique High Confidence (>=0.7) or strong BULLISH signals
-                # HOLD/WAIT signals don't need risk management critique (they are already safe)
+                # HOLD signals don't need risk management critique (they are already safe)
                 if sig.get('confidence', 0) >= 0.7 or sig.get('sentiment') in ['BUY', 'ACCUMULATE', 'STRONG BUY']:
                     
                     # Prepare Context string for Critic (Extract from signal)
@@ -1417,7 +1417,7 @@ class Brain:
         - Bullet point 2
         
         ## 🔮 The Verdict
-        - **Decisione:** [BUY / HOLD / SELL / WAIT]
+        - **Decisione:** [BUY / HOLD / SELL]
         - **Target Price (Est):** [Price in EUR - ALWAYS use € symbol]
         - **Risk Score:** [1-10]
         - **Catalyst:** Cosa stiamo aspettando? (e.g. Earnings date, FDA approval)
