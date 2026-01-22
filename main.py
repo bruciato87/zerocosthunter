@@ -375,7 +375,12 @@ async def run_async_pipeline():
         detected_ticker = None
         
         # Re-use extraction logic (prioritize Portfolio or Canonical assets)
-        extracted = extract_tickers_from_text(text_content)
+        # Fix for NameError: Reuse Batch Resolution Map
+        raws = get_raw_candidates(text_content)
+        extracted = []
+        for r in raws:
+             res = resolved_map.get(r)
+             if res: extracted.append(res)
         
         if extracted:
             # Pick the "best" one (Priority: Portfolio > Canonical > First Found)
