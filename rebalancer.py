@@ -253,9 +253,13 @@ class Rebalancer:
                 return f", RSI: {rsi:.0f}"
             
             def cost_label(a):
-                if a['pnl_eur'] > 0:
-                    return f" [Se vendi: Tax €{a['potential_tax']:.0f} + Fee €1]"
-                return " [Se vendi: Fee €1]"
+                if a['pnl_eur'] > 10:
+                    # Realistic net profit for 10% of position
+                    # (Profit of 10% portion) - (Tax on that 10% portion) - (Fee 1€)
+                    net_prof_10 = (a['pnl_eur'] * 0.1) - (a['potential_tax'] * 0.1) - 1.0
+                    if net_prof_10 > 0:
+                        return f" [Profitto netto stimato per ogni 10% venduto: €{net_prof_10:.1f}]"
+                return " [Se vendi: Fee €1 + eventuale tax 26% su profitto]"
             
             assets_summary = "\n".join([
                 f"- {a['ticker']}: €{a['value']:.0f} ({a['allocation']:.1f}%), PnL: {a['pnl_pct']:+.1f}% (€{a['pnl_eur']:+.0f}), Sector: {a['sector']}{rsi_label(a.get('rsi'))}{cost_label(a)}"
@@ -501,7 +505,7 @@ class Rebalancer:
                🟢 BUY €XXX TICKER (NUOVO) - Motivo breve ← SOLO per asset NON in portafoglio
                🟢 ACCUMULATE €XXX TICKER - Motivo breve ← SOLO per asset GIÀ in portafoglio
                🟡 HOLD TICKER - Motivo breve ← VIETATO per asset NON in portafoglio
-               🔴 TRIM XX% TICKER - Motivo breve (Net profit after tax/fees: €XX) ← SOLO per asset GIÀ in portafoglio
+               🔴 TRIM XX% TICKER - Motivo breve (Profitto netto stimato: €[FAI_IL_CALCOLO])
             
             2. Poi aggiungi UNA strategia sintetica (1 frase) per €500 di capitale fresco.
             
@@ -519,6 +523,10 @@ class Rebalancer:
             - **COERENZA PORTAFOGLIO (STRETTA):**
               - NON suggerire MAI "HOLD" o "TRIM" per un ticker che NON è nella lista "ASSET POSSEDUTI".
               - Se vuoi suggerire un asset nuovo, DEVE essere "BUY" (se conviene). Se non conviene comprare, IGNORALO (non dire HOLD).
+            
+            - **CALCOLO MATEMATICO (OBBLIGATORIO):**
+              Per i suggerimenti '🔴 TRIM', usa il valore 'Profitto netto stimato per ogni 10% venduto' fornito nel contesto per calcolare il valore finale. 
+              Esempio: Se suggerisci TRIM 20% e il profitto per ogni 10% è €30, scrivi '(Profitto netto stimato: €60)'. NON scrivere mai '€XX'.
             
             Rispondi SOLO con le azioni, senza preamboli.
             """
