@@ -455,13 +455,13 @@ class Rebalancer:
             - Commissione: €1 fisso per ogni ordine (BUY o SELL)
             - Tasse: 26% sulle plusvalenze (Capital Gains Tax)
             - Soglia minima convenienza: Un trade deve generare valore NETTO > dei costi.
-            - Esempio: Vendere €100 con €10 gain non conviene (Tasse €2.6 + Fee €1 = €3.6 di costi, 36% del gain eroso).
             
             **ORARI MERCATO ({market_status.get('current_time_italy', 'N/A')}):**
             {market_hours}
             
-            **PORTAFOGLIO ATTUALE:** €{analysis['total_value']:.0f}
-            {assets_summary}
+            **PORTAFOGLIO ATTUALE (ASSET POSSEDUTI):**
+            €{analysis['total_value']:.0f} totali.
+            ASSET: {', '.join([a['ticker'] for a in analysis['assets']]) if analysis['assets'] else 'NESSUNO (Liquidità)'}
             
             **ALLOCAZIONE SETTORI:**
             {sector_summary}
@@ -500,29 +500,25 @@ class Rebalancer:
             1. Genera MAX 3 azioni concrete nel formato:
                🟢 BUY €XXX TICKER (NUOVO) - Motivo breve ← SOLO per asset NON in portafoglio
                🟢 ACCUMULATE €XXX TICKER - Motivo breve ← SOLO per asset GIÀ in portafoglio
-               🟡 HOLD TICKER - Motivo breve
-               🔴 TRIM XX% TICKER - Motivo breve (Net profit after tax/fees: €XX)
+               🟡 HOLD TICKER - Motivo breve ← VIETATO per asset NON in portafoglio
+               🔴 TRIM XX% TICKER - Motivo breve (Net profit after tax/fees: €XX) ← SOLO per asset GIÀ in portafoglio
             
             2. Poi aggiungi UNA strategia sintetica (1 frase) per €500 di capitale fresco.
             
             **REGOLE CRITICHE PER MASSIMIZZARE PROFITTI:**
-            - **COST CHECK (FONDAMENTALE):** NON suggerire SELL/TRIM se il costo totale (26% Tax + €1 Fee) supera il 50% del profitto, a meno che non sia per stop-loss o rotazione critica.
+            - **COST CHECK (FONDAMENTALE):** NON suggerire SELL/TRIM se il costo totale (26% Tax + €1 Fee) supera il 50% del profitto.
             - **PRIORITÀ 1:** Segui i SEGNALI RECENTI ad alta confidenza (BUY/ACCUMULATE ≥75%)
             - **PRIORITÀ 2:** Accumula asset con RSI OVERSOLD (<30)
             - **PRIORITÀ 3:** Trimma asset con RSI OVERBOUGHT (>70) SOLO SE il PnL netto giustifica la tassa.
-            - **PRIORITÀ 4:** (Solo dopo) Considera il bilanciamento settoriale
-            - **PRIORITÀ 5:** Se Sharpe < 0 o Diversification Score < 60, suggerisci di ridurre asset altamente correlati
             
             - **⏰ ORARI MERCATO (FONDAMENTALE):**
-              - Se mercato EU è CLOSED: NON suggerire BUY/SELL per ETF europei (.DE, .F, .MI) → suggerisci solo HOLD o menziona "domani"
-              - Se mercato US è CLOSED: NON suggerire BUY/SELL per stocks USA (NVDA, META, AAPL, etc.) → suggerisci solo HOLD o menziona "alla riapertura"
-              - Crypto (BTC, ETH, etc.) sono SEMPRE tradabili 24/7
-              - Se tutti i mercati sono chiusi, concentrati SOLO su Crypto o suggerisci di attendere
+              - Se mercato EU è CLOSED: NON suggerire BUY/SELL per ETF europei → HOLD o "domani"
+              - Se mercato US è CLOSED: NON suggerire BUY/SELL per stocks USA → HOLD o "riapertura"
+              - Crypto sempre aperti.
             
-            - **TICKER SUGGERIBILI:** Asset nel portfolio: {', '.join([a['ticker'] for a in analysis['assets']])}
-            - **ECCEZIONE:** Se un segnale recente (BUY ≥80% conf) è per un ticker NON nel portfolio, suggeriscilo comunque indicando "(NUOVO)"
-            - Per capitale fresco, indica asset specifici se ci sono segnali forti, altrimenti settori
-            - NON suggerire SELL totale (solo TRIM parziale per prendere profitti)
+            - **COERENZA PORTAFOGLIO (STRETTA):**
+              - NON suggerire MAI "HOLD" o "TRIM" per un ticker che NON è nella lista "ASSET POSSEDUTI".
+              - Se vuoi suggerire un asset nuovo, DEVE essere "BUY" (se conviene). Se non conviene comprare, IGNORALO (non dire HOLD).
             
             Rispondi SOLO con le azioni, senza preamboli.
             """
@@ -575,9 +571,10 @@ class Rebalancer:
                 critic = Critic()
                 regime_desc = regime_data.get('description', 'NEUTRAL')
                 portfolio_val = analysis.get('total_value', 0)
+                held_assets = [a['ticker'] for a in analysis['assets']]
                 
                 # Overwrite response with Critic's verified version
-                valid_response = critic.critique_rebalance_strategy(response_text, regime_desc, portfolio_val)
+                valid_response = critic.critique_rebalance_strategy(response_text, regime_desc, portfolio_val, held_assets)
                 
                 if valid_response and valid_response != response_text:
                     response_text = valid_response

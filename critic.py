@@ -104,33 +104,40 @@ class Critic:
             logger.error(f"Critic execution failed: {e}")
             return CriticVerdict("APPROVE", 50, ["Critic Offline"], f"Critic check failed ({e}). Defaulting to cautious approval.")
 
-    def critique_rebalance_strategy(self, strategy_text: str, regime: str, portfolio_value: float) -> str:
+    def critique_rebalance_strategy(self, strategy_text: str, regime: str, portfolio_value: float, held_assets: List[str] = []) -> str:
         """
         Critiques and potentially rewrites a rebalancing strategy to ensure regime consistency.
         Example: If Regime is BEARISH, blocks buying meme coins or increasing high-risk exposure.
+        Enforces that 'HOLD' is ONLY used for assets actually owned.
         """
         logger.info(f"🧐 Critic evaluating rebalance strategy (Regime: {regime})...")
+        
+        held_assets_str = ", ".join(held_assets) if held_assets else "NONE"
         
         prompt = f"""
         You are the SENIOR RISK MANAGER (The Critic).
         Current Market Regime: **{regime}**
         Portfolio Value: €{portfolio_value:.0f}
         
+        CURRENT PORTFOLIO ASSETS: {held_assets_str}
+        
         PROPOSED STRATEGY (by Junior Algo):
         {strategy_text}
         
         YOUR TASK:
-        Review the proposed actions for consistency with the regime.
+        Review the proposed actions for consistency with the regime and portfolio reality.
         
         RULES:
         1. If Regime is BEARISH/DEFENSIVE:
            - VETO any "BUY" suggestion for High Risk assets (Meme Coins like DOGE, SHIB, PEPE, or Small Caps).
            - VETO increasing exposure to volatile Crypto (unless it's just rebalancing major coins BTC/ETH).
            - APPROVE "TRIM" or "HOLD" or "Accumulate Gold/Cash/Stablecoins".
-           - IF you VETO an action, REPLACE it with "🟡 HOLD [Ticker] - Risk too high for Bearish Regime" or "🟢 BUY [Defensive Asset]".
            
-        2. If Regime is BULLISH:
-           - Allow aggressive moves if they make sense.
+        2. OWNERSHIP RULES (CRITICAL):
+           - You can ONLY approve "HOLD", "ACCUMULATE" or "TRIM" for assets in CURRENT PORTFOLIO ASSETS.
+           - If the Junior suggests "HOLD" for an asset NOT in portfolio -> DELETE THE LINE.
+           - If you VETO a "BUY" for a NEW asset (not in portfolio) -> CHANGE it to "🚫 AVOID [Ticker] - Risk too high".
+           - DO NOT change a VETOED "BUY" for a new asset into "HOLD". It must be "AVOID".
            
         3. GENERAL:
            - Ensure fees don't eat profits (Policy: Net Gain must justify €1 fee + 26% tax).
