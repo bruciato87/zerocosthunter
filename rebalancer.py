@@ -537,7 +537,7 @@ class Rebalancer:
             if not response_text or not response_text.strip():
                 logger.warning(f"Primary AI returned empty, trying Gemini fallback...")
                 try:
-                    response_text = brain._call_gemini_with_retries(prompt, json_mode=False)
+                    response_text = brain._call_gemini_with_tiered_fallback(prompt, json_mode=False)
                     if response_text and response_text.strip():
                         logger.info(f"Gemini fallback succeeded: {len(response_text)} chars")
                         

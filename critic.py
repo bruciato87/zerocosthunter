@@ -21,7 +21,8 @@ class Critic:
     
     def __init__(self):
         # Model IDs
-        self.gemini_model = "gemini-2.0-flash" 
+        from brain import GEMINI_MODEL_TIERS
+        self.gemini_tiers = GEMINI_MODEL_TIERS
         self.openrouter_model = "google/gemini-2.0-flash-exp:free"
         
         # Initialize direct Gemini client if key available (Primary)
@@ -34,24 +35,38 @@ class Critic:
 
     def _generate_response(self, prompt: str, json_mode: bool = False) -> Optional[str]:
         """Tries Gemini first, then OpenRouter fallback."""
-        # 1. Try Direct Gemini (Primary)
+        # 1. Try Direct Gemini Tiers (Primary)
         if self.gemini_client:
-            try:
-                from google.genai import types
-                logger.info(f"🧐 Critic using Primary: Gemini ({self.gemini_model})")
-                config = {}
-                if json_mode:
-                    config = types.GenerateContentConfig(response_mime_type="application/json")
-                
-                response = self.gemini_client.models.generate_content(
-                    model=self.gemini_model,
-                    contents=prompt,
-                    config=config
-                )
-                if response and response.text:
-                    return response.text
-            except Exception as e:
-                logger.warning(f"Critic Primary (Gemini) failed: {e}. Falling back to OpenRouter...")
+            from google.genai import types
+            for model_name in self.gemini_tiers:
+                try:
+                    logger.info(f"🧐 Critic trying tiered Gemini: {model_name}")
+                    config = types.GenerateContentConfig(temperature=0.3)
+                    if json_mode:
+                        config = types.GenerateContentConfig(
+                            response_mime_type="application/json",
+                            temperature=0.3
+                        )
+                    
+                    response = self.gemini_client.models.generate_content(
+                        model=model_name,
+                        contents=prompt,
+                        config=config
+                    )
+                    
+                    if response and response.text:
+                        logger.info(f"🧐 Critic success with {model_name}")
+                        return response.text
+                except Exception as e:
+                    error_str = str(e)
+                    if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
+                        logger.warning(f"Critic tier exhausted for {model_name}. Trying next...")
+                        continue
+                    else:
+                        logger.warning(f"Critic Gemini {model_name} failed: {e}")
+                        continue
+            
+            logger.warning("Critic: All Gemini tiers exhausted/failed. Falling back to OpenRouter...")
 
         # 2. Try OpenRouter (Fallback)
         try:

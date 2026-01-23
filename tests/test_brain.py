@@ -68,25 +68,28 @@ def test_fallback_to_gemini(mock_brain_deps, mocker, monkeypatch):
     # Provider should be updated to Google Direct
     assert "Google Direct" in brain.last_run_details["provider"]
 
-def test_gemini_retry_logic(mock_brain_deps, mocker):
-    """Test Gemini retries on 429 then succeeds."""
+def test_gemini_tiered_fallback(mock_brain_deps, mocker):
+    """Test Gemini falls back to next tier on 429."""
     brain = Brain()
     
     # Mock Gemini Client
     mock_gen_content = brain.gemini_client.models.generate_content
     
-    # Side effect: Raise 429 twice, then succeed
+    # Side effect: Raise 429 twice (for gemini-3-flash and gemini-2.5-flash), 
+    # then succeed (for gemini-2.5-flash-lite)
     mock_gen_content.side_effect = [
         Exception("429 Resource Exhausted"),
         Exception("429 Resource Exhausted"),
-        MagicMock(text="Gemini Retry Success")
+        MagicMock(text="Gemini Tier Success")
     ]
     
-    # We verify _call_gemini_with_retries directly
-    # Need to patch time.sleep to speed up test
-    mocker.patch("time.sleep")
+    # We verify _call_gemini_with_tiered_fallback directly
+    result = brain._call_gemini_with_tiered_fallback("Test Prompt", json_mode=False)
     
-    result = brain._call_gemini_with_retries("Test Prompt", json_mode=False)
-    
-    assert result == "Gemini Retry Success"
+    assert result == "Gemini Tier Success"
     assert mock_gen_content.call_count == 3
+    # Check that it called with different models (optional but good)
+    calls = mock_gen_content.call_args_list
+    assert calls[0].kwargs['model'] == "gemini-3-flash"
+    assert calls[1].kwargs['model'] == "gemini-2.5-flash"
+    assert calls[2].kwargs['model'] == "gemini-2.5-flash-lite"

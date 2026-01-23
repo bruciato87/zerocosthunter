@@ -1,0 +1,842 @@
+test	Set up job	﻿2026-01-23T11:38:06.0073528Z Current runner version: '2.331.0'
+test	Set up job	2026-01-23T11:38:06.0097813Z ##[group]Runner Image Provisioner
+test	Set up job	2026-01-23T11:38:06.0098665Z Hosted Compute Agent
+test	Set up job	2026-01-23T11:38:06.0099253Z Version: 20260115.477
+test	Set up job	2026-01-23T11:38:06.0099907Z Commit: 4b342d620503cbe250a3154040964899ea7c9b00
+test	Set up job	2026-01-23T11:38:06.0100529Z Build Date: 2026-01-15T22:32:41Z
+test	Set up job	2026-01-23T11:38:06.0101145Z Worker ID: {7bdcf04a-aded-4906-8ed3-77aa28e8e161}
+test	Set up job	2026-01-23T11:38:06.0101777Z Azure Region: northcentralus
+test	Set up job	2026-01-23T11:38:06.0102276Z ##[endgroup]
+test	Set up job	2026-01-23T11:38:06.0103933Z ##[group]Operating System
+test	Set up job	2026-01-23T11:38:06.0104510Z Ubuntu
+test	Set up job	2026-01-23T11:38:06.0104949Z 24.04.3
+test	Set up job	2026-01-23T11:38:06.0105377Z LTS
+test	Set up job	2026-01-23T11:38:06.0105796Z ##[endgroup]
+test	Set up job	2026-01-23T11:38:06.0106220Z ##[group]Runner Image
+test	Set up job	2026-01-23T11:38:06.0106721Z Image: ubuntu-24.04
+test	Set up job	2026-01-23T11:38:06.0107194Z Version: 20260119.4.1
+test	Set up job	2026-01-23T11:38:06.0108039Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260119.4/images/ubuntu/Ubuntu2404-Readme.md
+test	Set up job	2026-01-23T11:38:06.0109472Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260119.4
+test	Set up job	2026-01-23T11:38:06.0110280Z ##[endgroup]
+test	Set up job	2026-01-23T11:38:06.0111273Z ##[group]GITHUB_TOKEN Permissions
+test	Set up job	2026-01-23T11:38:06.0113604Z Contents: read
+test	Set up job	2026-01-23T11:38:06.0114091Z Metadata: read
+test	Set up job	2026-01-23T11:38:06.0114567Z Packages: read
+test	Set up job	2026-01-23T11:38:06.0115094Z ##[endgroup]
+test	Set up job	2026-01-23T11:38:06.0117151Z Secret source: Actions
+test	Set up job	2026-01-23T11:38:06.0117824Z Prepare workflow directory
+test	Set up job	2026-01-23T11:38:06.0428248Z Prepare all required actions
+test	Set up job	2026-01-23T11:38:06.0466549Z Getting action download info
+test	Set up job	2026-01-23T11:38:06.3430408Z Download action repository 'actions/checkout@v3' (SHA:f43a0e5ff2bd294095638e18286ca9a3d1956744)
+test	Set up job	2026-01-23T11:38:06.4359141Z Download action repository 'actions/setup-python@v4' (SHA:7f4fc3e22c37d6ff65e88745f38bd3157c663f7c)
+test	Set up job	2026-01-23T11:38:06.6293521Z Complete job name: test
+test	Run actions/checkout@v3	﻿2026-01-23T11:38:06.6866153Z ##[group]Run actions/checkout@v3
+test	Run actions/checkout@v3	2026-01-23T11:38:06.6867049Z with:
+test	Run actions/checkout@v3	2026-01-23T11:38:06.6867544Z   repository: bruciato87/zerocosthunter
+test	Run actions/checkout@v3	2026-01-23T11:38:06.6868217Z   token: ***
+test	Run actions/checkout@v3	2026-01-23T11:38:06.6868690Z   ssh-strict: true
+test	Run actions/checkout@v3	2026-01-23T11:38:06.6869158Z   persist-credentials: true
+test	Run actions/checkout@v3	2026-01-23T11:38:06.6869588Z   clean: true
+test	Run actions/checkout@v3	2026-01-23T11:38:06.6870041Z   sparse-checkout-cone-mode: true
+test	Run actions/checkout@v3	2026-01-23T11:38:06.6870545Z   fetch-depth: 1
+test	Run actions/checkout@v3	2026-01-23T11:38:06.6870925Z   fetch-tags: false
+test	Run actions/checkout@v3	2026-01-23T11:38:06.6871363Z   lfs: false
+test	Run actions/checkout@v3	2026-01-23T11:38:06.6871788Z   submodules: false
+test	Run actions/checkout@v3	2026-01-23T11:38:06.6872194Z   set-safe-directory: true
+test	Run actions/checkout@v3	2026-01-23T11:38:06.6872892Z ##[endgroup]
+test	Run actions/checkout@v3	2026-01-23T11:38:06.7656742Z Syncing repository: bruciato87/zerocosthunter
+test	Run actions/checkout@v3	2026-01-23T11:38:06.7658559Z ##[group]Getting Git version info
+test	Run actions/checkout@v3	2026-01-23T11:38:06.7659581Z Working directory is '/home/runner/work/zerocosthunter/zerocosthunter'
+test	Run actions/checkout@v3	2026-01-23T11:38:06.7660619Z [command]/usr/bin/git version
+test	Run actions/checkout@v3	2026-01-23T11:38:06.7717055Z git version 2.52.0
+test	Run actions/checkout@v3	2026-01-23T11:38:06.7740088Z ##[endgroup]
+test	Run actions/checkout@v3	2026-01-23T11:38:06.7753446Z Temporarily overriding HOME='/home/runner/work/_temp/ed2c295d-185f-4739-bd1e-78866941f94b' before making global git config changes
+test	Run actions/checkout@v3	2026-01-23T11:38:06.7755121Z Adding repository directory to the temporary git global config as a safe directory
+test	Run actions/checkout@v3	2026-01-23T11:38:06.7756539Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/zerocosthunter/zerocosthunter
+test	Run actions/checkout@v3	2026-01-23T11:38:06.7788929Z Deleting the contents of '/home/runner/work/zerocosthunter/zerocosthunter'
+test	Run actions/checkout@v3	2026-01-23T11:38:06.7792201Z ##[group]Initializing the repository
+test	Run actions/checkout@v3	2026-01-23T11:38:06.7795966Z [command]/usr/bin/git init /home/runner/work/zerocosthunter/zerocosthunter
+test	Run actions/checkout@v3	2026-01-23T11:38:06.7881778Z hint: Using 'master' as the name for the initial branch. This default branch name
+test	Run actions/checkout@v3	2026-01-23T11:38:06.7883618Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+test	Run actions/checkout@v3	2026-01-23T11:38:06.7884675Z hint: to use in all of your new repositories, which will suppress this warning,
+test	Run actions/checkout@v3	2026-01-23T11:38:06.7885916Z hint: call:
+test	Run actions/checkout@v3	2026-01-23T11:38:06.7886769Z hint:
+test	Run actions/checkout@v3	2026-01-23T11:38:06.7887322Z hint: 	git config --global init.defaultBranch <name>
+test	Run actions/checkout@v3	2026-01-23T11:38:06.7887919Z hint:
+test	Run actions/checkout@v3	2026-01-23T11:38:06.7888520Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+test	Run actions/checkout@v3	2026-01-23T11:38:06.7889707Z hint: 'development'. The just-created branch can be renamed via this command:
+test	Run actions/checkout@v3	2026-01-23T11:38:06.7890389Z hint:
+test	Run actions/checkout@v3	2026-01-23T11:38:06.7890784Z hint: 	git branch -m <name>
+test	Run actions/checkout@v3	2026-01-23T11:38:06.7891220Z hint:
+test	Run actions/checkout@v3	2026-01-23T11:38:06.7891945Z hint: Disable this message with "git config set advice.defaultBranchName false"
+test	Run actions/checkout@v3	2026-01-23T11:38:06.7893298Z Initialized empty Git repository in /home/runner/work/zerocosthunter/zerocosthunter/.git/
+test	Run actions/checkout@v3	2026-01-23T11:38:06.7895088Z [command]/usr/bin/git remote add origin https://github.com/bruciato87/zerocosthunter
+test	Run actions/checkout@v3	2026-01-23T11:38:06.7922263Z ##[endgroup]
+test	Run actions/checkout@v3	2026-01-23T11:38:06.7923772Z ##[group]Disabling automatic garbage collection
+test	Run actions/checkout@v3	2026-01-23T11:38:06.7925124Z [command]/usr/bin/git config --local gc.auto 0
+test	Run actions/checkout@v3	2026-01-23T11:38:06.7946913Z ##[endgroup]
+test	Run actions/checkout@v3	2026-01-23T11:38:06.7948108Z ##[group]Setting up auth
+test	Run actions/checkout@v3	2026-01-23T11:38:06.7952313Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+test	Run actions/checkout@v3	2026-01-23T11:38:06.7975022Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+test	Run actions/checkout@v3	2026-01-23T11:38:06.8249503Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+test	Run actions/checkout@v3	2026-01-23T11:38:06.8275161Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+test	Run actions/checkout@v3	2026-01-23T11:38:06.8440123Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+test	Run actions/checkout@v3	2026-01-23T11:38:06.8465522Z ##[endgroup]
+test	Run actions/checkout@v3	2026-01-23T11:38:06.8467247Z ##[group]Fetching the repository
+test	Run actions/checkout@v3	2026-01-23T11:38:06.8474525Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --progress --no-recurse-submodules --depth=1 origin +9875df463958c877bc96e48e1623a1d74524c27b:refs/remotes/origin/main
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0535607Z remote: Enumerating objects: 95, done.        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0537606Z remote: Counting objects:   1% (1/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0538547Z remote: Counting objects:   2% (2/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0539399Z remote: Counting objects:   3% (3/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0540232Z remote: Counting objects:   4% (4/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0541362Z remote: Counting objects:   5% (5/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0542252Z remote: Counting objects:   6% (6/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0543284Z remote: Counting objects:   7% (7/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0544182Z remote: Counting objects:   8% (8/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0545053Z remote: Counting objects:   9% (9/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0545920Z remote: Counting objects:  10% (10/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0546836Z remote: Counting objects:  11% (11/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0547724Z remote: Counting objects:  12% (12/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0548541Z remote: Counting objects:  13% (13/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0549427Z remote: Counting objects:  14% (14/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0550314Z remote: Counting objects:  15% (15/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0551065Z remote: Counting objects:  16% (16/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0551745Z remote: Counting objects:  17% (17/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0552433Z remote: Counting objects:  18% (18/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0553385Z remote: Counting objects:  20% (19/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0554538Z remote: Counting objects:  21% (20/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0555783Z remote: Counting objects:  22% (21/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0557213Z remote: Counting objects:  23% (22/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0558796Z remote: Counting objects:  24% (23/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0560488Z remote: Counting objects:  25% (24/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0561878Z remote: Counting objects:  26% (25/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0563485Z remote: Counting objects:  27% (26/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0674630Z remote: Counting objects:  28% (27/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0676003Z remote: Counting objects:  29% (28/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0677260Z remote: Counting objects:  30% (29/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0678416Z remote: Counting objects:  31% (30/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0679502Z remote: Counting objects:  32% (31/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0680655Z remote: Counting objects:  33% (32/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0681845Z remote: Counting objects:  34% (33/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0683227Z remote: Counting objects:  35% (34/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0684492Z remote: Counting objects:  36% (35/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0685658Z remote: Counting objects:  37% (36/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0686936Z remote: Counting objects:  38% (37/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0688053Z remote: Counting objects:  40% (38/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0689154Z remote: Counting objects:  41% (39/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0690359Z remote: Counting objects:  42% (40/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0691518Z remote: Counting objects:  43% (41/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0692680Z remote: Counting objects:  44% (42/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0694167Z remote: Counting objects:  45% (43/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0695351Z remote: Counting objects:  46% (44/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0696576Z remote: Counting objects:  47% (45/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0697798Z remote: Counting objects:  48% (46/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0698981Z remote: Counting objects:  49% (47/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0700242Z remote: Counting objects:  50% (48/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0701529Z remote: Counting objects:  51% (49/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0703476Z remote: Counting objects:  52% (50/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0704874Z remote: Counting objects:  53% (51/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0706185Z remote: Counting objects:  54% (52/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0707457Z remote: Counting objects:  55% (53/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0708709Z remote: Counting objects:  56% (54/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0710026Z remote: Counting objects:  57% (55/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0711380Z remote: Counting objects:  58% (56/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0712767Z remote: Counting objects:  60% (57/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0714872Z remote: Counting objects:  61% (58/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0716101Z remote: Counting objects:  62% (59/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0717352Z remote: Counting objects:  63% (60/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0718637Z remote: Counting objects:  64% (61/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0720014Z remote: Counting objects:  65% (62/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0721356Z remote: Counting objects:  66% (63/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0722659Z remote: Counting objects:  67% (64/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0724310Z remote: Counting objects:  68% (65/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0725709Z remote: Counting objects:  69% (66/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0727106Z remote: Counting objects:  70% (67/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0728508Z remote: Counting objects:  71% (68/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0729810Z remote: Counting objects:  72% (69/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0731073Z remote: Counting objects:  73% (70/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0732305Z remote: Counting objects:  74% (71/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0733787Z remote: Counting objects:  75% (72/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0735120Z remote: Counting objects:  76% (73/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0736543Z remote: Counting objects:  77% (74/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0737950Z remote: Counting objects:  78% (75/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0740493Z remote: Counting objects:  80% (76/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0742399Z remote: Counting objects:  81% (77/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0744249Z remote: Counting objects:  82% (78/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0745612Z remote: Counting objects:  83% (79/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0747012Z remote: Counting objects:  84% (80/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0749282Z remote: Counting objects:  85% (81/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0750599Z remote: Counting objects:  86% (82/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0751938Z remote: Counting objects:  87% (83/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0753484Z remote: Counting objects:  88% (84/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0754821Z remote: Counting objects:  89% (85/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0756098Z remote: Counting objects:  90% (86/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0757335Z remote: Counting objects:  91% (87/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0758629Z remote: Counting objects:  92% (88/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0759950Z remote: Counting objects:  93% (89/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0761294Z remote: Counting objects:  94% (90/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0762672Z remote: Counting objects:  95% (91/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0764165Z remote: Counting objects:  96% (92/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0765529Z remote: Counting objects:  97% (93/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0766867Z remote: Counting objects:  98% (94/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0768202Z remote: Counting objects: 100% (95/95)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0769549Z remote: Counting objects: 100% (95/95), done.        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0770979Z remote: Compressing objects:   1% (1/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0772372Z remote: Compressing objects:   2% (2/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0773923Z remote: Compressing objects:   3% (3/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0775400Z remote: Compressing objects:   4% (4/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0776787Z remote: Compressing objects:   5% (5/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0778162Z remote: Compressing objects:   6% (6/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0779487Z remote: Compressing objects:   8% (7/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0781219Z remote: Compressing objects:   9% (8/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0782635Z remote: Compressing objects:  10% (9/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0784128Z remote: Compressing objects:  11% (10/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0785544Z remote: Compressing objects:  12% (11/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0786929Z remote: Compressing objects:  13% (12/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0788301Z remote: Compressing objects:  14% (13/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0789662Z remote: Compressing objects:  16% (14/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0791090Z remote: Compressing objects:  17% (15/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0792514Z remote: Compressing objects:  18% (16/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0794038Z remote: Compressing objects:  19% (17/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0795449Z remote: Compressing objects:  20% (18/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0796864Z remote: Compressing objects:  21% (19/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0798231Z remote: Compressing objects:  22% (20/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0799693Z remote: Compressing objects:  24% (21/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0801109Z remote: Compressing objects:  25% (22/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0802546Z remote: Compressing objects:  26% (23/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0804102Z remote: Compressing objects:  27% (24/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0805732Z remote: Compressing objects:  28% (25/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0807194Z remote: Compressing objects:  29% (26/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0808541Z remote: Compressing objects:  31% (27/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0809908Z remote: Compressing objects:  32% (28/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0811310Z remote: Compressing objects:  33% (29/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0812770Z remote: Compressing objects:  34% (30/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0814418Z remote: Compressing objects:  35% (31/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0815825Z remote: Compressing objects:  36% (32/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0817208Z remote: Compressing objects:  37% (33/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0818588Z remote: Compressing objects:  39% (34/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0820271Z remote: Compressing objects:  40% (35/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0821659Z remote: Compressing objects:  41% (36/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0823194Z remote: Compressing objects:  42% (37/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0824657Z remote: Compressing objects:  43% (38/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0826049Z remote: Compressing objects:  44% (39/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0827434Z remote: Compressing objects:  45% (40/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0828814Z remote: Compressing objects:  47% (41/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0830337Z remote: Compressing objects:  48% (42/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0831582Z remote: Compressing objects:  49% (43/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0832918Z remote: Compressing objects:  50% (44/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0834494Z remote: Compressing objects:  51% (45/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0835869Z remote: Compressing objects:  52% (46/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0837332Z remote: Compressing objects:  54% (47/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0838752Z remote: Compressing objects:  55% (48/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0840206Z remote: Compressing objects:  56% (49/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0841557Z remote: Compressing objects:  57% (50/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0842999Z remote: Compressing objects:  58% (51/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0844569Z remote: Compressing objects:  59% (52/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0847403Z remote: Compressing objects:  60% (53/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0848929Z remote: Compressing objects:  62% (54/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0853827Z remote: Compressing objects:  63% (55/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0855340Z remote: Compressing objects:  64% (56/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0856737Z remote: Compressing objects:  65% (57/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0858129Z remote: Compressing objects:  66% (58/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0859548Z remote: Compressing objects:  67% (59/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0861343Z remote: Compressing objects:  68% (60/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0862774Z remote: Compressing objects:  70% (61/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0864367Z remote: Compressing objects:  71% (62/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0865822Z remote: Compressing objects:  72% (63/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0867241Z remote: Compressing objects:  73% (64/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0868644Z remote: Compressing objects:  74% (65/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0870026Z remote: Compressing objects:  75% (66/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0871441Z remote: Compressing objects:  77% (67/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0872773Z remote: Compressing objects:  78% (68/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0874332Z remote: Compressing objects:  79% (69/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0875632Z remote: Compressing objects:  80% (70/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0876997Z remote: Compressing objects:  81% (71/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0878311Z remote: Compressing objects:  82% (72/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0879777Z remote: Compressing objects:  83% (73/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0881192Z remote: Compressing objects:  85% (74/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0882552Z remote: Compressing objects:  86% (75/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0884064Z remote: Compressing objects:  87% (76/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0885498Z remote: Compressing objects:  88% (77/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0886919Z remote: Compressing objects:  89% (78/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0888332Z remote: Compressing objects:  90% (79/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0889761Z remote: Compressing objects:  91% (80/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0890986Z remote: Compressing objects:  93% (81/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0892282Z remote: Compressing objects:  94% (82/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0893758Z remote: Compressing objects:  95% (83/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0895178Z remote: Compressing objects:  96% (84/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0896588Z remote: Compressing objects:  97% (85/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0897955Z remote: Compressing objects:  98% (86/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0899616Z remote: Compressing objects: 100% (87/87)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.0901095Z remote: Compressing objects: 100% (87/87), done.        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.1392315Z remote: Total 95 (delta 5), reused 62 (delta 4), pack-reused 0 (from 0)        
+test	Run actions/checkout@v3	2026-01-23T11:38:07.1552352Z From https://github.com/bruciato87/zerocosthunter
+test	Run actions/checkout@v3	2026-01-23T11:38:07.1554667Z  * [new ref]         9875df463958c877bc96e48e1623a1d74524c27b -> origin/main
+test	Run actions/checkout@v3	2026-01-23T11:38:07.1579607Z ##[endgroup]
+test	Run actions/checkout@v3	2026-01-23T11:38:07.1580376Z ##[group]Determining the checkout info
+test	Run actions/checkout@v3	2026-01-23T11:38:07.1581868Z ##[endgroup]
+test	Run actions/checkout@v3	2026-01-23T11:38:07.1582576Z ##[group]Checking out the ref
+test	Run actions/checkout@v3	2026-01-23T11:38:07.1585792Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+test	Run actions/checkout@v3	2026-01-23T11:38:07.1725530Z Switched to a new branch 'main'
+test	Run actions/checkout@v3	2026-01-23T11:38:07.1726932Z branch 'main' set up to track 'origin/main'.
+test	Run actions/checkout@v3	2026-01-23T11:38:07.1732780Z ##[endgroup]
+test	Run actions/checkout@v3	2026-01-23T11:38:07.1760742Z [command]/usr/bin/git log -1 --format='%H'
+test	Run actions/checkout@v3	2026-01-23T11:38:07.1777612Z '9875df463958c877bc96e48e1623a1d74524c27b'
+test	Set up Python 3.11	﻿2026-01-23T11:38:07.1993627Z ##[group]Run actions/setup-python@v4
+test	Set up Python 3.11	2026-01-23T11:38:07.1994246Z with:
+test	Set up Python 3.11	2026-01-23T11:38:07.1994639Z   python-version: 3.11
+test	Set up Python 3.11	2026-01-23T11:38:07.1995092Z   check-latest: false
+test	Set up Python 3.11	2026-01-23T11:38:07.1995691Z   token: ***
+test	Set up Python 3.11	2026-01-23T11:38:07.1996111Z   update-environment: true
+test	Set up Python 3.11	2026-01-23T11:38:07.1996585Z   allow-prereleases: false
+test	Set up Python 3.11	2026-01-23T11:38:07.1997044Z ##[endgroup]
+test	Set up Python 3.11	2026-01-23T11:38:07.3643373Z ##[group]Installed versions
+test	Set up Python 3.11	2026-01-23T11:38:07.3739468Z Successfully set up CPython (3.11.14)
+test	Set up Python 3.11	2026-01-23T11:38:07.3741428Z ##[endgroup]
+test	Install dependencies	﻿2026-01-23T11:38:07.3840548Z ##[group]Run python -m pip install --upgrade pip
+test	Install dependencies	2026-01-23T11:38:07.3841355Z [36;1mpython -m pip install --upgrade pip[0m
+test	Install dependencies	2026-01-23T11:38:07.3842301Z [36;1mif [ -f requirements.txt ]; then pip install -r requirements.txt; fi[0m
+test	Install dependencies	2026-01-23T11:38:07.3843736Z [36;1mpip install pytest pytest-mock pytest-cov pytest-asyncio[0m
+test	Install dependencies	2026-01-23T11:38:07.3877761Z shell: /usr/bin/bash -e {0}
+test	Install dependencies	2026-01-23T11:38:07.3878320Z env:
+test	Install dependencies	2026-01-23T11:38:07.3878836Z   pythonLocation: /opt/hostedtoolcache/Python/3.11.14/x64
+test	Install dependencies	2026-01-23T11:38:07.3879651Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.11.14/x64/lib/pkgconfig
+test	Install dependencies	2026-01-23T11:38:07.3880451Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.14/x64
+test	Install dependencies	2026-01-23T11:38:07.3881158Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.14/x64
+test	Install dependencies	2026-01-23T11:38:07.3881896Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.14/x64
+test	Install dependencies	2026-01-23T11:38:07.3882623Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.11.14/x64/lib
+test	Install dependencies	2026-01-23T11:38:07.3883539Z ##[endgroup]
+test	Install dependencies	2026-01-23T11:38:09.5267555Z Requirement already satisfied: pip in /opt/hostedtoolcache/Python/3.11.14/x64/lib/python3.11/site-packages (25.3)
+test	Install dependencies	2026-01-23T11:38:10.1326894Z Collecting supabase>=2.0.0 (from -r requirements.txt (line 1))
+test	Install dependencies	2026-01-23T11:38:10.1891041Z   Downloading supabase-2.27.2-py3-none-any.whl.metadata (4.6 kB)
+test	Install dependencies	2026-01-23T11:38:10.2131469Z Collecting google-genai>=0.3.0 (from -r requirements.txt (line 2))
+test	Install dependencies	2026-01-23T11:38:10.2167439Z   Downloading google_genai-1.60.0-py3-none-any.whl.metadata (53 kB)
+test	Install dependencies	2026-01-23T11:38:10.2649564Z Collecting yfinance>=0.2.0 (from -r requirements.txt (line 3))
+test	Install dependencies	2026-01-23T11:38:10.2683365Z   Downloading yfinance-1.0-py2.py3-none-any.whl.metadata (6.0 kB)
+test	Install dependencies	2026-01-23T11:38:10.2830376Z Collecting feedparser>=6.0.0 (from -r requirements.txt (line 4))
+test	Install dependencies	2026-01-23T11:38:10.2866194Z   Downloading feedparser-6.0.12-py3-none-any.whl.metadata (2.7 kB)
+test	Install dependencies	2026-01-23T11:38:10.3235112Z Collecting python-telegram-bot>=20.0 (from -r requirements.txt (line 5))
+test	Install dependencies	2026-01-23T11:38:10.3267963Z   Downloading python_telegram_bot-22.5-py3-none-any.whl.metadata (17 kB)
+test	Install dependencies	2026-01-23T11:38:10.3447602Z Collecting python-dotenv>=1.0.0 (from -r requirements.txt (line 6))
+test	Install dependencies	2026-01-23T11:38:10.3479371Z   Downloading python_dotenv-1.2.1-py3-none-any.whl.metadata (25 kB)
+test	Install dependencies	2026-01-23T11:38:10.4420327Z Collecting pandas>=1.5.0 (from -r requirements.txt (line 7))
+test	Install dependencies	2026-01-23T11:38:10.4455188Z   Downloading pandas-3.0.0-cp311-cp311-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl.metadata (79 kB)
+test	Install dependencies	2026-01-23T11:38:10.4848906Z Collecting ta>=0.10.0 (from -r requirements.txt (line 8))
+test	Install dependencies	2026-01-23T11:38:10.4880801Z   Downloading ta-0.11.0.tar.gz (25 kB)
+test	Install dependencies	2026-01-23T11:38:10.4947851Z   Installing build dependencies: started
+test	Install dependencies	2026-01-23T11:38:11.2136248Z   Installing build dependencies: finished with status 'done'
+test	Install dependencies	2026-01-23T11:38:11.2142996Z   Getting requirements to build wheel: started
+test	Install dependencies	2026-01-23T11:38:11.5620934Z   Getting requirements to build wheel: finished with status 'done'
+test	Install dependencies	2026-01-23T11:38:11.5628758Z   Preparing metadata (pyproject.toml): started
+test	Install dependencies	2026-01-23T11:38:11.7153430Z   Preparing metadata (pyproject.toml): finished with status 'done'
+test	Install dependencies	2026-01-23T11:38:11.7305429Z Collecting Flask>=3.0.0 (from -r requirements.txt (line 9))
+test	Install dependencies	2026-01-23T11:38:11.7341466Z   Downloading flask-3.1.2-py3-none-any.whl.metadata (3.2 kB)
+test	Install dependencies	2026-01-23T11:38:11.7527003Z Collecting gunicorn>=21.0.0 (from -r requirements.txt (line 10))
+test	Install dependencies	2026-01-23T11:38:11.7561817Z   Downloading gunicorn-24.0.0-py3-none-any.whl.metadata (4.5 kB)
+test	Install dependencies	2026-01-23T11:38:11.7989791Z Collecting curl_cffi>=0.6.0 (from -r requirements.txt (line 11))
+test	Install dependencies	2026-01-23T11:38:11.8024323Z   Downloading curl_cffi-0.14.0-cp39-abi3-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl.metadata (15 kB)
+test	Install dependencies	2026-01-23T11:38:11.8228251Z Collecting trafilatura>=1.6.0 (from -r requirements.txt (line 12))
+test	Install dependencies	2026-01-23T11:38:11.8265574Z   Downloading trafilatura-2.0.0-py3-none-any.whl.metadata (12 kB)
+test	Install dependencies	2026-01-23T11:38:11.9825480Z Collecting numpy>=1.24.0 (from -r requirements.txt (line 13))
+test	Install dependencies	2026-01-23T11:38:11.9865514Z   Downloading numpy-2.4.1-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (6.6 kB)
+test	Install dependencies	2026-01-23T11:38:12.0177146Z Collecting pytest>=7.0.0 (from -r requirements.txt (line 14))
+test	Install dependencies	2026-01-23T11:38:12.0210382Z   Downloading pytest-9.0.2-py3-none-any.whl.metadata (7.6 kB)
+test	Install dependencies	2026-01-23T11:38:12.0391241Z Collecting pytest-mock>=3.10.0 (from -r requirements.txt (line 15))
+test	Install dependencies	2026-01-23T11:38:12.0423738Z   Downloading pytest_mock-3.15.1-py3-none-any.whl.metadata (3.9 kB)
+test	Install dependencies	2026-01-23T11:38:12.0572226Z Collecting pytest-cov>=4.0.0 (from -r requirements.txt (line 16))
+test	Install dependencies	2026-01-23T11:38:12.0606145Z   Downloading pytest_cov-7.0.0-py3-none-any.whl.metadata (31 kB)
+test	Install dependencies	2026-01-23T11:38:12.0998812Z Collecting pytest-asyncio>=0.21.0 (from -r requirements.txt (line 17))
+test	Install dependencies	2026-01-23T11:38:12.1085247Z   Downloading pytest_asyncio-1.3.0-py3-none-any.whl.metadata (4.1 kB)
+test	Install dependencies	2026-01-23T11:38:12.1251854Z Collecting realtime==2.27.2 (from supabase>=2.0.0->-r requirements.txt (line 1))
+test	Install dependencies	2026-01-23T11:38:12.1284716Z   Downloading realtime-2.27.2-py3-none-any.whl.metadata (7.0 kB)
+test	Install dependencies	2026-01-23T11:38:12.1424264Z Collecting supabase-functions==2.27.2 (from supabase>=2.0.0->-r requirements.txt (line 1))
+test	Install dependencies	2026-01-23T11:38:12.1463275Z   Downloading supabase_functions-2.27.2-py3-none-any.whl.metadata (2.4 kB)
+test	Install dependencies	2026-01-23T11:38:12.1621078Z Collecting storage3==2.27.2 (from supabase>=2.0.0->-r requirements.txt (line 1))
+test	Install dependencies	2026-01-23T11:38:12.1652692Z   Downloading storage3-2.27.2-py3-none-any.whl.metadata (2.1 kB)
+test	Install dependencies	2026-01-23T11:38:12.1812868Z Collecting supabase-auth==2.27.2 (from supabase>=2.0.0->-r requirements.txt (line 1))
+test	Install dependencies	2026-01-23T11:38:12.1847814Z   Downloading supabase_auth-2.27.2-py3-none-any.whl.metadata (6.4 kB)
+test	Install dependencies	2026-01-23T11:38:12.2017633Z Collecting postgrest==2.27.2 (from supabase>=2.0.0->-r requirements.txt (line 1))
+test	Install dependencies	2026-01-23T11:38:12.2051559Z   Downloading postgrest-2.27.2-py3-none-any.whl.metadata (3.4 kB)
+test	Install dependencies	2026-01-23T11:38:12.2219208Z Collecting httpx<0.29,>=0.26 (from supabase>=2.0.0->-r requirements.txt (line 1))
+test	Install dependencies	2026-01-23T11:38:12.2249523Z   Downloading httpx-0.28.1-py3-none-any.whl.metadata (7.1 kB)
+test	Install dependencies	2026-01-23T11:38:12.4311037Z Collecting yarl>=1.22.0 (from supabase>=2.0.0->-r requirements.txt (line 1))
+test	Install dependencies	2026-01-23T11:38:12.4344942Z   Downloading yarl-1.22.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (75 kB)
+test	Install dependencies	2026-01-23T11:38:12.4509764Z Collecting deprecation>=2.1.0 (from postgrest==2.27.2->supabase>=2.0.0->-r requirements.txt (line 1))
+test	Install dependencies	2026-01-23T11:38:12.4541333Z   Downloading deprecation-2.1.0-py2.py3-none-any.whl.metadata (4.6 kB)
+test	Install dependencies	2026-01-23T11:38:12.5821441Z Collecting pydantic<3.0,>=1.9 (from postgrest==2.27.2->supabase>=2.0.0->-r requirements.txt (line 1))
+test	Install dependencies	2026-01-23T11:38:12.5855964Z   Downloading pydantic-2.12.5-py3-none-any.whl.metadata (90 kB)
+test	Install dependencies	2026-01-23T11:38:12.6173742Z Collecting typing-extensions>=4.14.0 (from realtime==2.27.2->supabase>=2.0.0->-r requirements.txt (line 1))
+test	Install dependencies	2026-01-23T11:38:12.6207311Z   Downloading typing_extensions-4.15.0-py3-none-any.whl.metadata (3.3 kB)
+test	Install dependencies	2026-01-23T11:38:12.6943549Z Collecting websockets<16,>=11 (from realtime==2.27.2->supabase>=2.0.0->-r requirements.txt (line 1))
+test	Install dependencies	2026-01-23T11:38:12.6979124Z   Downloading websockets-15.0.1-cp311-cp311-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (6.8 kB)
+test	Install dependencies	2026-01-23T11:38:12.7648572Z Collecting pyiceberg>=0.10.0 (from storage3==2.27.2->supabase>=2.0.0->-r requirements.txt (line 1))
+test	Install dependencies	2026-01-23T11:38:12.7686721Z   Downloading pyiceberg-0.10.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (4.9 kB)
+test	Install dependencies	2026-01-23T11:38:12.8008737Z Collecting pyjwt>=2.10.1 (from pyjwt[crypto]>=2.10.1->supabase-auth==2.27.2->supabase>=2.0.0->-r requirements.txt (line 1))
+test	Install dependencies	2026-01-23T11:38:12.8043626Z   Downloading PyJWT-2.10.1-py3-none-any.whl.metadata (4.0 kB)
+test	Install dependencies	2026-01-23T11:38:12.8188490Z Collecting strenum>=0.4.15 (from supabase-functions==2.27.2->supabase>=2.0.0->-r requirements.txt (line 1))
+test	Install dependencies	2026-01-23T11:38:12.8221772Z   Downloading StrEnum-0.4.15-py3-none-any.whl.metadata (5.3 kB)
+test	Install dependencies	2026-01-23T11:38:12.8416978Z Collecting anyio (from httpx<0.29,>=0.26->supabase>=2.0.0->-r requirements.txt (line 1))
+test	Install dependencies	2026-01-23T11:38:12.8454953Z   Downloading anyio-4.12.1-py3-none-any.whl.metadata (4.3 kB)
+test	Install dependencies	2026-01-23T11:38:12.8634102Z Collecting certifi (from httpx<0.29,>=0.26->supabase>=2.0.0->-r requirements.txt (line 1))
+test	Install dependencies	2026-01-23T11:38:12.8665800Z   Downloading certifi-2026.1.4-py3-none-any.whl.metadata (2.5 kB)
+test	Install dependencies	2026-01-23T11:38:12.8838429Z Collecting httpcore==1.* (from httpx<0.29,>=0.26->supabase>=2.0.0->-r requirements.txt (line 1))
+test	Install dependencies	2026-01-23T11:38:12.8869730Z   Downloading httpcore-1.0.9-py3-none-any.whl.metadata (21 kB)
+test	Install dependencies	2026-01-23T11:38:12.9007272Z Collecting idna (from httpx<0.29,>=0.26->supabase>=2.0.0->-r requirements.txt (line 1))
+test	Install dependencies	2026-01-23T11:38:12.9039043Z   Downloading idna-3.11-py3-none-any.whl.metadata (8.4 kB)
+test	Install dependencies	2026-01-23T11:38:12.9155138Z Collecting h11>=0.16 (from httpcore==1.*->httpx<0.29,>=0.26->supabase>=2.0.0->-r requirements.txt (line 1))
+test	Install dependencies	2026-01-23T11:38:12.9185005Z   Downloading h11-0.16.0-py3-none-any.whl.metadata (8.3 kB)
+test	Install dependencies	2026-01-23T11:38:12.9350648Z Collecting h2<5,>=3 (from httpx[http2]<0.29,>=0.26->postgrest==2.27.2->supabase>=2.0.0->-r requirements.txt (line 1))
+test	Install dependencies	2026-01-23T11:38:12.9382743Z   Downloading h2-4.3.0-py3-none-any.whl.metadata (5.1 kB)
+test	Install dependencies	2026-01-23T11:38:12.9516031Z Collecting hyperframe<7,>=6.1 (from h2<5,>=3->httpx[http2]<0.29,>=0.26->postgrest==2.27.2->supabase>=2.0.0->-r requirements.txt (line 1))
+test	Install dependencies	2026-01-23T11:38:12.9546309Z   Downloading hyperframe-6.1.0-py3-none-any.whl.metadata (4.3 kB)
+test	Install dependencies	2026-01-23T11:38:12.9651928Z Collecting hpack<5,>=4.1 (from h2<5,>=3->httpx[http2]<0.29,>=0.26->postgrest==2.27.2->supabase>=2.0.0->-r requirements.txt (line 1))
+test	Install dependencies	2026-01-23T11:38:12.9703602Z   Downloading hpack-4.1.0-py3-none-any.whl.metadata (4.6 kB)
+test	Install dependencies	2026-01-23T11:38:12.9816370Z Collecting annotated-types>=0.6.0 (from pydantic<3.0,>=1.9->postgrest==2.27.2->supabase>=2.0.0->-r requirements.txt (line 1))
+test	Install dependencies	2026-01-23T11:38:12.9846607Z   Downloading annotated_types-0.7.0-py3-none-any.whl.metadata (15 kB)
+test	Install dependencies	2026-01-23T11:38:13.5918061Z Collecting pydantic-core==2.41.5 (from pydantic<3.0,>=1.9->postgrest==2.27.2->supabase>=2.0.0->-r requirements.txt (line 1))
+test	Install dependencies	2026-01-23T11:38:13.5951539Z   Downloading pydantic_core-2.41.5-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (7.3 kB)
+test	Install dependencies	2026-01-23T11:38:13.6074452Z Collecting typing-inspection>=0.4.2 (from pydantic<3.0,>=1.9->postgrest==2.27.2->supabase>=2.0.0->-r requirements.txt (line 1))
+test	Install dependencies	2026-01-23T11:38:13.6109521Z   Downloading typing_inspection-0.4.2-py3-none-any.whl.metadata (2.6 kB)
+test	Install dependencies	2026-01-23T11:38:13.6468874Z Collecting google-auth<3.0.0,>=2.47.0 (from google-auth[requests]<3.0.0,>=2.47.0->google-genai>=0.3.0->-r requirements.txt (line 2))
+test	Install dependencies	2026-01-23T11:38:13.6501397Z   Downloading google_auth-2.47.0-py3-none-any.whl.metadata (6.4 kB)
+test	Install dependencies	2026-01-23T11:38:13.6855224Z Collecting requests<3.0.0,>=2.28.1 (from google-genai>=0.3.0->-r requirements.txt (line 2))
+test	Install dependencies	2026-01-23T11:38:13.6887835Z   Downloading requests-2.32.5-py3-none-any.whl.metadata (4.9 kB)
+test	Install dependencies	2026-01-23T11:38:13.7040151Z Collecting tenacity<9.2.0,>=8.2.3 (from google-genai>=0.3.0->-r requirements.txt (line 2))
+test	Install dependencies	2026-01-23T11:38:13.7071746Z   Downloading tenacity-9.1.2-py3-none-any.whl.metadata (1.2 kB)
+test	Install dependencies	2026-01-23T11:38:13.7246697Z Collecting distro<2,>=1.7.0 (from google-genai>=0.3.0->-r requirements.txt (line 2))
+test	Install dependencies	2026-01-23T11:38:13.7278177Z   Downloading distro-1.9.0-py3-none-any.whl.metadata (6.8 kB)
+test	Install dependencies	2026-01-23T11:38:13.7373307Z Collecting sniffio (from google-genai>=0.3.0->-r requirements.txt (line 2))
+test	Install dependencies	2026-01-23T11:38:13.7403868Z   Downloading sniffio-1.3.1-py3-none-any.whl.metadata (3.9 kB)
+test	Install dependencies	2026-01-23T11:38:13.7648590Z Collecting pyasn1-modules>=0.2.1 (from google-auth<3.0.0,>=2.47.0->google-auth[requests]<3.0.0,>=2.47.0->google-genai>=0.3.0->-r requirements.txt (line 2))
+test	Install dependencies	2026-01-23T11:38:13.7681037Z   Downloading pyasn1_modules-0.4.2-py3-none-any.whl.metadata (3.5 kB)
+test	Install dependencies	2026-01-23T11:38:13.7829627Z Collecting rsa<5,>=3.1.4 (from google-auth<3.0.0,>=2.47.0->google-auth[requests]<3.0.0,>=2.47.0->google-genai>=0.3.0->-r requirements.txt (line 2))
+test	Install dependencies	2026-01-23T11:38:13.7864578Z   Downloading rsa-4.9.1-py3-none-any.whl.metadata (5.6 kB)
+test	Install dependencies	2026-01-23T11:38:13.8622680Z Collecting charset_normalizer<4,>=2 (from requests<3.0.0,>=2.28.1->google-genai>=0.3.0->-r requirements.txt (line 2))
+test	Install dependencies	2026-01-23T11:38:13.8656337Z   Downloading charset_normalizer-3.4.4-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (37 kB)
+test	Install dependencies	2026-01-23T11:38:13.8948834Z Collecting urllib3<3,>=1.21.1 (from requests<3.0.0,>=2.28.1->google-genai>=0.3.0->-r requirements.txt (line 2))
+test	Install dependencies	2026-01-23T11:38:13.8980702Z   Downloading urllib3-2.6.3-py3-none-any.whl.metadata (6.9 kB)
+test	Install dependencies	2026-01-23T11:38:13.9257698Z Collecting pyasn1>=0.1.3 (from rsa<5,>=3.1.4->google-auth<3.0.0,>=2.47.0->google-auth[requests]<3.0.0,>=2.47.0->google-genai>=0.3.0->-r requirements.txt (line 2))
+test	Install dependencies	2026-01-23T11:38:13.9290867Z   Downloading pyasn1-0.6.2-py3-none-any.whl.metadata (8.4 kB)
+test	Install dependencies	2026-01-23T11:38:13.9609655Z Collecting multitasking>=0.0.7 (from yfinance>=0.2.0->-r requirements.txt (line 3))
+test	Install dependencies	2026-01-23T11:38:13.9641193Z   Downloading multitasking-0.0.12.tar.gz (19 kB)
+test	Install dependencies	2026-01-23T11:38:13.9700541Z   Installing build dependencies: started
+test	Install dependencies	2026-01-23T11:38:14.5384507Z   Installing build dependencies: finished with status 'done'
+test	Install dependencies	2026-01-23T11:38:14.5390271Z   Getting requirements to build wheel: started
+test	Install dependencies	2026-01-23T11:38:14.8089080Z   Getting requirements to build wheel: finished with status 'done'
+test	Install dependencies	2026-01-23T11:38:14.8097378Z   Preparing metadata (pyproject.toml): started
+test	Install dependencies	2026-01-23T11:38:14.9527459Z   Preparing metadata (pyproject.toml): finished with status 'done'
+test	Install dependencies	2026-01-23T11:38:14.9701977Z Collecting platformdirs>=2.0.0 (from yfinance>=0.2.0->-r requirements.txt (line 3))
+test	Install dependencies	2026-01-23T11:38:14.9735408Z   Downloading platformdirs-4.5.1-py3-none-any.whl.metadata (12 kB)
+test	Install dependencies	2026-01-23T11:38:15.0052758Z Collecting pytz>=2022.5 (from yfinance>=0.2.0->-r requirements.txt (line 3))
+test	Install dependencies	2026-01-23T11:38:15.0090756Z   Downloading pytz-2025.2-py2.py3-none-any.whl.metadata (22 kB)
+test	Install dependencies	2026-01-23T11:38:15.0480149Z Collecting frozendict>=2.3.4 (from yfinance>=0.2.0->-r requirements.txt (line 3))
+test	Install dependencies	2026-01-23T11:38:15.0515292Z   Downloading frozendict-2.4.7-py3-none-any.whl.metadata (23 kB)
+test	Install dependencies	2026-01-23T11:38:15.0714273Z Collecting peewee>=3.16.2 (from yfinance>=0.2.0->-r requirements.txt (line 3))
+test	Install dependencies	2026-01-23T11:38:15.0748538Z   Downloading peewee-3.19.0-py3-none-any.whl.metadata (7.0 kB)
+test	Install dependencies	2026-01-23T11:38:15.0909167Z Collecting beautifulsoup4>=4.11.1 (from yfinance>=0.2.0->-r requirements.txt (line 3))
+test	Install dependencies	2026-01-23T11:38:15.0941326Z   Downloading beautifulsoup4-4.14.3-py3-none-any.whl.metadata (3.8 kB)
+test	Install dependencies	2026-01-23T11:38:15.1024948Z Collecting curl_cffi>=0.6.0 (from -r requirements.txt (line 11))
+test	Install dependencies	2026-01-23T11:38:15.1057843Z   Downloading curl_cffi-0.13.0-cp39-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (13 kB)
+test	Install dependencies	2026-01-23T11:38:15.2413501Z Collecting protobuf>=3.19.0 (from yfinance>=0.2.0->-r requirements.txt (line 3))
+test	Install dependencies	2026-01-23T11:38:15.2449905Z   Downloading protobuf-6.33.4-cp39-abi3-manylinux2014_x86_64.whl.metadata (593 bytes)
+test	Install dependencies	2026-01-23T11:38:15.3926083Z Collecting cffi>=1.12.0 (from curl_cffi>=0.6.0->-r requirements.txt (line 11))
+test	Install dependencies	2026-01-23T11:38:15.3961001Z   Downloading cffi-2.0.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (2.6 kB)
+test	Install dependencies	2026-01-23T11:38:15.4123789Z Collecting sgmllib3k (from feedparser>=6.0.0->-r requirements.txt (line 4))
+test	Install dependencies	2026-01-23T11:38:15.4158570Z   Downloading sgmllib3k-1.0.0.tar.gz (5.8 kB)
+test	Install dependencies	2026-01-23T11:38:15.4205007Z   Installing build dependencies: started
+test	Install dependencies	2026-01-23T11:38:15.9972527Z   Installing build dependencies: finished with status 'done'
+test	Install dependencies	2026-01-23T11:38:15.9978048Z   Getting requirements to build wheel: started
+test	Install dependencies	2026-01-23T11:38:16.2652454Z   Getting requirements to build wheel: finished with status 'done'
+test	Install dependencies	2026-01-23T11:38:16.2658734Z   Preparing metadata (pyproject.toml): started
+test	Install dependencies	2026-01-23T11:38:16.4090333Z   Preparing metadata (pyproject.toml): finished with status 'done'
+test	Install dependencies	2026-01-23T11:38:16.4314512Z Collecting python-dateutil>=2.8.2 (from pandas>=1.5.0->-r requirements.txt (line 7))
+test	Install dependencies	2026-01-23T11:38:16.4347321Z   Downloading python_dateutil-2.9.0.post0-py2.py3-none-any.whl.metadata (8.4 kB)
+test	Install dependencies	2026-01-23T11:38:16.4485183Z Collecting blinker>=1.9.0 (from Flask>=3.0.0->-r requirements.txt (line 9))
+test	Install dependencies	2026-01-23T11:38:16.4519060Z   Downloading blinker-1.9.0-py3-none-any.whl.metadata (1.6 kB)
+test	Install dependencies	2026-01-23T11:38:16.4686199Z Collecting click>=8.1.3 (from Flask>=3.0.0->-r requirements.txt (line 9))
+test	Install dependencies	2026-01-23T11:38:16.4719721Z   Downloading click-8.3.1-py3-none-any.whl.metadata (2.6 kB)
+test	Install dependencies	2026-01-23T11:38:16.4824163Z Collecting itsdangerous>=2.2.0 (from Flask>=3.0.0->-r requirements.txt (line 9))
+test	Install dependencies	2026-01-23T11:38:16.4854681Z   Downloading itsdangerous-2.2.0-py3-none-any.whl.metadata (1.9 kB)
+test	Install dependencies	2026-01-23T11:38:16.4995813Z Collecting jinja2>=3.1.2 (from Flask>=3.0.0->-r requirements.txt (line 9))
+test	Install dependencies	2026-01-23T11:38:16.5027711Z   Downloading jinja2-3.1.6-py3-none-any.whl.metadata (2.9 kB)
+test	Install dependencies	2026-01-23T11:38:16.5479714Z Collecting markupsafe>=2.1.1 (from Flask>=3.0.0->-r requirements.txt (line 9))
+test	Install dependencies	2026-01-23T11:38:16.5514568Z   Downloading markupsafe-3.0.3-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (2.7 kB)
+test	Install dependencies	2026-01-23T11:38:16.5704162Z Collecting werkzeug>=3.1.0 (from Flask>=3.0.0->-r requirements.txt (line 9))
+test	Install dependencies	2026-01-23T11:38:16.5738024Z   Downloading werkzeug-3.1.5-py3-none-any.whl.metadata (4.0 kB)
+test	Install dependencies	2026-01-23T11:38:16.5908976Z Collecting packaging (from gunicorn>=21.0.0->-r requirements.txt (line 10))
+test	Install dependencies	2026-01-23T11:38:16.5941685Z   Downloading packaging-26.0-py3-none-any.whl.metadata (3.3 kB)
+test	Install dependencies	2026-01-23T11:38:16.6114611Z Collecting courlan>=1.3.2 (from trafilatura>=1.6.0->-r requirements.txt (line 12))
+test	Install dependencies	2026-01-23T11:38:16.6145075Z   Downloading courlan-1.3.2-py3-none-any.whl.metadata (17 kB)
+test	Install dependencies	2026-01-23T11:38:16.6354175Z Collecting htmldate>=1.9.2 (from trafilatura>=1.6.0->-r requirements.txt (line 12))
+test	Install dependencies	2026-01-23T11:38:16.6386747Z   Downloading htmldate-1.9.4-py3-none-any.whl.metadata (10 kB)
+test	Install dependencies	2026-01-23T11:38:16.6509239Z Collecting justext>=3.0.1 (from trafilatura>=1.6.0->-r requirements.txt (line 12))
+test	Install dependencies	2026-01-23T11:38:16.6540030Z   Downloading justext-3.0.2-py2.py3-none-any.whl.metadata (7.3 kB)
+test	Install dependencies	2026-01-23T11:38:16.8038037Z Collecting lxml>=5.3.0 (from trafilatura>=1.6.0->-r requirements.txt (line 12))
+test	Install dependencies	2026-01-23T11:38:16.8073572Z   Downloading lxml-6.0.2-cp311-cp311-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl.metadata (3.6 kB)
+test	Install dependencies	2026-01-23T11:38:16.8306357Z Collecting iniconfig>=1.0.1 (from pytest>=7.0.0->-r requirements.txt (line 14))
+test	Install dependencies	2026-01-23T11:38:16.8340585Z   Downloading iniconfig-2.3.0-py3-none-any.whl.metadata (2.5 kB)
+test	Install dependencies	2026-01-23T11:38:16.8481222Z Collecting pluggy<2,>=1.5 (from pytest>=7.0.0->-r requirements.txt (line 14))
+test	Install dependencies	2026-01-23T11:38:16.8512415Z   Downloading pluggy-1.6.0-py3-none-any.whl.metadata (4.8 kB)
+test	Install dependencies	2026-01-23T11:38:16.8688040Z Collecting pygments>=2.7.2 (from pytest>=7.0.0->-r requirements.txt (line 14))
+test	Install dependencies	2026-01-23T11:38:16.8720551Z   Downloading pygments-2.19.2-py3-none-any.whl.metadata (2.5 kB)
+test	Install dependencies	2026-01-23T11:38:17.2438607Z Collecting coverage>=7.10.6 (from coverage[toml]>=7.10.6->pytest-cov>=4.0.0->-r requirements.txt (line 16))
+test	Install dependencies	2026-01-23T11:38:17.2474684Z   Downloading coverage-7.13.1-cp311-cp311-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl.metadata (8.5 kB)
+test	Install dependencies	2026-01-23T11:38:17.2881587Z Collecting soupsieve>=1.6.1 (from beautifulsoup4>=4.11.1->yfinance>=0.2.0->-r requirements.txt (line 3))
+test	Install dependencies	2026-01-23T11:38:17.2913957Z   Downloading soupsieve-2.8.3-py3-none-any.whl.metadata (4.6 kB)
+test	Install dependencies	2026-01-23T11:38:17.3095738Z Collecting pycparser (from cffi>=1.12.0->curl_cffi>=0.6.0->-r requirements.txt (line 11))
+test	Install dependencies	2026-01-23T11:38:17.3131018Z   Downloading pycparser-3.0-py3-none-any.whl.metadata (8.2 kB)
+test	Install dependencies	2026-01-23T11:38:17.3282832Z Collecting babel>=2.16.0 (from courlan>=1.3.2->trafilatura>=1.6.0->-r requirements.txt (line 12))
+test	Install dependencies	2026-01-23T11:38:17.3313949Z   Downloading babel-2.17.0-py3-none-any.whl.metadata (2.0 kB)
+test	Install dependencies	2026-01-23T11:38:17.3511553Z Collecting tld>=0.13 (from courlan>=1.3.2->trafilatura>=1.6.0->-r requirements.txt (line 12))
+test	Install dependencies	2026-01-23T11:38:17.3543721Z   Downloading tld-0.13.1-py2.py3-none-any.whl.metadata (10 kB)
+test	Install dependencies	2026-01-23T11:38:17.3762247Z Collecting dateparser>=1.1.2 (from htmldate>=1.9.2->trafilatura>=1.6.0->-r requirements.txt (line 12))
+test	Install dependencies	2026-01-23T11:38:17.3793230Z   Downloading dateparser-1.2.2-py3-none-any.whl.metadata (29 kB)
+test	Install dependencies	2026-01-23T11:38:17.6728939Z Collecting regex>=2024.9.11 (from dateparser>=1.1.2->htmldate>=1.9.2->trafilatura>=1.6.0->-r requirements.txt (line 12))
+test	Install dependencies	2026-01-23T11:38:17.6762318Z   Downloading regex-2026.1.15-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (40 kB)
+test	Install dependencies	2026-01-23T11:38:17.6913468Z Collecting tzlocal>=0.2 (from dateparser>=1.1.2->htmldate>=1.9.2->trafilatura>=1.6.0->-r requirements.txt (line 12))
+test	Install dependencies	2026-01-23T11:38:17.6944121Z   Downloading tzlocal-5.3.1-py3-none-any.whl.metadata (7.6 kB)
+test	Install dependencies	2026-01-23T11:38:17.7210074Z Collecting lxml_html_clean (from lxml[html_clean]>=4.4.2->justext>=3.0.1->trafilatura>=1.6.0->-r requirements.txt (line 12))
+test	Install dependencies	2026-01-23T11:38:17.7241105Z   Downloading lxml_html_clean-0.4.3-py3-none-any.whl.metadata (2.3 kB)
+test	Install dependencies	2026-01-23T11:38:17.7541443Z Collecting cachetools<7.0,>=5.5 (from pyiceberg>=0.10.0->storage3==2.27.2->supabase>=2.0.0->-r requirements.txt (line 1))
+test	Install dependencies	2026-01-23T11:38:17.7575668Z   Downloading cachetools-6.2.4-py3-none-any.whl.metadata (5.6 kB)
+test	Install dependencies	2026-01-23T11:38:17.7832321Z Collecting fsspec>=2023.1.0 (from pyiceberg>=0.10.0->storage3==2.27.2->supabase>=2.0.0->-r requirements.txt (line 1))
+test	Install dependencies	2026-01-23T11:38:17.7867516Z   Downloading fsspec-2026.1.0-py3-none-any.whl.metadata (10 kB)
+test	Install dependencies	2026-01-23T11:38:17.8421577Z Collecting mmh3<6.0.0,>=4.0.0 (from pyiceberg>=0.10.0->storage3==2.27.2->supabase>=2.0.0->-r requirements.txt (line 1))
+test	Install dependencies	2026-01-23T11:38:17.8455811Z   Downloading mmh3-5.2.0-cp311-cp311-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl.metadata (14 kB)
+test	Install dependencies	2026-01-23T11:38:17.8814309Z Collecting pyparsing<4.0.0,>=3.1.0 (from pyiceberg>=0.10.0->storage3==2.27.2->supabase>=2.0.0->-r requirements.txt (line 1))
+test	Install dependencies	2026-01-23T11:38:17.8846044Z   Downloading pyparsing-3.3.2-py3-none-any.whl.metadata (5.8 kB)
+test	Install dependencies	2026-01-23T11:38:17.9290570Z Collecting pyroaring<2.0.0,>=1.0.0 (from pyiceberg>=0.10.0->storage3==2.27.2->supabase>=2.0.0->-r requirements.txt (line 1))
+test	Install dependencies	2026-01-23T11:38:17.9323440Z   Downloading pyroaring-1.0.3-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (10 kB)
+test	Install dependencies	2026-01-23T11:38:18.0592656Z Collecting rich<15.0.0,>=10.11.0 (from pyiceberg>=0.10.0->storage3==2.27.2->supabase>=2.0.0->-r requirements.txt (line 1))
+test	Install dependencies	2026-01-23T11:38:18.0628089Z   Downloading rich-14.2.0-py3-none-any.whl.metadata (18 kB)
+test	Install dependencies	2026-01-23T11:38:18.0762046Z Collecting sortedcontainers==2.4.0 (from pyiceberg>=0.10.0->storage3==2.27.2->supabase>=2.0.0->-r requirements.txt (line 1))
+test	Install dependencies	2026-01-23T11:38:18.0793220Z   Downloading sortedcontainers-2.4.0-py2.py3-none-any.whl.metadata (10 kB)
+test	Install dependencies	2026-01-23T11:38:18.0939099Z Collecting strictyaml<2.0.0,>=1.7.0 (from pyiceberg>=0.10.0->storage3==2.27.2->supabase>=2.0.0->-r requirements.txt (line 1))
+test	Install dependencies	2026-01-23T11:38:18.0976095Z   Downloading strictyaml-1.7.3-py3-none-any.whl.metadata (11 kB)
+test	Install dependencies	2026-01-23T11:38:18.1236254Z Collecting markdown-it-py>=2.2.0 (from rich<15.0.0,>=10.11.0->pyiceberg>=0.10.0->storage3==2.27.2->supabase>=2.0.0->-r requirements.txt (line 1))
+test	Install dependencies	2026-01-23T11:38:18.1271024Z   Downloading markdown_it_py-4.0.0-py3-none-any.whl.metadata (7.3 kB)
+test	Install dependencies	2026-01-23T11:38:18.1520598Z Collecting mdurl~=0.1 (from markdown-it-py>=2.2.0->rich<15.0.0,>=10.11.0->pyiceberg>=0.10.0->storage3==2.27.2->supabase>=2.0.0->-r requirements.txt (line 1))
+test	Install dependencies	2026-01-23T11:38:18.1553616Z   Downloading mdurl-0.1.2-py3-none-any.whl.metadata (1.6 kB)
+test	Install dependencies	2026-01-23T11:38:18.3121116Z Collecting cryptography>=3.4.0 (from pyjwt[crypto]>=2.10.1->supabase-auth==2.27.2->supabase>=2.0.0->-r requirements.txt (line 1))
+test	Install dependencies	2026-01-23T11:38:18.3157163Z   Downloading cryptography-46.0.3-cp311-abi3-manylinux_2_34_x86_64.whl.metadata (5.7 kB)
+test	Install dependencies	2026-01-23T11:38:18.3395338Z Collecting six>=1.5 (from python-dateutil>=2.8.2->pandas>=1.5.0->-r requirements.txt (line 7))
+test	Install dependencies	2026-01-23T11:38:18.3428149Z   Downloading six-1.17.0-py2.py3-none-any.whl.metadata (1.7 kB)
+test	Install dependencies	2026-01-23T11:38:18.5509549Z Collecting multidict>=4.0 (from yarl>=1.22.0->supabase>=2.0.0->-r requirements.txt (line 1))
+test	Install dependencies	2026-01-23T11:38:18.5547096Z   Downloading multidict-6.7.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.3 kB)
+test	Install dependencies	2026-01-23T11:38:18.6005289Z Collecting propcache>=0.2.1 (from yarl>=1.22.0->supabase>=2.0.0->-r requirements.txt (line 1))
+test	Install dependencies	2026-01-23T11:38:18.6040421Z   Downloading propcache-0.4.1-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (13 kB)
+test	Install dependencies	2026-01-23T11:38:18.6229326Z Downloading supabase-2.27.2-py3-none-any.whl (16 kB)
+test	Install dependencies	2026-01-23T11:38:18.6280191Z Downloading postgrest-2.27.2-py3-none-any.whl (21 kB)
+test	Install dependencies	2026-01-23T11:38:18.6331250Z Downloading realtime-2.27.2-py3-none-any.whl (22 kB)
+test	Install dependencies	2026-01-23T11:38:18.6380772Z Downloading storage3-2.27.2-py3-none-any.whl (27 kB)
+test	Install dependencies	2026-01-23T11:38:18.6430778Z Downloading supabase_auth-2.27.2-py3-none-any.whl (48 kB)
+test	Install dependencies	2026-01-23T11:38:18.6480949Z Downloading supabase_functions-2.27.2-py3-none-any.whl (8.5 kB)
+test	Install dependencies	2026-01-23T11:38:18.6529754Z Downloading httpx-0.28.1-py3-none-any.whl (73 kB)
+test	Install dependencies	2026-01-23T11:38:18.6579748Z Downloading httpcore-1.0.9-py3-none-any.whl (78 kB)
+test	Install dependencies	2026-01-23T11:38:18.6630264Z Downloading h2-4.3.0-py3-none-any.whl (61 kB)
+test	Install dependencies	2026-01-23T11:38:18.6679549Z Downloading hpack-4.1.0-py3-none-any.whl (34 kB)
+test	Install dependencies	2026-01-23T11:38:18.6726151Z Downloading hyperframe-6.1.0-py3-none-any.whl (13 kB)
+test	Install dependencies	2026-01-23T11:38:18.6776449Z Downloading pydantic-2.12.5-py3-none-any.whl (463 kB)
+test	Install dependencies	2026-01-23T11:38:18.6857196Z Downloading pydantic_core-2.41.5-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (2.1 MB)
+test	Install dependencies	2026-01-23T11:38:18.6946431Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.1/2.1 MB 284.5 MB/s  0:00:00
+test	Install dependencies	2026-01-23T11:38:18.6982779Z Downloading websockets-15.0.1-cp311-cp311-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl (182 kB)
+test	Install dependencies	2026-01-23T11:38:18.7040078Z Downloading google_genai-1.60.0-py3-none-any.whl (719 kB)
+test	Install dependencies	2026-01-23T11:38:18.7090646Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 719.4/719.4 kB 154.2 MB/s  0:00:00
+test	Install dependencies	2026-01-23T11:38:18.7122992Z Downloading anyio-4.12.1-py3-none-any.whl (113 kB)
+test	Install dependencies	2026-01-23T11:38:18.7172668Z Downloading distro-1.9.0-py3-none-any.whl (20 kB)
+test	Install dependencies	2026-01-23T11:38:18.7223855Z Downloading google_auth-2.47.0-py3-none-any.whl (234 kB)
+test	Install dependencies	2026-01-23T11:38:18.7278965Z Downloading requests-2.32.5-py3-none-any.whl (64 kB)
+test	Install dependencies	2026-01-23T11:38:18.7332850Z Downloading charset_normalizer-3.4.4-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (151 kB)
+test	Install dependencies	2026-01-23T11:38:18.7385801Z Downloading idna-3.11-py3-none-any.whl (71 kB)
+test	Install dependencies	2026-01-23T11:38:18.7436023Z Downloading rsa-4.9.1-py3-none-any.whl (34 kB)
+test	Install dependencies	2026-01-23T11:38:18.7485621Z Downloading tenacity-9.1.2-py3-none-any.whl (28 kB)
+test	Install dependencies	2026-01-23T11:38:18.7537228Z Downloading typing_extensions-4.15.0-py3-none-any.whl (44 kB)
+test	Install dependencies	2026-01-23T11:38:18.7587109Z Downloading urllib3-2.6.3-py3-none-any.whl (131 kB)
+test	Install dependencies	2026-01-23T11:38:18.7643866Z Downloading yfinance-1.0-py2.py3-none-any.whl (127 kB)
+test	Install dependencies	2026-01-23T11:38:18.7703537Z Downloading curl_cffi-0.13.0-cp39-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (8.3 MB)
+test	Install dependencies	2026-01-23T11:38:18.8047406Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 8.3/8.3 MB 250.9 MB/s  0:00:00
+test	Install dependencies	2026-01-23T11:38:18.8089369Z Downloading feedparser-6.0.12-py3-none-any.whl (81 kB)
+test	Install dependencies	2026-01-23T11:38:18.8144733Z Downloading python_telegram_bot-22.5-py3-none-any.whl (730 kB)
+test	Install dependencies	2026-01-23T11:38:18.8207575Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 731.0/731.0 kB 127.0 MB/s  0:00:00
+test	Install dependencies	2026-01-23T11:38:18.8239861Z Downloading python_dotenv-1.2.1-py3-none-any.whl (21 kB)
+test	Install dependencies	2026-01-23T11:38:18.8291368Z Downloading pandas-3.0.0-cp311-cp311-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl (11.2 MB)
+test	Install dependencies	2026-01-23T11:38:18.8661495Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 11.2/11.2 MB 314.7 MB/s  0:00:00
+test	Install dependencies	2026-01-23T11:38:18.8699426Z Downloading flask-3.1.2-py3-none-any.whl (103 kB)
+test	Install dependencies	2026-01-23T11:38:18.8756220Z Downloading gunicorn-24.0.0-py3-none-any.whl (110 kB)
+test	Install dependencies	2026-01-23T11:38:18.8807965Z Downloading trafilatura-2.0.0-py3-none-any.whl (132 kB)
+test	Install dependencies	2026-01-23T11:38:18.8862795Z Downloading numpy-2.4.1-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (16.7 MB)
+test	Install dependencies	2026-01-23T11:38:18.9322164Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 16.7/16.7 MB 375.6 MB/s  0:00:00
+test	Install dependencies	2026-01-23T11:38:18.9364024Z Downloading pytest-9.0.2-py3-none-any.whl (374 kB)
+test	Install dependencies	2026-01-23T11:38:18.9435624Z Downloading pluggy-1.6.0-py3-none-any.whl (20 kB)
+test	Install dependencies	2026-01-23T11:38:18.9489665Z Downloading pytest_mock-3.15.1-py3-none-any.whl (10 kB)
+test	Install dependencies	2026-01-23T11:38:18.9541707Z Downloading pytest_cov-7.0.0-py3-none-any.whl (22 kB)
+test	Install dependencies	2026-01-23T11:38:18.9590423Z Downloading pytest_asyncio-1.3.0-py3-none-any.whl (15 kB)
+test	Install dependencies	2026-01-23T11:38:18.9644489Z Downloading annotated_types-0.7.0-py3-none-any.whl (13 kB)
+test	Install dependencies	2026-01-23T11:38:18.9695050Z Downloading beautifulsoup4-4.14.3-py3-none-any.whl (107 kB)
+test	Install dependencies	2026-01-23T11:38:18.9745894Z Downloading blinker-1.9.0-py3-none-any.whl (8.5 kB)
+test	Install dependencies	2026-01-23T11:38:18.9796005Z Downloading certifi-2026.1.4-py3-none-any.whl (152 kB)
+test	Install dependencies	2026-01-23T11:38:18.9852252Z Downloading cffi-2.0.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (215 kB)
+test	Install dependencies	2026-01-23T11:38:18.9906758Z Downloading click-8.3.1-py3-none-any.whl (108 kB)
+test	Install dependencies	2026-01-23T11:38:18.9959951Z Downloading courlan-1.3.2-py3-none-any.whl (33 kB)
+test	Install dependencies	2026-01-23T11:38:19.0029376Z Downloading babel-2.17.0-py3-none-any.whl (10.2 MB)
+test	Install dependencies	2026-01-23T11:38:19.0321998Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 10.2/10.2 MB 367.9 MB/s  0:00:00
+test	Install dependencies	2026-01-23T11:38:19.0358126Z Downloading coverage-7.13.1-cp311-cp311-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (251 kB)
+test	Install dependencies	2026-01-23T11:38:19.0415943Z Downloading deprecation-2.1.0-py2.py3-none-any.whl (11 kB)
+test	Install dependencies	2026-01-23T11:38:19.0464485Z Downloading frozendict-2.4.7-py3-none-any.whl (16 kB)
+test	Install dependencies	2026-01-23T11:38:19.0515176Z Downloading h11-0.16.0-py3-none-any.whl (37 kB)
+test	Install dependencies	2026-01-23T11:38:19.0564928Z Downloading htmldate-1.9.4-py3-none-any.whl (31 kB)
+test	Install dependencies	2026-01-23T11:38:19.0613611Z Downloading dateparser-1.2.2-py3-none-any.whl (315 kB)
+test	Install dependencies	2026-01-23T11:38:19.0680886Z Downloading iniconfig-2.3.0-py3-none-any.whl (7.5 kB)
+test	Install dependencies	2026-01-23T11:38:19.0731489Z Downloading itsdangerous-2.2.0-py3-none-any.whl (16 kB)
+test	Install dependencies	2026-01-23T11:38:19.0784721Z Downloading jinja2-3.1.6-py3-none-any.whl (134 kB)
+test	Install dependencies	2026-01-23T11:38:19.0843719Z Downloading justext-3.0.2-py2.py3-none-any.whl (837 kB)
+test	Install dependencies	2026-01-23T11:38:19.0900808Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 837.9/837.9 kB 168.0 MB/s  0:00:00
+test	Install dependencies	2026-01-23T11:38:19.0936176Z Downloading lxml-6.0.2-cp311-cp311-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl (5.2 MB)
+test	Install dependencies	2026-01-23T11:38:19.1164502Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 5.2/5.2 MB 256.9 MB/s  0:00:00
+test	Install dependencies	2026-01-23T11:38:19.1200659Z Downloading markupsafe-3.0.3-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (22 kB)
+test	Install dependencies	2026-01-23T11:38:19.1251803Z Downloading packaging-26.0-py3-none-any.whl (74 kB)
+test	Install dependencies	2026-01-23T11:38:19.1305113Z Downloading peewee-3.19.0-py3-none-any.whl (411 kB)
+test	Install dependencies	2026-01-23T11:38:19.1366155Z Downloading platformdirs-4.5.1-py3-none-any.whl (18 kB)
+test	Install dependencies	2026-01-23T11:38:19.1414549Z Downloading protobuf-6.33.4-cp39-abi3-manylinux2014_x86_64.whl (323 kB)
+test	Install dependencies	2026-01-23T11:38:19.1471552Z Downloading pyasn1-0.6.2-py3-none-any.whl (83 kB)
+test	Install dependencies	2026-01-23T11:38:19.1522925Z Downloading pyasn1_modules-0.4.2-py3-none-any.whl (181 kB)
+test	Install dependencies	2026-01-23T11:38:19.1576222Z Downloading pygments-2.19.2-py3-none-any.whl (1.2 MB)
+test	Install dependencies	2026-01-23T11:38:19.1638987Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.2/1.2 MB 226.9 MB/s  0:00:00
+test	Install dependencies	2026-01-23T11:38:19.1698224Z Downloading pyiceberg-0.10.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (1.1 MB)
+test	Install dependencies	2026-01-23T11:38:19.1761254Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.1/1.1 MB 204.9 MB/s  0:00:00
+test	Install dependencies	2026-01-23T11:38:19.1793575Z Downloading sortedcontainers-2.4.0-py2.py3-none-any.whl (29 kB)
+test	Install dependencies	2026-01-23T11:38:19.1841357Z Downloading cachetools-6.2.4-py3-none-any.whl (11 kB)
+test	Install dependencies	2026-01-23T11:38:19.1890280Z Downloading mmh3-5.2.0-cp311-cp311-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (103 kB)
+test	Install dependencies	2026-01-23T11:38:19.1942861Z Downloading pyparsing-3.3.2-py3-none-any.whl (122 kB)
+test	Install dependencies	2026-01-23T11:38:19.2022336Z Downloading pyroaring-1.0.3-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (2.1 MB)
+test	Install dependencies	2026-01-23T11:38:19.2124909Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.1/2.1 MB 223.1 MB/s  0:00:00
+test	Install dependencies	2026-01-23T11:38:19.2159118Z Downloading rich-14.2.0-py3-none-any.whl (243 kB)
+test	Install dependencies	2026-01-23T11:38:19.2223652Z Downloading strictyaml-1.7.3-py3-none-any.whl (123 kB)
+test	Install dependencies	2026-01-23T11:38:19.2278843Z Downloading fsspec-2026.1.0-py3-none-any.whl (201 kB)
+test	Install dependencies	2026-01-23T11:38:19.2332571Z Downloading markdown_it_py-4.0.0-py3-none-any.whl (87 kB)
+test	Install dependencies	2026-01-23T11:38:19.2390321Z Downloading mdurl-0.1.2-py3-none-any.whl (10.0 kB)
+test	Install dependencies	2026-01-23T11:38:19.2441007Z Downloading PyJWT-2.10.1-py3-none-any.whl (22 kB)
+test	Install dependencies	2026-01-23T11:38:19.2490761Z Downloading cryptography-46.0.3-cp311-abi3-manylinux_2_34_x86_64.whl (4.5 MB)
+test	Install dependencies	2026-01-23T11:38:19.2642231Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4.5/4.5 MB 325.4 MB/s  0:00:00
+test	Install dependencies	2026-01-23T11:38:19.2675161Z Downloading python_dateutil-2.9.0.post0-py2.py3-none-any.whl (229 kB)
+test	Install dependencies	2026-01-23T11:38:19.2732206Z Downloading pytz-2025.2-py2.py3-none-any.whl (509 kB)
+test	Install dependencies	2026-01-23T11:38:19.2793287Z Downloading regex-2026.1.15-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (800 kB)
+test	Install dependencies	2026-01-23T11:38:19.2850070Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 800.5/800.5 kB 154.4 MB/s  0:00:00
+test	Install dependencies	2026-01-23T11:38:19.2882396Z Downloading six-1.17.0-py2.py3-none-any.whl (11 kB)
+test	Install dependencies	2026-01-23T11:38:19.2933731Z Downloading soupsieve-2.8.3-py3-none-any.whl (37 kB)
+test	Install dependencies	2026-01-23T11:38:19.2982384Z Downloading StrEnum-0.4.15-py3-none-any.whl (8.9 kB)
+test	Install dependencies	2026-01-23T11:38:19.3046943Z Downloading tld-0.13.1-py2.py3-none-any.whl (274 kB)
+test	Install dependencies	2026-01-23T11:38:19.3112710Z Downloading typing_inspection-0.4.2-py3-none-any.whl (14 kB)
+test	Install dependencies	2026-01-23T11:38:19.3161841Z Downloading tzlocal-5.3.1-py3-none-any.whl (18 kB)
+test	Install dependencies	2026-01-23T11:38:19.3211279Z Downloading werkzeug-3.1.5-py3-none-any.whl (225 kB)
+test	Install dependencies	2026-01-23T11:38:19.3264285Z Downloading yarl-1.22.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (365 kB)
+test	Install dependencies	2026-01-23T11:38:19.3321062Z Downloading multidict-6.7.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (246 kB)
+test	Install dependencies	2026-01-23T11:38:19.3374189Z Downloading propcache-0.4.1-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (210 kB)
+test	Install dependencies	2026-01-23T11:38:19.3426097Z Downloading lxml_html_clean-0.4.3-py3-none-any.whl (14 kB)
+test	Install dependencies	2026-01-23T11:38:19.3475744Z Downloading pycparser-3.0-py3-none-any.whl (48 kB)
+test	Install dependencies	2026-01-23T11:38:19.3526111Z Downloading sniffio-1.3.1-py3-none-any.whl (10 kB)
+test	Install dependencies	2026-01-23T11:38:19.4906796Z Building wheels for collected packages: ta, multitasking, sgmllib3k
+test	Install dependencies	2026-01-23T11:38:19.4913459Z   Building wheel for ta (pyproject.toml): started
+test	Install dependencies	2026-01-23T11:38:19.6628512Z   Building wheel for ta (pyproject.toml): finished with status 'done'
+test	Install dependencies	2026-01-23T11:38:19.6634216Z   Created wheel for ta: filename=ta-0.11.0-py3-none-any.whl size=29483 sha256=26dbd85d6128ea80afbb9d898f2b52128c1f809fd94b0560416001ee64c650e7
+test	Install dependencies	2026-01-23T11:38:19.6635409Z   Stored in directory: /home/runner/.cache/pip/wheels/a1/d7/29/7781cc5eb9a3659d032d7d15bdd0f49d07d2b24fec29f44bc4
+test	Install dependencies	2026-01-23T11:38:19.6655738Z   Building wheel for multitasking (pyproject.toml): started
+test	Install dependencies	2026-01-23T11:38:19.8385396Z   Building wheel for multitasking (pyproject.toml): finished with status 'done'
+test	Install dependencies	2026-01-23T11:38:19.8390254Z   Created wheel for multitasking: filename=multitasking-0.0.12-py3-none-any.whl size=15637 sha256=c5d21d7b0256775bc1c56cb7544904a2437ecc67a665c02ffa5ba9fda461cfac
+test	Install dependencies	2026-01-23T11:38:19.8391816Z   Stored in directory: /home/runner/.cache/pip/wheels/42/d6/84/bf57a755f4569494cd00de4bb46ef064874823f4d19c82e960
+test	Install dependencies	2026-01-23T11:38:19.8420390Z   Building wheel for sgmllib3k (pyproject.toml): started
+test	Install dependencies	2026-01-23T11:38:20.0113662Z   Building wheel for sgmllib3k (pyproject.toml): finished with status 'done'
+test	Install dependencies	2026-01-23T11:38:20.0118611Z   Created wheel for sgmllib3k: filename=sgmllib3k-1.0.0-py3-none-any.whl size=6089 sha256=0a3a807c35b973619d7f547b3b971d0d3a35756be936c584249712b625f1bb38
+test	Install dependencies	2026-01-23T11:38:20.0120249Z   Stored in directory: /home/runner/.cache/pip/wheels/3b/25/2a/105d6a15df6914f4d15047691c6c28f9052cc1173e40285d03
+test	Install dependencies	2026-01-23T11:38:20.0135522Z Successfully built ta multitasking sgmllib3k
+test	Install dependencies	2026-01-23T11:38:20.1598401Z Installing collected packages: strenum, sortedcontainers, sgmllib3k, pytz, pyroaring, peewee, multitasking, websockets, urllib3, tzlocal, typing-extensions, tld, tenacity, soupsieve, sniffio, six, regex, python-dotenv, pyparsing, pyjwt, pygments, pycparser, pyasn1, protobuf, propcache, pluggy, platformdirs, packaging, numpy, multidict, mmh3, mdurl, markupsafe, lxml, itsdangerous, iniconfig, idna, hyperframe, hpack, h11, fsspec, frozendict, feedparser, distro, coverage, click, charset_normalizer, certifi, cachetools, blinker, babel, annotated-types, yarl, werkzeug, typing-inspection, rsa, requests, python-dateutil, pytest, pydantic-core, pyasn1-modules, markdown-it-py, lxml_html_clean, jinja2, httpcore, h2, gunicorn, deprecation, courlan, cffi, beautifulsoup4, anyio, strictyaml, rich, pytest-mock, pytest-cov, pytest-asyncio, pydantic, pandas, httpx, google-auth, Flask, dateparser, curl_cffi, cryptography, yfinance, ta, realtime, python-telegram-bot, pyiceberg, justext, htmldate, trafilatura, supabase-functions, supabase-auth, storage3, postgrest, google-genai, supabase
+test	Install dependencies	2026-01-23T11:38:31.9042777Z 
+test	Install dependencies	2026-01-23T11:38:31.9090086Z Successfully installed Flask-3.1.2 annotated-types-0.7.0 anyio-4.12.1 babel-2.17.0 beautifulsoup4-4.14.3 blinker-1.9.0 cachetools-6.2.4 certifi-2026.1.4 cffi-2.0.0 charset_normalizer-3.4.4 click-8.3.1 courlan-1.3.2 coverage-7.13.1 cryptography-46.0.3 curl_cffi-0.13.0 dateparser-1.2.2 deprecation-2.1.0 distro-1.9.0 feedparser-6.0.12 frozendict-2.4.7 fsspec-2026.1.0 google-auth-2.47.0 google-genai-1.60.0 gunicorn-24.0.0 h11-0.16.0 h2-4.3.0 hpack-4.1.0 htmldate-1.9.4 httpcore-1.0.9 httpx-0.28.1 hyperframe-6.1.0 idna-3.11 iniconfig-2.3.0 itsdangerous-2.2.0 jinja2-3.1.6 justext-3.0.2 lxml-6.0.2 lxml_html_clean-0.4.3 markdown-it-py-4.0.0 markupsafe-3.0.3 mdurl-0.1.2 mmh3-5.2.0 multidict-6.7.0 multitasking-0.0.12 numpy-2.4.1 packaging-26.0 pandas-3.0.0 peewee-3.19.0 platformdirs-4.5.1 pluggy-1.6.0 postgrest-2.27.2 propcache-0.4.1 protobuf-6.33.4 pyasn1-0.6.2 pyasn1-modules-0.4.2 pycparser-3.0 pydantic-2.12.5 pydantic-core-2.41.5 pygments-2.19.2 pyiceberg-0.10.0 pyjwt-2.10.1 pyparsing-3.3.2 pyroaring-1.0.3 pytest-9.0.2 pytest-asyncio-1.3.0 pytest-cov-7.0.0 pytest-mock-3.15.1 python-dateutil-2.9.0.post0 python-dotenv-1.2.1 python-telegram-bot-22.5 pytz-2025.2 realtime-2.27.2 regex-2026.1.15 requests-2.32.5 rich-14.2.0 rsa-4.9.1 sgmllib3k-1.0.0 six-1.17.0 sniffio-1.3.1 sortedcontainers-2.4.0 soupsieve-2.8.3 storage3-2.27.2 strenum-0.4.15 strictyaml-1.7.3 supabase-2.27.2 supabase-auth-2.27.2 supabase-functions-2.27.2 ta-0.11.0 tenacity-9.1.2 tld-0.13.1 trafilatura-2.0.0 typing-extensions-4.15.0 typing-inspection-0.4.2 tzlocal-5.3.1 urllib3-2.6.3 websockets-15.0.1 werkzeug-3.1.5 yarl-1.22.0 yfinance-1.0
+test	Install dependencies	2026-01-23T11:38:33.0261769Z Requirement already satisfied: pytest in /opt/hostedtoolcache/Python/3.11.14/x64/lib/python3.11/site-packages (9.0.2)
+test	Install dependencies	2026-01-23T11:38:33.0265074Z Requirement already satisfied: pytest-mock in /opt/hostedtoolcache/Python/3.11.14/x64/lib/python3.11/site-packages (3.15.1)
+test	Install dependencies	2026-01-23T11:38:33.0268180Z Requirement already satisfied: pytest-cov in /opt/hostedtoolcache/Python/3.11.14/x64/lib/python3.11/site-packages (7.0.0)
+test	Install dependencies	2026-01-23T11:38:33.0271256Z Requirement already satisfied: pytest-asyncio in /opt/hostedtoolcache/Python/3.11.14/x64/lib/python3.11/site-packages (1.3.0)
+test	Install dependencies	2026-01-23T11:38:33.0284360Z Requirement already satisfied: iniconfig>=1.0.1 in /opt/hostedtoolcache/Python/3.11.14/x64/lib/python3.11/site-packages (from pytest) (2.3.0)
+test	Install dependencies	2026-01-23T11:38:33.0288830Z Requirement already satisfied: packaging>=22 in /opt/hostedtoolcache/Python/3.11.14/x64/lib/python3.11/site-packages (from pytest) (26.0)
+test	Install dependencies	2026-01-23T11:38:33.0293482Z Requirement already satisfied: pluggy<2,>=1.5 in /opt/hostedtoolcache/Python/3.11.14/x64/lib/python3.11/site-packages (from pytest) (1.6.0)
+test	Install dependencies	2026-01-23T11:38:33.0298124Z Requirement already satisfied: pygments>=2.7.2 in /opt/hostedtoolcache/Python/3.11.14/x64/lib/python3.11/site-packages (from pytest) (2.19.2)
+test	Install dependencies	2026-01-23T11:38:33.0333751Z Requirement already satisfied: coverage>=7.10.6 in /opt/hostedtoolcache/Python/3.11.14/x64/lib/python3.11/site-packages (from coverage[toml]>=7.10.6->pytest-cov) (7.13.1)
+test	Install dependencies	2026-01-23T11:38:33.0354613Z Requirement already satisfied: typing-extensions>=4.12 in /opt/hostedtoolcache/Python/3.11.14/x64/lib/python3.11/site-packages (from pytest-asyncio) (4.15.0)
+test	Run Tests	﻿2026-01-23T11:38:33.1779938Z ##[group]Run pytest tests/ --cov=. --cov-report=term-missing
+test	Run Tests	2026-01-23T11:38:33.1780357Z [36;1mpytest tests/ --cov=. --cov-report=term-missing[0m
+test	Run Tests	2026-01-23T11:38:33.1801062Z shell: /usr/bin/bash -e {0}
+test	Run Tests	2026-01-23T11:38:33.1801441Z env:
+test	Run Tests	2026-01-23T11:38:33.1801686Z   pythonLocation: /opt/hostedtoolcache/Python/3.11.14/x64
+test	Run Tests	2026-01-23T11:38:33.1802073Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.11.14/x64/lib/pkgconfig
+test	Run Tests	2026-01-23T11:38:33.1802441Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.14/x64
+test	Run Tests	2026-01-23T11:38:33.1802770Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.14/x64
+test	Run Tests	2026-01-23T11:38:33.1803239Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.14/x64
+test	Run Tests	2026-01-23T11:38:33.1803586Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.11.14/x64/lib
+test	Run Tests	2026-01-23T11:38:33.1804227Z   GEMINI_API_KEY: ***
+test	Run Tests	2026-01-23T11:38:33.1804618Z   OPENROUTER_API_KEY: ***
+test	Run Tests	2026-01-23T11:38:33.1804865Z   SUPABASE_URL: https://fake.supabase.co
+test	Run Tests	2026-01-23T11:38:33.1805103Z   SUPABASE_KEY: fake_key
+test	Run Tests	2026-01-23T11:38:33.1805362Z ##[endgroup]
+test	Run Tests	2026-01-23T11:38:36.2375952Z ============================= test session starts ==============================
+test	Run Tests	2026-01-23T11:38:36.2376857Z platform linux -- Python 3.11.14, pytest-9.0.2, pluggy-1.6.0
+test	Run Tests	2026-01-23T11:38:36.2377322Z rootdir: /home/runner/work/zerocosthunter/zerocosthunter
+test	Run Tests	2026-01-23T11:38:36.2377744Z plugins: cov-7.0.0, asyncio-1.3.0, mock-3.15.1, anyio-4.12.1
+test	Run Tests	2026-01-23T11:38:36.2378374Z asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+test	Run Tests	2026-01-23T11:38:36.2378950Z collected 12 items
+test	Run Tests	2026-01-23T11:38:36.2379083Z 
+test	Run Tests	2026-01-23T11:38:46.2891217Z tests/test_brain.py ...                                                  [ 25%]
+test	Run Tests	2026-01-23T11:38:46.2946446Z tests/test_critic.py ..                                                  [ 41%]
+test	Run Tests	2026-01-23T11:38:46.5069464Z tests/test_market_data.py .F.                                            [ 66%]
+test	Run Tests	2026-01-23T11:38:46.5121362Z tests/test_quant_features.py .                                           [ 75%]
+test	Run Tests	2026-01-23T11:38:49.2982902Z tests/test_rebalancer.py ..                                              [ 91%]
+test	Run Tests	2026-01-23T11:38:49.3274550Z /opt/hostedtoolcache/Python/3.11.14/x64/lib/python3.11/site-packages/coverage/report_core.py:107: CoverageWarning: Couldn't parse Python file '/home/runner/work/zerocosthunter/zerocosthunter/analyzer.py' (couldnt-parse); see https://coverage.readthedocs.io/en/7.13.1/messages.html#warning-couldnt-parse
+test	Run Tests	2026-01-23T11:38:49.3276831Z   coverage._warn(msg, slug="couldnt-parse")
+test	Run Tests	2026-01-23T11:38:49.9596492Z tests/test_risk_management.py .                                          [100%]
+test	Run Tests	2026-01-23T11:38:49.9597080Z 
+test	Run Tests	2026-01-23T11:38:49.9597295Z =================================== FAILURES ===================================
+test	Run Tests	2026-01-23T11:38:49.9597848Z _____________________________ test_smart_price_eur _____________________________
+test	Run Tests	2026-01-23T11:38:49.9598283Z 
+test	Run Tests	2026-01-23T11:38:49.9598679Z mock_market_deps = <MagicMock name='Ticker()' id='139998960756304'>
+test	Run Tests	2026-01-23T11:38:49.9599380Z 
+test	Run Tests	2026-01-23T11:38:49.9599656Z     def test_smart_price_eur(mock_market_deps):
+test	Run Tests	2026-01-23T11:38:49.9600390Z         """Test EUR conversion logic."""
+test	Run Tests	2026-01-23T11:38:49.9601049Z         md = MarketData()
+test	Run Tests	2026-01-23T11:38:49.9601786Z         price, found_ticker = md.get_smart_price_eur("BTC-USD")
+test	Run Tests	2026-01-23T11:38:49.9602645Z         assert isinstance(price, float)
+test	Run Tests	2026-01-23T11:38:49.9603592Z >       assert found_ticker == "BTC-USD"
+test	Run Tests	2026-01-23T11:38:49.9604359Z E       AssertionError: assert 'BTC-EUR' == 'BTC-USD'
+test	Run Tests	2026-01-23T11:38:49.9605092Z E         
+test	Run Tests	2026-01-23T11:38:49.9605523Z E         - BTC-USD
+test	Run Tests	2026-01-23T11:38:49.9606001Z E         + BTC-EUR
+test	Run Tests	2026-01-23T11:38:49.9606293Z 
+test	Run Tests	2026-01-23T11:38:49.9606661Z tests/test_market_data.py:19: AssertionError
+test	Run Tests	2026-01-23T11:38:49.9607611Z ------------------------------ Captured log call -------------------------------
+test	Run Tests	2026-01-23T11:38:49.9609230Z WARNING  db_handler:db_handler.py:854 Ticker cache lookup failed for BTC-USD: [Errno -2] Name or service not known
+test	Run Tests	2026-01-23T11:38:49.9611349Z =============================== warnings summary ===============================
+test	Run Tests	2026-01-23T11:38:49.9612373Z tests/test_brain.py::test_openrouter_success
+test	Run Tests	2026-01-23T11:38:49.9614897Z   /opt/hostedtoolcache/Python/3.11.14/x64/lib/python3.11/site-packages/pyiceberg/expressions/parser.py:72: PyparsingDeprecationWarning: 'enablePackrat' deprecated - use 'enable_packrat'
+test	Run Tests	2026-01-23T11:38:49.9617129Z     ParserElement.enablePackrat()
+test	Run Tests	2026-01-23T11:38:49.9617587Z 
+test	Run Tests	2026-01-23T11:38:49.9617888Z tests/test_brain.py::test_openrouter_success
+test	Run Tests	2026-01-23T11:38:49.9620096Z   /opt/hostedtoolcache/Python/3.11.14/x64/lib/python3.11/site-packages/pyiceberg/expressions/parser.py:85: PyparsingDeprecationWarning: 'escChar' argument is deprecated, use 'esc_char'
+test	Run Tests	2026-01-23T11:38:49.9622576Z     quoted_identifier = QuotedString('"', escChar="\\", unquoteResults=True)
+test	Run Tests	2026-01-23T11:38:49.9623459Z 
+test	Run Tests	2026-01-23T11:38:49.9623749Z tests/test_brain.py::test_openrouter_success
+test	Run Tests	2026-01-23T11:38:49.9626070Z   /opt/hostedtoolcache/Python/3.11.14/x64/lib/python3.11/site-packages/pyiceberg/expressions/parser.py:85: PyparsingDeprecationWarning: 'unquoteResults' argument is deprecated, use 'unquote_results'
+test	Run Tests	2026-01-23T11:38:49.9628640Z     quoted_identifier = QuotedString('"', escChar="\\", unquoteResults=True)
+test	Run Tests	2026-01-23T11:38:49.9629414Z 
+test	Run Tests	2026-01-23T11:38:49.9629704Z tests/test_brain.py::test_openrouter_success
+test	Run Tests	2026-01-23T11:38:49.9634020Z   /opt/hostedtoolcache/Python/3.11.14/x64/lib/python3.11/site-packages/pyiceberg/table/metadata.py:365: PydanticDeprecatedSince212: Using `@model_validator` with mode='after' on a classmethod is deprecated. Instead, use an instance method. See the documentation at https://docs.pydantic.dev/2.12/concepts/validators/#model-after-validator. Deprecated in Pydantic V2.12 to be removed in V3.0.
+test	Run Tests	2026-01-23T11:38:49.9638249Z     @model_validator(mode="after")
+test	Run Tests	2026-01-23T11:38:49.9638713Z 
+test	Run Tests	2026-01-23T11:38:49.9638995Z tests/test_brain.py::test_openrouter_success
+test	Run Tests	2026-01-23T11:38:49.9643364Z   /opt/hostedtoolcache/Python/3.11.14/x64/lib/python3.11/site-packages/pyiceberg/table/metadata.py:494: PydanticDeprecatedSince212: Using `@model_validator` with mode='after' on a classmethod is deprecated. Instead, use an instance method. See the documentation at https://docs.pydantic.dev/2.12/concepts/validators/#model-after-validator. Deprecated in Pydantic V2.12 to be removed in V3.0.
+test	Run Tests	2026-01-23T11:38:49.9647754Z     @model_validator(mode="after")
+test	Run Tests	2026-01-23T11:38:49.9648193Z 
+test	Run Tests	2026-01-23T11:38:49.9648467Z tests/test_brain.py::test_openrouter_success
+test	Run Tests	2026-01-23T11:38:49.9652645Z   /opt/hostedtoolcache/Python/3.11.14/x64/lib/python3.11/site-packages/pyiceberg/table/metadata.py:498: PydanticDeprecatedSince212: Using `@model_validator` with mode='after' on a classmethod is deprecated. Instead, use an instance method. See the documentation at https://docs.pydantic.dev/2.12/concepts/validators/#model-after-validator. Deprecated in Pydantic V2.12 to be removed in V3.0.
+test	Run Tests	2026-01-23T11:38:49.9657041Z     @model_validator(mode="after")
+test	Run Tests	2026-01-23T11:38:49.9657481Z 
+test	Run Tests	2026-01-23T11:38:49.9657775Z tests/test_brain.py::test_openrouter_success
+test	Run Tests	2026-01-23T11:38:49.9661954Z   /opt/hostedtoolcache/Python/3.11.14/x64/lib/python3.11/site-packages/pyiceberg/table/metadata.py:502: PydanticDeprecatedSince212: Using `@model_validator` with mode='after' on a classmethod is deprecated. Instead, use an instance method. See the documentation at https://docs.pydantic.dev/2.12/concepts/validators/#model-after-validator. Deprecated in Pydantic V2.12 to be removed in V3.0.
+test	Run Tests	2026-01-23T11:38:49.9666390Z     @model_validator(mode="after")
+test	Run Tests	2026-01-23T11:38:49.9666830Z 
+test	Run Tests	2026-01-23T11:38:49.9667096Z tests/test_brain.py::test_openrouter_success
+test	Run Tests	2026-01-23T11:38:49.9671290Z   /opt/hostedtoolcache/Python/3.11.14/x64/lib/python3.11/site-packages/pyiceberg/table/metadata.py:506: PydanticDeprecatedSince212: Using `@model_validator` with mode='after' on a classmethod is deprecated. Instead, use an instance method. See the documentation at https://docs.pydantic.dev/2.12/concepts/validators/#model-after-validator. Deprecated in Pydantic V2.12 to be removed in V3.0.
+test	Run Tests	2026-01-23T11:38:49.9675675Z     @model_validator(mode="after")
+test	Run Tests	2026-01-23T11:38:49.9676278Z 
+test	Run Tests	2026-01-23T11:38:49.9676555Z tests/test_brain.py::test_openrouter_success
+test	Run Tests	2026-01-23T11:38:49.9680836Z   /opt/hostedtoolcache/Python/3.11.14/x64/lib/python3.11/site-packages/pyiceberg/table/metadata.py:538: PydanticDeprecatedSince212: Using `@model_validator` with mode='after' on a classmethod is deprecated. Instead, use an instance method. See the documentation at https://docs.pydantic.dev/2.12/concepts/validators/#model-after-validator. Deprecated in Pydantic V2.12 to be removed in V3.0.
+test	Run Tests	2026-01-23T11:38:49.9685270Z     @model_validator(mode="after")
+test	Run Tests	2026-01-23T11:38:49.9685698Z 
+test	Run Tests	2026-01-23T11:38:49.9686000Z tests/test_brain.py::test_openrouter_success
+test	Run Tests	2026-01-23T11:38:49.9690092Z   /opt/hostedtoolcache/Python/3.11.14/x64/lib/python3.11/site-packages/pyiceberg/table/metadata.py:542: PydanticDeprecatedSince212: Using `@model_validator` with mode='after' on a classmethod is deprecated. Instead, use an instance method. See the documentation at https://docs.pydantic.dev/2.12/concepts/validators/#model-after-validator. Deprecated in Pydantic V2.12 to be removed in V3.0.
+test	Run Tests	2026-01-23T11:38:49.9692973Z     @model_validator(mode="after")
+test	Run Tests	2026-01-23T11:38:49.9693326Z 
+test	Run Tests	2026-01-23T11:38:49.9693479Z tests/test_brain.py::test_openrouter_success
+test	Run Tests	2026-01-23T11:38:49.9695493Z   /opt/hostedtoolcache/Python/3.11.14/x64/lib/python3.11/site-packages/pyiceberg/table/metadata.py:546: PydanticDeprecatedSince212: Using `@model_validator` with mode='after' on a classmethod is deprecated. Instead, use an instance method. See the documentation at https://docs.pydantic.dev/2.12/concepts/validators/#model-after-validator. Deprecated in Pydantic V2.12 to be removed in V3.0.
+test	Run Tests	2026-01-23T11:38:49.9697534Z     @model_validator(mode="after")
+test	Run Tests	2026-01-23T11:38:49.9697758Z 
+test	Run Tests	2026-01-23T11:38:49.9697907Z tests/test_brain.py::test_openrouter_success
+test	Run Tests	2026-01-23T11:38:49.9699890Z   /opt/hostedtoolcache/Python/3.11.14/x64/lib/python3.11/site-packages/pyiceberg/table/metadata.py:550: PydanticDeprecatedSince212: Using `@model_validator` with mode='after' on a classmethod is deprecated. Instead, use an instance method. See the documentation at https://docs.pydantic.dev/2.12/concepts/validators/#model-after-validator. Deprecated in Pydantic V2.12 to be removed in V3.0.
+test	Run Tests	2026-01-23T11:38:49.9701896Z     @model_validator(mode="after")
+test	Run Tests	2026-01-23T11:38:49.9702105Z 
+test	Run Tests	2026-01-23T11:38:49.9702286Z tests/test_market_data.py::test_smart_price_eur
+test	Run Tests	2026-01-23T11:38:49.9703667Z   /opt/hostedtoolcache/Python/3.11.14/x64/lib/python3.11/site-packages/supabase/_sync/client.py:309: DeprecationWarning: The 'timeout' parameter is deprecated. Please configure it in the http client instead.
+test	Run Tests	2026-01-23T11:38:49.9704830Z     return SyncPostgrestClient(
+test	Run Tests	2026-01-23T11:38:49.9705046Z 
+test	Run Tests	2026-01-23T11:38:49.9705219Z tests/test_market_data.py::test_smart_price_eur
+test	Run Tests	2026-01-23T11:38:49.9706371Z   /opt/hostedtoolcache/Python/3.11.14/x64/lib/python3.11/site-packages/supabase/_sync/client.py:309: DeprecationWarning: The 'verify' parameter is deprecated. Please configure it in the http client instead.
+test	Run Tests	2026-01-23T11:38:49.9707482Z     return SyncPostgrestClient(
+test	Run Tests	2026-01-23T11:38:49.9707711Z 
+test	Run Tests	2026-01-23T11:38:49.9707976Z -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+test	Run Tests	2026-01-23T11:38:49.9708548Z ================================ tests coverage ================================
+test	Run Tests	2026-01-23T11:38:49.9709113Z _______________ coverage: platform linux, python 3.11.14-final-0 _______________
+test	Run Tests	2026-01-23T11:38:49.9709519Z 
+test	Run Tests	2026-01-23T11:38:49.9709699Z Name                                Stmts   Miss  Cover   Missing
+test	Run Tests	2026-01-23T11:38:49.9710164Z -----------------------------------------------------------------
+test	Run Tests	2026-01-23T11:38:49.9710667Z advisor.py                             85     73    14%   63-88, 95-185, 197, 201-209
+test	Run Tests	2026-01-23T11:38:49.9711355Z auditor.py                            140    140     0%   1-259
+test	Run Tests	2026-01-23T11:38:49.9711828Z backtest.py                           175    175     0%   1-292
+test	Run Tests	2026-01-23T11:38:49.9712299Z backtester.py                         194    194     0%   2-302
+test	Run Tests	2026-01-23T11:38:49.9712878Z benchmark.py                          230    230     0%   7-477
+test	Run Tests	2026-01-23T11:38:49.9714240Z brain.py                              593    386    35%   61-63, 69, 94, 107-108, 134, 154, 159-167, 174, 184, 194, 216, 227, 277-282, 292, 300, 350, 354-419, 423-427, 445, 457, 463-470, 483, 487, 513-514, 518-520, 522, 530-531, 564-565, 571, 589, 595-602, 615-949, 955-1018, 1024-1307, 1316, 1323-1391, 1400-1461, 1464
+test	Run Tests	2026-01-23T11:38:49.9715497Z correlation_engine.py                  93     93     0%   7-268
+test	Run Tests	2026-01-23T11:38:49.9716025Z critic.py                              90     57    37%   38-105, 160, 169-173, 180-229, 233-252
+test	Run Tests	2026-01-23T11:38:49.9718134Z db_handler.py                         592    520    12%   18, 28-41, 45-48, 52-72, 76-97, 101-110, 114-123, 126-135, 139-149, 153-163, 167-176, 180-191, 195-206, 210-220, 224-234, 241-266, 270-280, 284-297, 304-326, 330-353, 357-364, 368-387, 391-409, 418-454, 461-484, 500-530, 541-569, 573-582, 596-629, 633-635, 640-652, 656-661, 665-674, 678-683, 687-696, 708-716, 732-749, 758-797, 808-819, 823-832, 848-852, 862-888, 894-905, 912-926, 938-954, 961-989, 995-1013, 1021-1044, 1050-1096, 1108-1124, 1128-1145, 1156-1172, 1176-1186, 1190-1194
+test	Run Tests	2026-01-23T11:38:49.9720259Z db_maintenance.py                     128    128     0%   8-256
+test	Run Tests	2026-01-23T11:38:49.9721075Z economist.py                          194    114    41%   63-65, 69, 74-77, 82, 86, 106-108, 114-121, 130-136, 143-167, 176-188, 199-279, 300, 305, 312-320, 328-329, 339, 343-345
+test	Run Tests	2026-01-23T11:38:49.9721896Z hunter.py                             179    179     0%   1-359
+test	Run Tests	2026-01-23T11:38:49.9722387Z insider.py                             68     57    16%   16-28, 35-62, 68-86, 93-129, 132-134
+test	Run Tests	2026-01-23T11:38:49.9722889Z main.py                               735    735     0%   1-1240
+test	Run Tests	2026-01-23T11:38:49.9724059Z market_data.py                        436    325    25%   11-12, 85-87, 89-91, 107, 114, 122-123, 127, 129, 133-134, 155-159, 165-176, 182, 193-220, 226, 243-251, 264-352, 370-448, 455-562, 591, 597, 601-603, 627, 631, 640-642, 666-737, 749-824, 829-844
+test	Run Tests	2026-01-23T11:38:49.9725657Z market_regime.py                      164     78    52%   57, 63-64, 94-96, 103-104, 124-126, 135-147, 152-153, 155, 159-165, 171-172, 180-181, 183-184, 188-196, 200-201, 205-213, 217, 220-223, 254, 257-262, 266, 270, 275-287
+test	Run Tests	2026-01-23T11:38:49.9726621Z memory.py                             118    118     0%   8-276
+test	Run Tests	2026-01-23T11:38:49.9727964Z ml_predictor.py                       407    314    23%   41-44, 48-73, 77, 84, 93-98, 108-113, 117-151, 155-173, 177-178, 182-183, 187, 199-205, 235-256, 260-368, 377, 379, 381, 383, 387, 389, 393, 395, 399, 401, 405, 407, 411, 413, 418-419, 421-422, 431-448, 455, 466-467, 498-499, 503-504, 508-523, 527-529, 533-544, 548-629, 633-665, 669-720
+test	Run Tests	2026-01-23T11:38:49.9729307Z paper_trader.py                        86     86     0%   1-161
+test	Run Tests	2026-01-23T11:38:49.9730121Z pattern_recognition.py                232    166    28%   78-82, 89-93, 103-117, 124-155, 161-188, 195-223, 229-254, 261-303, 310-357, 368-395, 401-412, 427-437, 442-455
+test	Run Tests	2026-01-23T11:38:49.9731060Z portfolio_backtest.py                 174    147    16%   55, 70-71, 77-211, 215-237, 244-312
+test	Run Tests	2026-01-23T11:38:49.9732397Z rebalancer.py                         435    260    40%   14-17, 80, 87-122, 141-146, 150, 166, 173-176, 194, 198-200, 203, 220-233, 251-253, 258, 284-285, 303-305, 327-328, 341-344, 349-355, 383-384, 387, 390-394, 418-431, 438-449, 538-563, 583-584, 593-597, 616-643, 649-769, 777-818, 826-852, 857-861
+test	Run Tests	2026-01-23T11:38:49.9733907Z sector_rotation.py                     88     36    59%   64, 76-78, 95-97, 108, 124-125, 130-131, 163-173, 177-186, 197-209
+test	Run Tests	2026-01-23T11:38:49.9734567Z sentiment_aggregator.py               141    141     0%   7-251
+test	Run Tests	2026-01-23T11:38:49.9735242Z sentinel.py                           125    125     0%   1-232
+test	Run Tests	2026-01-23T11:38:49.9735734Z signal_intelligence.py                390    390     0%   12-778
+test	Run Tests	2026-01-23T11:38:49.9736672Z strategy_manager.py                   232    169    27%   63-73, 77-80, 88, 97-129, 148-216, 220-225, 237-252, 256-280, 303-340, 366-391, 462-513, 528-535, 548, 565-573, 577-590
+test	Run Tests	2026-01-23T11:38:49.9737533Z support_resistance.py                 106    106     0%   7-223
+test	Run Tests	2026-01-23T11:38:49.9738048Z telegram_bot.py                        39     39     0%   1-56
+test	Run Tests	2026-01-23T11:38:49.9738516Z tests/__init__.py                       0      0   100%
+test	Run Tests	2026-01-23T11:38:49.9739026Z tests/conftest.py                      43     10    77%   13-18, 59-64
+test	Run Tests	2026-01-23T11:38:49.9739580Z tests/smoke_test_live.py               60     60     0%   2-140
+test	Run Tests	2026-01-23T11:38:49.9740076Z tests/test_brain.py                    43      0   100%
+test	Run Tests	2026-01-23T11:38:49.9740519Z tests/test_critic.py                   35      0   100%
+test	Run Tests	2026-01-23T11:38:49.9741067Z tests/test_dynamic_detection.py        39     27    31%   53-82, 85-116, 119
+test	Run Tests	2026-01-23T11:38:49.9741712Z tests/test_frequency_selection.py      33     25    24%   22-23, 28-61, 64
+test	Run Tests	2026-01-23T11:38:49.9742271Z tests/test_market_data.py              21      0   100%
+test	Run Tests	2026-01-23T11:38:49.9742734Z tests/test_quant_features.py           30      1    97%   50
+test	Run Tests	2026-01-23T11:38:49.9743342Z tests/test_rebalancer.py               36      0   100%
+test	Run Tests	2026-01-23T11:38:49.9743816Z tests/test_risk_management.py          22      1    95%   52
+test	Run Tests	2026-01-23T11:38:49.9744349Z ticker_resolver.py                     65     57    12%   56-86, 100-134, 143-152, 157-161
+test	Run Tests	2026-01-23T11:38:49.9744905Z validator.py                           78     78     0%   2-126
+test	Run Tests	2026-01-23T11:38:49.9745656Z whale_watcher.py                      208    108    48%   61, 66-69, 71, 74-107, 130-173, 180-191, 203-209, 220, 223-226, 239-246, 277-288, 344-384, 388-390
+test	Run Tests	2026-01-23T11:38:49.9746401Z -----------------------------------------------------------------
+test	Run Tests	2026-01-23T11:38:49.9746854Z TOTAL                                7382   5948    19%
+test	Run Tests	2026-01-23T11:38:50.3134996Z =========================== short test summary info ============================
+test	Run Tests	2026-01-23T11:38:50.3135830Z FAILED tests/test_market_data.py::test_smart_price_eur - AssertionError: assert 'BTC-EUR' == 'BTC-USD'
+test	Run Tests	2026-01-23T11:38:50.3136257Z   
+test	Run Tests	2026-01-23T11:38:50.3136409Z   - BTC-USD
+test	Run Tests	2026-01-23T11:38:50.3136579Z   + BTC-EUR
+test	Run Tests	2026-01-23T11:38:50.3136825Z ================== 1 failed, 11 passed, 14 warnings in 15.85s ==================
+test	Run Tests	2026-01-23T11:38:50.6405495Z ##[error]Process completed with exit code 1.
+test	Post Run actions/checkout@v3	﻿2026-01-23T11:38:50.6576809Z Post job cleanup.
+test	Post Run actions/checkout@v3	2026-01-23T11:38:50.7236849Z [command]/usr/bin/git version
+test	Post Run actions/checkout@v3	2026-01-23T11:38:50.7269238Z git version 2.52.0
+test	Post Run actions/checkout@v3	2026-01-23T11:38:50.7308366Z Temporarily overriding HOME='/home/runner/work/_temp/80494f06-1e79-4d1b-bbf6-ddd9ce7af058' before making global git config changes
+test	Post Run actions/checkout@v3	2026-01-23T11:38:50.7309196Z Adding repository directory to the temporary git global config as a safe directory
+test	Post Run actions/checkout@v3	2026-01-23T11:38:50.7312069Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/zerocosthunter/zerocosthunter
+test	Post Run actions/checkout@v3	2026-01-23T11:38:50.7338884Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+test	Post Run actions/checkout@v3	2026-01-23T11:38:50.7364289Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+test	Post Run actions/checkout@v3	2026-01-23T11:38:50.7551909Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+test	Post Run actions/checkout@v3	2026-01-23T11:38:50.7567972Z http.https://github.com/.extraheader
+test	Post Run actions/checkout@v3	2026-01-23T11:38:50.7577172Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+test	Post Run actions/checkout@v3	2026-01-23T11:38:50.7599450Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+test	Complete job	﻿2026-01-23T11:38:50.7862945Z Cleaning up orphan processes

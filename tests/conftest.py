@@ -60,7 +60,7 @@ def mock_brain(mocker):
     instance = mock.return_value
     # Default behavior: Return a generic string
     instance._generate_with_fallback.return_value = "AI Analysis Result"
-    instance._call_gemini_with_retries.return_value = "Gemini Fallback Result"
+    instance._call_gemini_with_tiered_fallback.return_value = "Gemini Fallback Result"
     return instance
 
 @pytest.fixture

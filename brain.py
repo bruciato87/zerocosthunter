@@ -27,6 +27,13 @@ OPENROUTER_MODEL_TIERS = [
     "deepseek/deepseek-chat:free",            # Reliable V3
 ]
 
+# Gemini Model Tier List (Fallback sequence)
+GEMINI_MODEL_TIERS = [
+    "gemini-3-flash",
+    "gemini-2.5-flash",
+    "gemini-2.5-flash-lite"
+]
+
 class Brain:
     def __init__(self):
         # OpenRouter API key (primary)
@@ -489,12 +496,12 @@ class Brain:
                 temperature=0.3
             )
         
-        target_model = model if model else 'gemini-2.5-flash'
+        target_model = model if model else GEMINI_MODEL_TIERS[0]
         
-        # Sanitize model name for Direct Gemini API (remove OpenRouter prefixes/suffixes)
+        # Sanitize model name for Direct Gemini API
         target_model = target_model.replace("google/", "").replace(":free", "")
         
-        logger.info(f"Gemini Fallback: Using model {target_model}")
+        logger.info(f"Gemini Call: Using model {target_model}")
         
         response = self.gemini_client.models.generate_content(
             model=target_model,
@@ -502,35 +509,37 @@ class Brain:
             config=config
         )
         
-        # Track usage (Approximated as Direct API doesn't return token counts easily in this client version)
-        self.last_run_details = {
-            "model": f"google/{target_model} (Direct)",
-            "usage": {"total_tokens": "N/A (Direct Fallback)"},
-            "provider": "Google Direct"
-        }
-        
         if not response:
-            logger.error("Gemini returned None response.")
-            return ""
+            logger.error(f"Gemini ({target_model}) returned None response.")
+            raise Exception(f"Gemini ({target_model}) returned None response.")
             
         try:
             content = response.text
         except Exception as e:
-             logger.error(f"Error accessing response.text: {e}")
-             return ""
+             logger.error(f"Error accessing response.text for {target_model}: {e}")
+             raise e
+
         if json_mode:
              content = content.replace("```json", "").replace("```", "").strip()
              
-        # Track fallback usage
-        # Track fallback usage
+        # Track usage
         try:
             from db_handler import DBHandler
             db = DBHandler()
             db.increment_api_counter("gemini_fallback", run_id=self.current_run_id)
+            db.log_model_used(f"google/{target_model}")
         except Exception:
             pass
         
-        logger.info("Gemini fallback call successful")
+        logger.info(f"Gemini call successful with {target_model}")
+        
+        # Track detail for status
+        self.last_run_details = {
+            "model": f"google/{target_model} (Direct)",
+            "usage": {"total_tokens": "N/A (Direct)"},
+            "provider": "Google Direct"
+        }
+        
         return content
 
     def _generate_with_fallback(self, prompt: str, json_mode: bool = False, model: str = None, prefer_free: bool = True, min_context_needed: int = 32000, task_type: str = "default") -> str:
@@ -566,40 +575,43 @@ class Brain:
 
         # Fallback / Direct Gemini
         if self.gemini_api_key or self.gemini_client:
-            return self._call_gemini_with_retries(prompt, json_mode, model=model)
+            return self._call_gemini_with_tiered_fallback(prompt, json_mode)
         
         return ""
 
-    def _call_gemini_with_retries(self, prompt: str, json_mode: bool, model: str = None) -> str:
-        """Helper for Gemini with backoff retries."""
-        max_retries = 3
-        backoff = 5
-        for attempt in range(max_retries + 1):
+    def _call_gemini_with_tiered_fallback(self, prompt: str, json_mode: bool) -> str:
+        """
+        Helper for Gemini with tiered fallback: 
+        1. gemini-3-flash
+        2. gemini-2.5-flash
+        3. gemini-2.5-flash-lite
+        If a tier is exhausted (429), moves to the next model immediately.
+        """
+        last_error = None
+        for model_name in GEMINI_MODEL_TIERS:
             try:
-                result = self._call_gemini_fallback(prompt, json_mode=json_mode, model=model)
-                return result
+                return self._call_gemini_fallback(prompt, json_mode=json_mode, model=model_name)
             except Exception as e:
                 error_str = str(e)
                 if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
-                    if attempt < max_retries:
-                        import re
-                        wait_time = backoff
-                        match = re.search(r"retry in (\d+(\.\d+)?)s", error_str)
-                        if match:
-                            wait_time = float(match.group(1)) + 2.0
-                        logger.warning(f"Gemini 429. Retrying in {wait_time:.1f}s... ({attempt+1}/{max_retries})")
-                        time.sleep(wait_time)
-                        backoff *= 1.5
-                        continue
-                # Track failure before re-raising
-                self.last_run_details = {
-                    "model": "gemini-2.5-flash (FAILED)",
-                    "usage": {"total_tokens": "FAILED (Rate Limited)"},
-                    "provider": "Google Direct (FAILED)"
-                }
-                logger.error(f"Gemini Fallback completely failed: {e}")
-                raise e
-        return ""
+                    logger.warning(f"Gemini tier exhausted for {model_name}. Falling back to next model...")
+                    last_error = e
+                    continue
+                else:
+                    # For other errors, we might want to log and also try fallback or re-raise
+                    logger.error(f"Gemini call failed for {model_name} with non-429 error: {e}")
+                    last_error = e
+                    # Proceed to next model even on non-429 to be resilient
+                    continue
+        
+        # If all tiers failed
+        self.last_run_details = {
+            "model": "All Gemini Tiers (FAILED)",
+            "usage": {"total_tokens": "N/A"},
+            "provider": "Google Direct (FAILED)"
+        }
+        logger.error(f"All Gemini fallback tiers completely failed. Last error: {last_error}")
+        raise last_error if last_error else Exception("All Gemini tiers failed.")
     
     def analyze_news_batch(self, news_list, performance_context=None, insider_context=None, portfolio_context=None, macro_context=None, whale_context=None, market_regime_summary=None):
         """
