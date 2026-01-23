@@ -116,7 +116,10 @@ class Analyzer:
             
             # 4x. CRITIC CHECK (New)
             try:
-                critic_note = self.critic.critique_deep_dive(ticker, analysis_report, f"Market Regime: {regime}")
+                from economist import Economist
+                eco = Economist()
+                market_summary = eco.get_macro_summary()
+                critic_note = self.critic.critique_deep_dive(ticker, analysis_report, market_summary)
                 analysis_report += critic_note
             except Exception as e:
                 logger.error(f"Critic integration failed: {e}")

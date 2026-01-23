@@ -114,6 +114,7 @@ class Critic:
         2. **Narrative Strength**: Is this a "buy the rumor" noise or a structural trend change? 
         3. **Risk/Reward skew**: If the news is already trending, what is the 'exhaustion risk'?
         4. **Regime Alignment**: Does this trade match the current Market Regime (Bull/Bear/Neutral)?
+        5. **Market Hours Compliance**: Respect the [MARKET HOURS] status provided in the context. If it says 🟢 OPEN, the market IS open for trades. Do NOT hallucinate that it is closed.
         
         YOUR ROLE:
         - Don't just REJECT. Be DISCERNING.
@@ -253,6 +254,8 @@ class Critic:
         
         YOUR TASK:
         Review the report for quality, bias, and realistic risk assessment.
+        
+        **CRITICAL:** Respect the current Market Hours and Regime. Do not claim markets are closed if the context indicates otherwise.
         
         OUTPUT JSON ONLY:
         {{
