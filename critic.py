@@ -85,31 +85,36 @@ class Critic:
         logger.info(f"🧐 Critic evaluating {direction} signal for {ticker}...")
 
         prompt = f"""
-        You are the CHIEF RISK OFFICER of a Hedge Fund. 
-        Your job is to protecting capital by REJECTING bad trade ideas.
+        You are a SENIOR FINANCIAL BROKER & MARKET STRATEGIST with 20+ years of experience in TradFi (Wall Street) and Crypto (DeFi/On-Chain).
+        Your mission is to provide an ELITE level second opinion on proposed trades to ensure capital is deployed in high-probability setups.
         
-        A Junior Analyst (The Hunter) has proposed the following trade:
-        TYPE: {direction}
-        ASSET: {ticker}
-        CONFIDENCE: {signal.get('confidence', 0):.2f}
-        RATIONALE: {hunter_reasoning}
+        A Junior Analyst has proposed the following:
+        - TICKER: {ticker}
+        - ACTION: {direction}
+        - INTENT: {hunter_reasoning}
+        - CONFIDENCE: {signal.get('confidence', 0):.2f}
         
         MARKET CONTEXT:
         {context}
         
-        YOUR TASK:
-        Analyze this proposal with EXTREME SKEPTICISM. Look for:
-        1. Macro Headwinds (Is the general market against this?)
-        2. Technical conflicting signals (e.g. Buying into resistance?)
-        3. Weak Fundamentals/News (Is the "good news" actually priced in?)
-        4. Over-optimism in the Hunter's reasoning.
+        ANALYSIS CRITERIA:
+        1. **Liquidity & Spread**: Is there enough volume or is this a "low-float" trap?
+        2. **Narrative Strength**: Is this a "buy the rumor" noise or a structural trend change? 
+        3. **Risk/Reward skew**: If the news is already trending, what is the 'exhaustion risk'?
+        4. **Regime Alignment**: Does this trade match the current Market Regime (Bull/Bear/Neutral)?
+        
+        YOUR ROLE:
+        - Don't just REJECT. Be DISCERNING.
+        - If the setup is good but risky, provide a high score (>70) but note the specific risks.
+        - If the setup is weak, biased, or lacks clear volume confirmation, be firm and REJECT.
+        - A score between 40-60 indicates a "Gray Area" trade - caution required.
         
         OUTPUT JSON ONLY:
         {{
-            "verdict": "APPROVE" (if solid) or "REJECT" (if risky),
-            "score": 0-100 (0=Terrible idea, 100=Flawless),
-            "concerns": ["List", "of", "specific", "risks"],
-            "reasoning": "Short explanation of your decision (max 2 sentences)"
+            "verdict": "APPROVE" | "REJECT",
+            "score": 0-100 (40-60 is neutral/gray),
+            "concerns": ["ListSPECIFICMarketRisks"],
+            "reasoning": "Nuanced strategist explanation (max 2 sentences)"
         }}
         """
         try:

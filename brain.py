@@ -989,19 +989,34 @@ class Brain:
                     sig['critic_score'] = verdict_obj.score
                     sig['critic_reasoning'] = verdict_obj.reasoning
                     
-                    # Decision Logic
-                    if verdict_obj.verdict == "REJECT":
-                        logger.warning(f"⛔ CRITIC VETOED {sig['ticker']}: {verdict_obj.reasoning}")
-                        # Downgrade to HOLD
+                    # Decision Logic (BROKER UPGRADE - Nuanced Veto)
+                    # 1. Hard Veto: Strict REJECT with very low score
+                    if verdict_obj.verdict == "REJECT" and verdict_obj.score < 40:
+                        logger.warning(f"⛔ CRITIC HARD VETO {sig['ticker']}: {verdict_obj.reasoning}")
                         sig['sentiment'] = 'HOLD'
-                        # Heavily penalize confidence
-                        sig['confidence'] = max(0.1, float(sig.get('confidence', 0.5)) - 0.4)
-                        sig['reasoning'] += f"\n\n🛑 [CRITIC VETO]: {verdict_obj.reasoning}"
+                        sig['confidence'] = max(0.1, float(sig.get('confidence', 0.5)) - 0.5)
+                        sig['reasoning'] += f"\n\n🛑 [CRITIC HARD VETO]: {verdict_obj.reasoning}"
+                    
+                    # 2. Soft Veto: Gray Area (Score 40-60)
+                    elif verdict_obj.score <= 60:
+                        penalty = 0.25 # -25% confidence
+                        old_conf = float(sig.get('confidence', 0.5))
+                        sig['confidence'] = max(0.2, old_conf * (1 - penalty))
+                        logger.warning(f"⚠️ CRITIC SOFT VETO {sig['ticker']} (Score: {verdict_obj.score}): {verdict_obj.reasoning}")
+                        sig['reasoning'] += f"\n\n⚠️ [CRITIC CAUTION - {verdict_obj.score}/100]: {verdict_obj.reasoning}"
+                    
+                    # 3. Approval with Caveats (Score 61-80)
+                    elif verdict_obj.score <= 80:
+                        logger.info(f"⚖️ CRITIC CAUTIOUS APPROVAL {sig['ticker']} (Score: {verdict_obj.score})")
+                        sig['reasoning'] += f"\n\n🧐 [Broker Note]: {verdict_obj.reasoning}"
+                    
+                    # 4. Strong Approval (Score > 80)
                     else:
-                        logger.info(f"✅ CRITIC APPROVED {sig['ticker']} (Score: {verdict_obj.score})")
+                        logger.info(f"✅ CRITIC STRONG APPROVAL {sig['ticker']} (Score: {verdict_obj.score})")
                         # Slight Boost if score is perfect
                         if verdict_obj.score > 90:
                             sig['confidence'] = min(0.99, float(sig.get('confidence', 0.5)) + 0.05)
+                        sig['reasoning'] += f"\n\n🌟 [Broker Recommendation]: {verdict_obj.reasoning}"
                 
                 else:
                     # Skip Critic for low confidence
