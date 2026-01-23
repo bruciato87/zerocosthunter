@@ -21,10 +21,10 @@ logger = logging.getLogger(__name__)
 # OpenRouter Model Tier List (best quality first)
 # These are FREE models on OpenRouter, ordered by capability
 OPENROUTER_MODEL_TIERS = [
-    "google/gemini-2.0-flash-thinking-exp:free", # Strong Reasoner (Reliable)
-    "deepseek/deepseek-chat:free",           # Reliable V3
-    "google/gemini-2.5-flash:free",      # Fast, 1M context, Stable
-    "meta-llama/llama-3.3-70b-instruct:free", # Reliable, Good Context
+    "google/gemini-2.0-flash-thinking-exp:free", # Strong Reasoner
+    "google/gemini-2.0-flash-exp:free",        # Fast, Reliable
+    "meta-llama/llama-3.3-70b-instruct:free",  # Good Context
+    "deepseek/deepseek-chat:free",            # Reliable V3
 ]
 
 class Brain:
