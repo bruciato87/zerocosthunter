@@ -279,7 +279,7 @@ class Brain:
              pass
 
         logger.warning("OpenRouter: No verified high-context free models found via API. Using static fallback.")
-        return "google/gemini-2.5-flash:free"
+        return "google/gemini-2.0-flash-exp:free"
 
     def _call_openrouter(self, messages: list, temperature: float = 0.3, json_mode: bool = False, model: str = None, min_context_needed: int = 32000, task_type: str = "default") -> str:
         """
