@@ -578,6 +578,13 @@ async def run_async_pipeline():
     logger.info(f"Deduplicated News Items: {len(news_items)} -> {len(unique_news_items)}")
     # -----------------------------------------
 
+    # --- FETCH USER SETTINGS ---
+    # Moved up for L2 Regime Logic dependence
+    user_settings = db.get_settings()
+    min_conf = float(user_settings.get("min_confidence", 0.70))
+    only_portfolio = user_settings.get("only_portfolio", False)
+    logger.info(f"Smart Filters Active: Min Confidence={min_conf}, Only Portfolio={only_portfolio}")
+
     # --- L2 PREDICTIVE: MARKET REGIME ---
     # Adjust strategy aggressiveness based on market regime
     market_regime_data = None
@@ -629,14 +636,6 @@ async def run_async_pipeline():
 
     processed_count = 0
     
-    # 3.5 Fetch User Settings for Filtering
-    user_settings = db.get_settings()
-    min_conf = float(user_settings.get("min_confidence", 0.70))
-    only_portfolio = user_settings.get("only_portfolio", False)
-    logger.info(f"Smart Filters Active: Min Confidence={min_conf}, Only Portfolio={only_portfolio}")
-
-
-
     # 4. Process Predictions
     for pred in predictions:
         ticker = pred.get("ticker")

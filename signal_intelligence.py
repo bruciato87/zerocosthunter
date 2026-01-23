@@ -126,6 +126,8 @@ class SignalIntelligence:
         try:
             # Use centralized ticker resolver for self-learning cache
             yf_ticker = resolve_ticker(ticker)
+            if not yf_ticker:
+                 return {"alignment": 0, "multiplier": 1.0, "reason": "Ticker unresolvable/rejected"}
             
             data = yf.download(yf_ticker, period="60d", progress=False, auto_adjust=True)
             
@@ -239,6 +241,8 @@ class SignalIntelligence:
         try:
             # Use centralized ticker resolver
             yf_ticker = resolve_ticker(ticker)
+            if not yf_ticker:
+                return {"has_divergence": False, "type": None, "strength": 0, "confidence_boost": 1.0}
             
             data = yf.download(yf_ticker, period=f"{lookback_days + 14}d", progress=False, auto_adjust=True)
             
