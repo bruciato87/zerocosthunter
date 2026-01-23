@@ -267,11 +267,18 @@ class DBHandler:
     def get_cached_price(self, ticker: str, max_age_minutes: int = 15):
         """
         Fetch price from ticker_cache if it's fresh enough.
-        Used to drastically reduce Vercel CPU usage.
+        Safely handles cases where columns might be missing from the schema.
         """
         try:
             t_u = ticker.upper()
-            response = self.supabase.table("ticker_cache").select("last_price, last_price_at, is_crypto, currency").eq("user_ticker", t_u).execute()
+            # Wrap in try-except to handle partial schema deployments
+            try:
+                response = self.supabase.table("ticker_cache").select("last_price, last_price_at, is_crypto, currency").eq("user_ticker", t_u).execute()
+            except Exception as schema_err:
+                if "column" in str(schema_err) or "PGRST204" in str(schema_err):
+                    return None
+                raise schema_err
+
             if not response.data:
                 return None
             
@@ -289,11 +296,11 @@ class DBHandler:
                     }
             return None
         except Exception as e:
-            logger.warning(f"Error fetching cached price for {ticker}: {e}")
+            logger.debug(f"Cached price fetch skipped for {ticker} (schema or hit): {e}")
             return None
 
     def save_ticker_price(self, ticker: str, price: float, is_crypto: bool = False, currency: str = "USD"):
-        """Save discovered price to ticker_cache for persistence across Vercel instances."""
+        """Save discovered price to ticker_cache. Safely ignores missing columns."""
         try:
             t_u = ticker.upper()
             data = {
@@ -302,11 +309,17 @@ class DBHandler:
                 "last_price_at": datetime.utcnow().isoformat(),
                 "is_crypto": is_crypto,
                 "currency": currency,
-                "resolved_ticker": t_u # For safety
+                "resolved_ticker": t_u 
             }
-            self.supabase.table("ticker_cache").upsert(data, on_conflict="user_ticker").execute()
+            try:
+                self.supabase.table("ticker_cache").upsert(data, on_conflict="user_ticker").execute()
+            except Exception as schema_err:
+                if "column" in str(schema_err) or "PGRST204" in str(schema_err):
+                    # Gracefully skip if DB columns not ready
+                    return
+                raise schema_err
         except Exception as e:
-            logger.warning(f"Error saving ticker price for {ticker}: {e}")
+            logger.debug(f"Error saving ticker price for {ticker}: {e}")
 
     def update_asset_quantity(self, chat_id: int, ticker: str, new_quantity: float):
         """Manually update the quantity of a confirmed asset."""

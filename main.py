@@ -605,13 +605,15 @@ async def run_async_pipeline():
         # Adjust min_confidence based on regime
         original_min_conf = min_conf
         if recommendation == "aggressive" and regime in ["BULL", "ACCUMULATION"]:
-            min_conf = max(0.60, min_conf - 0.15)  # Much lower threshold in bull market (was 0.65)
+            min_conf = max(0.40, min_conf - 0.20)  # [VOLUME FIX] Lowered from 0.60
             logger.info(f"L2 Regime [{regime}]: Aggressive mode - min_conf {original_min_conf} -> {min_conf}")
         elif recommendation == "defensive" and regime in ["BEAR", "DISTRIBUTION"]:
-            min_conf = min(0.85, min_conf + 0.05)  # Higher threshold in bear market
+            min_conf = min(0.85, min_conf + 0.05)  
             logger.info(f"L2 Regime [{regime}]: Defensive mode - min_conf {original_min_conf} -> {min_conf}")
         else:
-            logger.info(f"L2 Regime [{regime}]: Normal mode ({regime_conf:.0%})")
+            # NEUTRAL: Lower slightly to catch evolving trends
+            min_conf = max(0.45, min_conf - 0.10)
+            logger.info(f"L2 Regime [{regime}]: Normal mode - min_conf {original_min_conf} -> {min_conf}")
     except Exception as e:
         logger.warning(f"L2 Market Regime failed: {e}")
 
@@ -692,9 +694,16 @@ async def run_async_pipeline():
             
             return False
         
-        if sentiment in ["SELL", "PANIC SELL", "HOLD", "ACCUMULATE"] and not is_owned(ticker, portfolio_map):
+        if sentiment in ["SELL", "PANIC SELL"] and not is_owned(ticker, portfolio_map):
             logger.warning(f"Skipped {ticker}: Ignored {sentiment} signal for unowned asset.")
             continue
+            
+        # [SIGNAL VOLUME] Allow HOLD and ACCUMULATE even if NOT owned.
+        # This treats them as 'Watchlist' or 'Strategic Hold' signals.
+        if sentiment in ["HOLD", "ACCUMULATE"] and not is_owned(ticker, portfolio_map):
+            logger.info(f"Watchlist Signal: {ticker} ({sentiment} @ {confidence:.2f}) - Asset not owned.")
+            # We proceed but we might want to tag it for the notifier
+            pred["is_watchlist"] = True
 
         # FILTER 4: Market Hours (Stock signals blocked when market closed)
         def is_crypto(t):
