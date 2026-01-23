@@ -547,7 +547,7 @@ class Rebalancer:
                         
                         # Update tracking for Gemini fallback
                         brain.last_run_details = {
-                            "model": "gemini-2.0-flash (Fallback)",
+                            "model": "gemini-2.5-flash (Fallback)",
                             "usage": {"total_tokens": "N/A"},
                             "provider": "Google Direct (Fallback)"
                         }
@@ -557,7 +557,7 @@ class Rebalancer:
                             from db_handler import DBHandler
                             db = DBHandler()
                             db.increment_api_counter("gemini_fallback")
-                            db.log_model_used("gemini-2.0-flash-fallback")
+                            db.log_model_used("gemini-2.5-flash-fallback")
                         except: pass
                     else:
                         logger.warning("Gemini fallback also returned empty")
