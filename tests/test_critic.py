@@ -54,7 +54,7 @@ def test_verify_unowned_asset_removal(mock_critic_deps, mocker):
     
     # Critic wraps modified strategy in a header. Check for inclusion.
     assert "🟢 ACCUMULATE BTC-USD" in result
-    assert "Broker Analysis" in result
+    assert "Expert Broker Review" in result
 
 def test_veto_buy_logic(mock_critic_deps, mocker):
     """Test that Critic prompt includes VETO instructions."""
@@ -75,5 +75,5 @@ def test_veto_buy_logic(mock_critic_deps, mocker):
     prompt_sent = kwargs.get('contents', args[1] if len(args) > 1 else "")
     
     assert "BEARISH" in str(prompt_sent)
-    assert "Broker Analysis" in result
+    assert "Expert Broker Review" in result
     assert "🚫 AVOID PEPE - Risk too high" in result
