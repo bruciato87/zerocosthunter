@@ -419,6 +419,13 @@ class Brain:
                                 continue
                     
                     
+                    if not content or not content.strip():
+                        self.last_run_details["repair_strategy"] = "failed_empty"
+                        logger.warning(f"OpenRouter model {current_model} returned empty content (200 OK). Treating as failure.")
+                        if attempt < max_retries - 1:
+                            excluded_models.append(current_model)
+                            continue
+                    
                     # Log Model Usage to Class State (Critical for Reporting)
                     self.last_run_details = {
                         "model": current_model,
