@@ -694,16 +694,9 @@ async def run_async_pipeline():
             
             return False
         
-        if sentiment in ["SELL", "PANIC SELL"] and not is_owned(ticker, portfolio_map):
+        if sentiment in ["SELL", "PANIC SELL", "HOLD", "ACCUMULATE"] and not is_owned(ticker, portfolio_map):
             logger.warning(f"Skipped {ticker}: Ignored {sentiment} signal for unowned asset.")
             continue
-            
-        # [SIGNAL VOLUME] Allow HOLD and ACCUMULATE even if NOT owned.
-        # This treats them as 'Watchlist' or 'Strategic Hold' signals.
-        if sentiment in ["HOLD", "ACCUMULATE"] and not is_owned(ticker, portfolio_map):
-            logger.info(f"Watchlist Signal: {ticker} ({sentiment} @ {confidence:.2f}) - Asset not owned.")
-            # We proceed but we might want to tag it for the notifier
-            pred["is_watchlist"] = True
 
         # FILTER 4: Market Hours (Stock signals blocked when market closed)
         def is_crypto(t):
