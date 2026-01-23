@@ -228,7 +228,8 @@ class Critic:
                 reasoning = data.get('broker_reasoning', '')
                 
                 # Standardize output: Always include the analysis note
-                return f"👮‍♂️ **Broker Analysis**: {reasoning}\n\n{revised.strip()}"
+                icon = "🌟" if was_mod else "🧐"
+                return f"{icon} **Expert Broker Review**: {reasoning}\n\n{revised.strip()}"
                 
             except json.JSONDecodeError:
                 logger.error(f"Critic rebalance returned invalid JSON: {response}")
