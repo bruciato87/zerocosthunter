@@ -143,6 +143,13 @@ class Critic:
                 clean_response = response.replace('```json', '').replace('```', '').strip()
                 data = json.loads(clean_response)
                 
+                # Handle cases where model returns a list containing the dict
+                if isinstance(data, list) and len(data) > 0:
+                    data = data[0]
+                
+                if not isinstance(data, dict):
+                    raise ValueError(f"Expected dict, got {type(data)}")
+
                 return CriticVerdict(
                     verdict=data.get('verdict', 'REJECT').upper(),
                     score=int(data.get('score', 50)),

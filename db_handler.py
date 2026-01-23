@@ -401,7 +401,17 @@ class DBHandler:
                 "critic_reasoning": critic_reasoning
             }
             
-            response = self.supabase.table("predictions").insert(data).execute()
+            try:
+                response = self.supabase.table("predictions").insert(data).execute()
+            except Exception as e:
+                # Handle missing column source_url (PGRST204)
+                if "source_url" in str(e) or "PGRST204" in str(e):
+                    logger.warning(f"DB mismatch for source_url, retrying without it...")
+                    data.pop("source_url", None)
+                    response = self.supabase.table("predictions").insert(data).execute()
+                else:
+                    raise e
+
             logger.info(f"Logged prediction for {ticker}: {sentiment}")
             return response.data[0]['id'] if response.data else None
         except Exception as e:
