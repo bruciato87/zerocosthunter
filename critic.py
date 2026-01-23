@@ -183,62 +183,64 @@ class Critic:
         3. GENERAL:
            - Ensure fees don't eat profits (Policy: Net Gain must justify €1 fee + 26% tax).
            
-        OUTPUT:
-        Return the FINAL STRATEGY text (Markdown).
-        - If the original is safe, return it exactly as is.
-        - If changes are needed, return the EDITED version.
-        - Maintain the exact formatting (🟢, 🔴, 🟡 bullet points).
-        - Do NOT add conversational filler like "Here is the revised strategy". Just the list.
+        OUTPUT JSON ONLY:
+        {{
+            "revised_strategy": "The full revised strategy text (Markdown)",
+            "was_modified": true | false,
+            "broker_reasoning": "A concise explanation of your risk assessment (max 1 sentence)"
+        }}
         """
         
         try:
             # Use our prioritized generator
-            response = self._generate_response(prompt, json_mode=False)
+            response = self._generate_response(prompt, json_mode=True)
             
             if not response:
-                return strategy_text # Fallback to original if AI fails
+                return strategy_text # Fallback to original
                 
-            # Log if changes were made
-            if response.strip() != strategy_text.strip():
-                logger.warning("⛔ CRITIC MODIFIED THE STRATEGY! (Risk Override Applied)")
-                logger.info(f"Original: {strategy_text[:50]}...")
-                logger.info(f"Revised: {response[:50]}...")
-                return f"\n\n👮‍♂️ **Risk Manager Update (Critic)**:\n{response.strip()}" # Return modified strategy with header
+            # Parse JSON
+            try:
+                clean_response = response.replace('```json', '').replace('```', '').strip()
+                data = json.loads(clean_response)
                 
-            return response.strip()
-            
+                revised = data.get('revised_strategy', strategy_text)
+                was_mod = data.get('was_modified', False)
+                reasoning = data.get('broker_reasoning', '')
+                
+                if was_mod or revised.strip() != strategy_text.strip():
+                    logger.warning("⛔ CRITIC MODIFIED THE STRATEGY! (Risk Override Applied)")
+                    return f"👮‍♂️ **Broker Analysis**: {reasoning}\n\n{revised.strip()}"
+                
+                return revised.strip()
+            except json.JSONDecodeError:
+                logger.error(f"Critic rebalance returned invalid JSON: {response}")
+                return strategy_text
+                
         except Exception as e:
             logger.error(f"Critic rebalance check failed: {e}")
-            return strategy_text # Fail open (allow original) if Critic breaks
+            return strategy_text 
 
     def critique_deep_dive(self, ticker: str, analysis_text: str, market_context: str) -> str:
         """
-        Critiques a Deep Dive Analysis report.
-        Ensures the tone matches the market context (e.g., checks for over-optimism in a Bear Market).
+        Critiques a Deep Dive Analysis report from an Expert Broker perspective.
         """
         prompt = f"""
-        You are the CHIEF RISK OFFICER of a Hedge Fund.
-        A Senior Analyst has submitted the following Deep Dive Report for {ticker}:
+        You are a SENIOR FINANCIAL BROKER with 20+ years of institutional experience.
+        You are reviewing a Deep Dive Report for {ticker}.
         
-        ---
+        REPORT CONTENT:
         {analysis_text}
-        ---
         
-        CURRENT MARKET REGIME: {market_context}
+        MARKET CONTEXT:
+        {market_context}
         
         YOUR TASK:
-        Review the report for "Irrational Exuberance" or dangerous omissions.
-        
-        RULES:
-        1. If the Market is BEARISH and the report is "Strong Buy" without mentioning risks -> FLAGGED.
-        2. If the Market is BULLISH and the report is "Sell" without strong catalyst -> FLAGGED.
-        3. If the report is balanced and accurate -> APPROVED.
+        Review the report for quality, bias, and realistic risk assessment.
         
         OUTPUT JSON ONLY:
         {{
             "verdict": "APPROVED" | "CAUTION" | "DANGEROUS",
-            "risk_score": 0-10 (0=Safe, 10=Extremely Risky),
-            "comment": "Short comment (max 15 words) visible to the user."
+            "broker_note": "A concise, professional one-sentence summary of your view (max 20 words)."
         }}
         """
         
@@ -254,17 +256,17 @@ class Critic:
             data = json.loads(clean_json)
             
             verdict = data.get("verdict", "APPROVED")
-            comment = data.get("comment", "")
+            reasoning = data.get("broker_note", "")
             
             icon = "✅"
             if verdict == "CAUTION": icon = "⚠️"
             if verdict == "DANGEROUS": icon = "🛑"
             
-            return f"\n\n{icon} **Risk Officer (Critic)**: {verdict}\n> {comment}"
+            return f"\n\n{icon} **Expert Broker Review**: {verdict}\n> {reasoning}"
             
         except Exception as e:
             logger.error(f"Critic deep dive failed: {e}")
-            return "\n\n⚠️ **Critic Unavailable** (System Error)"
+            return "\n\n⚠️ **Broker Review Unavailable**"
 
 if __name__ == "__main__":
     # Test

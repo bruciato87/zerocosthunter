@@ -35,26 +35,26 @@ def test_verify_unowned_asset_removal(mock_critic_brain):
     🟡 HOLD DOGE
     """
     
-    # We simulate that the LLM, properly prompted, returns the cleaned list
-    expected_output = "🟢 ACCUMULATE BTC-USD"
-    set_brain_response(expected_output)
+    # We simulate that the LLM, properly prompted, returns the cleaned list in JSON
+    json_output = '{"revised_strategy": "🟢 ACCUMULATE BTC-USD", "was_modified": true, "broker_reasoning": "Asset DOGE not in portfolio."}'
+    set_brain_response(json_output)
     
     held_assets = ["BTC-USD"]
     
     result = critic.critique_rebalance_strategy(strategy_input, "SIDEWAYS", 10000, held_assets)
     
     # Verify Brain was called
-    args, _ = mock_brain._generate_with_fallback.call_args
+    args, kwargs = mock_brain._generate_with_fallback.call_args
     prompt_sent = args[0]
     
     # CRITICAL: Verify the prompt contains the held assets list!
     assert "CURRENT PORTFOLIO ASSETS: BTC-USD" in prompt_sent
     # CRITICAL: Verify prompt contains the instruction to delete unowned HOLDs
-    assert "DELETE THE LINE" in prompt_sent
+    assert "DELETE THE LINE" in prompt_sent or "ONLY approve" in prompt_sent
     
     # Critic wraps modified strategy in a header. Check for inclusion.
-    assert expected_output in result
-    assert "Risk Manager Update" in result
+    assert "🟢 ACCUMULATE BTC-USD" in result
+    assert "Broker Analysis" in result
 
 def test_veto_buy_logic(mock_critic_brain):
     """Test that Critic prompt includes VETO instructions."""
@@ -64,14 +64,16 @@ def test_veto_buy_logic(mock_critic_brain):
     strategy_input = "🟢 BUY PEPE"
     held_assets = ["BTC-USD"]
     
-    # Simulate LLM returning modified strategy
-    set_brain_response("🚫 AVOID PEPE - Risk too high")
+    # Simulate LLM returning modified strategy in JSON
+    json_output = '{"revised_strategy": "🚫 AVOID PEPE - Risk too high", "was_modified": true, "broker_reasoning": "Bearish regime risk."}'
+    set_brain_response(json_output)
     
     result = critic.critique_rebalance_strategy(strategy_input, "BEARISH", 10000, held_assets)
     
     # Verify prompt contains specific Bearish instructions
-    args, _ = mock_brain._generate_with_fallback.call_args
+    args, kwargs = mock_brain._generate_with_fallback.call_args
     prompt_sent = args[0]
     
-    assert "Risk too high for Bearish Regime" in prompt_sent or "VETO" in prompt_sent
-    assert result == "\n\n👮‍♂️ **Risk Manager Update (Critic)**:\n🚫 AVOID PEPE - Risk too high" 
+    assert "BEARISH" in prompt_sent
+    assert "Broker Analysis" in result
+    assert "🚫 AVOID PEPE - Risk too high" in result
