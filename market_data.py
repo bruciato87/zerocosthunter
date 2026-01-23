@@ -137,6 +137,11 @@ class MarketData:
             
         return None
 
+    async def get_smart_price_eur_async(self, candidate_ticker, include_change=False):
+        """Async wrapper for smart price fetching to allow parallelization."""
+        import asyncio
+        return await asyncio.to_thread(self.get_smart_price_eur, candidate_ticker, include_change)
+
     def get_smart_price_eur(self, candidate_ticker, include_change=False):
         """
         Centralized Smart Pricing Logic (Single Source of Truth).
@@ -183,17 +188,34 @@ class MarketData:
 
         ticker_u = candidate_ticker.upper()
         
-        # [V11] Check DB ticker_cache for pre-resolved ticker
-        # This is the self-learning cache that remembers successful resolutions
+        # [V11] Check DB ticker_cache for persistent fresh price (OFFLOADS VERCEL CPU)
         try:
             from db_handler import DBHandler
             db = DBHandler()
+            
+            # First, try to get a persistent fresh price
+            persistent_cached = db.get_cached_price(ticker_u, max_age_minutes=15)
+            if persistent_cached:
+                price = persistent_cached["price"]
+                is_crypto = persistent_cached["is_crypto"]
+                currency = persistent_cached["currency"]
+                
+                # Convert if needed (stored as discovery result)
+                # Note: Cache store in EUR preferred for this app, but if stored in USD:
+                if currency == "USD":
+                    price = price / eur_usd_rate
+                
+                logger.info(f"Persistent Cache HIT: {ticker_u} -> €{price:.2f}")
+                self._price_cache[cache_key] = {'price': price, 'source': 'db_cache', 'change': 0.0, 'ts': time.time()}
+                return (price, 'db_cache', 0.0) if include_change else (price, 'db_cache')
+
+            # Fallback to Ticker Resolution Cache (Old logic)
             cached_ticker = db.get_ticker_cache(ticker_u)
             if cached_ticker:
                 resolved = cached_ticker.get("resolved_ticker")
                 is_crypto = cached_ticker.get("is_crypto", False)
                 currency = cached_ticker.get("currency", "USD")
-                logger.debug(f"Ticker cache HIT: {ticker_u} -> {resolved}")
+                logger.debug(f"Ticker resolution cache HIT: {ticker_u} -> {resolved}")
                 
                 # Fetch price for the cached resolved ticker
                 try:
@@ -209,13 +231,15 @@ class MarketData:
                         elif currency == "HKD":
                             price = price / (eur_usd_rate * 7.8)  # HKD/USD ~ 7.8
                         
+                        # Cache in persistent DB for future Vercel instances
+                        db.save_ticker_price(ticker_u, price, is_crypto=is_crypto, currency="EUR")
+                        
                         # Cache in memory
                         self._price_cache[cache_key] = {'price': price, 'source': resolved, 'change': change_pct, 'ts': time.time()}
                         return (*[price, resolved, change_pct], ) if include_change else (price, resolved)
                 except Exception as e:
-                    # Cache miss or stale, continue with discovery
                     db.increment_ticker_fail(ticker_u)
-                    logger.debug(f"Ticker cache MISS (fetch failed): {ticker_u} -> {resolved}")
+                    logger.debug(f"Ticker resolution cache MISS (fetch failed): {ticker_u} -> {resolved}")
         except:
             pass  # DB not available, continue without cache
         

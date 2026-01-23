@@ -251,19 +251,62 @@ class DBHandler:
             data = {
                 "user_ticker": t_u,
                 "fail_count": new_count,
-                "last_verified_at": "now()"
+                "last_verified_at": datetime.utcnow().isoformat()
             }
-            # Preserve existing resolved maps if any (unlikely for pure noise)
+            # Preserve existing resolved maps if any
             if current and "resolved_ticker" in current:
                  data["resolved_ticker"] = current["resolved_ticker"]
             else:
-                 # Default to self if new
                  data["resolved_ticker"] = t_u
 
             self.supabase.table("ticker_cache").upsert(data, on_conflict="user_ticker").execute()
             logger.info(f"Ticker Failure Registered: {t_u} -> Count {new_count}")
         except Exception as e:
             logger.warning(f"Failed to register ticker failure for {user_ticker}: {e}")
+
+    def get_cached_price(self, ticker: str, max_age_minutes: int = 15):
+        """
+        Fetch price from ticker_cache if it's fresh enough.
+        Used to drastically reduce Vercel CPU usage.
+        """
+        try:
+            t_u = ticker.upper()
+            response = self.supabase.table("ticker_cache").select("last_price, last_price_at, is_crypto, currency").eq("user_ticker", t_u).execute()
+            if not response.data:
+                return None
+            
+            data = response.data[0]
+            price = data.get("last_price")
+            updated_at_str = data.get("last_price_at")
+            
+            if price and updated_at_str:
+                updated_at = datetime.fromisoformat(updated_at_str.replace('Z', '+00:00'))
+                if datetime.now(updated_at.tzinfo) - updated_at < timedelta(minutes=max_age_minutes):
+                    return {
+                        "price": float(price),
+                        "is_crypto": data.get("is_crypto", False),
+                        "currency": data.get("currency", "USD")
+                    }
+            return None
+        except Exception as e:
+            logger.warning(f"Error fetching cached price for {ticker}: {e}")
+            return None
+
+    def save_ticker_price(self, ticker: str, price: float, is_crypto: bool = False, currency: str = "USD"):
+        """Save discovered price to ticker_cache for persistence across Vercel instances."""
+        try:
+            t_u = ticker.upper()
+            data = {
+                "user_ticker": t_u,
+                "last_price": price,
+                "last_price_at": datetime.utcnow().isoformat(),
+                "is_crypto": is_crypto,
+                "currency": currency,
+                "resolved_ticker": t_u # For safety
+            }
+            self.supabase.table("ticker_cache").upsert(data, on_conflict="user_ticker").execute()
+        except Exception as e:
+            logger.warning(f"Error saving ticker price for {ticker}: {e}")
 
     def update_asset_quantity(self, chat_id: int, ticker: str, new_quantity: float):
         """Manually update the quantity of a confirmed asset."""

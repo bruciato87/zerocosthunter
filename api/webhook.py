@@ -118,19 +118,17 @@ async def hunt_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     chat_id = update.effective_chat.id
     
-    # Get GitHub token from environment
     github_token = os.environ.get("GITHUB_TOKEN")
     github_repo = os.environ.get("GITHUB_REPO", "bruciato87/zerocosthunter")
-    
+
     if not github_token:
-        # Fallback: Try to run locally (will likely timeout)
-        logger.warning("GITHUB_TOKEN not set - falling back to inline execution (may timeout)")
-        await update.message.reply_text("🏹 **Caccia Iniziata!**\n⚠️ Esecuzione locale (potrebbe essere lenta)...")
-        try:
-            await run_async_pipeline()
-            await update.message.reply_text("✅ **Caccia Completata.**")
-        except Exception as e:
-            await update.message.reply_text(f"❌ **Errore:** {str(e)[:200]}")
+        # CRITICAL: Disable local fallback on Vercel to save CPU and avoid timeouts
+        logger.error("GITHUB_TOKEN not set - Cannot trigger remote hunt.")
+        await update.message.reply_text(
+            "❌ **Errore Configurazione:**\n"
+            "Manca il `GITHUB_TOKEN`. L'esecuzione locale è disabilitata per risparmiare risorse su Vercel.\n"
+            "Contatta l'amministratore per configurare i segreti di GitHub."
+        )
         return
     
     # Trigger GitHub Actions workflow
@@ -707,35 +705,36 @@ async def show_portfolio(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 
-    # Grouping Logic
-    grouped_assets = {"Crypto": [], "Stock": [], "ETF": [], "Other": []}
-    
-    for item in portfolio:
+    # --- Optimized Parallel Price Fetching (Vercel Fix) ---
+    async def fetch_item_data(item):
         ticker = item.get('ticker', 'N/A')
-        search = TICKER_FIX_MAP.get(ticker, ticker)
+        search_ticker = TICKER_FIX_MAP.get(ticker, ticker)
         qty = item.get('quantity', 0)
         curr_val = 0.0
         
-        if search and search != "UNKNOWN":
+        if search_ticker and search_ticker != "UNKNOWN":
             try:
-                 # Use Centralized MarketData Logic
-                 found_price, used_ticker = market.get_smart_price_eur(search)
-                 if found_price > 0:
-                      curr_val = qty * found_price
-                      # Update ticker display distinctively if mapped
-                      if used_ticker and used_ticker != search:
-                          ticker = f"{ticker}" # Keep original cleaner, maybe put suffix in details if debug needed
+                # Use Async MarketData Logic for parallelism
+                found_price, used_ticker = await market.get_smart_price_eur_async(search_ticker)
+                if found_price > 0:
+                    curr_val = qty * found_price
+                    # Note: used_ticker ignored for display to keep original cleaned ticker
             except Exception as e:
-                 logger.error(f"Price error for {search}: {e}")
+                logger.error(f"Price error for {search_ticker}: {e}")
         
-        total_val += curr_val
-        
+        return {**item, 'current_value': curr_val, 'display_ticker': ticker}
+
+    # Gather all prices in parallel
+    results = await asyncio.gather(*[fetch_item_data(item) for item in portfolio])
+    total_val = sum(res['current_value'] for res in results)
+
+    for res in results:
         # Determine Group
-        a_type = item.get('asset_type', 'Unknown')
+        a_type = res.get('asset_type', 'Unknown')
         if a_type not in grouped_assets:
-            grouped_assets["Other"].append({**item, 'current_value': curr_val, 'display_ticker': ticker})
+            grouped_assets["Other"].append(res)
         else:
-            grouped_assets[a_type].append({**item, 'current_value': curr_val, 'display_ticker': ticker})
+            grouped_assets[a_type].append(res)
 
     # Build Message with Headers and Sorting
     # Order of Categories
@@ -1428,7 +1427,7 @@ async def benchmark_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             except:
                 pass
         
-        report = bench.format_benchmark_report(period_days)
+        report = await bench.format_benchmark_report_async(period_days)
         await update.message.reply_text(report, parse_mode="Markdown")
         
     except Exception as e:
@@ -2073,9 +2072,11 @@ async def report_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         bench = Benchmark()
         db = DBHandler()
         
-        # Get benchmark comparison (7 days for weekly)
-        comparison = bench.compare_vs_benchmarks(7)
-        movers = bench.get_top_movers(5)
+        # Get benchmark comparison (7 days for weekly) in parallel
+        comparison_task = asyncio.to_thread(bench.compare_vs_benchmarks, 7)
+        movers_task = asyncio.to_thread(bench.get_top_movers, 5)
+        
+        comparison, movers = await asyncio.gather(comparison_task, movers_task)
         
         # Get recent signals (use correct column names)
         signals = db.supabase.table("signal_tracking") \

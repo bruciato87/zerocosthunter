@@ -29,6 +29,11 @@ class Benchmark:
         self.db = DBHandler()
         self.market = MarketData()
     
+    async def get_benchmark_performance_async(self, period_days: int = 30):
+        """Async version of benchmark performance fetch."""
+        import asyncio
+        return await asyncio.to_thread(self.get_benchmark_performance, period_days)
+
     def get_benchmark_performance(self, period_days: int = 30) -> Dict[str, Dict]:
         """
         Get performance of all benchmarks over a period.
@@ -224,6 +229,71 @@ class Benchmark:
             logger.error(f"Top movers calc failed: {e}")
             return {"gainers": [], "losers": []}
     
+    async def format_benchmark_report_async(self, period_days: int = 30) -> str:
+        """Async version of report generation with parallel fetching."""
+        import asyncio
+        
+        # 1. Fetch Benchmarks in parallel
+        # 2. Fetch Portfolio Performance (which uses market data cache)
+        # 3. Combine
+        
+        bench_task = self.get_benchmark_performance_async(period_days)
+        # Note: get_portfolio_performance is currently sync but market.get_smart_price_eur is cached
+        # Let's run it in thread to be safe
+        port_task = asyncio.to_thread(self.get_portfolio_performance, period_days)
+        
+        benchmarks, portfolio = await asyncio.gather(bench_task, port_task)
+        
+        if "error" in portfolio:
+            return f"⚠️ Errore: {portfolio['error']}"
+        
+        # Header
+        report = f"📊 **Performance Report** (Last {period_days} days)\n\n"
+        
+        # Portfolio Performance
+        port_return = portfolio.get("return_pct", 0)
+        port_value = portfolio.get("current_value", 0)
+        port_emoji = "🟢" if port_return >= 0 else "🔴"
+        
+        report += f"{port_emoji} **Il Tuo Portfolio:** {port_return:+.2f}%\n"
+        report += f"💰 Valore: €{port_value:,.2f}\n\n"
+        
+        # Benchmarks
+        report += "📈 **Benchmarks:**\n"
+        for name, data in benchmarks.items():
+            bench_return = data.get("return_pct", 0)
+            emoji = "🟢" if bench_return >= 0 else "🔴"
+            vs = "✅" if port_return > bench_return else "❌"
+            report += f"{emoji} {name}: {bench_return:+.2f}% {vs}\n"
+            
+        # Summary
+        beating = []
+        losing_to = []
+        for name, data in benchmarks.items():
+            if port_return > data.get("return_pct", 0):
+                beating.append(name)
+            else:
+                losing_to.append(name)
+        
+        report += "\n"
+        if beating:
+            report += f"🏆 **Batti:** {', '.join(beating)}\n"
+        if losing_to:
+            report += f"📉 **Perdi vs:** {', '.join(losing_to)}\n"
+            
+        # Top Movers (uses cache)
+        movers = self.get_top_movers(3)
+        if movers["gainers"]:
+            report += "\n🚀 **Top Gainers:**\n"
+            for g in movers["gainers"]:
+                report += f"  • {g['ticker']}: {g['pnl_pct']:+.1f}%\n"
+        if movers["losers"]:
+            report += "\n📉 **Top Losers:**\n"
+            for l in movers["losers"]:
+                report += f"  • {l['ticker']}: {l['pnl_pct']:+.1f}%\n"
+        
+        return report
+
     def format_benchmark_report(self, period_days: int = 30) -> str:
         """Generate formatted benchmark comparison report for Telegram."""
         comparison = self.compare_vs_benchmarks(period_days)
