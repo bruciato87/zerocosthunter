@@ -960,9 +960,10 @@ class Brain:
 
         for sig in signals:
             try:
-                # Only critique High Confidence (>=0.7) or strong BULLISH signals
-                # HOLD signals don't need risk management critique (they are already safe)
-                if sig.get('confidence', 0) >= 0.7 or sig.get('sentiment') in ['BUY', 'ACCUMULATE', 'STRONG BUY']:
+                # CRITIC TRIGGER POLICY:
+                # 1. Any signal that is NOT a SKIP
+                # 2. Confidence >= 0.40 (matches Hunter's new baseline)
+                if sig.get('sentiment') != 'SKIP' and sig.get('confidence', 0) >= 0.40:
                     
                     # Prepare Context string for Critic (Extract from signal)
                     signal_context = f"""
