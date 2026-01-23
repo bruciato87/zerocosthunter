@@ -78,10 +78,7 @@ class Critic:
         direction = signal.get('direction', 'HOLD')
         hunter_reasoning = signal.get('reasoning', '')
         
-        # Skip critique for HOLD signals (already safe)
-        if direction == "HOLD":
-            return CriticVerdict("APPROVE", 100, [], "Signal is HOLD, no risk to capital.")
-
+        # Broker should now evaluate all signals, including HOLD
         logger.info(f"🧐 Critic evaluating {direction} signal for {ticker}...")
 
         prompt = f"""
@@ -143,7 +140,7 @@ class Critic:
                 
         except Exception as e:
             logger.error(f"Critic execution failed: {e}")
-            return CriticVerdict("APPROVE", 50, ["Critic Offline"], f"Critic check failed ({e}). Defaulting to cautious approval.")
+            return CriticVerdict("APPROVE", 60, ["AI Connectivity"], "The Expert Broker is currently unavailable. Proceed with caution.")
 
     def critique_rebalance_strategy(self, strategy_text: str, regime: str, portfolio_value: float, held_assets: List[str] = []) -> str:
         """
@@ -207,11 +204,9 @@ class Critic:
                 was_mod = data.get('was_modified', False)
                 reasoning = data.get('broker_reasoning', '')
                 
-                if was_mod or revised.strip() != strategy_text.strip():
-                    logger.warning("⛔ CRITIC MODIFIED THE STRATEGY! (Risk Override Applied)")
-                    return f"👮‍♂️ **Broker Analysis**: {reasoning}\n\n{revised.strip()}"
+                # Standardize output: Always include the analysis note
+                return f"👮‍♂️ **Broker Analysis**: {reasoning}\n\n{revised.strip()}"
                 
-                return revised.strip()
             except json.JSONDecodeError:
                 logger.error(f"Critic rebalance returned invalid JSON: {response}")
                 return strategy_text

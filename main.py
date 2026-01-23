@@ -1016,11 +1016,16 @@ async def run_async_pipeline():
         if take_profit:
             prophet_badge += f"\n💰 **Take Profit:** €{take_profit}"
 
+        critic_formatted = ""
+        if critic_reasoning:
+            c_icon = "🌟" if (critic_score or 0) > 80 else "🧐" if (critic_score or 0) > 60 else "⚠️" if (critic_score or 0) >= 40 else "🛑"
+            critic_formatted = f"\n\n{c_icon} **Expert Broker Review**: {critic_reasoning}"
+
         alert_msg = (
             f"{icon} **Signal Detected: {ticker} ({asset_type})**\n"
             f"**Action:** {sentiment}\n"
             f"**Confidence:** {int(confidence * 100)}%{prophet_badge}\n\n"
-            f"**Reasoning:** {reasoning}\n"
+            f"**Reasoning:** {reasoning}{critic_formatted}\n"
             f"**Source:** {source}"
         )
         
