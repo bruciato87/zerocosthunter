@@ -49,9 +49,9 @@ def mock_requests(mocker):
     return mock
 
 @pytest.fixture
-def mock_market_deps(mock_yfinance, mock_requests, mocker):
+def mock_market_deps(mock_yfinance, mock_requests, mock_db, mocker):
     """Setup MarketData dependencies."""
-    return mock_yfinance
+    return mock_yfinance, mock_requests, mock_db
 
 @pytest.fixture
 def mock_brain(mocker):

@@ -16,7 +16,8 @@ def test_smart_price_eur(mock_market_deps):
     md = MarketData()
     price, found_ticker = md.get_smart_price_eur("BTC-USD")
     assert isinstance(price, float)
-    assert found_ticker == "BTC-USD" 
+    # MarketData prefers EUR pairs (BTC-EUR) if available
+    assert found_ticker == "BTC-EUR" 
 
 def test_get_current_price_failure(mocker, mock_requests):
     """Test failure handling when yfinance raises exception."""
