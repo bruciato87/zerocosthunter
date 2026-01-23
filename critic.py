@@ -20,9 +20,48 @@ class Critic:
     """
     
     def __init__(self):
-        self.model = "google/gemini-2.0-flash-exp:free" # Use OpenRouter ID
-        # Fallback to Llama 3 if Gemini fails
-        self.fallback_model = "meta-llama/llama-3.3-70b-instruct:free"
+        # Model IDs
+        self.gemini_model = "gemini-2.0-flash" 
+        self.openrouter_model = "google/gemini-2.0-flash-exp:free"
+        
+        # Initialize direct Gemini client if key available (Primary)
+        self.gemini_api_key = os.environ.get("GEMINI_API_KEY")
+        if self.gemini_api_key:
+            from google import genai
+            self.gemini_client = genai.Client(api_key=self.gemini_api_key)
+        else:
+            self.gemini_client = None
+
+    def _generate_response(self, prompt: str, json_mode: bool = False) -> Optional[str]:
+        """Tries Gemini first, then OpenRouter fallback."""
+        # 1. Try Direct Gemini (Primary)
+        if self.gemini_client:
+            try:
+                from google.genai import types
+                logger.info(f"🧐 Critic using Primary: Gemini ({self.gemini_model})")
+                config = {}
+                if json_mode:
+                    config = types.GenerateContentConfig(response_mime_type="application/json")
+                
+                response = self.gemini_client.models.generate_content(
+                    model=self.gemini_model,
+                    contents=prompt,
+                    config=config
+                )
+                if response and response.text:
+                    return response.text
+            except Exception as e:
+                logger.warning(f"Critic Primary (Gemini) failed: {e}. Falling back to OpenRouter...")
+
+        # 2. Try OpenRouter (Fallback)
+        try:
+            from brain import Brain
+            brain = Brain()
+            logger.info(f"🧐 Critic using Fallback: OpenRouter ({self.openrouter_model})")
+            return brain._generate_with_fallback(prompt, model=self.openrouter_model, prefer_free=True, json_mode=json_mode)
+        except Exception as e:
+            logger.error(f"Critic Fallback (OpenRouter) failed: {e}")
+            return None
 
     def critique_signal(self, signal: Dict, context: str) -> CriticVerdict:
         """
@@ -73,14 +112,11 @@ class Critic:
             "reasoning": "Short explanation of your decision (max 2 sentences)"
         }}
         """
-        
         try:
-            from brain import Brain
-            brain = Brain()
-            # We use a lower temperature for the Critic to be consistent and analytical
-            # We use a lower temperature for the Critic to be consistent and analytical
-            # Note: _generate_with_fallback handles model selection. We pass prefer_free=True.
-            response = brain._generate_with_fallback(prompt, model=self.model, prefer_free=True, json_mode=True)
+            # Use our prioritized generator
+            response = self._generate_response(prompt, json_mode=True)
+            if not response:
+                raise Exception("All Critic AI models failed.")
             
             # Parse JSON
             try:
@@ -151,10 +187,8 @@ class Critic:
         """
         
         try:
-            from brain import Brain
-            brain = Brain()
-            # Use a smart model for this logic check
-            response = brain._generate_with_fallback(prompt, model=self.model, prefer_free=True, json_mode=False)
+            # Use our prioritized generator
+            response = self._generate_response(prompt, json_mode=False)
             
             if not response:
                 return strategy_text # Fallback to original if AI fails
@@ -204,9 +238,8 @@ class Critic:
         """
         
         try:
-            from brain import Brain
-            brain = Brain()
-            response = brain._generate_with_fallback(prompt, model=self.model, prefer_free=True, json_mode=True)
+            # Use our prioritized generator
+            response = self._generate_response(prompt, json_mode=True)
             
             import json
             import re
