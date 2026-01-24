@@ -50,10 +50,14 @@ class TelegramNotifier:
                 except Exception:
                     try:
                         # Attempt 2: HTML (often more robust for AI text)
-                        # We convert **bold** and `code` to HTML equivalents
+                        # We convert **bold** and `code` to HTML equivalents using regex for pairs
                         import re
-                        html_msg = message.replace("**", "<b>").replace("__", "<i>").replace("`", "<code>")
-                        # (Crude replacement, but covers most AI cases)
+                        html_msg = message
+                        # Bold: **text** -> <b>text</b>
+                        html_msg = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', html_msg)
+                        # Code: `text` -> <code>text</code>
+                        html_msg = re.sub(r'`(.*?)`', r'<code>\1</code>', html_msg)
+                        
                         await bot.send_message(chat_id=chat_id, text=html_msg, parse_mode='HTML')
                         logger.info(f"Telegram message sent to {chat_id} (HTML Fallback).")
                     except Exception as html_err:
