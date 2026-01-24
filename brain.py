@@ -72,11 +72,7 @@ class Brain:
         else:
             logger.warning(f"Brain initialized: OpenRouter=❌ (no API key), Gemini={'✅' if self.gemini_api_key else '❌'}")
             
-        # Initialize Critic
-        self.critic = Critic()
-            
-        # Initialize Critic
-        self.critic = Critic()
+        self.critic = Critic(brain_instance=self)
         # Initialize Council (Phase C)
         self.council = Council(brain_instance=self)
 
@@ -541,49 +537,43 @@ class Brain:
         
         return content
 
-    def _generate_with_fallback(self, prompt: str, json_mode: bool = False, model: str = None, prefer_free: bool = True, min_context_needed: int = 32000, task_type: str = "default") -> str:
+    def _generate_with_fallback(self, prompt: str, json_mode: bool = False, model: str = None, prefer_free: bool = True, min_context_needed: int = 32000, task_type: str = "default", prefer_direct: bool = False) -> str:
         """
         Smart AI generation with automatic fallback.
         
-        Flow:
-        1. Try OpenRouter with best free model
-        2. If rate limited, try next model in tier list
-        3. If all OpenRouter fails, try direct Gemini API
-        
         Args:
-            task_type: Type of task (hunt/analyze/rebalance/sentiment) for smart model selection.
-        Versatile generation:
-        1. Try OpenRouter (if API Key exists AND mode != PREPROD)
-        2. Fallback to Gemini Direct (if configured)
+            prefer_direct: If True, tries Gemini Direct (Tiered) BEFORE OpenRouter.
+                           Used for high-stakes agents like Council and Critic.
         """
-        
-        # --- MODE CHECK ---
-        # If PREPROD, force Gemini (skip OpenRouter)
+        # If PREPROD, force Gemini Direct
         force_gemini = (self.app_mode == "PREPROD")
         
-        if self.openrouter_api_key and not force_gemini:
-             # Regular Hybrid Flow
+        if (prefer_direct or force_gemini) and (self.gemini_api_key or self.gemini_client):
+            try:
+                return self._call_gemini_with_tiered_fallback(prompt, json_mode)
+            except Exception as e:
+                logger.warning(f"Priority Gemini Direct failed, falling back to OpenRouter: {e}")
+                # Don't return here, continue to OpenRouter
+
+        # Try OpenRouter
+        if self.openrouter_api_key:
              try:
-                 # Logic for OpenRouter Call with task-aware model selection
-                 logger.info(f"OpenRouter call with task_type: {task_type}")
                  return self._call_openrouter([{"role": "user", "content": prompt}], json_mode=json_mode, model=model, min_context_needed=min_context_needed, task_type=task_type)
              except Exception as e:
-                 logger.warning(f"OpenRouter failed, falling back: {e}")
-        elif force_gemini:
-             logger.info("🔧 PREPROD MODE: Skipping OpenRouter, forcing Gemini Direct.")
-
-        # Fallback / Direct Gemini
-        if self.gemini_api_key or self.gemini_client:
-            return self._call_gemini_with_tiered_fallback(prompt, json_mode)
+                 logger.warning(f"OpenRouter failed: {e}")
+                 # Fallback to Gemini if it wasn't already tried as priority
+                 if not (prefer_direct or force_gemini) and (self.gemini_api_key or self.gemini_client):
+                     return self._call_gemini_with_tiered_fallback(prompt, json_mode)
         
-        return ""
+        # Final Fallback (if everything else failed or OpenRouter key missing)
+        if not (prefer_direct or force_gemini) and (self.gemini_api_key or self.gemini_client):
+            return self._call_gemini_with_tiered_fallback(prompt, json_mode)
+            
+        raise Exception("AI Generation Failed: No valid provider/model succeeded.")
 
     def _call_gemini_with_tiered_fallback(self, prompt: str, json_mode: bool) -> str:
         """
-        Helper for Gemini with tiered fallback: 
-        1. gemini-3-flash
-        2. gemini-2.5-flash
-        3. gemini-2.5-flash-lite
+        Helper for Gemini with tiered fallback.
         If a tier is exhausted (429), moves to the next model immediately.
         """
         last_error = None
@@ -593,23 +583,13 @@ class Brain:
             except Exception as e:
                 error_str = str(e)
                 if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
-                    logger.warning(f"Gemini tier exhausted for {model_name}. Falling back to next model...")
+                    logger.warning(f"Gemini tier exhausted for {model_name}. Trying next...")
                     last_error = e
-                    continue
                 else:
-                    # For other errors, we might want to log and also try fallback or re-raise
-                    logger.error(f"Gemini call failed for {model_name} with non-429 error: {e}")
+                    logger.error(f"Gemini {model_name} failed with non-429 error: {e}")
                     last_error = e
-                    # Proceed to next model even on non-429 to be resilient
-                    continue
+                continue
         
-        # If all tiers failed
-        self.last_run_details = {
-            "model": "All Gemini Tiers (FAILED)",
-            "usage": {"total_tokens": "N/A"},
-            "provider": "Google Direct (FAILED)"
-        }
-        logger.error(f"All Gemini fallback tiers completely failed. Last error: {last_error}")
         raise last_error if last_error else Exception("All Gemini tiers failed.")
     
     def analyze_news_batch(self, news_list, performance_context=None, insider_context=None, portfolio_context=None, macro_context=None, whale_context=None, market_regime_summary=None, social_context=None, onchain_context=None):

@@ -19,63 +19,29 @@ class Critic:
     Acts as a conservative Risk Manager, actively looking for reasons NOT to trade.
     """
     
-    def __init__(self):
-        # Model IDs
-        from brain import GEMINI_MODEL_TIERS
-        self.gemini_tiers = GEMINI_MODEL_TIERS
-        self.openrouter_model = "google/gemini-2.0-flash-exp:free"
-        
-        # Initialize direct Gemini client if key available (Primary)
-        self.gemini_api_key = os.environ.get("GEMINI_API_KEY")
-        if self.gemini_api_key:
-            from google import genai
-            self.gemini_client = genai.Client(api_key=self.gemini_api_key)
-        else:
-            self.gemini_client = None
+    def __init__(self, brain_instance=None):
+        self.brain = brain_instance
+
+    def _get_brain(self):
+        """Lazy load Brain to avoid circular imports if brain_instance is missing."""
+        if self.brain:
+            return self.brain
+        from brain import Brain
+        self.brain = Brain()
+        return self.brain
 
     def _generate_response(self, prompt: str, json_mode: bool = False) -> Optional[str]:
-        """Tries Gemini first, then OpenRouter fallback."""
-        # 1. Try Direct Gemini Tiers (Primary)
-        if self.gemini_client:
-            from google.genai import types
-            for model_name in self.gemini_tiers:
-                try:
-                    logger.info(f"🧐 Critic trying tiered Gemini: {model_name}")
-                    config = types.GenerateContentConfig(temperature=0.3)
-                    if json_mode:
-                        config = types.GenerateContentConfig(
-                            response_mime_type="application/json",
-                            temperature=0.3
-                        )
-                    
-                    response = self.gemini_client.models.generate_content(
-                        model=model_name,
-                        contents=prompt,
-                        config=config
-                    )
-                    
-                    if response and response.text:
-                        logger.info(f"🧐 Critic success with {model_name}")
-                        return response.text
-                except Exception as e:
-                    error_str = str(e)
-                    if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
-                        logger.warning(f"Critic tier exhausted for {model_name}. Trying next...")
-                        continue
-                    else:
-                        logger.warning(f"Critic Gemini {model_name} failed: {e}")
-                        continue
-            
-            logger.warning("Critic: All Gemini tiers exhausted/failed. Falling back to OpenRouter...")
-
-        # 2. Try OpenRouter (Fallback)
+        """Delegates to Brain with Direct-First priority."""
         try:
-            from brain import Brain
-            brain = Brain()
-            logger.info(f"🧐 Critic using Fallback: OpenRouter ({self.openrouter_model})")
-            return brain._generate_with_fallback(prompt, model=self.openrouter_model, prefer_free=True, json_mode=json_mode)
+            brain = self._get_brain()
+            return brain._generate_with_fallback(
+                prompt, 
+                json_mode=json_mode, 
+                prefer_direct=True, 
+                task_type="default"
+            )
         except Exception as e:
-            logger.error(f"Critic Fallback (OpenRouter) failed: {e}")
+            logger.error(f"Critic generation failed via Brain: {e}")
             return None
 
     def critique_signal(self, signal: Dict, context: str) -> CriticVerdict:

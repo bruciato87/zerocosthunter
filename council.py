@@ -51,7 +51,7 @@ class Council:
             try:
                 prompt = self._build_persona_prompt(ticker, profile, initial_signal)
                 # Call brain with specific persona instruction
-                response = self.brain._generate_with_fallback(prompt, json_mode=True, task_type="analyze")
+                response = self.brain._generate_with_fallback(prompt, json_mode=True, task_type="analyze", prefer_direct=True)
                 
                 # Simple parsing of persona output
                 persona_data = json.loads(response)
