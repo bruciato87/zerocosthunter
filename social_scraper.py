@@ -31,29 +31,38 @@ class SocialScraper:
 
     def get_reddit_trending(self) -> Dict[str, int]:
         """
-        Scrapes Reddit subreddits via public .json endpoints.
+        Scrapes Reddit subreddits via public .json endpoints or .rss fallback.
         Returns a map of ticker -> mention_count.
         """
         trending = {}
         for sub in self.SUBREDDITS:
             logger.info(f"🔍 Scraping r/{sub}...")
+            content = ""
             try:
+                # 1. Try JSON endpoint (Preferred)
                 url = f"https://www.reddit.com/r/{sub}/hot.json?limit=50"
                 resp = self.session.get(url, timeout=10)
-                if resp.status_code != 200:
-                    # [PHASE C.4] Elevating to ERROR as requested - this is a system failure
-                    logger.error(f"❌ Failed to scrape r/{sub}: {resp.status_code} Forbidden (Reddit blocked us)")
-                    continue
                 
-                data = resp.json()
-                for post in data.get("data", {}).get("children", []):
-                    post_data = post.get("data", {})
-                    title = post_data.get("title", "")
-                    content = post_data.get("selftext", "")
-                    
-                    combined = f"{title} {content}"
-                    found_tickers = self.TICKER_PATTERN.findall(combined)
-                    
+                if resp.status_code == 200:
+                    data = resp.json()
+                    for post in data.get("data", {}).get("children", []):
+                        p_data = post.get("data", {})
+                        content += f" {p_data.get('title', '')} {p_data.get('selftext', '')}"
+                
+                # 2. Try RSS Fallback if JSON blocked or empty
+                elif resp.status_code == 403 or resp.status_code == 429:
+                    logger.warning(f"⚠️ JSON blocked (403/429) for r/{sub}, trying RSS fallback...")
+                    rss_url = f"https://www.reddit.com/r/{sub}/.rss"
+                    rss_resp = self.session.get(rss_url, timeout=10)
+                    if rss_resp.status_code == 200:
+                        content = rss_resp.text
+                    else:
+                        logger.error(f"❌ RSS also failed for r/{sub}: {rss_resp.status_code}")
+                else:
+                    logger.error(f"❌ Failed to scrape r/{sub}: {resp.status_code}")
+                
+                if content:
+                    found_tickers = self.TICKER_PATTERN.findall(content)
                     for ticker in set(found_tickers):
                         if ticker not in self.BLACKLIST:
                             trending[ticker] = trending.get(ticker, 0) + 1

@@ -305,19 +305,29 @@ class DBHandler:
             t_u = ticker.upper()
             data = {
                 "user_ticker": t_u,
-                "last_price": price,
+                "last_price": float(price),
                 "last_price_at": datetime.utcnow().isoformat(),
                 "is_crypto": is_crypto,
                 "currency": currency,
                 "resolved_ticker": t_u 
             }
             try:
+                # Use a specific select check or just try-catch the PGRST204
                 self.supabase.table("ticker_cache").upsert(data, on_conflict="user_ticker").execute()
             except Exception as schema_err:
-                if "column" in str(schema_err) or "PGRST204" in str(schema_err):
-                    # Gracefully skip if DB columns not ready
-                    return
-                raise schema_err
+                msg = str(schema_err)
+                if "column" in msg or "PGRST204" in msg or "not found" in msg:
+                    # If last_price or last_price_at fail, try basic upsert without them
+                    logger.debug(f"Schema mismatch for ticker_cache columns, retrying basic upsert: {msg}")
+                    basic_data = {
+                        "user_ticker": t_u,
+                        "resolved_ticker": t_u,
+                        "is_crypto": is_crypto,
+                        "currency": currency
+                    }
+                    self.supabase.table("ticker_cache").upsert(basic_data, on_conflict="user_ticker").execute()
+                else:
+                    raise schema_err
         except Exception as e:
             logger.debug(f"Error saving ticker price for {ticker}: {e}")
 
