@@ -19,8 +19,14 @@ class SocialScraper:
 
     def __init__(self):
         self.session = requests.Session()
+        # Enhanced headers to avoid 403 Forbidden
         self.session.headers.update({
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "application/json, text/plain, */*",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Referer": "https://www.reddit.com/",
+            "Origin": "https://www.reddit.com",
+            "DNT": "1"
         })
 
     def get_reddit_trending(self) -> Dict[str, int]:
@@ -35,7 +41,8 @@ class SocialScraper:
                 url = f"https://www.reddit.com/r/{sub}/hot.json?limit=50"
                 resp = self.session.get(url, timeout=10)
                 if resp.status_code != 200:
-                    logger.warning(f"⚠️ Failed to scrape r/{sub}: {resp.status_code}")
+                    # [PHASE C.4] Elevating to ERROR as requested - this is a system failure
+                    logger.error(f"❌ Failed to scrape r/{sub}: {resp.status_code} Forbidden (Reddit blocked us)")
                     continue
                 
                 data = resp.json()
