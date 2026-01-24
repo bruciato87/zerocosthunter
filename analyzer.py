@@ -196,10 +196,10 @@ class Analyzer:
 if __name__ == "__main__":
     # Input from Environment Variables (set by GitHub Action)
     target_ticker = os.environ.get("TARGET_TICKER")
-    target_chat = os.environ.get("TARGET_CHAT_ID")
+    target_chat = os.environ.get("TARGET_CHAT_ID") or os.environ.get("TELEGRAM_CHAT_ID")
     
     if not target_ticker or not target_chat:
-        logger.error("Missing TARGET_TICKER or TARGET_CHAT_ID env vars")
+        logger.error("Missing TARGET_TICKER or TARGET_CHAT_ID/TELEGRAM_CHAT_ID env vars")
         sys.exit(1)
         
     analyzer = Analyzer()
