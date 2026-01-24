@@ -529,9 +529,19 @@ class Brain:
         logger.info(f"Gemini call successful with {target_model}")
         
         # Track detail for status
+        usage = {"total_tokens": "N/A (Direct)"}
+        try:
+            if hasattr(response, 'usage_metadata'):
+                usage = {
+                    "total_tokens": response.usage_metadata.total_token_count,
+                    "prompt_tokens": response.usage_metadata.prompt_token_count,
+                    "candidates_tokens": response.usage_metadata.candidates_token_count
+                }
+        except: pass
+
         self.last_run_details = {
             "model": f"google/{target_model} (Direct)",
-            "usage": {"total_tokens": "N/A (Direct)"},
+            "usage": usage,
             "provider": "Google Direct"
         }
         
