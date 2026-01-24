@@ -751,6 +751,7 @@ class Rebalancer:
             
             report += "🎯 **PIANO D'AZIONE (Hybrid AI Strategy):**\n"
             report += ai_strategy_safe + "\n\n"
+            fallback_used = False
         else:
             # AI failed - generate fallback recommendations from rules
             logger.warning("AI Strategy returned None - using rule-based fallback")
@@ -760,8 +761,10 @@ class Rebalancer:
                 for s in suggestions[:3]:
                     report += f"{s}\n"
                 report += "\n"
+                fallback_used = True
             else:
                 report += "🎯 **PIANO D'AZIONE:** Portfolio bilanciato, nessuna azione richiesta.\n\n"
+                fallback_used = True
         
         # Sector allocation (compact)
         report += "📈 **Allocazione Settori:**\n"
@@ -779,11 +782,12 @@ class Rebalancer:
             report += f"  {pnl_emoji} **{asset['ticker']}**: €{asset['value']:.0f} ({asset['allocation']:.1f}%) | {asset['pnl_pct']:+.1f}%\n"
         
         # Rule-based suggestions (secondary)
-        suggestions = self.generate_rebalance_suggestions(analysis)
-        if suggestions and suggestions[0] != "✅ Portfolio is well-balanced. No rebalancing needed.":
-            report += "\n💡 **Note Aggiuntive:**\n"
-            for s in suggestions[:3]:  # Max 3
-                report += f"{s}\n"
+        if not fallback_used:
+            suggestions = self.generate_rebalance_suggestions(analysis)
+            if suggestions and suggestions[0] != "✅ Portfolio is well-balanced. No rebalancing needed.":
+                report += "\n💡 **Note Aggiuntive:**\n"
+                for s in suggestions[:3]:  # Max 3
+                    report += f"{s}\n"
         
         report += "\n" + "━" * 28
         report += f"\n_Generato: {datetime.now().strftime('%Y-%m-%d %H:%M')}_"

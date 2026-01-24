@@ -27,9 +27,9 @@ OPENROUTER_MODEL_TIERS = [
 # Gemini Model Tier List (Fallback sequence)
 # Priority: High performance → Reliable Fallback
 GEMINI_MODEL_TIERS = [
-    "gemini-2.0-flash",    # 1500 RPM
-    "gemini-1.5-flash",    # 1500 RPM
-    "gemini-1.5-flash-8b"  # Fast Fallback
+    "gemini-2.0-flash",    # 1500 RPM (High Performance)
+    "gemini-2.0-flash-lite", # Cost Effective Fallback
+    "gemini-flash-latest"   # General Fallback
 ]
 
 class Brain:
