@@ -90,6 +90,6 @@ def test_gemini_tiered_fallback(mock_brain_deps, mocker):
     assert mock_gen_content.call_count == 3
     # Check that it called with different models (optional but good)
     calls = mock_gen_content.call_args_list
-    assert calls[0].kwargs['model'] == "gemini-3-flash"
-    assert calls[1].kwargs['model'] == "gemini-2.5-flash"
-    assert calls[2].kwargs['model'] == "gemini-2.5-flash-lite"
+    assert calls[0].kwargs['model'] == "gemini-2.0-flash"
+    assert calls[1].kwargs['model'] == "gemini-2.0-flash-lite"
+    assert calls[2].kwargs['model'] == "gemini-flash-latest"
