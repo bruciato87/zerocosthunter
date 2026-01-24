@@ -682,9 +682,11 @@ async def run_async_pipeline():
         risk_score = pred.get("risk_score", 5)  # Default medium risk
         
         # Critic Fields
-        critic_verdict = pred.get("critic_verdict")
-        critic_score = pred.get("critic_score")
         critic_reasoning = pred.get("critic_reasoning")
+        
+        # [PHASE C.3] Council Summary extraction
+        council_summary = pred.get("council_summary")
+        is_council_verified = pred.get("is_council_verified", False)
 
         if not ticker: 
             continue
@@ -1046,16 +1048,24 @@ async def run_async_pipeline():
         if take_profit:
             prophet_badge += f"\n💰 **Take Profit:** €{take_profit}"
 
-        critic_formatted = ""
-        if critic_reasoning:
+        expert_review = ""
+        if critic_reasoning or council_summary:
             c_icon = "🌟" if (critic_score or 0) > 80 else "🧐" if (critic_score or 0) > 60 else "⚠️" if (critic_score or 0) >= 40 else "🛑"
-            critic_formatted = f"\n\n{c_icon} **Expert Broker Review**: {critic_reasoning}"
+            
+            review_parts = []
+            if council_summary:
+                review_parts.append(f"Council: {council_summary}")
+            if critic_reasoning:
+                review_parts.append(f"Broker: {critic_reasoning}")
+                
+            combined_review = "\n".join(review_parts)
+            expert_review = f"\n\n{c_icon} **Expert Broker Review**:\n{combined_review}"
 
         alert_msg = (
             f"{icon} **Signal Detected: {ticker} ({asset_type})**\n"
             f"**Action:** {sentiment}\n"
             f"**Confidence:** {int(confidence * 100)}%{prophet_badge}\n\n"
-            f"**Reasoning:** {reasoning}{critic_formatted}\n"
+            f"**Reasoning:** {reasoning}{expert_review}\n"
             f"**Source:** {source}"
         )
         

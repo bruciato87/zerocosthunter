@@ -30,7 +30,8 @@ async def test_council_consensus_buy(council, brain_mock):
     
     assert verdict["sentiment"] == "BUY"
     assert verdict["consensus_score"] == 2
-    assert "THE_BULL: BUY" in verdict["reasoning"]
+    assert "THE_BULL: BUY" in verdict["council_full_debate"]
+    assert "THE_BULL: BUY" in verdict["council_summary"]
 
 @pytest.mark.asyncio
 async def test_report_consensus(brain_mock):
@@ -76,4 +77,4 @@ async def test_council_disagreement(council, brain_mock):
     
     # most_common(1) will pick the first one which is BUY in this sequence
     assert verdict["consensus_score"] == 1
-    assert "CONUNCIL DEBATE" in verdict["reasoning"]
+    assert "COUNCIL DEBATE" in verdict["council_full_debate"]

@@ -183,15 +183,21 @@ class Council:
         # If consensus is high or aligns with original, we're good
         # Otherwise, if total disagreement, default to HOLD/Original with low confidence
         
-        final_reasoning = "CONUNCIL DEBATE:\n"
+        final_reasoning = "COUNCIL DEBATE:\n"
+        council_summary_lines = []
         for name, data in results.items():
             final_reasoning += f"- {name}: {data.get('sentiment')} | {data.get('argument')}\n"
+            council_summary_lines.append(f"{name}: {data.get('sentiment')}")
+            
+        council_summary = " | ".join(council_summary_lines)
             
         return {
             "ticker": original.get("ticker"),
             "sentiment": common_sentiment,
             "confidence": (original.get("confidence", 0) + (count / 3)) / 2, # Blended confidence
-            "reasoning": f"{original.get('reasoning')}\n\n{final_reasoning}",
+            "reasoning": original.get("reasoning", ""), # Keep original clean reasoning
+            "council_full_debate": final_reasoning,
+            "council_summary": council_summary,
             "consensus_score": count,
             "is_council_verified": True
         }
