@@ -961,6 +961,9 @@ class Brain:
                     logger.info(f"Refining {len(analysis_results)} signals with The Critic...")
                     # Pass the original prompt as context (it contains news, macro, etc.)
                     analysis_results = self._verify_with_critic(analysis_results, prompt, market_regime_summary)
+                    
+                    # [PHASE C] COUNCIL CONSENSUS (Adversarial Debate for High-Confidence Signals)
+                    analysis_results = self._run_council_consensus(analysis_results)
                 
                 return analysis_results
             except json.JSONDecodeError:
@@ -1046,6 +1049,50 @@ class Brain:
                 verified_signals.append(sig) # Pass through on error
                 
         return verified_signals
+
+    def _run_council_consensus(self, initial_predictions: list) -> list:
+        """
+        [PHASE C] Orchestrates consensus debate for high-confidence signals.
+        """
+        if not initial_predictions:
+            return []
+
+        # Only run if signal is strong enough (>0.75) to justify extra API calls
+        final_predictions = []
+        import asyncio
+        
+        async def run_council_parallel():
+            tasks = []
+            for pred in initial_predictions:
+                # Council debates only high-confidence or actionable signals
+                if float(pred.get('confidence', 0)) >= 0.75 and pred.get('sentiment') != 'HOLD':
+                    tasks.append(self.council.get_consensus(pred['ticker'], pred))
+                else:
+                    final_predictions.append(pred)
+            
+            if tasks:
+                results = await asyncio.gather(*tasks)
+                final_predictions.extend(results)
+        
+        # Use existing loop or handle nested loops for synchronous context
+        try:
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            
+            if loop.is_running():
+                import nest_asyncio
+                nest_asyncio.apply()
+                loop.run_until_complete(run_council_parallel())
+                return final_predictions
+            else:
+                loop.run_until_complete(run_council_parallel())
+                return final_predictions
+        except Exception as e:
+            logger.warning(f"Council parallel execution failed: {e}. Falling back to initial predictions.")
+            return initial_predictions
 
     def parse_portfolio_from_image(self, image_path):
         """
@@ -1329,10 +1376,7 @@ class Brain:
                         item['current_value'] = round(item['current_value'] * usd_eur_rate, 2)
                     if item.get('pnl'):
                         item['pnl'] = round(item['pnl'] * usd_eur_rate, 2)
-            return final_data # The instruction was to replace this line, but the instruction text was contradictory.
-                              # Assuming the user meant to insert the _run_council_consensus function elsewhere,
-                              # as 'initial_predictions' is not defined here.
-                              # Keeping the original return final_data for parse_portfolio_from_image.
+            return final_data
 
         except Exception as e:
             logger.error(f"Error parsing portfolio image: {e}")
