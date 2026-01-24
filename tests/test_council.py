@@ -33,6 +33,34 @@ async def test_council_consensus_buy(council, brain_mock):
     assert "THE_BULL: BUY" in verdict["reasoning"]
 
 @pytest.mark.asyncio
+async def test_report_consensus(brain_mock):
+    """Test Council critiquing a report."""
+    council = Council(brain_instance=brain_mock)
+    
+    brain_mock._generate_with_fallback.return_value = '{"verdict": "APPROVE", "critique": "Solid analysis"}'
+    
+    initial_report = "This is a bullish report on AAPL."
+    result = await council.get_report_consensus("AAPL", initial_report, "Market is bullish")
+    
+    assert "ADVERSARIAL COUNCIL REVIEW" in result
+    assert "THE_BULL" in result
+    assert "Solid analysis" in result
+
+@pytest.mark.asyncio
+async def test_strategy_consensus(brain_mock):
+    """Test Council debating a rebalance strategy."""
+    council = Council(brain_instance=brain_mock)
+    
+    brain_mock._generate_with_fallback.return_value = '{"verdict": "BULLISH", "critique": "Move looks good"}'
+    
+    initial_strategy = "BUY BTC"
+    result = await council.get_strategy_consensus("Value: 10k", initial_strategy)
+    
+    assert "COUNCIL STRATEGY CONSENSUS" in result
+    assert "THE_QUANT" in result
+    assert "Move looks good" in result
+
+@pytest.mark.asyncio
 async def test_council_disagreement(council, brain_mock):
     """Test council behavior when everyone disagrees (2/3 majority fails implies tie-break or common sense)."""
     # Actually with 3 agents, counts.most_common(1) will always return something even if it's 1 vote.

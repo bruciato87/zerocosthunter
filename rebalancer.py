@@ -587,7 +587,28 @@ class Rebalancer:
                 if valid_response and valid_response != response_text:
                     response_text = valid_response
                     logger.info("Strategy refined by Critic Agent.")
+                
+                # [PHASE C.2] COUNCIL CONSENSUS (Adversarial Debate for Rebalance)
+                import asyncio
+                try:
+                    portfolio_summary = f"Value: €{portfolio_val:.0f}\nAssets: {', '.join(held_assets)}"
                     
+                    try:
+                        loop = asyncio.get_running_loop()
+                    except RuntimeError:
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+
+                    if loop.is_running():
+                        import nest_asyncio
+                        nest_asyncio.apply()
+
+                    response_text = loop.run_until_complete(
+                        self.brain.council.get_strategy_consensus(portfolio_summary, response_text)
+                    )
+                except Exception as council_err:
+                    logger.warning(f"Council strategy consensus failed: {council_err}")
+                
             except Exception as critic_err:
                 logger.error(f"Critic validation failed: {critic_err}")
                 # Continue with original response_text if Critic fails

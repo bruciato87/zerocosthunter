@@ -68,6 +68,50 @@ class Council:
         logger.info(f"🏛️ COUNCIL VERDICT [{ticker}]: {verdict['sentiment']} ({verdict['consensus_score']}/3 Agreement)")
         return verdict
 
+    async def get_report_consensus(self, ticker: str, report_text: str, context: str) -> str:
+        """
+        [PHASE C.2] Personas critique a Deep Dive report.
+        """
+        if not self.brain: return report_text
+        
+        logger.info(f"🏛️ THE COUNCIL: Critiquing Deep Dive for {ticker}...")
+        critiques = []
+        
+        for name, profile in self.PERSONAS.items():
+            try:
+                prompt = self._build_report_critique_prompt(ticker, profile, report_text, context)
+                response = self.brain._generate_with_fallback(prompt, json_mode=True, task_type="analyze", prefer_direct=True)
+                data = json.loads(response)
+                critiques.append(f"- **{name} ({data.get('verdict','CAUTION')})**: {data.get('critique','No comment')}")
+            except Exception as e:
+                logger.error(f"Council Agent {name} report critique failed: {e}")
+
+        consensus_summary = "\n\n🏛️ **ADVERSARIAL COUNCIL REVIEW**\n"
+        consensus_summary += "\n".join(critiques)
+        return f"{report_text}\n{consensus_summary}"
+
+    async def get_strategy_consensus(self, current_portfolio: str, proposed_strategy: str) -> str:
+        """
+        [PHASE C.2] Personas debate a rebalancing strategy.
+        """
+        if not self.brain: return proposed_strategy
+        
+        logger.info("🏛️ THE COUNCIL: Debating Rebalance Strategy...")
+        critiques = []
+        
+        for name, profile in self.PERSONAS.items():
+            try:
+                prompt = self._build_strategy_critique_prompt(profile, current_portfolio, proposed_strategy)
+                response = self.brain._generate_with_fallback(prompt, json_mode=True, task_type="rebalance", prefer_direct=True)
+                data = json.loads(response)
+                critiques.append(f"- **{name}**: {data.get('verdict','NEUTRAL')} | {data.get('critique','No comment')}")
+            except Exception as e:
+                logger.error(f"Council Agent {name} strategy critique failed: {e}")
+
+        consensus_section = "\n\n🏛️ **COUNCIL STRATEGY CONSENSUS**\n"
+        consensus_section += "\n".join(critiques)
+        return f"{proposed_strategy}\n{consensus_section}"
+
     def _build_persona_prompt(self, ticker: str, profile: Dict, signal: Dict) -> str:
         return f"""
         YOU ARE: {profile['role']}
@@ -84,6 +128,47 @@ class Council:
             "sentiment": "BUY|SELL|HOLD",
             "confidence": 0.0-1.0,
             "argument": "Your specific reasons based on your persona"
+        }}
+        """
+
+    def _build_report_critique_prompt(self, ticker: str, profile: Dict, report: str, context: str) -> str:
+        return f"""
+        YOU ARE: {profile['role']}
+        YOUR FOCUS: {profile['focus']}
+        
+        ASSET: {ticker}
+        REPORT TO REVIEW:
+        {report[:2000]}... (truncated)
+        
+        MARKET CONTEXT:
+        {context[:1000]}
+        
+        TASK:
+        Critique the report from your specific persona's perspective. Be adversarial.
+        Provide JSON:
+        {{
+            "verdict": "APPROVE|CAUTION|DANGEROUS",
+            "critique": "Your specific sharp comment (max 20 words)"
+        }}
+        """
+
+    def _build_strategy_critique_prompt(self, profile: Dict, portfolio: str, strategy: str) -> str:
+        return f"""
+        YOU ARE: {profile['role']}
+        YOUR FOCUS: {profile['focus']}
+        
+        PORTFOLIO:
+        {portfolio}
+        
+        PROPOSED REBALANCE:
+        {strategy}
+        
+        TASK:
+        Critique the rebalance moves. Are they too risky? Too conservative? Justified by data?
+        Provide JSON:
+        {{
+            "verdict": "BULLISH|BEARISH|NEUTRAL",
+            "critique": "Your specific sharp comment (max 20 words)"
         }}
         """
 

@@ -1510,8 +1510,30 @@ class Brain:
         try:
             logger.info(f"Generating Deep Dive for {ticker} (OpenRouter auto-select)...")
             # OpenRouter auto-selects best reasoning model (DeepSeek R1 allowed if context < 10k)
-            result = self._generate_with_fallback(prompt, json_mode=False, min_context_needed=8000, task_type="analyze")
-            return result
+            result = self._generate_with_fallback(prompt, json_mode=False, min_context_needed=8000, task_type="analyze", prefer_direct=True)
+            
+            # [PHASE C.2] COUNCIL CONSENSUS (Adversarial Critique of the Deep Dive)
+            import asyncio
+            try:
+                # Build context for Council
+                council_context = f"Macro: {macro_context}\nWhale: {whale_context}\nL1: {l1_context}"
+                
+                # Check for running loop (same pattern as analyze_news_batch)
+                try:
+                    loop = asyncio.get_running_loop()
+                except RuntimeError:
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                
+                if loop.is_running():
+                    import nest_asyncio
+                    nest_asyncio.apply()
+                
+                final_result = loop.run_until_complete(self.council.get_report_consensus(ticker, result, council_context))
+                return final_result
+            except Exception as e:
+                logger.warning(f"Council report consensus failed: {e}. Returning initial report.")
+                return result
         except Exception as e:
             logger.error(f"Deep Dive failed: {e}")
             return "⚠️ Errore durante l'analisi approfondita."
