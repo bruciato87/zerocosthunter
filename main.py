@@ -18,6 +18,8 @@ from signal_intelligence import SignalIntelligence
 from sentinel import Sentinel
 from paper_trader import PaperTrader
 from ml_predictor import MLPredictor
+from social_scraper import SocialScraper
+from onchain_watcher import OnChainWatcher
 import re
 import asyncio
 
@@ -79,6 +81,10 @@ async def run_async_pipeline():
         sentinel = Sentinel()
         paper_trader = PaperTrader()
         ml_predictor = MLPredictor()
+        
+        # Oracle Modules (Phase B)
+        social_scraper = SocialScraper()
+        onchain_watcher = OnChainWatcher()
     except Exception as e:
         logger.critical(f"Initialization failed: {e}")
         return
@@ -617,6 +623,28 @@ async def run_async_pipeline():
     except Exception as e:
         logger.warning(f"L2 Market Regime failed: {e}")
 
+    # [THE ORACLE] Social Hype & On-Chain Intelligence (V4.2 Phase B)
+    social_context = ""
+    onchain_context = ""
+    
+    try:
+        # Get overall social trending to help AI understand hype environment
+        trending_reddit = social_scraper.get_reddit_trending()
+        if trending_reddit:
+            social_context = "\n[THE ORACLE: SOCIAL TRENDS]\n"
+            social_context += "\n".join([f"- {t}: {c} mentions" for t, c in trending_reddit.items()])
+            logger.info(f"Oracle: Found {len(trending_reddit)} trending social tickers.")
+            
+        # Get specifics for detected tickers (sample top ones to avoid rate limits)
+        if detected_tickers:
+            main_ticker = list(detected_tickers)[0] # Focus on the most important one
+            oc_data = onchain_watcher.get_onchain_context(main_ticker)
+            onchain_context = oc_data
+            logger.info(f"Oracle: On-chain data gathered for {main_ticker}.")
+            
+    except Exception as e:
+        logger.warning(f"Oracle data collection failed: {e}")
+
     logger.info("Analyzing news with Gemini...")
     _ai_start_time = timing_module.time()
     try:
@@ -627,7 +655,9 @@ async def run_async_pipeline():
             portfolio_context=advisor_analysis,
             macro_context=macro_context,
             whale_context=whale_context,
-            market_regime_summary=market_regime_summary
+            market_regime_summary=market_regime_summary,
+            social_context=social_context,
+            onchain_context=onchain_context
         )
         _ai_time = timing_module.time() - _ai_start_time
         logger.info(f"Gemini analysis complete. Received {len(predictions)} predictions in {_ai_time:.1f}s.")

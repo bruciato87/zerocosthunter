@@ -613,9 +613,9 @@ class Brain:
         logger.error(f"All Gemini fallback tiers completely failed. Last error: {last_error}")
         raise last_error if last_error else Exception("All Gemini tiers failed.")
     
-    def analyze_news_batch(self, news_list, performance_context=None, insider_context=None, portfolio_context=None, macro_context=None, whale_context=None, market_regime_summary=None):
+    def analyze_news_batch(self, news_list, performance_context=None, insider_context=None, portfolio_context=None, macro_context=None, whale_context=None, market_regime_summary=None, social_context=None, onchain_context=None):
         """
-        [2024 UPDATE] V3.0 Hybrid Brain with Memory & Insider & Advisor Info & Macro Strategy & Whale Watcher.
+        [2024 UPDATE] V3.0 Hybrid Brain with Oracle (Phase B).
         Analyze a batch of news items to find high-quality trading opportunities.
         - performance_context: Dict of {"ticker": {stats}} representing past accuracy.
         - insider_context: Dict of { "overall": "EXTREME FEAR", ... }
@@ -623,6 +623,8 @@ class Brain:
         - macro_context: String summary from Economist (VIX, FED, Yields).
         - whale_context: String summary from WhaleWatcher (On-Chain Flows).
         - market_regime_summary: String summary from MarketRegimeClassifier (L2 Predictive).
+        - social_context: String summary from SocialScraper (Reddit/X Hype).
+        - onchain_context: String summary from OnChainWatcher (DEX Liquidity).
         """
         if not news_list:
             logger.info("No news to analyze.")
@@ -715,6 +717,16 @@ class Brain:
                 - Confirm BULLISH signals with higher confidence.
             """
 
+        # [ORACLE CONTEXT] (V4.0 Phase B)
+        oracle_bg = ""
+        if social_context or onchain_context:
+            oracle_bg = "\n[THE ORACLE - EARLY INTELLIGENCE]\n"
+            if social_context:
+                oracle_bg += f"{social_context}\n"
+            if onchain_context:
+                oracle_bg += f"{onchain_context}\n"
+            oracle_bg += "**ORACLE RULE:** High social hype + low DEX liquidity = DANGEROUS/PUMP & DUMP. High hype + strong DEX liquidity = BULLISH TREND.\n"
+
         # [MARKET HOURS CONTEXT - ITALY TIMEZONE]
         market_hours_bg = ""
         try:
@@ -783,6 +795,7 @@ class Brain:
         {market_hours_bg}
         {fx_bg}
         {pattern_bg}
+        {oracle_bg}
         
         [L2 MARKET REGIME - CRITICAL CONTEXT]
         {market_regime_summary if market_regime_summary else "MARKET REGIME: NEUTRAL (Default)"}
