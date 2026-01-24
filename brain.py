@@ -9,10 +9,7 @@ import requests
 import json
 from market_data import MarketData
 from critic import Critic
-import time
-import json
-from market_data import MarketData
-from critic import Critic
+from council import Council
 import time
 
 # Configure logging
@@ -80,6 +77,8 @@ class Brain:
             
         # Initialize Critic
         self.critic = Critic()
+        # Initialize Council (Phase C)
+        self.council = Council(brain_instance=self)
 
     def _get_best_free_model(self, excluded_models: list = None, min_context_needed: int = 32000, task_type: str = "default") -> str:
         """
@@ -1331,7 +1330,75 @@ class Brain:
                     if item.get('pnl'):
                         item['pnl'] = round(item['pnl'] * usd_eur_rate, 2)
             
-            return final_data
+            # 2. RUN THE COUNCIL (Multi-Agent Consensus) for high-stakes signals
+        # Only run if signal is strong enough (>0.75) to justify extra API calls
+        final_predictions = []
+        import asyncio
+        
+        async def run_council_parallel():
+            tasks = []
+            for pred in initial_predictions:
+                if float(pred.get('confidence', 0)) >= 0.75:
+                    tasks.append(self.council.get_consensus(pred['ticker'], pred))
+                else:
+                    final_predictions.append(pred)
+            
+            if tasks:
+                results = await asyncio.gather(*tasks)
+                final_predictions.extend(results)
+        
+        # We need an event loop if not present, but usually analyze_news_batch is called from async context in main.py
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                # This is tricky because analyze_news_batch is not async but calls async council
+                # For now, let's make a simplified synchronous call or run it in a new loop
+                import nest_asyncio
+                nest_asyncio.apply()
+                loop.run_until_complete(run_council_parallel())
+            else:
+                loop.run_until_complete(run_council_parallel())
+        except Exception as e:
+            logger.warning(f"Council parallel execution failed: {e}. Falling back to initial predictions.")
+            # 2. RUN THE COUNCIL (Multi-Agent Consensus) for high-stakes signals
+        # Only run if signal is strong enough (>0.75) to justify extra API calls
+        final_predictions = []
+        import asyncio
+        
+        async def run_council_parallel():
+            tasks = []
+            for pred in initial_predictions:
+                if float(pred.get('confidence', 0)) >= 0.75:
+                    tasks.append(self.council.get_consensus(pred['ticker'], pred))
+                else:
+                    final_predictions.append(pred)
+            
+            if tasks:
+                results = await asyncio.gather(*tasks)
+                final_predictions.extend(results)
+        
+        # Use existing loop or handle nested loops
+        try:
+            loop = None
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            
+            if loop.is_running():
+                import nest_asyncio
+                nest_asyncio.apply()
+                loop.run_until_complete(run_council_parallel())
+                return final_predictions
+            else:
+                loop.run_until_complete(run_council_parallel())
+                return final_predictions
+        except Exception as e:
+            logger.warning(f"Council parallel execution failed: {e}. Falling back to initial predictions.")
+            return initial_predictions
+
+        return final_predictions
 
         except Exception as e:
             logger.error(f"Error parsing portfolio image: {e}")
