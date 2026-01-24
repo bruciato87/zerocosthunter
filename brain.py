@@ -323,7 +323,6 @@ class Brain:
             }
 
             # NOTE: We DO NOT send response_format={"type": "json_object"} anymore.
-```
             # Many "Free" models (Llama 3, Mistral, etc.) on OpenRouter do not support it and throw 400 errors.
             # We rely entirely on the prompt instructions and the Regex parser below.
 

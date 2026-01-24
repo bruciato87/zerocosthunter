@@ -27,14 +27,12 @@ class TelegramNotifier:
     def escape_markdown(self, text: str) -> str:
         """Escape special characters for Telegram MarkdownV2."""
         # Characters to escape: _ * [ ] ( ) ~ ` > # + - = | { } . !
-        # Note: We don't escape everything if we want to allow SOME formatting.
-        # But for AI-generated reasoning, it's safer to escape most.
         escape_chars = r'_*[]()~`>#+-=|{}.!'
         import re
         return re.sub(f'([{re.escape(escape_chars)}])', r'\\\1', text)
 
     async def send_message(self, chat_id, message):
-        """Send a message to a specific chat_id."""
+        """Send a message to a specific chat_id with tiered fallbacks."""
         if not self.token:
             logger.info(f"Mock Alert (No Bot Configured): {message}")
             return
@@ -44,22 +42,28 @@ class TelegramNotifier:
             return
 
         try:
-            # Create a fresh Bot instance for each request to avoid event loop conflicts
             async with Bot(token=self.token) as bot:
                 try:
-                    # In MarkdownV2, we must be very careful with escaping.
-                    # This implementation assumes the message is already formatted OR we want to escape everything.
-                    # Since we use **bold** and `code`, we should only escape the rest.
-                    # For now, we try 'Markdown' (not V2) which is simpler but less robust.
-                    # Actually, V2 is needed for nested parers.
+                    # Attempt 1: Markdown (legacy, more forgiving for simple bold/code)
                     await bot.send_message(chat_id=chat_id, text=message, parse_mode='Markdown')
-                    logger.info(f"Telegram message sent to {chat_id}.")
-                except Exception as md_err:
-                    logger.warning(f"Markdown failed ({md_err}), retrying as plain text...")
-                    # Strip common markdown tokens if retrying as plain text to clean up
-                    clean_msg = message.replace("**", "").replace("__", "").replace("`", "")
-                    await bot.send_message(chat_id=chat_id, text=clean_msg)
-                    logger.info(f"Telegram message sent (plain text) to {chat_id}.")
+                    logger.info(f"Telegram message sent to {chat_id} (Markdown).")
+                except Exception:
+                    try:
+                        # Attempt 2: HTML (often more robust for AI text)
+                        # We convert **bold** and `code` to HTML equivalents
+                        import re
+                        html_msg = message.replace("**", "<b>").replace("__", "<i>").replace("`", "<code>")
+                        # (Crude replacement, but covers most AI cases)
+                        await bot.send_message(chat_id=chat_id, text=html_msg, parse_mode='HTML')
+                        logger.info(f"Telegram message sent to {chat_id} (HTML Fallback).")
+                    except Exception as html_err:
+                        logger.warning(f"HTML fallback failed ({html_err}), retrying as plain text...")
+                        # Attempt 3: Plain text (Guaranteed)
+                        clean_msg = message.replace("**", "").replace("__", "").replace("`", "")
+                        await bot.send_message(chat_id=chat_id, text=clean_msg)
+                        logger.info(f"Telegram message sent to {chat_id} (Plain Text).")
+        except Exception as e:
+            logger.error(f"Failed to send Telegram message: {e}")
                     
         except Exception as e:
             logger.error(f"Failed to send Telegram message: {e}")
