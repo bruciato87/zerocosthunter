@@ -1329,76 +1329,10 @@ class Brain:
                         item['current_value'] = round(item['current_value'] * usd_eur_rate, 2)
                     if item.get('pnl'):
                         item['pnl'] = round(item['pnl'] * usd_eur_rate, 2)
-            
-            # 2. RUN THE COUNCIL (Multi-Agent Consensus) for high-stakes signals
-        # Only run if signal is strong enough (>0.75) to justify extra API calls
-        final_predictions = []
-        import asyncio
-        
-        async def run_council_parallel():
-            tasks = []
-            for pred in initial_predictions:
-                if float(pred.get('confidence', 0)) >= 0.75:
-                    tasks.append(self.council.get_consensus(pred['ticker'], pred))
-                else:
-                    final_predictions.append(pred)
-            
-            if tasks:
-                results = await asyncio.gather(*tasks)
-                final_predictions.extend(results)
-        
-        # We need an event loop if not present, but usually analyze_news_batch is called from async context in main.py
-        try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                # This is tricky because analyze_news_batch is not async but calls async council
-                # For now, let's make a simplified synchronous call or run it in a new loop
-                import nest_asyncio
-                nest_asyncio.apply()
-                loop.run_until_complete(run_council_parallel())
-            else:
-                loop.run_until_complete(run_council_parallel())
-        except Exception as e:
-            logger.warning(f"Council parallel execution failed: {e}. Falling back to initial predictions.")
-            # 2. RUN THE COUNCIL (Multi-Agent Consensus) for high-stakes signals
-        # Only run if signal is strong enough (>0.75) to justify extra API calls
-        final_predictions = []
-        import asyncio
-        
-        async def run_council_parallel():
-            tasks = []
-            for pred in initial_predictions:
-                if float(pred.get('confidence', 0)) >= 0.75:
-                    tasks.append(self.council.get_consensus(pred['ticker'], pred))
-                else:
-                    final_predictions.append(pred)
-            
-            if tasks:
-                results = await asyncio.gather(*tasks)
-                final_predictions.extend(results)
-        
-        # Use existing loop or handle nested loops
-        try:
-            loop = None
-            try:
-                loop = asyncio.get_running_loop()
-            except RuntimeError:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-            
-            if loop.is_running():
-                import nest_asyncio
-                nest_asyncio.apply()
-                loop.run_until_complete(run_council_parallel())
-                return final_predictions
-            else:
-                loop.run_until_complete(run_council_parallel())
-                return final_predictions
-        except Exception as e:
-            logger.warning(f"Council parallel execution failed: {e}. Falling back to initial predictions.")
-            return initial_predictions
-
-        return final_predictions
+            return final_data # The instruction was to replace this line, but the instruction text was contradictory.
+                              # Assuming the user meant to insert the _run_council_consensus function elsewhere,
+                              # as 'initial_predictions' is not defined here.
+                              # Keeping the original return final_data for parse_portfolio_from_image.
 
         except Exception as e:
             logger.error(f"Error parsing portfolio image: {e}")
