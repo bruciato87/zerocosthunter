@@ -25,10 +25,11 @@ OPENROUTER_MODEL_TIERS = [
 ]
 
 # Gemini Model Tier List (Fallback sequence)
+# Priority: High performance → Reliable Fallback
 GEMINI_MODEL_TIERS = [
-    "gemini-3-flash",
-    "gemini-2.5-flash",
-    "gemini-2.5-flash-lite"
+    "gemini-2.0-flash",    # 1500 RPM
+    "gemini-1.5-flash",    # 1500 RPM
+    "gemini-1.5-flash-8b"  # Fast Fallback
 ]
 
 class Brain:
@@ -322,6 +323,7 @@ class Brain:
             }
 
             # NOTE: We DO NOT send response_format={"type": "json_object"} anymore.
+```
             # Many "Free" models (Llama 3, Mistral, etc.) on OpenRouter do not support it and throw 400 errors.
             # We rely entirely on the prompt instructions and the Regex parser below.
 

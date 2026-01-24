@@ -12,9 +12,15 @@ from datetime import datetime, timedelta, timezone
 try:
     from zoneinfo import ZoneInfo
 except ImportError:
-    # Backport for python < 3.9 if needed, though 3.11 is used
     from datetime import timezone as _timezone
     ZoneInfo = lambda x: _timezone(timedelta(hours=1)) if "Europe" in x else _timezone.utc
+
+# [PHASE C.6] Ensure nest_asyncio is applied for nested Council calls
+try:
+    import nest_asyncio
+    nest_asyncio.apply()
+except ImportError:
+    pass
 
 logger = logging.getLogger("Rebalancer")
 
@@ -56,7 +62,9 @@ class Rebalancer:
         self.economist = Economist()
         self.strategy_manager = StrategyManager()
         
-        # Gemini for AI suggestions
+        # [PHASE C.6] Switch to higher-quota model for complex analysis
+        # gemini-2.0-flash-lite has only 20 RPM, gemini-1.5-flash has 1500 RPM.
+        self.ai_model = "gemini-1.5-flash"
         self.api_key = os.environ.get("GEMINI_API_KEY")
     
     def get_portfolio_analysis(self) -> Dict:
@@ -241,10 +249,6 @@ class Rebalancer:
         Returns specific trade recommendations.
         """
         try:
-            from google import genai
-            
-            client = genai.Client(api_key=self.api_key)
-            
             # 1. Portfolio summary with RSI and cost info
             def rsi_label(rsi):
                 if rsi is None: return ""

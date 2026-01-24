@@ -23,6 +23,13 @@ from onchain_watcher import OnChainWatcher
 import re
 import asyncio
 
+# [PHASE C.6] Global fix for nested asyncio loops (GH Actions)
+try:
+    import nest_asyncio
+    nest_asyncio.apply()
+except ImportError:
+    pass
+
 # Configure Logging
 logging.basicConfig(
     level=logging.INFO,
