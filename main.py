@@ -20,6 +20,10 @@ from paper_trader import PaperTrader
 from ml_predictor import MLPredictor
 from social_scraper import SocialScraper
 from onchain_watcher import OnChainWatcher
+from insider import Insider
+from whale_watcher import WhaleWatcher
+from market_regime import MarketRegimeClassifier
+from rebalancer import Rebalancer
 import re
 import asyncio
 
@@ -543,7 +547,6 @@ async def run_async_pipeline():
             logger.info(f"Feedback Loop: Found history for {t} -> {stats['status']} ({stats['win_rate']}%)")
 
     # [INSIDER] Fetch Market Mood & Social Sentiment
-    from insider import Insider
     ins = Insider()
     market_mood = ins.get_market_mood()
     social_sentiment = ins.get_social_sentiment()
@@ -572,7 +575,6 @@ async def run_async_pipeline():
     logger.info(f"Economist: Macro Context Generated. ({len(macro_context)} chars)")
 
     # [WHALE WATCHER] On-Chain Context (V4.0 Phase 11)
-    from whale_watcher import WhaleWatcher
     whale = WhaleWatcher()
     whale_context = whale.analyze_flow()
     
@@ -600,7 +602,6 @@ async def run_async_pipeline():
     regime = "NEUTRAL"
     market_regime_summary = "MARKET REGIME: UNKNOWN" # Default
     try:
-        from market_regime import MarketRegimeClassifier
         regime_classifier = MarketRegimeClassifier()
         market_regime_data = regime_classifier.classify()
         
@@ -1234,7 +1235,6 @@ async def run_async_pipeline():
     # --- FLASH REBALANCE CHECK (New L5 Feature) ---
     flash_tip = ""
     try:
-        from rebalancer import Rebalancer
         rb = Rebalancer()
         tip = rb.get_flash_recommendation()
         if tip:
