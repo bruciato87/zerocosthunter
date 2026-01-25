@@ -6,24 +6,25 @@ import asyncio
 @pytest.fixture(autouse=True)
 def mock_all_deps(mocker):
     # Mocking external modules to avoid network/DB calls
-    mocker.patch("db_handler.DBHandler")
-    mocker.patch("hunter.NewsHunter")
-    mocker.patch("brain.Brain")
-    mocker.patch("market_data.MarketData")
-    mocker.patch("telegram_bot.TelegramNotifier")
-    mocker.patch("auditor.Auditor")
-    mocker.patch("economist.Economist")
-    mocker.patch("advisor.Advisor")
-    mocker.patch("signal_intelligence.SignalIntelligence")
-    mocker.patch("sentinel.Sentinel")
-    mocker.patch("paper_trader.PaperTrader")
-    mocker.patch("ml_predictor.MLPredictor")
-    mocker.patch("social_scraper.SocialScraper")
-    mocker.patch("onchain_watcher.OnChainWatcher")
-    mocker.patch("insider.Insider")
-    mocker.patch("whale_watcher.WhaleWatcher")
-    mocker.patch("market_regime.MarketRegimeClassifier")
-    mocker.patch("rebalancer.Rebalancer")
+    # Patch where they are USED (main module)
+    mocker.patch("main.DBHandler")
+    mocker.patch("main.NewsHunter")
+    mocker.patch("main.Brain")
+    mocker.patch("main.MarketData")
+    mocker.patch("main.TelegramNotifier")
+    mocker.patch("main.Auditor")
+    mocker.patch("main.Economist")
+    mocker.patch("main.Advisor")
+    mocker.patch("main.SignalIntelligence")
+    mocker.patch("main.Sentinel")
+    mocker.patch("main.PaperTrader")
+    mocker.patch("main.MLPredictor")
+    mocker.patch("main.SocialScraper")
+    mocker.patch("main.OnChainWatcher")
+    mocker.patch("main.Insider")
+    mocker.patch("main.WhaleWatcher")
+    mocker.patch("main.MarketRegimeClassifier")
+    mocker.patch("main.Rebalancer")
 
 @pytest.mark.asyncio
 async def test_run_async_pipeline_minimal(mocker):
@@ -32,62 +33,61 @@ async def test_run_async_pipeline_minimal(mocker):
     This should catch NameErrors and basic logic issues in the main loop.
     """
     # Fix for TypeError: sequence item 1: expected str instance, MagicMock found
-    # Mock Insider
-    import insider
-    mock_insider = insider.Insider.return_value
+    # Import main AFTER patching in the fixture to ensure it gets the mocks
+    import main
+    
+    # Configure Mocks using the references from main
+    # 0. Mock Insider
+    mock_insider = main.Insider.return_value
     mock_insider.get_market_mood.return_value = {"overall": "Neutral", "crypto": {"value": "50"}}
     mock_insider.get_social_sentiment.return_value = []
     
-    # Mock WhaleWatcher
-    import whale_watcher
-    mock_whale = whale_watcher.WhaleWatcher.return_value
+    # 1. Mock WhaleWatcher
+    mock_whale = main.WhaleWatcher.return_value
     mock_whale.analyze_flow.return_value = "Mock Whale Flow"
     
-    # Mock MarketRegime
-    import market_regime
-    mock_regime = market_regime.MarketRegimeClassifier.return_value
+    # 2. Mock MarketRegime
+    mock_regime = main.MarketRegimeClassifier.return_value
     mock_regime.classify.return_value = {"regime": "NEUTRAL", "confidence": 0.5, "recommendation": "normal"}
     
-    # Mock SocialScraper
-    import social_scraper
-    mock_social = social_scraper.SocialScraper.return_value
+    # 3. Mock SocialScraper
+    mock_social = main.SocialScraper.return_value
     mock_social.get_reddit_trending.return_value = {"BTC": 100}
     
-    # Mock Economist
-    import economist
-    mock_eco = economist.Economist.return_value
+    # 4. Mock Economist
+    mock_eco = main.Economist.return_value
     mock_eco.get_macro_summary.return_value = "Mock Macro Summary"
     mock_eco.get_market_status.return_value = {"us_stocks": "🟢 Open", "eu_stocks": "🟢 Open"}
     
-    # Mock Auditor
-    import auditor
-    mock_auditor = auditor.Auditor.return_value
+    # 5. Mock Auditor
+    mock_auditor = main.Auditor.return_value
     mock_auditor.get_ticker_stats.return_value = {"status": "WIN", "win_rate": 80}
     mock_auditor.audit_open_signals.return_value = ["Audit Result 1"]
     
-    # Mock Advisor
-    import advisor
-    mock_adv = advisor.Advisor.return_value
+    # 6. Mock Advisor
+    mock_adv = main.Advisor.return_value
     mock_adv.analyze_portfolio.return_value = {"total_value": 10000, "tips": ["HODL"]}
     
-    # Mock Rebalancer
-    import rebalancer
-    mock_rb = rebalancer.Rebalancer.return_value
+    # 7. Mock Rebalancer
+    mock_rb = main.Rebalancer.return_value
     mock_rb.get_flash_recommendation.return_value = "Mock Flash Tip"
 
-    # Mock MarketData additional methods
-    import market_data
-    mock_market = market_data.MarketData.return_value
+    # 8. Mock MarketData additional methods
+    mock_market = main.MarketData.return_value
     mock_market.get_technical_summary.return_value = "Mock Technical Summary"
+    mock_market.get_smart_price_eur.return_value = (50000.0, "EUR")
+    mock_market.calculate_atr.return_value = {"atr": 1000}
+    mock_market.get_multi_timeframe_trend.return_value = {"direction": "bullish", "confidence_boost": 1.05}
     
-    # Mock SignalIntelligence additional methods
-    import signal_intelligence
-    mock_si = signal_intelligence.SignalIntelligence.return_value
+    # 9. Mock SignalIntelligence additional methods
+    mock_si = main.SignalIntelligence.return_value
     mock_si.generate_context_for_ai.return_value = "Mock SI Context"
+    mock_si.analyze_signal.return_value = {"adjusted_sentiment": "BUY", "adjusted_confidence": 0.8, "actions": []}
+    mock_si.check_technical_confluence.return_value = {"multiplier": 1.0}
+    mock_si.check_divergence.return_value = {"has_divergence": False}
 
-    # Mock MLPredictor additional methods
-    import ml_predictor
-    mock_ml = ml_predictor.MLPredictor.return_value
+    # 10. Mock MLPredictor additional methods
+    mock_ml = main.MLPredictor.return_value
     mock_ml.get_confidence_modifier_from_pred.return_value = 1.0
 
     # 1. Setup minimal prediction data
@@ -102,20 +102,17 @@ async def test_run_async_pipeline_minimal(mocker):
         "critic_reasoning": "Broker agrees"
     }
     
-    # 2. Mock Brain to return our prediction
-    import brain
-    mock_brain_instance = brain.Brain.return_value
+    # 11. Mock Brain to return our prediction
+    mock_brain_instance = main.Brain.return_value
     mock_brain_instance.analyze_news_batch.return_value = [mock_prediction]
     mock_brain_instance.last_run_details = {"model": "mock-gpt"}
     
-    # 3. Mock NewsHunter to return minimal news
-    import hunter
-    mock_hunter_instance = hunter.NewsHunter.return_value
+    # 12. Mock NewsHunter to return minimal news
+    mock_hunter_instance = main.NewsHunter.return_value
     mock_hunter_instance.fetch_news.return_value = [{"title": "BTC News", "summary": "Bullish", "link": "http", "ticker": "BTC-USD"}]
     
-    # 4. Mock DBHandler to return dummy data
-    import db_handler
-    mock_db = db_handler.DBHandler.return_value
+    # 13. Mock DBHandler to return dummy data
+    mock_db = main.DBHandler.return_value
     mock_db.get_settings.return_value = {"min_confidence": 0.5, "only_portfolio": False}
     mock_db.portfolio_map = {}
     mock_db.get_ticker_cache_batch.return_value = {}
@@ -123,25 +120,12 @@ async def test_run_async_pipeline_minimal(mocker):
     mock_db.check_if_analyzed_recently.return_value = False
     mock_db.get_api_usage.return_value = {"date": "2026-01-25"}
     mock_db.acquire_hunt_lock.return_value = True
-    
-    # 5. Mock MarketData
-    import market_data
-    mock_market = market_data.MarketData.return_value
-    mock_market.get_smart_price_eur.return_value = (50000.0, "EUR")
-    mock_market.calculate_atr.return_value = {"atr": 1000}
-    mock_market.get_multi_timeframe_trend.return_value = {"direction": "bullish", "confidence_boost": 1.05}
-    
-    # 6. Mock Notifier
-    import telegram_bot
-    mock_notifier = telegram_bot.TelegramNotifier.return_value
+
+    # Mock Notifier
+    mock_notifier = main.TelegramNotifier.return_value
     mock_notifier.send_alert = AsyncMock()
     
-    # Additional SI Mocks
-    mock_si.analyze_signal.return_value = {"adjusted_sentiment": "BUY", "adjusted_confidence": 0.8, "actions": []}
-    mock_si.check_technical_confluence.return_value = {"multiplier": 1.0}
-    mock_si.check_divergence.return_value = {"has_divergence": False}
-    
-    # Import run_async_pipeline after mocking
+    # Run the pipeline
     from main import run_async_pipeline
     
     # Run the pipeline
