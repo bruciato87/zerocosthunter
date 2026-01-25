@@ -15,16 +15,21 @@ def mock_db():
 def market(mock_db):
     return MarketData()
 
+@patch('market_data.MarketData.get_crypto_data_coingecko')
 @patch('yfinance.Ticker')
-def test_get_smart_price_eur_btc_usd(mock_ticker, market, mock_db):
+def test_get_smart_price_eur_btc_usd(mock_cg, mock_ticker, market, mock_db):
     """
     Test that BTC-USD is correctly identified as a USD asset,
     converted to EUR, and saved to DB with currency='USD'.
     """
+    # Force CG failure to test Yahoo fallback logic
+    mock_cg.return_value = (None, None)
+
     # Setup Mock for EURUSD rate
     mock_eur_usd = MagicMock()
     mock_eur_usd.history.return_value.empty = False
-    mock_eur_usd.history.return_value = {'Close': [1.20]} # Legacy dataframe mock style if needed, or object with iloc
+    mock_eur_usd.history.return_value = pd.DataFrame({'Close': [1.10]})
+    # ... (rest of setup) ...
     # Simpler: mock the internal rate fetch or the result of the Ticker call
     
     # Setup Mock for BTC-USD
@@ -37,8 +42,8 @@ def test_get_smart_price_eur_btc_usd(mock_ticker, market, mock_db):
     import pandas as pd
     mock_btc.history.return_value = pd.DataFrame({'Close': [100000.0]})
     
-    # Reset session cache
-    market._eur_usd_rate = None 
+    # Reset session cache and FORCE rate for deterministic math
+    market._eur_usd_rate = 1.10
     
     # Configure Ticker side effects
     def ticker_side_effect(symbol):
@@ -51,7 +56,8 @@ def test_get_smart_price_eur_btc_usd(mock_ticker, market, mock_db):
             m = MagicMock()
             m.history.return_value = pd.DataFrame({'Close': [100000.0]})
             return m
-        if symbol.endswith(".DE"): 
+        if symbol.endswith(".DE") or symbol.endswith("-EUR") or "EUR" in symbol and "USD" not in symbol: 
+            # Fail EU suffixes/pairs to force USD fallback
             m = MagicMock()
             m.history.return_value = pd.DataFrame() 
             return m
@@ -112,8 +118,8 @@ def test_get_smart_price_eur_german_stock(mock_ticker, market, mock_db):
     assert price == 50.0 # No conversion
     
     # Verify DB Save currency='EUR'
-    calls = mock_db.save_ticker_price.call_args_list
-    assert len(calls) > 0, "save_ticker_price should have been called"
+    calls = mock_db.save_ticker_cache.call_args_list
+    assert len(calls) > 0, "save_ticker_cache should have been called"
     
     args, kwargs = calls[0]
     saved_currency = kwargs.get('currency')
