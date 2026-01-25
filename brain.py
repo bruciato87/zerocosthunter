@@ -1389,6 +1389,18 @@ class Brain:
         """
         logger.info(f"Parsing Trade Republic PDF: {pdf_path}...")
         try:
+            # 1. Preliminary check: Is it a valid PDF?
+            with open(pdf_path, 'rb') as f:
+                header = f.read(1024)
+                if b'<?xml' in header or b'<!DOCTYPE' in header:
+                    logger.warning(f"Detected XML/HTML header in supposed PDF: {pdf_path}")
+                    return {"error": "Il file caricato è un documento XML (es. Fattura Elettronica). Carica invece la 'Conferma d'ordine' in formato PDF."}
+                if not header.startswith(b'%PDF-'):
+                    # Some PDFs might have small junk before header, but usually start with %PDF-
+                    # If it doesn't look like PDF at all, fail early
+                    if b'%PDF-' not in header:
+                        return {"error": "Il file non sembra un PDF valido. Assicurati di caricare la 'Conferma d'ordine' originale di Trade Republic."}
+
             from pypdf import PdfReader
             reader = PdfReader(pdf_path)
             text = ""
@@ -1396,7 +1408,7 @@ class Brain:
                 text += page.extract_text() + "\n"
             
             if not text.strip():
-                raise Exception("PDF extracted text is empty.")
+                raise Exception("Il testo estratto dal PDF è vuoto. Carica un file PDF leggibile.")
 
             prompt = f"""
             **SYSTEM ROLE:**
@@ -1439,6 +1451,8 @@ class Brain:
 
         except Exception as e:
             logger.error(f"Error parsing PDF: {e}")
+            if "Stream has ended unexpectedly" in str(e) or "EOF marker not found" in str(e):
+                return {"error": "Documento PDF corrotto o non valido. Assicurati di caricare la 'Conferma d'ordine' originale."}
             return {"error": str(e)}
 
     def parse_sale_from_image(self, image_path: str) -> dict:
