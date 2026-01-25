@@ -9,6 +9,9 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# Local session cache to avoid redundant DB lookups
+_RESOLVER_CACHE = {}
+
 # Fallback aliases when DB is unavailable
 TICKER_ALIASES = {
     "RENDER": "RENDER-USD",
@@ -60,6 +63,10 @@ def resolve_ticker(ticker: str) -> str:
     """
     ticker_u = ticker.upper()
     
+    # 0. Check local session cache first
+    if ticker_u in _RESOLVER_CACHE:
+        return _RESOLVER_CACHE[ticker_u]
+
     # 1. Check DB cache first (self-learning)
     try:
         from db_handler import DBHandler
@@ -70,25 +77,28 @@ def resolve_ticker(ticker: str) -> str:
             fail_count = cached.get("fail_count", 0) or 0
             if fail_count > 3 and ticker_u not in PROTECTED_TICKERS:
                 logger.debug(f"Ticker cache REJECT (Too many failures): {ticker_u}")
+                _RESOLVER_CACHE[ticker_u] = None
                 return None # Explicitly reject
 
             resolved = cached.get("resolved_ticker", ticker_u)
             logger.debug(f"Ticker cache HIT: {ticker_u} -> {resolved}")
+            _RESOLVER_CACHE[ticker_u] = resolved
             return resolved
     except Exception as e:
         logger.debug(f"Ticker cache unavailable: {e}")
     
     # 2. Check local aliases
+    resolved = ticker_u
     if ticker_u in TICKER_ALIASES:
-        return TICKER_ALIASES[ticker_u]
+        resolved = TICKER_ALIASES[ticker_u]
+    else:
+        # 3. Crypto detection
+        base = ticker_u.replace('-USD', '').replace('-EUR', '')
+        if base in CRYPTO_TICKERS and '-' not in ticker_u:
+            resolved = f"{base}-USD"
     
-    # 3. Crypto detection
-    base = ticker_u.replace('-USD', '').replace('-EUR', '')
-    if base in CRYPTO_TICKERS and '-' not in ticker_u:
-        return f"{base}-USD"
-    
-    # 4. Return as-is
-    return ticker_u
+    _RESOLVER_CACHE[ticker_u] = resolved
+    return resolved
 
 
 def resolve_tickers(tickers: list) -> list:

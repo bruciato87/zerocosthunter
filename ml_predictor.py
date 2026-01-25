@@ -228,6 +228,11 @@ class MLPredictor:
         self.model: Optional[PureGradientBoosting] = None
         self.model_version = "pure_gb_v1"
         self.is_ml_ready = False
+        
+        # Internal caches for the current hunt session
+        self._feature_cache = {}
+        self._prediction_cache = {}
+        
         self._load_model()
     
     def _load_model(self):
@@ -452,7 +457,18 @@ class MLPredictor:
     
     def predict(self, ticker: str, sentiment_score: int = None, market_regime: str = None) -> MLPrediction:
         """Main prediction method. Now accepts external context (Quant Path)."""
-        features = self._get_features(ticker)
+        ticker_u = ticker.upper()
+        
+        # Check cache (exact match for ticker/regime/sentiment)
+        cache_key = f"{ticker_u}_{sentiment_score}_{market_regime}"
+        if cache_key in self._prediction_cache:
+            return self._prediction_cache[cache_key]
+
+        if ticker_u in self._feature_cache:
+            features = self._feature_cache[ticker_u]
+        else:
+            features = self._get_features(ticker)
+            self._feature_cache[ticker_u] = features
         
         if not features:
             return MLPrediction(
@@ -475,7 +491,7 @@ class MLPredictor:
         # Save prediction with new context
         self._save_prediction(ticker, direction, confidence, features, sentiment_score, market_regime)
         
-        return MLPrediction(
+        res = MLPrediction(
             ticker=ticker,
             direction=direction,
             confidence=confidence,
@@ -483,6 +499,9 @@ class MLPredictor:
             model_version=self.model_version,
             is_ml=is_ml
         )
+        
+        self._prediction_cache[cache_key] = res
+        return res
     
     def _save_prediction(self, ticker: str, direction: str, confidence: float, features: Dict, sentiment_score: int = None, market_regime: str = None):
         """Save prediction to DB."""

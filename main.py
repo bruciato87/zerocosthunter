@@ -383,22 +383,20 @@ async def run_async_pipeline():
 
     logger.info(f"✅ Local Cache Ready. Enriched {len(unique_tickers)} tickers.")
 
+    # --- NEW DEDUPLICATION & MERGING (Moved up to save resources) ---
+    merged_map = {}
     for item in news_items:
         text_content = (item.get('title', '') + " " + item.get('summary', '')).upper()
         
         # Find first matching ticker (Dynamic)
-        detected_ticker = None
-        
-        # Re-use extraction logic (prioritize Portfolio or Canonical assets)
-        # Fix for NameError: Reuse Batch Resolution Map
         raws = get_raw_candidates(text_content)
         extracted = []
         for r in raws:
              res = resolved_map.get(r)
              if res: extracted.append(res)
         
+        detected_ticker = None
         if extracted:
-            # Pick the "best" one (Priority: Portfolio > Canonical > First Found)
             best_match = extracted[0]
             for t in extracted:
                 if t in portfolio_map or f"{t}-USD" in portfolio_map:
@@ -406,12 +404,9 @@ async def run_async_pipeline():
                     break
                 if t in CANONICAL_MAP:
                     best_match = CANONICAL_MAP[t]
-                    # Don't break yet, look for portfolio match
-            
             detected_ticker = best_match
-        
+            
         if detected_ticker:
-            # 1. Normalize Ticker
             if detected_ticker in CANONICAL_MAP:
                 detected_ticker = CANONICAL_MAP[detected_ticker]
             elif f"{detected_ticker}-USD" in portfolio_map:
@@ -419,8 +414,24 @@ async def run_async_pipeline():
             elif f"{detected_ticker}USD" in portfolio_map:
                  detected_ticker = f"{detected_ticker}USD"
             
-            # Persist normalized ticker
             item['ticker'] = detected_ticker
+            
+            if detected_ticker in merged_map:
+                existing = merged_map[detected_ticker]
+                existing['summary'] += f"\n\n--- ADDITIONAL ARTICLE: {item.get('title', 'Untitled')} ---\n{item.get('summary', '')}"
+                # Keep original source if not already set or prioritize better sources?
+            else:
+                merged_map[detected_ticker] = item
+
+    # Add synthetic assets that have no news
+    # (We'll handle this in the next block)
+    unique_news_items_list = list(merged_map.values())
+    logger.info(f"Deduplicated news for analysis: {len(news_items)} -> {len(unique_news_items_list)}")
+
+    # Enrich ONLY the merged unique items
+    for item in unique_news_items_list:
+        detected_ticker = item.get('ticker')
+        if detected_ticker:
             extras = []
             
             # 2. Technicals (FROM LOCAL CACHE)
@@ -573,23 +584,7 @@ async def run_async_pipeline():
     else:
         logger.info(f"WhaleWatcher: {whale_context}")
 
-    # --- PRE-BRAIN DEDUPLICATION & MERGING ---
-    merged_map = {}
-    for item in news_items:
-        t = item.get('ticker')
-        if not t: continue
-        
-        if t in merged_map:
-            existing = merged_map[t]
-            existing['summary'] += f"\n\n--- ADDITIONAL CONTEXT ---\n{item['title']}: {item['summary']}"
-            if not item.get('synthetic', False):
-                existing['synthetic'] = False
-                existing['source'] = item.get('source', 'News') 
-        else:
-            merged_map[t] = item
-
-    unique_news_items = list(merged_map.values())
-    logger.info(f"Deduplicated News Items: {len(news_items)} -> {len(unique_news_items)}")
+    # Remove redundant deduplication block
     # -----------------------------------------
 
     # --- FETCH USER SETTINGS ---
@@ -657,7 +652,7 @@ async def run_async_pipeline():
     _ai_start_time = timing_module.time()
     try:
         predictions = brain.analyze_news_batch(
-            unique_news_items, 
+            unique_news_items_list, 
             performance_context=performance_context, 
             insider_context=insider_context,
             portfolio_context=advisor_analysis,

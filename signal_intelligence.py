@@ -513,6 +513,17 @@ class SignalIntelligence:
             }
         """
         try:
+            # 0. Check internal session cache (Valid for 15 minutes)
+            if self._vix_cache and self._sp500_trend_cache:
+                 logger.debug("Using cached market regime data.")
+                 return {
+                    "regime": self._regime_cache if hasattr(self, '_regime_cache') else "NEUTRAL",
+                    "vix": self._vix_cache,
+                    "vix_level": self._vix_level_cache if hasattr(self, '_vix_level_cache') else "UNKNOWN",
+                    "sp500_trend": self._sp500_trend_cache,
+                    "confidence_adjustment": self._conf_adj_cache if hasattr(self, '_conf_adj_cache') else 0.0
+                 }
+
             result = {
                 "regime": "NEUTRAL",
                 "vix": None,
@@ -577,10 +588,16 @@ class SignalIntelligence:
                 result["confidence_adjustment"] = -0.03  # Reduced from -0.10
             elif result["vix_level"] == "LOW" and result["sp500_trend"] == "BULLISH":
                 result["regime"] = "RISK_ON"
-                result["confidence_adjustment"] = 0.05  # Slightly more lenient
+                result["confidence_adjustment"] = 0.05
+
+            # Cache results for the current session
+            self._vix_cache = result.get("vix")
+            self._sp500_trend_cache = result.get("sp500_trend")
+            self._regime_cache = result["regime"]
+            self._vix_level_cache = result["vix_level"]
+            self._conf_adj_cache = result["confidence_adjustment"]
             
             return result
-            
         except Exception as e:
             logger.error(f"Market regime detection failed: {e}")
             return {"regime": "NEUTRAL", "confidence_adjustment": 0.0}
