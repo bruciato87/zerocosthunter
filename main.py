@@ -689,6 +689,8 @@ async def run_async_pipeline():
         risk_score = pred.get("risk_score", 5)  # Default medium risk
         
         # Critic Fields
+        critic_verdict = pred.get("critic_verdict")
+        critic_score = pred.get("critic_score")
         critic_reasoning = pred.get("critic_reasoning")
         
         # [PHASE C.3] Council Summary extraction

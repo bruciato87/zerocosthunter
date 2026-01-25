@@ -264,6 +264,9 @@ class MLPredictor:
             
             # Use centralized ticker resolver for self-learning cache
             search_ticker = resolve_ticker(ticker)
+            if not search_ticker:
+                logger.warning(f"ML Predictor: Skipping {ticker} - Resolver returned None")
+                return None
             
             t = yf.Ticker(search_ticker)
             hist = t.history(period="3mo")
