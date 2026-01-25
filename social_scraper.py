@@ -18,30 +18,44 @@ class SocialScraper:
     BLACKLIST = {"THE", "AND", "ARE", "FOR", "NOT", "BUT", "HAS", "ANY", "ALL", "NEW", "NOW", "ONE"}
 
     def __init__(self):
-        self.session = requests.Session()
-        # Enhanced headers to avoid 403 Forbidden
-        self.session.headers.update({
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept": "application/json, text/plain, */*",
-            "Accept-Language": "en-US,en;q=0.9",
-            "Referer": "https://www.reddit.com/",
-            "Origin": "https://www.reddit.com",
-            "DNT": "1"
-        })
+        # We'll use curl_cffi's requests directly in the method for better impersonation
+        pass
 
     def get_reddit_trending(self) -> Dict[str, int]:
         """
         Scrapes Reddit subreddits via public .json endpoints or .rss fallback.
         Returns a map of ticker -> mention_count.
         """
+        from curl_cffi import requests as c_requests
+        import time
+        import random
+        
         trending = {}
         for sub in self.SUBREDDITS:
             logger.info(f"🔍 Scraping r/{sub}...")
             content = ""
+            
+            # Simple jitter to avoid robotic pattern
+            time.sleep(random.uniform(1.0, 3.0))
+            
             try:
                 # 1. Try JSON endpoint (Preferred)
                 url = f"https://www.reddit.com/r/{sub}/hot.json?limit=50"
-                resp = self.session.get(url, timeout=10)
+                # Use impersonate to mimic a real browser TLS fingerprint
+                resp = c_requests.get(
+                    url, 
+                    timeout=15, 
+                    impersonate="chrome",
+                    headers={
+                        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+                        "Accept-Language": "en-US,en;q=0.5",
+                        "Upgrade-Insecure-Requests": "1",
+                        "Sec-Fetch-Dest": "document",
+                        "Sec-Fetch-Mode": "navigate",
+                        "Sec-Fetch-Site": "none",
+                        "Sec-Fetch-User": "?1"
+                    }
+                )
                 
                 if resp.status_code == 200:
                     data = resp.json()
@@ -53,7 +67,7 @@ class SocialScraper:
                 elif resp.status_code == 403 or resp.status_code == 429:
                     logger.warning(f"⚠️ JSON blocked (403/429) for r/{sub}, trying RSS fallback...")
                     rss_url = f"https://www.reddit.com/r/{sub}/.rss"
-                    rss_resp = self.session.get(rss_url, timeout=10)
+                    rss_resp = c_requests.get(rss_url, timeout=10, impersonate="chrome")
                     if rss_resp.status_code == 200:
                         content = rss_resp.text
                     else:

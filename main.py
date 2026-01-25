@@ -106,9 +106,10 @@ async def run_async_pipeline():
     except Exception as e:
         logger.error(f"Sentinel Failed: {e}")
 
-    # 1.6 Weekly ML Training (Sundays only)
+    # 1.6 Weekly ML Training (Sundays only, 18:00 UTC)
     from datetime import datetime
-    if datetime.now().weekday() == 6:  # Sunday
+    now = datetime.utcnow()
+    if now.weekday() == 6 and now.hour == 18:  # Sunday 18:00 UTC
         logger.info("Weekly ML Training Check...")
         try:
             ml_predictor = MLPredictor()
