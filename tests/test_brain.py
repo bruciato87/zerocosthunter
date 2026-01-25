@@ -99,14 +99,17 @@ def test_parse_trade_republic_pdf(mock_brain_deps, mocker):
     import json
     brain = Brain()
     
-    # 1. Mock PdfReader
+    # 1. Mock file opening (validation check)
+    mocker.patch("builtins.open", mocker.mock_open(read_data=b"%PDF-1.7"))
+
+    # 2. Mock PdfReader
     mock_pdf = MagicMock()
     mock_page = MagicMock()
     mock_page.extract_text.return_value = "Trade Republic Order Confirmation: Bought 10 AAPL @ 150.25 EUR"
     mock_pdf.pages = [mock_page]
     mocker.patch("pypdf.PdfReader", return_value=mock_pdf)
     
-    # 2. Mock AI Generation
+    # 3. Mock AI Generation
     mock_ai_response = {
         "ticker": "AAPL",
         "action": "BUY",
