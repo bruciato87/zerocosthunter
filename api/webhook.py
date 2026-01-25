@@ -467,6 +467,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def macro_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("🏛 Analizzo lo scenario Macro Economico... (VIX, Yields, FED)")
     try:
+        from economist import Economist
         eco = Economist()
         summary = eco.get_macro_summary()
         await update.message.reply_text(f"```{summary}```", parse_mode="Markdown")
@@ -477,6 +478,7 @@ async def macro_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def whale_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("🐋 Localizzo le Balene (Binance Real-Time)...")
     try:
+        from whale_watcher import WhaleWatcher
         ww = WhaleWatcher()
         summary = ww.analyze_flow()
         # Clean up
@@ -728,13 +730,14 @@ async def show_portfolio(update: Update, context: ContextTypes.DEFAULT_TYPE):
     results = await asyncio.gather(*[fetch_item_data(item) for item in portfolio])
     total_val = sum(res['current_value'] for res in results)
 
+    grouped_assets = {"Crypto": [], "Stock": [], "ETF": [], "Other": []}
     for res in results:
         # Determine Group
         a_type = res.get('asset_type', 'Unknown')
-        if a_type not in grouped_assets:
-            grouped_assets["Other"].append(res)
-        else:
+        if a_type in grouped_assets:
             grouped_assets[a_type].append(res)
+        else:
+            grouped_assets["Other"].append(res)
 
     # Build Message with Headers and Sorting
     # Order of Categories
