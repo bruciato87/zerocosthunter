@@ -1382,6 +1382,65 @@ class Brain:
         # as long as the news source covers them.
         pass
 
+    def parse_trade_republic_pdf(self, pdf_path: str) -> dict:
+        """
+        Parses a Trade Republic PDF (Conferma d'ordine) using pypdf + LLM.
+        Returns a dict with transaction details.
+        """
+        logger.info(f"Parsing Trade Republic PDF: {pdf_path}...")
+        try:
+            from pypdf import PdfReader
+            reader = PdfReader(pdf_path)
+            text = ""
+            for page in reader.pages:
+                text += page.extract_text() + "\n"
+            
+            if not text.strip():
+                raise Exception("PDF extracted text is empty.")
+
+            prompt = f"""
+            **SYSTEM ROLE:**
+            You are a Financial Transaction Extraction Assistant specialized in Trade Republic (Italy) order confirmations.
+            
+            **DOCUMENT TEXT:**
+            {text}
+            
+            **TASK:**
+            Extract the following transaction details:
+            - **Ticker or Asset Name**: (e.g., BTC, Apple, iShares Core MSCI World)
+            - **Action**: (BUY or SELL)
+            - **Quantity**: (Number of shares/units)
+            - **Price per Unit**: (Price in EUR)
+            - **Total Gross**: (Qty * Price)
+            - **Commission**: (Usually 1.00 EUR)
+            - **Taxes/Imposte**: (If applicable)
+            - **Net Total**: (Final amount added or removed from account)
+            
+            **OUTPUT FORMAT:**
+            Return strictly a JSON object:
+            {{
+                "ticker": "AAPL",
+                "action": "BUY",
+                "quantity": 10.0,
+                "price": 150.25,
+                "commission": 1.0,
+                "tax": 0.0,
+                "net_total": 1503.50,
+                "asset_name": "Apple Inc"
+            }}
+            """
+            
+            # Use Brain's AI generation to parse the text
+            response_text = self._generate_with_fallback(prompt, json_mode=True, task_type="simple")
+            import json
+            result = json.loads(response_text)
+            logger.info(f"PDF Parse Result: {result}")
+            return result
+
+        except Exception as e:
+            logger.error(f"Error parsing PDF: {e}")
+            return {"error": str(e)}
+
     def parse_sale_from_image(self, image_path: str) -> dict:
         """
         Uses Gemini Vision to extract sale transaction data from a Trade Republic screenshot.

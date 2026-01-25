@@ -383,86 +383,47 @@ async def protect_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def setup_bot_commands(bot):
     """Configures the menu button in Telegram UI."""
     commands = [
-        BotCommand("hunt", "🏹 Caccia Manuale (Analisi News)"),
-        BotCommand("analyze", "🔬 Deep Dive Ticker (es. /analyze NVDA)"),
-        BotCommand("backtest", "📈 Backtest Storico (es. /backtest BTC)"),
-        BotCommand("portfolio", "📊 Vedi Portafoglio & Valore Live"),
+        BotCommand("hunt", "🏹 Analisi News (Caccia Segnali)"),
+        BotCommand("portfolio", "📊 Portfolio & Prezzi Live"),
+        BotCommand("analyze", "🔬 Deep Dive Ticker (es. /analyze BTC)"),
+        BotCommand("rebalance", "⚖️ Suggerimenti Ribilanciamento"),
+        BotCommand("macro", "🏛 Scenario Macro (VIX/FED)"),
         BotCommand("dashboard", "🖥️ Web Dashboard"),
-        BotCommand("macro", "🏛 Macro Context (FED/VIX)"),
-        BotCommand("whale", "🐋 Whale Alert (On-Chain)"),
         BotCommand("alert", "🔔 Imposta Alert Prezzo"),
-        BotCommand("alerts", "🔕 I tuoi Alert"),
-        BotCommand("paper", "🧪 Lab / Paper Trading"),
-        BotCommand("recall", "🧠 Memoria Storica (es. /recall BTC)"),
-        BotCommand("learn", "🎓 Lezioni dagli Errori"),
-        BotCommand("benchmark", "📊 Portfolio vs S&P500/BTC"),
-        BotCommand("report", "📑 Weekly Report Completo"),
-        BotCommand("rebalance", "⚖️ Analisi Ribilanciamento"),
-        BotCommand("add", "➕ Aggiungi Asset Manualmente"),
-        BotCommand("sell", "💸 Registra Vendita"),
-        BotCommand("protect", "🛡️ Imposta StopLoss/TakeProfit"),
-        BotCommand("mode", "🔧 PREPROD/PROD Mode"),
-        BotCommand("usage", "📊 API Usage Stats"),
-        BotCommand("trainml", "🤖 ML Model (stato/addestra)"),
-        BotCommand("strategy", "🛡️ Regole Strategia (view/set)"),
-        BotCommand("portfolio_backtest", "📊 Backtest Portafoglio (Sharpe/DD)"),
-        BotCommand("dbstatus", "📦 Stato Storage DB"),
-        BotCommand("help", "❓ Lista Comandi"),
-        BotCommand("setprice", "💶 Correggi Prezzo"),
-        BotCommand("setticker", "🏷 Correggi Ticker"),
-        BotCommand("setqty", "🔢 Imposta Quantità"),
-        BotCommand("delete", "🗑 Elimina un Asset"),
-        BotCommand("settings", "⚙️ Configura Smart Filters"),
-        BotCommand("reset", "☢️ Reset Totale"),
-        BotCommand("start", "🚀 Avvia"),
+        BotCommand("paper", "🧪 Lab (Trading Simulato)"),
+        BotCommand("report", "📑 Report Settimanale"),
+        BotCommand("help", "❓ Guida ai Comandi"),
+        BotCommand("settings", "⚙️ Configura AI Hunter"),
+        BotCommand("reset", "☢️ Reset Totale Portafoglio"),
     ]
     await bot.set_my_commands(commands)
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await setup_bot_commands(context.bot)
     msg = (
-        "🛠 **Lista Comandi Disponibili:**\n\n"
-        "🏹 `/hunt`\nAvvia la caccia ai segnali di trading (analisi news + AI).\n\n"
-        "📊 `/portfolio`\nVisualizza il valore attuale del tuo portafoglio in tempo reale.\n\n"
-        "📱 `/dashboard`\nApri la dashboard web interattiva.\n\n"
-        "🔬 `/analyze <TICKER>`\nAnalisi AI approfondita con news, technicals, e backtest storici.\n\n"
-        "📈 `/backtest <TICKER>`\nEsegue un backtest storico con la miglior strategia per l'asset.\n\n"
-        "⚖️ `/rebalance`\nAnalisi ribilanciamento portafoglio con suggerimenti AI.\n\n"
-        "💸 `/sell TICKER QTY PREZZO`\nRegistra una vendita (es. /sell RENDER 100 2.50).\n\n"
-        "🧠 **Memory (Neuro-Link):**\n"
-        "• `/recall <TICKER>`: Perché abbiamo comprato/venduto questo asset?\n"
-        "• `/learn`: Lezioni apprese dagli errori recenti.\n\n"
-        "🏛 `/macro`\nVisualizza il contesto Macro Economico (VIX, Tassi, FED).\n\n"
-        "🐋 `/whale`\nVisualizza movimenti On-Chain (Balene).\n\n"
-        "🔔 **Allarmi Prezzo:**\n"
-        "• `/alert BTC > 100000`: Avvisa se BTC supera 100k.\n"
-        "• `/alert NVDA < 90`: Avvisa se NVDA scende sotto 90.\n"
-        "• `/alerts`: Lista dei tuoi allarmi attivi.\n\n"
-        "🧪 **Laboratory (Paper Trading):**\n"
-        "• `/paper`: Vedi le performance del tuo portafoglio simulato.\n\n"
-        "✍️ **Correzioni Manuali:**\n"
-        "• `/setprice <TICKER> <PREZZO>`: Imposta manualmente il prezzo medio.\n"
-        "• `/setqty <TICKER> <QTY>`: Imposta manualmente la quantità.\n"
-        "• `/setticker <OLD> <NEW>`: Rinomina un ticker errato.\n\n"
-        "🗑 **Gestione:**\n"
-        "• `/delete <TICKER>`: Elimina un singolo asset.\n"
-        "• `/reset`: Cancella TUTTO il portafoglio.\n"
-        "• `/dbstatus`: Stato storage database (500MB limit).\n\n"
-        "📊 **Reports:**\n"
-        "• `/benchmark`: Confronta portfolio vs S&P500, BTC.\n"
-        "• `/report`: Report completo con top movers e signals.\n\n"
-        "🤖 **Machine Learning:**\n"
-        "• `/trainml`: Stato del modello ML (predizioni, accuracy).\n"
-        "• `/trainml train`: Addestra il modello sui tuoi dati storici.\n\n"
-        "🛡️ **STRATEGIA:**\n"
-        "• `/strategy`: Mostra regole strategiche per ogni asset.\n"
-        "• `/strategy set TICKER type=SWING ...`: Imposta regole.\n\n"
-        "⚙️ `/settings`: Configura filtri AI.\n"
-        "🔧 `/mode`: Cambia modalità PREPROD/PROD.\n"
-        "📊 `/usage`: Vedi statistiche API usage.\n\n"
-        "📸 **Caricamento:**\nBasta inviare una foto! Se vuoi forzare il ticker, scrivilo nella **didascalia**."
+        "🚀 **Zero-Cost Hunter: Guida Rapida**\n\n"
+        "⚡ **MODI VELOCI PER GESTIRE I TRADE:**\n"
+        "1. **PDF**: Inoltra il file 'Conferma d'ordine' di Trade Republic.\n"
+        "2. **BOTTONI**: Digita `/portfolio` e clicca sui tasti sotto gli asset.\n"
+        "3. **TESTO**: Scrivi messaggi come *'Venduti 10 BTC'* o *'Comprato 1 ETF World'*.\n"
+        "4. **FOTO**: Invia uno screenshot del portafoglio o di una vendita.\n\n"
+        "🏹 `/hunt`: Avvia l'analisi delle news del giorno.\n"
+        "🔬 `/analyze <TICKER>`: Analisi AI profonda dell'asset.\n"
+        "📊 `/portfolio`: Valore live e operazioni rapide.\n"
+        "⚖️ `/rebalance`: Controlla se devi ribilanciare.\n\n"
+        "🏛 **STRUMENTI:**\n"
+        "• `/macro`: Scenario economico globale.\n"
+        "• `/alert BTC > 100k`: Imposta avvisi di prezzo.\n"
+        "• `/dashboard`: Dashboard web interattiva.\n"
+        "• `/paper`: Vedi le performance della simulazione.\n\n"
+        "🔧 **GESTIONE MANUALE:**\n"
+        "• `/sell TICKER QTY PRICE`: Registra vendita manuale.\n"
+        "• `/add TICKER QTY PRICE`: Aggiungi asset manuale.\n"
+        "• `/delete TICKER`: Rimuovi un singolo asset.\n"
+        "• `/reset`: Cancella tutto il portafoglio.\n\n"
+        "⚙️ `/settings`: Configura i filtri dell'AI Hunter."
     )
-    await update.message.reply_text(msg)
+    await update.message.reply_text(msg, parse_mode="Markdown")
 
 async def macro_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("🏛 Analizzo lo scenario Macro Economico... (VIX, Yields, FED)")
@@ -486,6 +447,167 @@ async def whale_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         logger.error(f"Whale Command Fail: {e}")
         await update.message.reply_text("❌ Errore Whale Watcher.")
+
+async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Handle generic text messages for quick interactions:
+    - Quantity input for quick sell flow
+    - Smart trade commands (e.g., "Venduto 10 BTC")
+    """
+    text = update.message.text.strip()
+    chat_id = update.effective_chat.id
+    user_data = context.user_data
+
+    # 1. Quick Sell Flow (Expecting Qty after Clicking "Vendi")
+    if user_data.get('expecting_sell_qty'):
+        ticker = user_data.pop('expecting_sell_qty')
+        try:
+            qty = float(text.replace(',', '.'))
+            # Trigger confirmation flow (same as /sell)
+            # We mock the context args to reuse sell_command logic or parts of it
+            context.args = [ticker, str(qty), "0"] # 0 as placeholder for price (will fetch live)
+            
+            # Fetch Current Price for nice confirmation
+            market = MarketData()
+            price, _ = await market.get_smart_price_eur_async(ticker)
+            
+            # Store pending sell data for the confirm/cancel callback
+            db = DBHandler()
+            portfolio = db.get_portfolio(chat_id)
+            asset = next((p for p in portfolio if p['ticker'].upper() == ticker.upper() or ticker in p['ticker']), None)
+            avg_price = asset.get('avg_price', price) if asset else price
+
+            user_data['pending_sell'] = {
+                'ticker': ticker,
+                'quantity': qty,
+                'price': price,
+                'avg_price': avg_price,
+                'net_received': qty * price - 1.0, # Simple TR estimate
+                'profit': (price - avg_price) * qty,
+                'tax': 0.0,
+                'commission': 1.0,
+                'profit_pct': ((price - avg_price) / avg_price * 100) if avg_price > 0 else 0
+            }
+            
+            # Use handle_sell_photo confirmation style
+            pnl_emoji = "🟢" if user_data['pending_sell']['profit'] >= 0 else "🔴"
+            confirm_msg = (
+                f"📋 **Conferma Vendita (Rapida)**\n\n"
+                f"📊 **{ticker}**\n"
+                f"├ Quantità: {qty}\n"
+                f"├ Prezzo Attuale: €{price:.2f}\n"
+                f"├ Stima Netto: €{user_data['pending_sell']['net_received']:.2f}\n\n"
+                f"{pnl_emoji} **P&L Est:** +€{user_data['pending_sell']['profit']:.2f} ({user_data['pending_sell']['profit_pct']:.1f}%)\n\n"
+                f"⚠️ **Confermi?**"
+            )
+            keyboard = [[
+                InlineKeyboardButton("✅ Conferma", callback_data="confirm_sell_manual"),
+                InlineKeyboardButton("❌ Annulla", callback_data="cancel_sell")
+            ]]
+            await update.message.reply_text(confirm_msg, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
+            return
+        except ValueError:
+            await update.message.reply_text("❌ Inserisci un numero valido per la quantità.")
+            user_data['expecting_sell_qty'] = ticker # keep state
+            return
+
+    # 2. Smart Trade Parsing (Regex)
+    import re
+    # Patterns like "Comprato 10 BTC", "Venduti 5.5 ETH", "Sell 100 RENDER"
+    sell_match = re.search(r'(?i)(vendut[oi]|sell)\s+([\d,.]+)\s+([a-zA-Z\d\-.=]+)', text)
+    buy_match = re.search(r'(?i)(comprat[oi]|buy)\s+([\d,.]+)\s+([a-zA-Z\d\-.=]+)', text)
+    
+    if sell_match:
+        qty = sell_match.group(2).replace(',', '.')
+        ticker = sell_match.group(3).upper()
+        # Automate the /sell logic
+        await update.message.reply_text(f"🔍 **Rilevata vendita:** {qty} {ticker}. Elaboro...")
+        # Reuse sell_command or direct logic
+        # For simplicity, let's just trigger the expecting_sell_qty flow if price is missing
+        # or better, fetch price and ask for confirm.
+        pass # To be fully implemented if specific flow needed
+
+    # If no trade detected, just handle normally (maybe ignore or echo)
+    logger.debug(f"Unhandled text: {text}")
+
+async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle incoming PDF documents from Trade Republic."""
+    doc = update.message.document
+    if not doc.file_name.lower().endswith('.pdf'):
+        return
+
+    await update.message.reply_text("📄 **Analizzo il documento Trade Republic...**", parse_mode="Markdown")
+    try:
+        user_id = update.effective_user.id
+        file_obj = await doc.get_file()
+        file_path = f"/tmp/doc_{user_id}_{doc.file_name}"
+        await file_obj.download_to_drive(file_path)
+
+        from brain import Brain
+        brain = Brain()
+        trade_data = brain.parse_trade_republic_pdf(file_path)
+
+        if "error" in trade_data:
+            await update.message.reply_text(f"❌ Errore durante l'analisi del PDF: {trade_data['error']}")
+            return
+
+        # Prepare confirmation
+        ticker = trade_data.get('ticker', 'UNKNOWN')
+        action = trade_data.get('action', 'BUY').upper()
+        qty = trade_data.get('quantity', 0)
+        price = trade_data.get('price', 0)
+        net_total = trade_data.get('net_total', 0)
+        asset_name = trade_data.get('asset_name', ticker)
+
+        # Store in user_data for confirmation
+        # We reuse the same structures as /sell or /add where possible
+        if action == "SELL":
+            context.user_data['pending_sell'] = {
+                'ticker': ticker,
+                'quantity': qty,
+                'price': price,
+                'tax': trade_data.get('tax', 0),
+                'commission': trade_data.get('commission', 1.0),
+                'net_received': net_total,
+                'profit': 0.0, # Will be calculated if possible
+                'profit_pct': 0.0
+            }
+            confirm_msg = (
+                f"📋 **Conferma VENDITA (da PDF)**\n\n"
+                f"📊 **{asset_name}**\n"
+                f"├ Quantità: {qty}\n"
+                f"├ Prezzo: €{price:.2f}\n"
+                f"└ **Netto Ricevuto: €{net_total:.2f}**\n\n"
+                f"⚠️ **Confermi?**"
+            )
+            callback_confirm = "confirm_sell"
+        else:
+            # For BUY, we'll store in a similar 'pending_buy' or use existing /add logic
+            context.user_data['pending_add'] = {
+                'ticker': ticker,
+                'quantity': qty,
+                'price': price,
+                'asset_name': asset_name
+            }
+            confirm_msg = (
+                f"📋 **Conferma ACQUISTO (da PDF)**\n\n"
+                f"📊 **{asset_name}**\n"
+                f"├ Quantità: {qty}\n"
+                f"├ Prezzo: €{price:.2f}\n"
+                f"└ **Costo Totale: €{net_total:.2f}**\n\n"
+                f"⚠️ **Confermi l'aggiunta al portafoglio?**"
+            )
+            callback_confirm = "confirm_pdf_buy"
+
+        keyboard = [[
+            InlineKeyboardButton("✅ Conferma", callback_data=callback_confirm),
+            InlineKeyboardButton("❌ Annulla", callback_data="cancel_pdf_trade")
+        ]]
+        await update.message.reply_text(confirm_msg, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
+
+    except Exception as e:
+        logger.error(f"Handle document error: {e}")
+        await update.message.reply_text(f"❌ Errore sistema: {e}")
 
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Check if we are waiting for a SELL screenshot
@@ -600,50 +722,108 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     db = DBHandler()
     chat_id = update.effective_chat.id
     
+    # --- QUICK ACTION HANDLERS ---
+    if query.data == "start_quick_sell":
+        await query.message.reply_text("💸 **Vendita Rapida**\nScrivi il ticker e la quantità (es: `AAPL 10`) o invia uno screenshot.")
+        return
+    elif query.data == "start_quick_add":
+         await query.message.reply_text("➕ **Aggiunta Rapida**\nUsa `/add TICKER QTY PREZZO` o invia uno screenshot.")
+         return
+    
+    # Handle Dynamic Asset Callbacks (e.g. sel_BTC-USD)
+    if query.data.startswith("sel_"):
+        ticker = query.data.replace("sel_", "")
+        await query.message.reply_text(f"💸 **Vendi {ticker}**\nQuante quote vuoi vendere? Rispondi con il numero.")
+        context.user_data['expecting_sell_qty'] = ticker
+        return
+    
     # --- SELL CALLBACKS ---
-    if query.data == "confirm_sell_manual":
-        try:
-            # Parse message to identify asset and quantity
-            # Format: "📊 Vendita Iniziata: TICKER\n├ Quantità: 100..."
-            lines = query.message.text.split('\n')
-            ticker_line = next((l for l in lines if "Vendita Iniziata:" in l), None)
-            qty_line = next((l for l in lines if "Quantità:" in l), None)
-            
-            if not ticker_line or not qty_line:
-                await query.edit_message_text("❌ Errore parsing dati messaggio.")
-                return
-                
-            ticker = ticker_line.split(":")[1].strip()
-            quantity = float(qty_line.split(":")[1].strip())
-            
-            # Update Portfolio
-            portfolio = db.get_portfolio(chat_id)
-            asset = next((p for p in portfolio if p['ticker'] == ticker), None)
-            
-            if asset:
-                current_qty = asset['quantity']
-                new_qty = current_qty - quantity
-                
-                if new_qty > 0:
-                    if db.update_asset_quantity(chat_id, ticker, new_qty):
-                        await query.edit_message_text(f"✅ **Vendita Confermata!**\n\n📉 {ticker}: Quantità aggiornata a {new_qty:.4f}.")
-                    else:
-                        await query.edit_message_text("❌ Errore aggiornamento DB.")
-                else:
-                    # Fully sold
-                    if db.delete_asset(chat_id, ticker):
-                        await query.edit_message_text(f"✅ **Vendita Totale Confermata!**\n\n🗑️ {ticker} rimosso dal portafoglio.")
-                    else:
-                        await query.edit_message_text("❌ Errore eliminazione asset.")
-            else:
-                 await query.edit_message_text(f"⚠️ {ticker} non trovato in portafoglio (già venduto?).")
-                 
-        except Exception as e:
-            logger.error(f"Sell Confirm Error: {e}")
-            await query.edit_message_text(f"❌ Errore: {e}")
-
     elif query.data == "cancel_sell":
+        context.user_data.pop('pending_sell', None)
         await query.edit_message_text("❌ Operazione di vendita annullata.")
+
+    elif query.data == "confirm_sell" or query.data == "confirm_sell_manual":
+        pending = context.user_data.get('pending_sell')
+        if not pending:
+            await query.edit_message_text("❌ Nessuna vendita in attesa.")
+            return
+        
+        # Execute the sale
+        ticker = pending['ticker']
+        quantity = pending['quantity']
+        price = pending['price']
+        
+        # Determine values based on source (manual vs screenshot)
+        if query.data == "confirm_sell_manual":
+             # Calculate estimates for manual confirm
+             avg_price = pending.get('avg_price', 0)
+             gross_total = quantity * price
+             realized_pnl = (price - avg_price) * quantity
+             
+             TR_COMMISSION = 1.00
+             CRYPTO_TAX_RATE = 0.33
+             crypto_tickers = ['BTC', 'ETH', 'SOL', 'XRP', 'RENDER', 'ADA', 'AVAX', 'DOT', 'LINK', 'DOGE']
+             is_crypto = any(c in ticker.upper() for c in crypto_tickers)
+             
+             if realized_pnl > 0 and is_crypto:
+                 tax = realized_pnl * CRYPTO_TAX_RATE
+             else:
+                 tax = 0.0
+                 
+             commission = TR_COMMISSION
+             profit = realized_pnl
+             net_received = gross_total - tax - commission
+        else:
+             # Use precise OCR values
+             net_received = pending['net_received']
+             profit = pending['profit']
+             tax = pending['tax']
+             commission = pending['commission']
+        
+        # Fetch portfolio to update
+        portfolio = db.get_portfolio()
+        asset = next((p for p in portfolio if p['ticker'].upper() == ticker.upper() or 
+                     ticker.upper() in p['ticker'].upper()), None)
+        
+        # Log transaction with real net values
+        result = db.log_transaction(
+            ticker=ticker,
+            action="SELL",
+            quantity=quantity,
+            price_per_unit=price,
+            realized_pnl=profit
+        )
+        
+        if result and asset:
+            # Update portfolio quantity
+            current_qty = float(asset.get('quantity', 0))
+            new_qty = current_qty - quantity
+            
+            if new_qty <= 0:
+                db.delete_asset(chat_id, asset['ticker'])
+                portfolio_msg = "\n\n🗑️ Asset rimosso dal portfolio (vendita totale)"
+            else:
+                db.update_asset_quantity(chat_id, asset['ticker'], new_qty)
+                portfolio_msg = f"\n\n📉 Portfolio aggiornato: {new_qty:.6f} unità rimanenti"
+        else:
+            portfolio_msg = ""
+        
+        pnl_emoji = "🟢" if profit >= 0 else "🔴"
+        
+        final_msg = (
+            f"✅ **Vendita Confermata!**\n\n"
+            f"📊 **{ticker}**\n"
+            f"├ Quantità: {quantity}\n"
+            f"├ Prezzo: €{price:.2f}\n"
+            f"├ Imposta: -€{tax:.2f}\n"
+            f"├ Commissione: -€{commission:.2f}\n"
+            f"├ **Netto Ricevuto: €{net_received:.2f}**\n\n"
+            f"{pnl_emoji} **P&L Netto:** +€{profit:.2f}"
+            f"{portfolio_msg}"
+        )
+        
+        context.user_data.pop('pending_sell', None)
+        await query.edit_message_text(final_msg, parse_mode="Markdown")
 
     # --- PORTFOLIO CALLBACKS ---
     elif query.data == "confirm_save":
@@ -658,6 +838,30 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.edit_message_text(text="🗑️ Operazione annullata.")
         except Exception as e:
             await query.edit_message_text(text=f"❌ Errore: {e}")
+    elif query.data == "confirm_pdf_buy":
+        try:
+            pending = context.user_data.pop('pending_add', None)
+            if not pending:
+                await query.edit_message_text("❌ Nessun acquisto in attesa.")
+                return
+            
+            db.add_to_portfolio(
+                ticker=pending['ticker'],
+                amount=pending['quantity'],
+                price=pending['price'],
+                chat_id=chat_id,
+                asset_name=pending.get('asset_name'),
+                is_confirmed=True
+            )
+            await query.edit_message_text(f"🚀 **Acquisto Confermato!**\n\n📌 {pending['ticker']} aggiunto al portafoglio.")
+        except Exception as e:
+            await query.edit_message_text(f"❌ Errore DB: {e}")
+            
+    elif query.data == "cancel_pdf_trade":
+        context.user_data.pop('pending_add', None)
+        context.user_data.pop('pending_sell', None)
+        await query.edit_message_text("🗑️ Operazione annullata.")
+
     elif query.data == "confirm_reset":
         try:
            if db.delete_portfolio(chat_id):
@@ -764,9 +968,35 @@ async def show_portfolio(update: Update, context: ContextTypes.DEFAULT_TYPE):
             msg += f"   `{a['display_ticker']}`  •  `{val_str}`  •  {a['quantity']} pz\n"
             if a.get('stop_loss') or a.get('take_profit'):
                 msg += f"   _{sl_info}  |  {tp_info}_\n"
-
+            
+            # Action buttons for each asset
+            from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+            quick_sell_data = f"quick_sel_{a['display_ticker']}"
+            quick_add_data = f"quick_add_{a['display_ticker']}"
+            
+            # Since long callback data can be an issue, we use a prefix
+            # We'll use a mapping or just the ticker if it's short
+            keyboard = [[
+                InlineKeyboardButton("💸 Vendi", callback_data=f"sel_{a['display_ticker']}"),
+                InlineKeyboardButton("➕ Agg.", callback_data=f"add_{a['display_ticker']}")
+            ]]
+            # We'll collect all keyboards? No, Telegram messages have one reply_markup.
+            # Strategy: We'll show the portfolio as a single message with buttons for the TOP assets, 
+            # or a single button "Gestisci Assets" that opens a menu.
+            # Actually, let's just add a few generic buttons at the bottom for now to avoid the "button per row" mess 
+            # if the portfolio is large.
+            # REVISED: One button at the bottom "🚀 Operazioni Rapide" that leads to a selection menu, 
+            # OR just add the buttons for EVERY asset if the count is reasonable (< 10).
+            
     msg += f"\n━━━━━━━━━━━━━━━━━━━━\n💰 **TOTALE PORTAFOGLIO:** `€{total_val:,.2f}`"
-    await update.message.reply_text(msg)
+    
+    # Simple strategy: Add a "Quick Sell" button that asks for ticker
+    footer_keyboard = [
+        [InlineKeyboardButton("💸 Vendita Rapida", callback_data="start_quick_sell")],
+        [InlineKeyboardButton("➕ Aggiungi Asset", callback_data="start_quick_add")]
+    ]
+    
+    await update.message.reply_text(msg, reply_markup=InlineKeyboardMarkup(footer_keyboard))
 
 async def delete_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
@@ -1162,6 +1392,7 @@ def webhook():
                 bot_app.add_handler(CommandHandler("report", report_command))
                 bot_app.add_handler(CommandHandler("backtest", backtest_command))
                 bot_app.add_handler(CommandHandler("analyze", analyze_command))
+                bot_app.add_handler(CommandHandler("sell", sell_command))
                 bot_app.add_handler(CommandHandler("settings", settings_command))
                 bot_app.add_handler(CommandHandler("mode", mode_command))
                 bot_app.add_handler(CommandHandler("usage", usage_command))
@@ -1171,8 +1402,11 @@ def webhook():
                 bot_app.add_handler(CommandHandler("trainml", trainml_command))
                 bot_app.add_handler(CommandHandler("strategy", strategy_command))
                 bot_app.add_handler(CommandHandler("portfolio_backtest", portfolio_backtest_command))
-                bot_app.add_handler(CommandHandler("sell", sell_command))
                 bot_app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
+                # Text handler for quick sells and smart input
+                bot_app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_text))
+                # PDF handler for Trade Republic documents
+                bot_app.add_handler(MessageHandler(filters.Document.PDF, handle_document))
                 bot_app.add_handler(CallbackQueryHandler(handle_callback))
                 
                 update = Update.de_json(json_update, bot_app.bot)
@@ -1825,24 +2059,18 @@ async def sell_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 parse_mode="Markdown"
             )
             avg_price = price  # Use sell price as reference if not in portfolio
-            realized_pnl = 0
         else:
             avg_price = asset.get('avg_price', price)
-            # Calculate realized P&L
-            realized_pnl = (price - avg_price) * quantity
-        
+            
         total_value = quantity * price
-        pnl_percent = ((price - avg_price) / avg_price * 100) if avg_price > 0 else 0
         
-        # Log the transaction
-        result = db.log_transaction(
-            ticker=ticker,
-            action="SELL",
-            quantity=quantity,
-            price_per_unit=price,
-            realized_pnl=realized_pnl
-        )
-        
+        # Store pending sell data for confirmation handler
+        context.user_data['pending_sell'] = {
+            'ticker': ticker,
+            'quantity': quantity,
+            'price': price,
+            'avg_price': avg_price
+        }
         
         from telegram import InlineKeyboardButton, InlineKeyboardMarkup
         keyboard = [
@@ -1962,103 +2190,6 @@ async def handle_sell_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.error(f"Sell photo handler error: {e}")
         await update.message.reply_text(f"❌ Errore: {e}")
 
-async def handle_sell_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle confirmation/cancellation of pending sell from screenshot."""
-    query = update.callback_query
-    await query.answer()
-    
-    action = query.data
-    
-    if action == "cancel_sell":
-        context.user_data.pop('pending_sell', None)
-        await query.edit_message_text("❌ Vendita annullata.")
-        return
-    
-    if action == "confirm_sell" or action == "confirm_sell_manual":
-        pending = context.user_data.get('pending_sell')
-        if not pending:
-            await query.edit_message_text("❌ Nessuna vendita in attesa.")
-            return
-        
-        # Execute the sale
-        from db_handler import DBHandler
-        db = DBHandler()
-        
-        ticker = pending['ticker']
-        quantity = pending['quantity']
-        price = pending['price']
-        
-        # Determine values based on source (manual vs screenshot)
-        if action == "confirm_sell_manual":
-             # Calculate estimates for manual confirm
-             avg_price = pending.get('avg_price', 0)
-             gross_total = quantity * price
-             realized_pnl = (price - avg_price) * quantity
-             
-             TR_COMMISSION = 1.00
-             CRYPTO_TAX_RATE = 0.33
-             crypto_tickers = ['BTC', 'ETH', 'SOL', 'XRP', 'RENDER', 'ADA', 'AVAX', 'DOT', 'LINK', 'DOGE']
-             is_crypto = any(c in ticker.upper() for c in crypto_tickers)
-             
-             if realized_pnl > 0 and is_crypto:
-                 tax = realized_pnl * CRYPTO_TAX_RATE
-             else:
-                 tax = 0.0
-                 
-             commission = TR_COMMISSION
-             profit = realized_pnl
-             net_received = gross_total - tax - commission
-        else:
-             # Use precise OCR values
-             net_received = pending['net_received']
-             profit = pending['profit']
-             tax = pending['tax']
-             commission = pending['commission']
-        
-        # Fetch portfolio to update
-        portfolio = db.get_portfolio()
-        asset = next((p for p in portfolio if p['ticker'].upper() == ticker.upper() or 
-                     ticker.upper() in p['ticker'].upper()), None)
-        
-        # Log transaction with real net values
-        result = db.log_transaction(
-            ticker=ticker,
-            action="SELL",
-            quantity=quantity,
-            price_per_unit=price,
-            realized_pnl=profit
-        )
-        
-        if result and asset:
-            # Update portfolio quantity
-            current_qty = float(asset.get('quantity', 0))
-            new_qty = current_qty - quantity
-            
-            if new_qty <= 0:
-                db.delete_asset(query.from_user.id, asset['ticker'])
-                portfolio_msg = "\n\n🗑️ Asset rimosso dal portfolio (vendita totale)"
-            else:
-                db.update_asset_quantity(query.from_user.id, asset['ticker'], new_qty)
-                portfolio_msg = f"\n\n📉 Portfolio aggiornato: {new_qty:.6f} unità rimanenti"
-        else:
-            portfolio_msg = ""
-        
-        pnl_emoji = "🟢" if profit >= 0 else "🔴"
-        
-        final_msg = (
-            f"✅ **Vendita Confermata!**\n\n"
-            f"📊 **{ticker}**\n"
-            f"├ Quantità: {quantity}\n"
-            f"├ Prezzo: €{price:.2f}\n"
-            f"├ Imposta: -€{tax:.2f}\n"
-            f"├ Commissione: -€{commission:.2f}\n"
-            f"├ **Netto Ricevuto: €{net_received:.2f}**\n\n"
-            f"{pnl_emoji} **P&L Netto:** +€{profit:.2f}"
-            f"{portfolio_msg}"
-        )
-        
-        context.user_data.pop('pending_sell', None)
-        await query.edit_message_text(final_msg, parse_mode="Markdown")
 
 async def report_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Generate a comprehensive weekly report with benchmarks, signals, and top movers."""

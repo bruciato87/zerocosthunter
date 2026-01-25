@@ -93,3 +93,37 @@ def test_gemini_tiered_fallback(mock_brain_deps, mocker):
     assert calls[0].kwargs['model'] == "gemini-2.0-flash"
     assert calls[1].kwargs['model'] == "gemini-2.0-flash-lite"
     assert calls[2].kwargs['model'] == "gemini-flash-latest"
+
+def test_parse_trade_republic_pdf(mock_brain_deps, mocker):
+    """Test PDF parsing logic with mock PDF and AI response."""
+    import json
+    brain = Brain()
+    
+    # 1. Mock PdfReader
+    mock_pdf = MagicMock()
+    mock_page = MagicMock()
+    mock_page.extract_text.return_value = "Trade Republic Order Confirmation: Bought 10 AAPL @ 150.25 EUR"
+    mock_pdf.pages = [mock_page]
+    mocker.patch("pypdf.PdfReader", return_value=mock_pdf)
+    
+    # 2. Mock AI Generation
+    mock_ai_response = {
+        "ticker": "AAPL",
+        "action": "BUY",
+        "quantity": 10.0,
+        "price": 150.25,
+        "commission": 1.0,
+        "tax": 0.0,
+        "net_total": 1503.50,
+        "asset_name": "Apple Inc"
+    }
+    mocker.patch.object(brain, "_generate_with_fallback", return_value=json.dumps(mock_ai_response))
+    
+    # 3. Execute
+    result = brain.parse_trade_republic_pdf("mock.pdf")
+    
+    # 4. Verify
+    assert result["ticker"] == "AAPL"
+    assert result["quantity"] == 10.0
+    assert result["action"] == "BUY"
+    assert brain._generate_with_fallback.called
