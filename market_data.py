@@ -28,8 +28,12 @@ class MarketData:
         self._price_cache = {}      # ticker -> (price, source, change_pct, timestamp)
         self._technical_cache = {}  # ticker -> (summary, timestamp)
         self._cache_ttl = 60        # Cache TTL in seconds (1 minute)
-        self._eur_usd_rate = None   # Session cache for FX
         
+        # Shared across instances to avoid redundant FX fetches
+        if not hasattr(MarketData, '_eur_usd_rate_shared'):
+            MarketData._eur_usd_rate_shared = 1.05  # Initial fallback
+            MarketData._last_fx_update = 0
+            
         self.COINGECKO_MAP = {
             "BTC-USD": "bitcoin",
             "ETH-USD": "ethereum",
@@ -51,28 +55,35 @@ class MarketData:
         
         self.KNOWN_CRYPTO = list(self.COINGECKO_MAP.keys())
         
-        # Manual overrides for problematic tickers (User Request)
+        # Manual overrides for problematic tickers (Trade Republic / EU optimized)
         self.TICKER_ALIASES = {
-            "ICGA.FRA": "ICGA.DE",   # Yahoo uses .DE for Xetra/Frankfurt often
-            "3CP": "3CP.F",          # Xiaomi on Frankfurt
-            "RNDR-USD": "RENDER-USD", # Rebranding fallback
-            "RENDER": "RENDER-USD",   # Naked ticker support
-            "BYD": "BY6.F",           # User owns BYD EV (Frankfurt), not Boyd Gaming (NYSE)
-            "BYDDF": "BY6.F",         # BYD OTC -> Frankfurt (faster)
-            "TCT": "0700.HK",         # Tencent on Hong Kong (more reliable than Frankfurt)
-            "3XC": "1810.HK",         # Xiaomi on Hong Kong (more reliable)
-            "NUKL": "U3O8.DE",        # Global X Uranium (EU version) on Xetra
-            "JAZZ": "JAZZ",           # Jazz Pharmaceuticals on NASDAQ (no suffix needed)
-            "IBIT": "IBIT",           # BlackRock Bitcoin ETF
-            "MSCI": "MSCI",           # MSCI Inc.
-            "XMR": "BTC-USD",         # Suppression/Fallback for delisted Privacy Coins
-            "SPACEX": "TSLA",         # Fallback to TSLA for SpaceX news (SpaceX is private)
-            "CLARITY": "EUNL.DE",     # Generic fallback for invalid ESG/Clarity picks
-            "IRA": "SPY",             # Generic fallback
+            "AAPL": "APC.DE",        # Apple on Xetra
+            "META": "FB2A.DE",       # Meta on Xetra
+            "NVDA": "NVD.DE",        # Nvidia on Xetra
+            "MSFT": "MSF.DE",        # Microsoft on Xetra
+            "GOOGL": "ABE.DE",       # Alphabet (A) on Xetra
+            "AMZN": "AMZ.DE",        # Amazon on Xetra
+            "TSLA": "TL0.DE",        # Tesla on Xetra
+            "JAZZ": "JAZZ",          # Jazz Pharma on NASDAQ
+            "BYD": "BY6.F",          # BYD on Frankfurt
+            "BYDDF": "BY6.F",
+            "TCT": "NNnD.F",         # Tencent on Frankfurt
+            "3XC": "3CP.F",          # Xiaomi on Frankfurt
+            "3CP": "3CP.F",
+            "ICGA.FRA": "ICGA.DE",   
+            "RNDR-USD": "RENDER-USD", 
+            "RENDER": "RENDER-USD",
+            "NUKL": "U3O8.DE",
+            "BTC": "BTC-EUR",        
+            "ETH": "ETH-EUR",
+            "SOL": "SOL-EUR",
+            "BTC-USD": "BTC-EUR",
+            "ETH-USD": "ETH-EUR",
+            "SOL-USD": "SOL-EUR",
         }
 
-        # Suppression list (Tickers that are known to fail but we don't want logs for)
-        self.SUPPRESSED_TICKERS = {'SPACEX', 'XMR', 'CLARITY', 'IRA', 'TCT', '3XC'}
+        # Suppression list
+        self.SUPPRESSED_TICKERS = {'SPACEX', 'XMR', 'CLARITY', 'IRA'}
 
     def get_crypto_data_coingecko(self, ticker):
         """
@@ -190,25 +201,32 @@ class MarketData:
                 logger.warning(f"Could not extract change: {e}")
             return 0.0
         # Note: Fetch EUR/USD rate dynamically or fallback
-        # [PERFORMANCE] Fetch EUR/USD rate once per session/period
-        if not self._eur_usd_rate:
-            self._eur_usd_rate = 1.05 # Realistic fallback
+        # [PERFORMANCE] Refresh EUR/USD rate once per hour
+        if time.time() - MarketData._last_fx_update > 3600 or MarketData._eur_usd_rate_shared == 1.05:
             try:
-                 hist = yf.Ticker("EURUSD=X").history(period="1d")
+                 # Use 5d to avoid weekend empty data
+                 hist = yf.Ticker("EURUSD=X").history(period="5d")
                  if not hist.empty: 
                      rate = hist['Close'].iloc[-1]
-                     # Basic sanity check (1 EUR should be ~0.9 - 1.3 USD)
                      if 0.8 < rate < 1.5:
-                         self._eur_usd_rate = rate
-                         logger.debug(f"FX Rate Updated: {self._eur_usd_rate}")
-            except: pass
+                         MarketData._eur_usd_rate_shared = float(rate)
+                         MarketData._last_fx_update = time.time()
+                         logger.info(f"FX Rate Updated: {MarketData._eur_usd_rate_shared}")
+            except Exception as fx_err:
+                 logger.warning(f"FX Update failed: {fx_err}")
         
-        eur_usd_rate = self._eur_usd_rate
+        eur_usd_rate = MarketData._eur_usd_rate_shared
         change_pct = 0.0
 
         ticker_u = candidate_ticker.upper()
         
-        # [V11] Check DB ticker_cache for persistent fresh price (OFFLOADS VERCEL CPU)
+        # 0. Check Aliases first (Manual overrides) - PRIORITIZE OVER CACHE
+        if ticker_u in self.TICKER_ALIASES:
+             start_ticker = self.TICKER_ALIASES[ticker_u]
+        else:
+             start_ticker = ticker_u
+
+        # [V11] Check DB ticker_cache
         try:
             from db_handler import DBHandler
             db = DBHandler()
@@ -264,13 +282,7 @@ class MarketData:
         except:
             pass  # DB not available, continue without cache
         
-        # 0. Check Aliases first (Manual overrides)
-        # Usually aliases map to the EXACT ticker intended (e.g. BYD -> BY6.F)
-        # If alias is found, trust it 100% and fetch that.
-        if ticker_u in self.TICKER_ALIASES:
-             start_ticker = self.TICKER_ALIASES[ticker_u]
-        else:
-             start_ticker = ticker_u
+        # start_ticker is already resolved via aliases above
 
         # OPTIMIZATION: If ticker has '-' or is known crypto
         # This list should match known crypto list in COINGECKO_MAP roughly

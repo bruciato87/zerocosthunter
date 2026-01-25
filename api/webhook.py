@@ -891,19 +891,7 @@ async def show_portfolio(update: Update, context: ContextTypes.DEFAULT_TYPE):
     total_val = 0.0
     # Note: eur_usd local is no longer needed here as market logic is centralized
 
-    TICKER_FIX_MAP = {
-        "RNDR-USD": "RENDER-USD", 
-        "RENDER": "RENDER-USD", # Fix for naked ticker
-        "3DJ.DE": "3CP.F", 
-        "BYD": "BY6.F", 
-        "ICGA.FRA": "IAG.MC", 
-        "ICGA.DE": "IAG.MC", 
-        "ICGA.F": "IAG.MC", 
-        "3CP": "3CP.F",
-        "TCT": "NNnD.F",  # Tencent Frankfurt
-        "3XC": "3CP.F",   # Xiaomi Frankfurt (user variant)
-        "NUKL": "NUKL.DE" # Global X Uranium
-    }
+    TICKER_FIX_MAP = {} # Centralized in MarketData
 
 
 
@@ -1077,25 +1065,9 @@ def dashboard():
     asset_trends = {}  # Track each asset's trend separately for forward-fill
     
     # FX & Tickers
-    eur_usd = 1.1
-    try:
-        hist = yf.Ticker("EURUSD=X").history(period="1mo")
-        if not hist.empty: eur_usd = hist['Close'].iloc[-1]
-    except: pass
+    eur_usd = MarketData._eur_usd_rate_shared
     
-    TICKER_FIX = {
-        "RNDR-USD": "RENDER-USD", 
-        "RENDER": "RENDER-USD", 
-        "3DJ.DE": "3CP.F", 
-        "BYD": "BY6.F", 
-        "ICGA.FRA": "IAG.MC", 
-        "ICGA.F": "IAG.MC", 
-        "ICGA.DE": "IAG.MC", 
-        "3CP": "3CP.F",
-        "TCT": "NNnD.F",  # Tencent Frankfurt
-        "3XC": "3CP.F",   # Xiaomi Frankfurt
-        "NUKL": "NUKL.DE" # Global X Uranium
-    }
+    TICKER_FIX = {} # Centralized in MarketData
 
     for item in portfolio:
         try:
