@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from market_data import MarketData
+import pandas as pd
 
 @pytest.fixture
 def mock_db():
@@ -17,7 +18,7 @@ def market(mock_db):
 
 @patch('market_data.MarketData.get_crypto_data_coingecko')
 @patch('yfinance.Ticker')
-def test_get_smart_price_eur_btc_usd(mock_cg, mock_ticker, market, mock_db):
+def test_get_smart_price_eur_btc_usd(mock_ticker, mock_cg, market, mock_db):
     """
     Test that BTC-USD is correctly identified as a USD asset,
     converted to EUR, and saved to DB with currency='USD'.
@@ -39,7 +40,6 @@ def test_get_smart_price_eur_btc_usd(mock_cg, mock_ticker, market, mock_db):
     mock_series = MagicMock()
     mock_series.iloc = [-1] 
     # Actually simpler to just mock the return of history()
-    import pandas as pd
     mock_btc.history.return_value = pd.DataFrame({'Close': [100000.0]})
     
     # Reset session cache and FORCE rate for deterministic math
@@ -98,7 +98,6 @@ def test_get_smart_price_eur_german_stock(mock_ticker, market, mock_db):
     
     # Setup Mock for EUNL.DE
     mock_stock = MagicMock()
-    import pandas as pd
     mock_stock.history.return_value = pd.DataFrame({'Close': [50.0]})
     
     def ticker_side_effect(symbol):

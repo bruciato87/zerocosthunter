@@ -204,6 +204,7 @@ class MarketData:
             except: pass
         
         eur_usd_rate = self._eur_usd_rate
+        change_pct = 0.0
 
         ticker_u = candidate_ticker.upper()
         
@@ -292,6 +293,14 @@ class MarketData:
                      except: pass
                 
                 result = (cg_price / eur_usd_rate, base + "-USD")
+                
+                # [FIX] Save to DB (Native USD)
+                try:
+                    from db_handler import DBHandler
+                    # CoinGecko is "USD" by default here
+                    DBHandler().save_ticker_price(ticker_u, cg_price, is_crypto=True, currency="USD")
+                except: pass
+                
                 return (*result, change_pct) if include_change else result
 
             # 2. Try EUR Pair first (e.g. BTC-EUR) - Most accurate for EU users
@@ -304,6 +313,13 @@ class MarketData:
                     if not hist.empty:
                         if include_change: change_pct = extract_change(t_obj)
                         result = (hist['Close'].iloc[-1], f"{base}-EUR")
+                        
+                        # [FIX] Save to DB (Native EUR)
+                        try:
+                            from db_handler import DBHandler
+                            DBHandler().save_ticker_price(ticker_u, result[0], is_crypto=True, currency="EUR")
+                        except: pass
+
                         return (*result, change_pct) if include_change else result
                 except: pass
 
@@ -315,6 +331,13 @@ class MarketData:
                      price = hist['Close'].iloc[-1]
                      if include_change: change_pct = extract_change(t_obj)
                      result = (price / eur_usd_rate, f"{base}-USD")
+                     
+                     # [FIX] Save to DB (Native USD)
+                     try:
+                         from db_handler import DBHandler
+                         DBHandler().save_ticker_price(ticker_u, price, is_crypto=True, currency="USD")
+                     except: pass
+                     
                      return (*result, change_pct) if include_change else result
             except: pass
             
