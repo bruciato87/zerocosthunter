@@ -28,6 +28,7 @@ class MarketData:
         self._price_cache = {}      # ticker -> (price, source, change_pct, timestamp)
         self._technical_cache = {}  # ticker -> (summary, timestamp)
         self._cache_ttl = 60        # Cache TTL in seconds (1 minute)
+        self._eur_usd_rate = None   # Session cache for FX
         
         self.COINGECKO_MAP = {
             "BTC-USD": "bitcoin",
@@ -189,11 +190,20 @@ class MarketData:
                 logger.warning(f"Could not extract change: {e}")
             return 0.0
         # Note: Fetch EUR/USD rate dynamically or fallback
-        eur_usd_rate = 1.09
-        try:
-             hist = yf.Ticker("EURUSD=X").history(period="1d")
-             if not hist.empty: eur_usd_rate = hist['Close'].iloc[-1]
-        except: pass
+        # [PERFORMANCE] Fetch EUR/USD rate once per session/period
+        if not self._eur_usd_rate:
+            self._eur_usd_rate = 1.05 # Realistic fallback
+            try:
+                 hist = yf.Ticker("EURUSD=X").history(period="1d")
+                 if not hist.empty: 
+                     rate = hist['Close'].iloc[-1]
+                     # Basic sanity check (1 EUR should be ~0.9 - 1.3 USD)
+                     if 0.8 < rate < 1.5:
+                         self._eur_usd_rate = rate
+                         logger.debug(f"FX Rate Updated: {self._eur_usd_rate}")
+            except: pass
+        
+        eur_usd_rate = self._eur_usd_rate
 
         ticker_u = candidate_ticker.upper()
         

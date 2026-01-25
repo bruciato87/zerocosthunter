@@ -680,16 +680,12 @@ async def show_portfolio(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     await update.message.reply_text("⏳ **Recupero prezzi live...**")
     
-    # Instantiate MarketData for Centralized Pricing
+    # MarketData handles all pricing and FX internally
     market = MarketData()
     
     msg = "📊 **Il tuo Portafoglio:**\n\n"
     total_val = 0.0
-    eur_usd = 1.1
-    try:
-        t = yf.Ticker("EURUSD=X")
-        eur_usd = t.history(period="1d")['Close'].iloc[-1]
-    except: pass
+    # Note: eur_usd local is no longer needed here as market logic is centralized
 
     TICKER_FIX_MAP = {
         "RNDR-USD": "RENDER-USD", 
