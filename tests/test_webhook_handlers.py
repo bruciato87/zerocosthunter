@@ -17,8 +17,10 @@ async def test_handle_text_quick_sell_qty(mocker):
     
     # Mock DB and MarketData
     mocker.patch("db_handler.DBHandler")
-    mock_market = mocker.patch("market_data.MarketData")
-    mock_market.return_value.get_smart_price_eur_async = AsyncMock(return_value=(50000.0, "BTC-USD"))
+    mock_market_class = mocker.patch("api.webhook.MarketData")
+    mock_market_instance = mock_market_class.return_value
+    mock_market_instance.get_smart_price_eur_async = AsyncMock(return_value=(50000.0, "BTC-USD"))
+    mock_market_instance.get_smart_price_eur = MagicMock(return_value=(50000.0, "BTC-USD"))
     
     # Execute
     await handle_text(update, context)
