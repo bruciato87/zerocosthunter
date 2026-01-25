@@ -7,6 +7,15 @@ import sys
 # Ensure the root directory is in the path so we can import modules
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+# Disable yfinance session cache to avoid ResourceWarning in tests
+try:
+    import yfinance as yf
+    import requests
+    # Ensure no persistent cache is used during tests
+    yf.set_tz_cache_location(None)
+except Exception:
+    pass
+
 @pytest.fixture
 def mock_db(mocker):
     """Mock the DBHandler to avoid database calls."""

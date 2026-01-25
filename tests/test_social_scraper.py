@@ -17,11 +17,14 @@ def test_reddit_ticker_extraction(scraper):
         }
     }
     
-    with patch.object(scraper.session, 'get') as mock_get:
+    with patch("curl_cffi.requests.Session") as mock_session:
+        mock_s = MagicMock()
+        mock_session.return_value.__enter__.return_value = mock_s
+        
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = mock_data
-        mock_get.return_value = mock_response
+        mock_s.get.return_value = mock_response
         
         trending = scraper.get_reddit_trending()
         

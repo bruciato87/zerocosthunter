@@ -62,7 +62,16 @@ class MarketData:
             "3XC": "1810.HK",         # Xiaomi on Hong Kong (more reliable)
             "NUKL": "U3O8.DE",        # Global X Uranium (EU version) on Xetra
             "JAZZ": "JAZZ",           # Jazz Pharmaceuticals on NASDAQ (no suffix needed)
+            "IBIT": "IBIT",           # BlackRock Bitcoin ETF
+            "MSCI": "MSCI",           # MSCI Inc.
+            "XMR": "BTC-USD",         # Suppression/Fallback for delisted Privacy Coins
+            "SPACEX": "TSLA",         # Fallback to TSLA for SpaceX news (SpaceX is private)
+            "CLARITY": "EUNL.DE",     # Generic fallback for invalid ESG/Clarity picks
+            "IRA": "SPY",             # Generic fallback
         }
+
+        # Suppression list (Tickers that are known to fail but we don't want logs for)
+        self.SUPPRESSED_TICKERS = {'SPACEX', 'XMR', 'CLARITY', 'IRA', 'TCT', '3XC'}
 
     def get_crypto_data_coingecko(self, ticker):
         """
@@ -436,7 +445,8 @@ class MarketData:
                         trends[label] = "neutral"
                         
                 except Exception as e:
-                    logger.warning(f"MTF analysis failed for {ticker} {label}: {e}")
+                    if ticker.upper() not in self.SUPPRESSED_TICKERS:
+                        logger.warning(f"MTF analysis fail for {ticker} {label}: {e}")
                     trends[label] = "unknown"
             
             # Determine overall direction
