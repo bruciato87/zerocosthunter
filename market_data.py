@@ -205,18 +205,19 @@ class MarketData:
             # First, try to get a persistent fresh price
             persistent_cached = db.get_cached_price(ticker_u, max_age_minutes=15)
             if persistent_cached:
-                price = persistent_cached["price"]
+                raw_price = persistent_cached["price"]
                 is_crypto = persistent_cached["is_crypto"]
                 currency = persistent_cached["currency"]
                 
-                # Convert if needed (stored as discovery result)
-                # Note: Cache store in EUR preferred for this app, but if stored in USD:
+                price_eur = raw_price
                 if currency == "USD":
-                    price = price / eur_usd_rate
+                    price_eur = raw_price / eur_usd_rate
+                elif currency == "HKD":
+                    price_eur = raw_price / (eur_usd_rate * 7.8)
                 
-                logger.info(f"Persistent Cache HIT: {ticker_u} -> €{price:.2f}")
-                self._price_cache[cache_key] = {'price': price, 'source': 'db_cache', 'change': 0.0, 'ts': time.time()}
-                return (price, 'db_cache', 0.0) if include_change else (price, 'db_cache')
+                logger.info(f"Persistent Cache HIT: {ticker_u} -> €{price_eur:.2f} (Source: {currency})")
+                self._price_cache[cache_key] = {'price': price_eur, 'source': 'db_cache', 'change': 0.0, 'ts': time.time()}
+                return (price_eur, 'db_cache', 0.0) if include_change else (price_eur, 'db_cache')
 
             # Fallback to Ticker Resolution Cache (Old logic)
             cached_ticker = db.get_ticker_cache(ticker_u)
@@ -226,26 +227,26 @@ class MarketData:
                 currency = cached_ticker.get("currency", "USD")
                 logger.debug(f"Ticker resolution cache HIT: {ticker_u} -> {resolved}")
                 
-                # Fetch price for the cached resolved ticker
                 try:
                     t_obj = yf.Ticker(resolved)
                     hist = t_obj.history(period="1d")
                     if not hist.empty:
-                        price = hist['Close'].iloc[-1]
+                        raw_price = hist['Close'].iloc[-1]
                         if include_change: change_pct = extract_change(t_obj)
                         
-                        # Convert to EUR if needed
-                        if currency == "USD":
-                            price = price / eur_usd_rate
-                        elif currency == "HKD":
-                            price = price / (eur_usd_rate * 7.8)  # HKD/USD ~ 7.8
+                        # Cache in persistent DB using NATIVE currency
+                        db.save_ticker_price(ticker_u, raw_price, is_crypto=is_crypto, currency=currency)
                         
-                        # Cache in persistent DB for future Vercel instances
-                        db.save_ticker_price(ticker_u, price, is_crypto=is_crypto, currency="EUR")
+                        # Convert to EUR for immediate return
+                        price_eur = raw_price
+                        if currency == "USD":
+                            price_eur = raw_price / eur_usd_rate
+                        elif currency == "HKD":
+                            price_eur = raw_price / (eur_usd_rate * 7.8)
                         
                         # Cache in memory
-                        self._price_cache[cache_key] = {'price': price, 'source': resolved, 'change': change_pct, 'ts': time.time()}
-                        return (*[price, resolved, change_pct], ) if include_change else (price, resolved)
+                        self._price_cache[cache_key] = {'price': price_eur, 'source': resolved, 'change': change_pct, 'ts': time.time()}
+                        return (*[price_eur, resolved, change_pct], ) if include_change else (price_eur, resolved)
                 except Exception as e:
                     db.increment_ticker_fail(ticker_u)
                     logger.debug(f"Ticker resolution cache MISS (fetch failed): {ticker_u} -> {resolved}")

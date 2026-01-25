@@ -273,12 +273,11 @@ class DBHandler:
             t_u = ticker.upper()
             # Wrap in try-except to handle partial schema deployments
             try:
-                # [Hotfix] Schema missing last_price columns, select only base columns to avoid 400 Error
-                response = self.supabase.table("ticker_cache").select("is_crypto, currency").eq("user_ticker", t_u).execute()
+                # [V12] Standard selection - confirmed columns exist
+                response = self.supabase.table("ticker_cache").select("is_crypto, currency, last_price, last_price_at").eq("user_ticker", t_u).execute()
             except Exception as schema_err:
-                if "column" in str(schema_err) or "PGRST204" in str(schema_err):
-                    return None
-                raise schema_err
+                logger.debug(f"Schema mismatch for ticker_cache in get_cached_price: {schema_err}")
+                return None
 
             if not response.data:
                 return None
