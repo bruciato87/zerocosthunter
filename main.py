@@ -1215,7 +1215,7 @@ async def run_async_pipeline():
             "json_repair_needed": brain.last_run_details.get("json_repair_needed", False),
             "repair_strategy": brain.last_run_details.get("repair_strategy", "none"),
             "retry_count": brain.last_run_details.get("retry_count", 0),
-            "news_items_processed": len(unique_news_items)
+            "news_items_processed": len(unique_news_items_list)
         }
         db.save_run_metrics(run_metrics)
         
