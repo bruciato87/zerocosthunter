@@ -31,3 +31,29 @@ def test_predict_with_invalid_features(mocker):
     assert prediction.direction == "HOLD"
     assert prediction.confidence == 0.5
     assert prediction.is_ml is False
+
+def test_resolve_ticker_protected_exempt(mocker):
+    """Test that PROTECTED_TICKERS are exempt from fail_count blocks."""
+    from ticker_resolver import resolve_ticker
+    
+    # 1. Mock DB to return a protected ticker with high fail_count
+    mock_db = mocker.patch("db_handler.DBHandler")
+    mock_db.return_value.get_ticker_cache.return_value = {
+        "resolved_ticker": "BTC-USD",
+        "fail_count": 10  # Usually would be rejected (>3)
+    }
+    
+    # 2. Resolve
+    result = resolve_ticker("BTC-USD")
+    
+    # 3. Assert it is NOT None (it's protected)
+    assert result == "BTC-USD"
+    
+    # 4. Test a non-protected ticker with high fail_count
+    mock_db.return_value.get_ticker_cache.return_value = {
+        "resolved_ticker": "GARBAGE",
+        "fail_count": 10
+    }
+    
+    result_garbage = resolve_ticker("GARBAGE")
+    assert result_garbage is None

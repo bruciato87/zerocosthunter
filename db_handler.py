@@ -994,6 +994,11 @@ class DBHandler:
                 .execute()
             
             if response.data:
+                # [PROTECTION] Skip incrementing for major assets
+                from ticker_resolver import PROTECTED_TICKERS
+                if user_ticker.upper() in PROTECTED_TICKERS:
+                    return
+                
                 new_count = (response.data[0].get("fail_count", 0) or 0) + 1
                 self.supabase.table("ticker_cache") \
                     .update({"fail_count": new_count}) \

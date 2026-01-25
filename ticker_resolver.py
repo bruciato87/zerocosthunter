@@ -37,6 +37,11 @@ CRYPTO_TICKERS = {
     'UNI', 'AAVE', 'LTC', 'BCH', 'XLM', 'ALGO', 'ATOM', 'VET'
 }
 
+# Major assets that should NEVER be rejected by fail_count (safety net)
+PROTECTED_TICKERS = {
+    'BTC', 'BTC-USD', 'ETH', 'ETH-USD', 'SOL', 'SOL-USD', 'XRP', 'XRP-USD',
+    'RENDER', 'RENDER-USD', 'NVDA', 'AAPL', 'GOOGL', 'AMZN', 'MSFT'
+}
 
 def resolve_ticker(ticker: str) -> str:
     """
@@ -63,7 +68,7 @@ def resolve_ticker(ticker: str) -> str:
         if cached:
             # Check for known failures
             fail_count = cached.get("fail_count", 0) or 0
-            if fail_count > 3:
+            if fail_count > 3 and ticker_u not in PROTECTED_TICKERS:
                 logger.debug(f"Ticker cache REJECT (Too many failures): {ticker_u}")
                 return None # Explicitly reject
 
@@ -111,7 +116,7 @@ def resolve_tickers(tickers: list) -> list:
         if t_u in cache_map:
             record = cache_map[t_u]
             fail_count = record.get("fail_count", 0) or 0
-            if fail_count > 3:
+            if fail_count > 3 and t_u not in PROTECTED_TICKERS:
                 results[t] = None # Reject
             else:
                 results[t] = record.get("resolved_ticker", t_u)
