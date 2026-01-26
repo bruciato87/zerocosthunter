@@ -417,9 +417,17 @@ class DBHandler:
             except Exception as e:
                 # Handle missing column source_url (PGRST204)
                 if "source_url" in str(e) or "PGRST204" in str(e):
-                    logger.warning(f"DB mismatch for source_url, retrying without it...")
-                    data.pop("source_url", None)
-                    response = self.supabase.table("predictions").insert(data).execute()
+                    logger.warning(f"DB mismatch for source_url, trying 'url' fallback...")
+                    data["url"] = data.pop("source_url", None)
+                    try:
+                        response = self.supabase.table("predictions").insert(data).execute()
+                    except Exception as e2:
+                        if "url" in str(e2) or "PGRST204" in str(e2):
+                            logger.warning(f"DB mismatch also for 'url', retrying without any source link...")
+                            data.pop("url", None)
+                            response = self.supabase.table("predictions").insert(data).execute()
+                        else:
+                            raise e2
                 else:
                     raise e
 

@@ -80,10 +80,16 @@ class MarketData:
             "BTC-USD": "BTC-EUR",
             "ETH-USD": "ETH-EUR",
             "SOL-USD": "SOL-EUR",
+            "VAVX": "VAVX.DE",        # VanEck Avalanche ETN
+            "VAVX.DE": "VAVX.DE",
+            "AVAX": "AVAX-USD",       # Primary Crypto
+            "DOGE": "DOGE-USD",
+            "XRP": "XRP-USD",
         }
 
         # Suppression list
-        self.SUPPRESSED_TICKERS = {'SPACEX', 'XMR', 'CLARITY', 'IRA'}
+        # Suppression list (Avoid common non-ticker hallucinations)
+        self.SUPPRESSED_TICKERS = {'SPACEX', 'XMR', 'CLARITY', 'IRA', 'NASDAQ', 'NYSE', 'SEC', 'FED', 'USA', 'US'}
 
     def get_crypto_data_coingecko(self, ticker):
         """
@@ -673,8 +679,11 @@ class MarketData:
             # Fetch data
             data = yf.download(yf_ticker, period="60d", progress=False, auto_adjust=True)
             
-            if data.empty or len(data) < period + 1:
+            if data.empty or len(data) < 5: # At least 5 days for a rough estimate
                 return {"atr": 0, "atr_pct": 0, "suggested_stop": 10.0, "volatility": "unknown"}
+            
+            # If not enough for 14-day SMA, use what we have
+            actual_period = min(period, len(data) - 1)
             
             # Handle MultiIndex
             if hasattr(data.columns, 'levels'):
@@ -693,7 +702,7 @@ class MarketData:
             tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
             
             # Calculate ATR (Simple Moving Average of TR)
-            atr = tr.rolling(window=period).mean().iloc[-1]
+            atr = tr.rolling(window=actual_period).mean().iloc[-1]
             current_price = close.iloc[-1]
             
             # ATR as percentage of price

@@ -985,7 +985,15 @@ async def run_async_pipeline():
                 # Append to reasoning for transparency
                 reasoning += f"\n🛡️ Risk: SL €{stop_loss} (ATR), TP €{take_profit}"
             else:
-                 logger.warning(f"Risk Mgmt [{ticker}]: ATR/Price invalid (ATR={atr_val}, Price={calc_price})")
+                 # FALLBACK: If ATR is 0, use a fixed percentage (5% SL, 10% TP)
+                 if calc_price > 0:
+                     old_sl = stop_loss
+                     stop_loss = round(calc_price * 0.95, 2)
+                     take_profit = round(calc_price * 1.10, 2)
+                     logger.info(f"Risk Mgmt [{ticker}]: ATR 0 -> Using Fixed Fallback (5% SL, 10% TP): SL {stop_loss}, TP {take_profit}")
+                     reasoning += f"\n🛡️ Risk: SL €{stop_loss} (Fallback 5%), TP €{take_profit}"
+                 else:
+                     logger.warning(f"Risk Mgmt [{ticker}]: ATR/Price invalid (ATR={atr_val}, Price={calc_price})")
 
         except Exception as e:
             logger.warning(f"Risk Mgmt failed for {ticker}: {e}")

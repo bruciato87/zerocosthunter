@@ -60,22 +60,8 @@ class Auditor:
                     age_hours = 0 # Default SAFE (treat as new, don't close)
                 
                 # 2. Get Live Price
-                # Uses MarketData helper which handles Crypto/Stocks
-                # Using get_technical_summary logic simplified
-                live_price, _ = self.market.get_crypto_data_coingecko(ticker)
-                
-                if not live_price:
-                    # Fallback to Yahoo with ticker_resolver
-                    try:
-                        import yfinance as yf
-                        from ticker_resolver import resolve_ticker
-                        
-                        sym = resolve_ticker(ticker)
-                        t = yf.Ticker(sym)
-                        hist = t.history(period="1d")
-                        if not hist.empty:
-                            live_price = hist['Close'].iloc[-1]
-                    except: pass
+                # Uses MarketData helper which handles Crypto/Stocks and Aliases
+                live_price, _ = self.market.get_smart_price_eur(ticker)
                 
                 if not live_price:
                     logger.warning(f"Auditor: Could not fetch price for {ticker}. Skipping.")
