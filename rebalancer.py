@@ -188,15 +188,32 @@ class Rebalancer:
                 if diff_eur < -50: # Overweight -> Sell
                     assets_in_sector = [a for a in analysis["assets"] if a["sector"] == sector]
                     if assets_in_sector:
-                        # Suggest trimming the largest one or one with high PnL
-                        best_to_trim = sorted(assets_in_sector, key=lambda x: -x["pnl_pct"])[0]
-                        sells.append(f"🔴 **Vendi €{abs(diff_eur):.0f}** di **{best_to_trim['ticker']}** ({sector} è in eccesso del {abs(deviation):.1f}%)")
+                        # [FIX] Exclude LONG_TERM assets from being sold
+                        tradable_assets = []
+                        for a in assets_in_sector:
+                            rule = self.strategy_manager.get_rule(a['ticker'])
+                            if rule and rule.strategy_type.value == "LONG_TERM":
+                                continue
+                            tradable_assets.append(a)
+                        
+                        if tradable_assets:
+                            # Suggest trimming the largest one or one with high PnL
+                            best_to_trim = sorted(tradable_assets, key=lambda x: -x["pnl_pct"])[0]
+                            sells.append(f"🔴 **Vendi €{abs(diff_eur):.0f}** di **{best_to_trim['ticker']}** ({sector} è in eccesso del {abs(deviation):.1f}%)")
+                        else:
+                            logger.info(f"Rebalancer: Skipping sell suggestion for {sector} (all assets are LONG_TERM)")
                 elif diff_eur > 50: # Underweight -> Buy
                     buys.append(f"🟢 **Compra €{diff_eur:.0f}** in **{sector}** (manca il {abs(deviation):.1f}% al target)")
 
         # 2. Individual Asset Concentration
         for asset in analysis["assets"]:
             if asset["allocation"] >= 30:
+                # [FIX] Exclude LONG_TERM assets from concentration trim
+                rule = self.strategy_manager.get_rule(asset['ticker'])
+                if rule and rule.strategy_type.value == "LONG_TERM":
+                    logger.info(f"Rebalancer: Skipping concentration trim for {asset['ticker']} (LONG_TERM)")
+                    continue
+                    
                 target_alloc = 20.0
                 trim_eur = asset["value"] - (total_value * (target_alloc / 100.0))
                 if trim_eur >= 100:
