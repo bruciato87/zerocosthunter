@@ -2,7 +2,7 @@ import requests
 import re
 import logging
 from datetime import datetime
-from typing import Dict, List, Set
+from typing import Dict, List, Set, Optional
 
 logger = logging.getLogger("SocialScraper")
 
@@ -99,10 +99,13 @@ class SocialScraper:
         return sorted_trending
 
     def get_social_context(self, ticker: str) -> str:
-        """Returns a string representation of the social hype for a ticker."""
-        # This will eventually combine Reddit + X + others
+        """Returns a string representation of the social hype for a ticker with velocity."""
         trending = self.get_reddit_trending()
         count = trending.get(ticker.upper(), 0)
+        
+        # Calculate Velocity
+        velocity_info = self.detect_velocity(ticker.upper(), count)
+        velocity_label = f" (Velocity: {velocity_info['status']})" if velocity_info else ""
         
         if count > 5:
             sentiment = "🔥 HIGH HYPE"
@@ -113,7 +116,49 @@ class SocialScraper:
         else:
             sentiment = "🌑 QUIET"
             
-        return f"[SOCIAL ORACLE: {ticker} -> {sentiment} ({count} mentions)]"
+        return f"[SOCIAL ORACLE: {ticker} -> {sentiment} ({count} mentions){velocity_label}]"
+
+    def detect_velocity(self, ticker: str, current_count: int) -> Optional[Dict]:
+        """Detect if mentions are surging compared to historical average."""
+        try:
+            from db_handler import DBHandler
+            db = DBHandler()
+            
+            # Save current for future
+            db.log_social_mentions(ticker, current_count)
+            
+            # Fetch last 12 hours
+            history = db.get_social_history(ticker, hours=12)
+            if not history or len(history) < 2:
+                return {"status": "STABLE", "growth": 0}
+            
+            # Simple growth calculation: (current / average_of_last_3)
+            # Take up to last 3 entries excluding the one we just added (history[0] is the newest)
+            past_counts = [h['mentions'] for h in history[1:4]]
+            if not past_counts:
+                return {"status": "STABLE", "growth": 0}
+                
+            avg_past = sum(past_counts) / len(past_counts)
+            
+            if avg_past == 0:
+                growth = current_count * 100 if current_count > 0 else 0
+            else:
+                growth = ((current_count - avg_past) / avg_past) * 100
+            
+            if growth > 150:
+                status = "🚀 SURGING"
+            elif growth > 50:
+                status = "📈 GROWING"
+            elif growth < -50:
+                status = "📉 COOLING"
+            else:
+                status = "STABLE"
+                
+            return {"status": status, "growth": round(growth, 1)}
+            
+        except Exception as e:
+            logger.warning(f"Error detecting velocity for {ticker}: {e}")
+            return None
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)

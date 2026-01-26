@@ -1,6 +1,7 @@
 import os
 import logging
 from datetime import datetime, timedelta
+from typing import List, Dict, Optional
 from supabase import create_client, Client
 from dotenv import load_dotenv
 
@@ -1265,6 +1266,34 @@ class DBHandler:
             logger.debug(f"News cached: {url[:50]}...")
         except Exception as e:
             logger.debug(f"Failed to cache news: {e}")
+
+    # --- SOCIAL ORACLE: VELOCITY TRACKING ---
+    def log_social_mentions(self, ticker: str, reddit_mentions: int, source: str = "reddit"):
+        """Save current mention count for velocity calculation."""
+        try:
+            self.supabase.table("social_stats").insert({
+                "ticker": ticker,
+                "mentions": reddit_mentions,
+                "source": source,
+                "created_at": datetime.now().isoformat()
+            }).execute()
+        except Exception as e:
+            logger.debug(f"Failed to log social mentions for {ticker}: {e}")
+
+    def get_social_history(self, ticker: str, hours: int = 12) -> List[Dict]:
+        """Fetch historical mentions for velocity calculation."""
+        try:
+            since = (datetime.now() - timedelta(hours=hours)).isoformat()
+            resp = self.supabase.table("social_stats") \
+                .select("mentions, created_at") \
+                .eq("ticker", ticker) \
+                .gt("created_at", since) \
+                .order("created_at", desc=True) \
+                .execute()
+            return resp.data or []
+        except Exception as e:
+            logger.debug(f"Failed to fetch social history for {ticker}: {e}")
+            return []
 
 if __name__ == "__main__":
     # Test connection

@@ -603,7 +603,7 @@ class Brain:
         
         raise last_error if last_error else Exception("All Gemini tiers failed.")
     
-    def analyze_news_batch(self, news_list, performance_context=None, insider_context=None, portfolio_context=None, macro_context=None, whale_context=None, market_regime_summary=None, social_context=None, onchain_context=None):
+    def analyze_news_batch(self, news_list, performance_context=None, insider_context=None, portfolio_context=None, macro_context=None, whale_context=None, market_regime_summary=None, social_context=None, onchain_context=None, strategic_forecast=None):
         """
         [2024 UPDATE] V3.0 Hybrid Brain with Oracle (Phase B).
         Analyze a batch of news items to find high-quality trading opportunities.
@@ -740,6 +740,29 @@ class Brain:
             """
         except Exception as e:
             logger.warning(f"Market hours context failed: {e}")
+        
+        # [SENTINEL STRATEGIC FORECAST] (V4.1)
+        sentinel_bg = ""
+        if strategic_forecast:
+            gaps = strategic_forecast.get('gaps', [])
+            warns = strategic_forecast.get('correlation_warnings', [])
+            gaps_str = "\n".join([f"- {g['recommendation']}" for g in gaps])
+            warns_str = "\n".join([f"- {w}" for w in warns])
+            sentinel_bg = f"""
+            [SENTINEL STRATEGIC FORECAST]
+            REGIME: {strategic_forecast.get('regime')} ({strategic_forecast.get('risk_level')})
+            STRATEGY: {strategic_forecast.get('strategy_summary')}
+            
+            PORTFOLIO GAPS (ACTIONABLE):
+            {gaps_str if gaps_str else "Nessun gap significativo."}
+            
+            CORRELATION RISKS:
+            {warns_str if warns_str else "Nessun rischio correlazione elevato."}
+            
+            **SENTINEL RULE:**
+            - **Priorità ALTA** ai segnali che aiutano a colmare i GAP (es. BUY per settori UNDERWEIGHT).
+            - **Esercita cautela** se il segnale aumenta il rischio di CORRELAZIONE.
+            """
 
         # [FX RATE CONTEXT]
         fx_bg = ""
@@ -786,6 +809,7 @@ class Brain:
         {fx_bg}
         {pattern_bg}
         {oracle_bg}
+        {sentinel_bg}
         
         [L2 MARKET REGIME - CRITICAL CONTEXT]
         {market_regime_summary if market_regime_summary else "MARKET REGIME: NEUTRAL (Default)"}

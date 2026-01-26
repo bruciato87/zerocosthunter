@@ -1,6 +1,6 @@
 import logging
 import datetime
-import datetime
+from typing import Dict
 from db_handler import DBHandler
 from paper_trader import PaperTrader
 
@@ -24,22 +24,81 @@ class Sentinel:
         notifications.extend(self._check_price_alerts(market_data))
         
         # 2. Paper Portfolio Protection (SL/TP Auto-Execute)
-        # This executes trades directly, doesn't just notify.
         self._check_paper_protection(market_data)
 
-        
-        # 2. Volatility Breaker & Trailing Stop (Portfolio Scan)
-        # We need portfolio data. 
-        # Sentinel checks this independently of "alerts" table, 
-        # but needs access to portfolio table.
+        # 3. Portfolio Risks (Volatility, SL/TP Alerts)
         try:
-            portfolio = self.db.get_portfolio() # Fetch all holdings
+            portfolio = self.db.get_portfolio()
             if portfolio:
                 notifications.extend(self._check_portfolio_risks(market_data, portfolio))
         except Exception as e:
-            logger.error(f"Sentinel: Portfolio check failed: {e}")
+            logger.error(f"Sentinel: Risk check failed: {e}")
             
         return notifications
+
+    def get_strategic_forecast(self, market_data) -> Dict:
+        """
+        Level 9 Predictive: Analyze portfolio against regime and identify GAPs.
+        Returns a strategic forecast report.
+        """
+        try:
+            from strategy_manager import StrategyManager
+            from advisor import Advisor
+            sm = StrategyManager()
+            adv = Advisor(market_instance=market_data)
+            
+            # 1. Determine Market Regime
+            regime_data = sm.get_market_regime()
+            regime = regime_data.get('regime', 'SIDEWAYS')
+            
+            # 2. Portfolio Gap Analysis
+            portfolio = self.db.get_portfolio()
+            if not portfolio:
+                return {"error": "Portfolio vuoto. Nessuna analisi predittiva possibile."}
+            
+            analysis = adv.analyze_portfolio(portfolio)
+            current_allocations = analysis.get('sector_percent', {})
+            target_allocations = regime_data.get('targets', {})
+            
+            gaps = []
+            for sector, target in target_allocations.items():
+                current = current_allocations.get(sector, 0.0)
+                diff = target - current
+                if diff > 5.0: # Significant Underweight
+                    gaps.append({
+                        "sector": sector,
+                        "type": "UNDERWEIGHT",
+                        "gap_pct": round(diff, 1),
+                        "recommendation": f"Espandi {sector} (+{diff:.1f}%) per allinearti al regime {regime}."
+                    })
+                elif diff < -5.0: # Significant Overweight
+                    gaps.append({
+                        "sector": sector,
+                        "type": "OVERWEIGHT",
+                        "gap_pct": round(abs(diff), 1),
+                        "recommendation": f"Riduci {sector} (-{abs(diff):.1f}%) - Eccessiva esposizione per il regime {regime}."
+                    })
+
+            # 3. Correlation Risk Prediction
+            tickers = [p['ticker'] for p in portfolio][:10]
+            correlation_warnings = []
+            if len(tickers) >= 2:
+                corr_matrix = market_data.calculate_correlation_matrix(tickers)
+                high_corr = corr_matrix.get('high_correlation_pairs', [])
+                for t1, t2, corr in high_corr[:2]:
+                    correlation_warnings.append(f"⚠️ {t1} e {t2} sono correlati al {corr:.0%}. Un ribasso colpirà entrambi contemporaneamente.")
+
+            return {
+                "regime": regime_data.get('description'),
+                "risk_level": regime_data.get('risk_level'),
+                "gaps": gaps,
+                "correlation_warnings": correlation_warnings,
+                "strategy_summary": regime_data.get('recommendation')
+            }
+
+        except Exception as e:
+            logger.error(f"Sentinel: Strategic forecast failed: {e}")
+            return {"error": str(e)}
 
     def _check_price_alerts(self, market_data):
         notifications = []

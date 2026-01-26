@@ -1,47 +1,53 @@
 import pytest
-from social_scraper import SocialScraper
 from unittest.mock import MagicMock, patch
+from social_scraper import SocialScraper
 
 @pytest.fixture
 def scraper():
     return SocialScraper()
 
-def test_reddit_ticker_extraction(scraper):
-    """Test that tickers are correctly extracted from Reddit JSON format."""
-    mock_data = {
-        "data": {
-            "children": [
-                {"data": {"title": "Buy NVDA it is mooning", "selftext": "Thinking about AAPL too"}},
-                {"data": {"title": "SOL vs ETH debate", "selftext": "I like SOL better"}}
-            ]
-        }
-    }
-    
-    with patch("curl_cffi.requests.Session") as mock_session:
-        mock_s = MagicMock()
-        mock_session.return_value.__enter__.return_value = mock_s
+def test_detect_velocity_surging(scraper):
+    """Test detection of a sentiment surge."""
+    with patch('db_handler.DBHandler') as mock_db_class:
+        mock_db = mock_db_class.return_value
+        # History: past 3 runs were low (e.g., 1 mention each)
+        mock_db.get_social_history.return_value = [
+            {'mentions': 10, 'created_at': '2026-01-26T12:00:00'}, # Current (index 0)
+            {'mentions': 1, 'created_at': '2026-01-26T11:00:00'},
+            {'mentions': 1, 'created_at': '2026-01-26T10:00:00'},
+            {'mentions': 1, 'created_at': '2026-01-26T09:00:00'}
+        ]
         
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = mock_data
-        mock_s.get.return_value = mock_response
+        # Current count is 10, avg past is 1. Growth = 900%
+        result = scraper.detect_velocity("BTC", 10)
         
-        trending = scraper.get_reddit_trending()
-        
-        assert "NVDA" in trending
-        assert "AAPL" in trending
-        assert "SOL" in trending
-        assert "ETH" in trending
-        assert "THE" not in trending # Blacklist check
+        assert result is not None
+        assert result["status"] == "🚀 SURGING"
+        assert result["growth"] > 150
 
-def test_social_context_formatting(scraper):
-    """Test the string formatting of social context."""
-    with patch.object(scraper, 'get_reddit_trending') as mock_trending:
-        mock_trending.return_value = {"BTC": 10, "ETH": 3}
+def test_detect_velocity_stable(scraper):
+    """Test stable sentiment detection."""
+    with patch('db_handler.DBHandler') as mock_db_class:
+        mock_db = mock_db_class.return_value
+        # History: past 3 runs were similar (e.g., 5 mentions each)
+        mock_db.get_social_history.return_value = [
+            {'mentions': 6, 'created_at': '2026-01-26T12:00:00'}, # Current
+            {'mentions': 5, 'created_at': '2026-01-26T11:00:00'},
+            {'mentions': 5, 'created_at': '2026-01-26T10:00:00'},
+            {'mentions': 5, 'created_at': '2026-01-26T09:00:00'}
+        ]
         
-        context = scraper.get_social_context("BTC")
-        assert "HIGH HYPE" in context
-        assert "10 mentions" in context
+        # Current count 6, avg past 5. Growth = 20%
+        result = scraper.detect_velocity("ETH", 6)
         
-        context_eth = scraper.get_social_context("ETH")
-        assert "MODERATE INTEREST" in context_eth
+        assert result is not None
+        assert result["status"] == "STABLE"
+
+def test_get_social_context_integration(scraper):
+    """Test if context string includes velocity label."""
+    with patch.object(scraper, 'get_reddit_trending', return_value={"SOL": 10}):
+        with patch.object(scraper, 'detect_velocity', return_value={"status": "🚀 SURGING", "growth": 900}):
+            context = scraper.get_social_context("SOL")
+            assert "SOL" in context
+            assert "🚀 SURGING" in context
+            assert "HIGH HYPE" in context

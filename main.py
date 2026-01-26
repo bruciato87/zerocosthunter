@@ -24,6 +24,7 @@ from insider import Insider
 from whale_watcher import WhaleWatcher
 from market_regime import MarketRegimeClassifier
 from rebalancer import Rebalancer
+from pulse_hunter import PulseHunter
 import re
 import asyncio
 
@@ -96,6 +97,7 @@ async def run_async_pipeline():
         # Oracle Modules (Phase B)
         social_scraper = SocialScraper()
         onchain_watcher = OnChainWatcher()
+        pulse = PulseHunter(market_instance=market)
     except Exception as e:
         logger.critical(f"Initialization failed: {e}")
         return
@@ -534,7 +536,29 @@ async def run_async_pipeline():
                 logger.info(f"Injected Synthetic Item for {fetch_ticker}")
             except Exception as e:
                 logger.error(f"Failed to generate synthetic item for {norm_p_ticker}: {e}")
-    # -------------------------------------
+                
+    # --- PHASE: MARKET PULSE (PREDICTIVE QUANT) ---
+    try:
+        pulse_results = pulse.scan()
+        for anomaly in pulse_results:
+            ticker = anomaly['ticker']
+            findings_str = "\n".join(anomaly['findings'])
+            
+            pulse_item = {
+                "title": f"MARKET PULSE: {ticker} Technical Anomaly",
+                "link": f"https://finance.yahoo.com/quote/{ticker}",
+                "summary": f"QUANTITATIVE ALERT: Technical analysis detected following anomalies for {ticker}:\n{findings_str}\n[Metrics: Vol Ratio {anomaly['metrics']['vol_ratio']}x, RSI {anomaly['metrics']['rsi']}]",
+                "published": "Pulse REAL-TIME",
+                "ticker": ticker,
+                "pulse": True,
+                "confidence_modifier": anomaly['confidence_modifier'],
+                "source": "Market Pulse"
+            }
+            news_items.append(pulse_item)
+            logger.info(f"⚡ Pulse: Injected anomaly for {ticker} ({len(anomaly['findings'])} findings)")
+    except Exception as e:
+        logger.error(f"Market Pulse failed: {e}")
+    # ----------------------------------------------
 
     # 3. Analyze with AI
     # [FEEDBACK LOOP] Fetch past performance for detected tickers
@@ -585,6 +609,14 @@ async def run_async_pipeline():
         logger.info(f"WhaleWatcher: {w_lines[2].strip()} | {log_hint}")
     else:
         logger.info(f"WhaleWatcher: {whale_context}")
+
+    # [SENTINEL] Strategic Portfolio Forecast (V4.1 Predittivo)
+    sentinel = Sentinel(db_handler=db)
+    strategic_forecast = sentinel.get_strategic_forecast(market_data=market)
+    if "error" not in strategic_forecast:
+        logger.info(f"Sentinel: Strategic Forecast generated for regime {strategic_forecast.get('regime')}")
+    else:
+        logger.warning(f"Sentinel: Forecast failed: {strategic_forecast.get('error')}")
 
     # Remove redundant deduplication block
     # -----------------------------------------

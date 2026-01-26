@@ -87,46 +87,34 @@ class Insider:
 
     def get_social_sentiment(self):
         """
-        Fetches trending topics from Reddit (r/stocks, r/bitcoin, r/investing).
-        Returns a list of top 5 combined hot headlines.
+        Aggregates social sentiment using the advanced SocialScraper.
+        Identifies trending tickers with their Social Velocity.
         """
-        import feedparser
-        import random
-        import requests
-        
-        feeds = [
-            "https://www.reddit.com/r/stocks/.rss",
-            "https://www.reddit.com/r/bitcoin/.rss",
-            "https://www.reddit.com/r/investing/.rss"
-        ]
-        
-        headlines = []
-        # Reddit requires unique UA
-        headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36'}
-        
-        for url in feeds:
-            try:
-                # 1. Fetch raw XML with requests (better UA handling)
-                resp = requests.get(url, headers=headers, timeout=5)
-                if resp.status_code != 200:
-                    logger.warning(f"Reddit RSS blocked: {resp.status_code}")
-                    continue
-
-                # 2. Parse string
-                f = feedparser.parse(resp.content)
+        try:
+            from social_scraper import SocialScraper
+            scraper = SocialScraper()
+            
+            # 1. Get current trending tickers
+            trending_dict = scraper.get_reddit_trending()
+            
+            headlines = []
+            for ticker, mentions in trending_dict.items():
+                # 2. Add Velocity context for the Hype Oracle
+                velocity_info = scraper.detect_velocity(ticker, mentions)
+                status = velocity_info['status'] if velocity_info else "STABLE"
                 
-                if f.entries:
-                    # Take top 3 from each
-                    for e in f.entries[:3]:
-                        # Clean title
-                        title = e.title
-                        headlines.append(f"Reddit ({f.feed.title}): {title}")
-            except Exception as e:
-                logger.warning(f"Failed to fetch RSS {url}: {e}")
+                # Format as a high-signal headline
+                headlines.append(f"🔥 SOCIAL SURGE: {ticker} mentionato {mentions} volte (Velocity: {status})")
                 
-        # Shuffle and return top 7 to avoid clutter
-        random.shuffle(headlines)
-        return headlines[:7]
+            if not headlines:
+                # Minimal fallback if Reddit is totally blocked
+                headlines.append("Social sentiment: Quiet (No significant surges detected)")
+                
+            return headlines[:10]
+            
+        except Exception as e:
+            logger.warning(f"Social Scraper integration failed: {e}")
+            return ["Social sentiment survey failed."]
 
 if __name__ == "__main__":
     insider = Insider()
