@@ -573,17 +573,24 @@ async def run_async_pipeline():
     # [INSIDER] Fetch Market Mood & Social Sentiment
     ins = Insider()
     market_mood = ins.get_market_mood()
-    social_sentiment = ins.get_social_sentiment()
+    # Optimized: Fetching social headlines once. 
+    # These headlines ALREADY contain velocity info (from Insider.get_social_sentiment)
+    social_headlines = ins.get_social_sentiment()
     
     insider_context = None
-    if market_mood or social_sentiment:
+    if market_mood or social_headlines:
         insider_context = market_mood if market_mood else {}
-        if social_sentiment:
-            insider_context['social'] = social_sentiment
-            logger.info(f"Insider: Found {len(social_sentiment)} trending social headlines.")
+        if social_headlines:
+            insider_context['social'] = social_headlines
+            logger.info(f"Insider: Found {len(social_headlines)} trending social headlines.")
         
         if market_mood:
             logger.info(f"Insider: Market Mood is {market_mood.get('overall')} ({market_mood.get('crypto',{}).get('value')})")
+
+    # [SOCIAL CONTEXT] Prepare for Brain - Use headlines for better context
+    social_context = ""
+    if social_headlines:
+        social_context = "\n[THE ORACLE: SOCIAL TRENDING]\n" + "\n".join(social_headlines)
 
     # [ADVISOR] Portfolio Health Analysis
     # Advisor initialized at start: adv
@@ -659,24 +666,16 @@ async def run_async_pipeline():
     except Exception as e:
         logger.warning(f"L2 Market Regime failed: {e}")
 
-    # [THE ORACLE] Social Hype & On-Chain Intelligence (V4.2 Phase B)
-    social_context = ""
+    # [THE ORACLE] On-Chain Intelligence (V4.2 Phase B)
     onchain_context = ""
-    
     try:
-        # Get overall social trending to help AI understand hype environment
-        trending_reddit = social_scraper.get_reddit_trending()
-        if trending_reddit:
-            social_context = "\n[THE ORACLE: SOCIAL TRENDS]\n"
-            social_context += "\n".join([f"- {t}: {c} mentions" for t, c in trending_reddit.items()])
-            logger.info(f"Oracle: Found {len(trending_reddit)} trending social tickers.")
-            
-        # Get specifics for detected tickers (sample top ones to avoid rate limits)
         if detected_tickers:
             main_ticker = list(detected_tickers)[0] # Focus on the most important one
             oc_data = onchain_watcher.get_onchain_context(main_ticker)
             onchain_context = oc_data
             logger.info(f"Oracle: On-chain data gathered for {main_ticker}.")
+    except Exception as e:
+        logger.warning(f"Oracle on-chain failed: {e}")
             
     except Exception as e:
         logger.warning(f"Oracle data collection failed: {e}")
@@ -693,7 +692,8 @@ async def run_async_pipeline():
             whale_context=whale_context,
             market_regime_summary=market_regime_summary,
             social_context=social_context,
-            onchain_context=onchain_context
+            onchain_context=onchain_context,
+            strategic_forecast=strategic_forecast
         )
         _ai_time = timing_module.time() - _ai_start_time
         logger.info(f"Gemini analysis complete. Received {len(predictions)} predictions in {_ai_time:.1f}s.")
