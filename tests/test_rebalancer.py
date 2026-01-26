@@ -20,8 +20,8 @@ def test_rebalance_logic_math(mock_rebalancer_deps):
         "total_value": 1000,
         "deviations": {"Tech": 5.0, "Crypto": -5.0},
         "assets": [
-            {"ticker": "NVDA", "allocation": 30.0, "pnl_pct": 60.0, "sector": "Tech"}, # >25% alloc, >50% gain
-            {"ticker": "BTC-USD", "allocation": 10.0, "pnl_pct": -35.0, "sector": "Crypto"} # Tax loss harvest
+            {"ticker": "NVDA", "value": 300, "allocation": 30.0, "pnl_pct": 60.0, "sector": "Tech"}, 
+            {"ticker": "BTC-USD", "value": 100, "allocation": 10.0, "pnl_pct": -35.0, "sector": "Crypto"}
         ]
     }
     
@@ -31,13 +31,13 @@ def test_rebalance_logic_math(mock_rebalancer_deps):
     suggestions = r.generate_rebalance_suggestions(analysis)
     
     # Check Logic 1: Concentration Warning
-    assert any("NVDA" in s and "30.0%" in s for s in suggestions)
+    assert any("NVDA" in s and "concentrazione" in s for s in suggestions)
     
     # Check Logic 2: Profit Taking
-    assert any("taking 20% profit" in s for s in suggestions)
+    assert any("Take Profit" in s for s in suggestions)
     
     # Check Logic 3: Tax Loss Harvest
-    assert any("tax-loss harvest" in s for s in suggestions)
+    assert any("Tax-Loss Harvesting" in s for s in suggestions)
 
 def test_ai_suggestion_flow(mock_rebalancer_deps, mocker):
     """Test that Rebalancer calls Brain and Critic correctly."""

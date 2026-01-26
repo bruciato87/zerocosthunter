@@ -166,51 +166,57 @@ class Rebalancer:
     
     def generate_rebalance_suggestions(self, analysis: Dict) -> List[str]:
         """
-        Generate AI-powered rebalancing suggestions.
-        
-        Returns list of actionable suggestions.
+        Generate quantitative rebalancing suggestions based on deviations.
         """
-        if analysis["total_value"] == 0:
+        total_value = analysis["total_value"]
+        if total_value == 0:
             return ["Portfolio is empty. Start accumulating assets."]
         
         suggestions = []
+        buys = []
+        sells = []
         
-        # 1. Check sector deviations
+        # 1. Sector Balancer (Quantitative)
         for sector, deviation in analysis["deviations"].items():
-            if abs(deviation) > self.DEVIATION_THRESHOLD:
-                if deviation > 0:
-                    suggestions.append(f"⚠️ **{sector}** is overweight by {deviation:.1f}%. Consider trimming positions.")
-                else:
-                    suggestions.append(f"📉 **{sector}** is underweight by {abs(deviation):.1f}%. Look for opportunities to add.")
-        
-        # 2. Check individual asset concentration
+            # Calculate Euro amount needed to fix the deviation
+            target_pct = self.DEFAULT_TARGETS.get(sector, 10.0)
+            target_value = total_value * (target_pct / 100.0)
+            current_value = total_value * (analysis.get("sector_allocation", {}).get(sector, 0.0) / 100.0)
+            diff_eur = target_value - current_value
+            
+            if abs(deviation) >= self.DEVIATION_THRESHOLD or abs(diff_eur) >= 200:
+                if diff_eur < -50: # Overweight -> Sell
+                    assets_in_sector = [a for a in analysis["assets"] if a["sector"] == sector]
+                    if assets_in_sector:
+                        # Suggest trimming the largest one or one with high PnL
+                        best_to_trim = sorted(assets_in_sector, key=lambda x: -x["pnl_pct"])[0]
+                        sells.append(f"🔴 **Vendi €{abs(diff_eur):.0f}** di **{best_to_trim['ticker']}** ({sector} è in eccesso del {abs(deviation):.1f}%)")
+                elif diff_eur > 50: # Underweight -> Buy
+                    buys.append(f"🟢 **Compra €{diff_eur:.0f}** in **{sector}** (manca il {abs(deviation):.1f}% al target)")
+
+        # 2. Individual Asset Concentration
         for asset in analysis["assets"]:
-            if asset["allocation"] > 25:
-                suggestions.append(f"🎯 **{asset['ticker']}** is {asset['allocation']:.1f}% of portfolio. Consider diversifying.")
-        
-        # 3. Check for high profit-taking opportunities
+            if asset["allocation"] >= 30:
+                target_alloc = 20.0
+                trim_eur = asset["value"] - (total_value * (target_alloc / 100.0))
+                if trim_eur >= 100:
+                    sells.append(f"🔴 **Riduci €{trim_eur:.0f}** di **{asset['ticker']}** (troppa concentrazione: {asset['allocation']:.1f}%)")
+
+        # 3. Specific Ops (Tax harvesting, Profit taking)
         for asset in analysis["assets"]:
-            if asset["pnl_pct"] > 50 and asset["allocation"] > 10:
-                suggestions.append(f"💰 **{asset['ticker']}** is up {asset['pnl_pct']:.1f}%. Consider taking 20% profit.")
+            if asset["pnl_pct"] <= -35 and asset["value"] >= 100:
+                suggestions.append(f"📉 **Tax-Loss Harvesting**: Considera di vendere e ricomprare **{asset['ticker']}** ({asset['pnl_pct']:.1f}%) per scaricare minusvalenze.")
+            elif asset["pnl_pct"] >= 50 and asset["allocation"] >= 10:
+                take_profit = asset["value"] * 0.2
+                suggestions.append(f"💰 **Take Profit**: Vendi **€{take_profit:.0f}** di **{asset['ticker']}** (+{asset['pnl_pct']:.1f}%) per mettere al sicuro i guadagni.")
+
+        # Combine items
+        final_list = sells[:3] + buys[:3] + suggestions[:5]
         
-        # 4. Check for tax-loss harvesting (Italy specific)
-        for asset in analysis["assets"]:
-            if asset["pnl_pct"] < -30:
-                if asset["sector"] == "Crypto":
-                    suggestions.append(f"📉 **{asset['ticker']}** is down {asset['pnl_pct']:.1f}%. Consider tax-loss harvest before 2026 (Crypto tax 26%→33%).")
-                else:
-                    suggestions.append(f"📉 **{asset['ticker']}** is down {asset['pnl_pct']:.1f}%. Potential tax-loss harvest opportunity.")
+        if not final_list:
+            final_list.append("✅ Il portafoglio è ben bilanciato. Non sono necessarie azioni urgenti.")
         
-        # 5. Use AI for deeper analysis if available
-        if self.api_key and len(suggestions) < 3:
-            ai_suggestion = self._get_ai_suggestion(analysis)
-            if ai_suggestion:
-                suggestions.append(ai_suggestion)
-        
-        if not suggestions:
-            suggestions.append("✅ Portfolio is well-balanced. No rebalancing needed.")
-        
-        return suggestions
+        return final_list
     
     def _format_regime_targets(self, regime_data: Dict) -> str:
         """
@@ -608,7 +614,7 @@ class Rebalancer:
                         nest_asyncio.apply()
 
                     response_text = loop.run_until_complete(
-                        self.brain.council.get_strategy_consensus(portfolio_summary, response_text)
+                        brain.council.get_strategy_consensus(portfolio_summary, response_text)
                     )
                 except Exception as council_err:
                     logger.warning(f"Council strategy consensus failed: {council_err}")
