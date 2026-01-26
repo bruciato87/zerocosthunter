@@ -77,3 +77,25 @@ async def test_council_disagreement(council, brain_mock):
     # most_common(1) will pick the first one which is BUY in this sequence
     assert verdict["consensus_score"] == 1
     assert "COUNCIL DEBATE" in verdict["council_full_debate"]
+
+@pytest.mark.asyncio
+async def test_council_preserves_metadata(council, brain_mock):
+    """Test that council does not drop Critic and other metadata."""
+    unified_response = json.dumps({
+        "THE_BULL": {"sentiment": "BUY", "confidence": 0.8, "argument": "G"},
+        "THE_BEAR": {"sentiment": "BUY", "confidence": 0.8, "argument": "G"},
+        "THE_QUANT": {"sentiment": "BUY", "confidence": 0.8, "argument": "G"}
+    })
+    brain_mock._generate_with_fallback.return_value = unified_response
+    
+    initial_signal = {
+        "ticker": "METADATA_TEST", 
+        "sentiment": "BUY", 
+        "critic_reasoning": "IMPORTANT_CRITIC_NOTE",
+        "stop_loss": 100.0
+    }
+    verdict = await council.get_consensus("METADATA_TEST", initial_signal)
+    
+    assert verdict["critic_reasoning"] == "IMPORTANT_CRITIC_NOTE"
+    assert verdict["stop_loss"] == 100.0
+    assert verdict["ticker"] == "METADATA_TEST"

@@ -1056,16 +1056,22 @@ async def run_async_pipeline():
 
         expert_review = ""
         if critic_reasoning or council_summary:
-            c_icon = "🌟" if (critic_score or 0) > 80 else "🧐" if (critic_score or 0) > 60 else "⚠️" if (critic_score or 0) >= 40 else "🛑"
+            # Determine icon based on most authoritative score available
+            display_score = critic_score
+            if display_score is None and (pred.get("consensus_score") is not None):
+                # Map 1-3 consensus to a 0-100 scale for icon logic
+                display_score = (pred.get("consensus_score") / 3.0) * 100
+                
+            c_icon = "🌟" if (display_score or 0) > 80 else "🧐" if (display_score or 0) > 60 else "⚠️" if (display_score or 0) >= 40 else "🛑"
             
             review_parts = []
             if council_summary:
-                review_parts.append(f"Council: {council_summary}")
+                review_parts.append(f"🏛️ **Consensus**: {council_summary}")
             if critic_reasoning:
-                review_parts.append(f"Broker: {critic_reasoning}")
+                review_parts.append(f"🛡️ **Analisi Rischio**: {critic_reasoning}")
                 
             combined_review = "\n".join(review_parts)
-            expert_review = f"\n\n{c_icon} **Expert Broker Review**:\n{combined_review}"
+            expert_review = f"\n\n{c_icon} **ESPERTI REVIEW**:\n{combined_review}"
 
         alert_msg = (
             f"{icon} **Signal Detected: {ticker} ({asset_type})**\n"

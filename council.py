@@ -217,15 +217,18 @@ class Council:
             final_reasoning += f"- {name}: {data.get('sentiment')} | {data.get('argument')}\n"
             council_summary_lines.append(f"{name}: {data.get('sentiment')}")
             
-        council_summary = " | ".join(council_summary_lines)
+        council_summary_text = " | ".join(council_summary_lines)
+        council_summary = f"{common_sentiment} ({count}/3) | {council_summary_text}"
             
-        return {
+        # [FIX] Preserve all original fields (Risk management, Expert Critic, etc.)
+        verdict = original.copy()
+        verdict.update({
             "ticker": original.get("ticker"),
             "sentiment": common_sentiment,
             "confidence": (original.get("confidence", 0) + (count / 3)) / 2, # Blended confidence
-            "reasoning": original.get("reasoning", ""), # Keep original clean reasoning
             "council_full_debate": final_reasoning,
             "council_summary": council_summary,
             "consensus_score": count,
             "is_council_verified": True
-        }
+        })
+        return verdict
