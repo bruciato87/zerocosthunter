@@ -30,8 +30,8 @@ async def test_council_consensus_buy(council, brain_mock):
     
     assert verdict["sentiment"] == "BUY"
     assert verdict["consensus_score"] == 2
-    assert "THE_BULL: BUY" in verdict["council_full_debate"]
-    assert "THE_BULL: BUY" in verdict["council_summary"]
+    assert "**THE_BULL**: BUY" in verdict["council_full_debate"]
+    assert "MAJORITY VERDICT: BUY (2/3)" in verdict["council_summary"]
 
 @pytest.mark.asyncio
 async def test_report_consensus(brain_mock):
