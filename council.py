@@ -208,17 +208,26 @@ class Council:
         # Find the most common sentiment
         common_sentiment, count = counts.most_common(1)[0]
         
-        # If consensus is high or aligns with original, we're good
-        # Otherwise, if total disagreement, default to HOLD/Original with low confidence
+        # Determine descriptive label
+        label = "UNANIMOUS" if count == 3 else "MAJORITY" if count == 2 else "DISPUTED"
         
-        final_reasoning = "COUNCIL DEBATE:\n"
-        council_summary_lines = []
+        # Build nuanced summary
+        # If Unanimous, emphasize the collective focus
+        # If Majority, highlight what the dissenter said
+        
+        council_summary = f"{label} VERDICT: {common_sentiment} ({count}/3)"
+        
+        dissent_note = ""
+        if count < 3:
+            dissenter = next((name for name, data in results.items() if data.get("sentiment") != common_sentiment), None)
+            if dissenter:
+                dissent_sentiment = results[dissenter].get("sentiment", "HOLD")
+                dissent_argument = results[dissenter].get("argument", "")
+                dissent_note = f"\n⚠️ **Dissent ({dissenter})**: Argued for {dissent_sentiment} because '{dissent_argument}'"
+
+        final_reasoning = f"🏛️ **COUNCIL DEBATE ({label})**\n"
         for name, data in results.items():
-            final_reasoning += f"- {name}: {data.get('sentiment')} | {data.get('argument')}\n"
-            council_summary_lines.append(f"{name}: {data.get('sentiment')}")
-            
-        council_summary_text = " | ".join(council_summary_lines)
-        council_summary = f"{common_sentiment} ({count}/3) | {council_summary_text}"
+            final_reasoning += f"- **{name}**: {data.get('sentiment')} | {data.get('argument')}\n"
             
         # [FIX] Preserve all original fields (Risk management, Expert Critic, etc.)
         verdict = original.copy()
@@ -226,7 +235,7 @@ class Council:
             "ticker": original.get("ticker"),
             "sentiment": common_sentiment,
             "confidence": (original.get("confidence", 0) + (count / 3)) / 2, # Blended confidence
-            "council_full_debate": final_reasoning,
+            "council_full_debate": final_reasoning + dissent_note,
             "council_summary": council_summary,
             "consensus_score": count,
             "is_council_verified": True

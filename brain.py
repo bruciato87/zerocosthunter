@@ -937,7 +937,7 @@ class Brain:
         **INSTRUCTIONS:**
         For each news item that contains a SIGNIFICANT signal:
         - Extract **Ticker**, **Type**, **Sentiment**.
-        - Write **Reasoning** in **ITALIAN**, concise but insightful. Cite Macro/Whale if relevant.
+        - Write **Reasoning** in **ITALIAN**. Focus strictly on the **PRIMARY CATALYST** (e.g. Earnings, Product Launch, Macro shift). Be concise (max 2 sentences).
         - **Risk Score** (1-10), **Target Price**, **Upside %**.
         - **Stop Loss** and **Take Profit** levels.
         - **Confidence Score** (0.0 to 1.0).

@@ -43,6 +43,63 @@ logging.basicConfig(
 )
 logger = logging.getLogger("MainController")
 
+def format_alert_msg(ticker, sentiment, confidence, reasoning, source, pred, stop_loss, take_profit, critic_score, critic_reasoning, council_summary):
+    """
+    Refines and formats the signal alert for Telegram with a "Hierarchy of Truth".
+    """
+    # 1. Prediction Stats Badge
+    asset_type = pred.get("asset_type", "Asset")
+    icon = "🟢" if sentiment in ["BUY", "ACCUMULATE"] else "🔴" if sentiment in ["SELL", "PANIC SELL"] else "⚪"
+    target_price = pred.get("target_price")
+    upside_percentage = pred.get("upside_percentage", 0)
+    risk_score = pred.get("risk_score", 5)
+
+    badge = ""
+    if target_price:
+         badge += f"\n🎯 **Target:** {target_price}"
+         if upside_percentage > 0:
+             badge += f" (Up +{upside_percentage}%)"
+    
+    badge += f"\n🎲 **Risk Score:** {risk_score}/10"
+    if stop_loss:
+        badge += f"\n🛑 **Stop Loss:** €{stop_loss}"
+    if take_profit:
+        badge += f"\n💰 **Take Profit:** €{take_profit}"
+
+    # 2. Expert & Council Intelligence
+    expert_section = ""
+    if critic_reasoning or council_summary:
+        review_parts = []
+        
+        # Risk Check (Critic)
+        if critic_reasoning:
+            review_parts.append(f"🛡️ **Risk Check (Critic)**: {critic_reasoning}")
+        
+        # Council Verdict
+        if council_summary:
+            review_parts.append(f"🏛️ **Council Verdict**: {council_summary}")
+            
+            # Dynamic Dissent Integration (Transparency)
+            full_debate = pred.get("council_full_debate", "")
+            if "⚠️ **Dissent" in full_debate:
+                import re
+                dissent_match = re.search(r"(⚠️ \*\*Dissent[\s\S]+)", full_debate)
+                if dissent_match:
+                    review_parts.append(f"> {dissent_match.group(1).strip()}")
+
+        expert_section = "\n" + "\n".join(review_parts)
+
+    # 3. Final Construction
+    alert_msg = (
+        f"{icon} **Signal: {ticker} ({asset_type})**\n"
+        f"**Action:** {sentiment} | **Confidence:** {int(confidence * 100)}%\n"
+        f"{badge}\n\n"
+        f"💡 **Catalyst:** {reasoning}"
+        f"{expert_section}\n\n"
+        f"**Source:** {source}"
+    )
+    return alert_msg
+
 def run_pipeline():
     asyncio.run(run_async_pipeline())
 
@@ -981,9 +1038,6 @@ async def run_async_pipeline():
                 take_profit = round(tp_atr, 2)
                 
                 logger.info(f"Risk Mgmt [{ticker}]: ATR {atr_val:.2f} -> SL {stop_loss} (was {old_sl}), TP {take_profit}")
-                
-                # Append to reasoning for transparency
-                reasoning += f"\n🛡️ Risk: SL €{stop_loss} (ATR), TP €{take_profit}"
             else:
                  # FALLBACK: If ATR is 0, use a fixed percentage (5% SL, 10% TP)
                  if calc_price > 0:
@@ -991,7 +1045,6 @@ async def run_async_pipeline():
                      stop_loss = round(calc_price * 0.95, 2)
                      take_profit = round(calc_price * 1.10, 2)
                      logger.info(f"Risk Mgmt [{ticker}]: ATR 0 -> Using Fixed Fallback (5% SL, 10% TP): SL {stop_loss}, TP {take_profit}")
-                     reasoning += f"\n🛡️ Risk: SL €{stop_loss} (Fallback 5%), TP €{take_profit}"
                  else:
                      logger.warning(f"Risk Mgmt [{ticker}]: ATR/Price invalid (ATR={atr_val}, Price={calc_price})")
 
@@ -1077,49 +1130,10 @@ async def run_async_pipeline():
                 logger.error(f"Paper Trader Failed: {e}")
         # ----------------------------------------
 
+        # ----------------------------------------
+        
         # Format Alert
-        asset_type = pred.get("asset_type", "Asset")
-        icon = "🟢" if sentiment in ["BUY", "ACCUMULATE"] else "🔴" if sentiment in ["SELL", "PANIC SELL"] else "⚪"
-        
-        # Build "Prophet" Badge
-        prophet_badge = ""
-        if target_price:
-             prophet_badge = f"\n🎯 **Target:** {target_price}"
-             if upside_percentage > 0:
-                 prophet_badge += f" (Up +{upside_percentage}%)"
-             prophet_badge += f"\n🎲 **Risk Score:** {risk_score}/10"
-        
-        if stop_loss:
-            prophet_badge += f"\n🛑 **Stop Loss:** €{stop_loss}"
-        if take_profit:
-            prophet_badge += f"\n💰 **Take Profit:** €{take_profit}"
-
-        expert_review = ""
-        if critic_reasoning or council_summary:
-            # Determine icon based on most authoritative score available
-            display_score = critic_score
-            if display_score is None and (pred.get("consensus_score") is not None):
-                # Map 1-3 consensus to a 0-100 scale for icon logic
-                display_score = (pred.get("consensus_score") / 3.0) * 100
-                
-            c_icon = "🌟" if (display_score or 0) > 80 else "🧐" if (display_score or 0) > 60 else "⚠️" if (display_score or 0) >= 40 else "🛑"
-            
-            review_parts = []
-            if council_summary:
-                review_parts.append(f"🏛️ **Consensus**: {council_summary}")
-            if critic_reasoning:
-                review_parts.append(f"🛡️ **Analisi Rischio**: {critic_reasoning}")
-                
-            combined_review = "\n".join(review_parts)
-            expert_review = f"\n\n{c_icon} **ESPERTI REVIEW**:\n{combined_review}"
-
-        alert_msg = (
-            f"{icon} **Signal Detected: {ticker} ({asset_type})**\n"
-            f"**Action:** {sentiment}\n"
-            f"**Confidence:** {int(confidence * 100)}%{prophet_badge}\n\n"
-            f"**Reasoning:** {reasoning}{expert_review}\n"
-            f"**Source:** {source}"
-        )
+        alert_msg = format_alert_msg(ticker, sentiment, confidence, reasoning, source, pred, stop_loss, take_profit, critic_score, critic_reasoning, council_summary)
         
         await notifier.send_alert(alert_msg)
         
