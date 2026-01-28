@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, AsyncMock, patch
 from sentinel import Sentinel
 
 @pytest.fixture
@@ -11,37 +11,40 @@ def sentinel(mock_db):
     with patch('sentinel.PaperTrader'):
         return Sentinel(db_handler=mock_db)
 
-def test_check_price_alerts_above(sentinel, mock_db):
+@pytest.mark.asyncio
+async def test_check_price_alerts_above(sentinel, mock_db):
     """Test triggered ABOVE alert."""
     mock_db.get_active_alerts.return_value = [
         {'id': 1, 'ticker': 'BTC-USD', 'condition': 'ABOVE', 'price_threshold': 50000, 'chat_id': 123}
     ]
     
     market_data = MagicMock()
-    market_data.get_smart_price_eur.return_value = (60000, "BTC-USD")
+    market_data.get_smart_price_eur_async = AsyncMock(return_value=(60000, "BTC-USD"))
     
-    notifications = sentinel.check_alerts(market_data)
+    notifications = await sentinel.check_alerts(market_data)
     
     assert len(notifications) >= 1
     assert "BTC-USD" in notifications[0]["text"]
     assert "sopra €50000" in notifications[0]["text"]
     mock_db.deactivate_alert.assert_called_once()
 
-def test_check_price_alerts_below(sentinel, mock_db):
+@pytest.mark.asyncio
+async def test_check_price_alerts_below(sentinel, mock_db):
     """Test triggered BELOW alert."""
     mock_db.get_active_alerts.return_value = [
         {'id': 2, 'ticker': 'AAPL', 'condition': 'BELOW', 'price_threshold': 150, 'chat_id': 123}
     ]
     
     market_data = MagicMock()
-    market_data.get_smart_price_eur.return_value = (140, "AAPL")
+    market_data.get_smart_price_eur_async = AsyncMock(return_value=(140, "AAPL"))
     
-    notifications = sentinel.check_alerts(market_data)
+    notifications = await sentinel.check_alerts(market_data)
     
     assert len(notifications) >= 1
     assert "sotto €150" in notifications[0]["text"]
 
-def test_check_portfolio_volatility_breaker(sentinel, mock_db):
+@pytest.mark.asyncio
+async def test_check_portfolio_volatility_breaker(sentinel, mock_db):
     """Test volatility breaker notification."""
     mock_db.get_portfolio.return_value = [
         {'ticker': 'SOL-USD', 'chat_id': 123, 'avg_price': 100}
@@ -49,9 +52,9 @@ def test_check_portfolio_volatility_breaker(sentinel, mock_db):
     
     market_data = MagicMock()
     # Mocking price and -6% change
-    market_data.get_smart_price_eur.side_effect = [(100, "SOL-USD", -6.0)]
+    market_data.get_smart_price_eur_async = AsyncMock(return_value=(100, "SOL-USD", -6.0))
     
-    notifications = sentinel.check_alerts(market_data)
+    notifications = await sentinel.check_alerts(market_data)
     
     # One from price alerts (empty), one from risk check
     assert any("Volatility Breaker" in n["text"] for n in notifications)
