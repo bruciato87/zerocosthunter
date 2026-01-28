@@ -1600,15 +1600,21 @@ class Brain:
         - Bullet point 2
         
         ## 🔮 The Verdict
-        - **Decisione:** [BUY / HOLD / SELL]
+        - **Decisione:** [BUY / ACCUMULATE / WATCH / HOLD / SELL / AVOID]
         - **Target Price (Est):** [Price in EUR - ALWAYS use € symbol]
         - **Risk Score:** [1-10]
         - **Catalyst:** Cosa stiamo aspettando? (e.g. Earnings date, FDA approval)
 
         **PORTFOLIO STRATEGY RULES (CRITICAL):**
-        1. **ACCUMULATE vs BUY:**
-           - **If Portfolio Context says "Not owned":** You CANNOT use "ACCUMULATE" (you can't accumulate what you don't own). Use "BUY" instead.
-           - **If Portfolio Context shows ownership:** You CAN use "ACCUMULATE" to add to an existing position.
+        1. **Contextual Labels:**
+           - **If Portfolio Context says "Not owned":**
+             - Use **BUY** for high-conviction bullish entries.
+             - Use **WATCH** for neutral/interesting assets to monitor (NEVER use "HOLD").
+             - Use **AVOID** for assets with high risk or bearish outlook (NEVER use "SELL").
+           - **If Portfolio Context shows ownership:**
+             - Use **ACCUMULATE** to increase position.
+             - Use **HOLD** to stay in position.
+             - Use **SELL** to exit/trim position.
         2. **Position Sizing:** Check the "Portfolio Context".
            - **Small Position (< 5% of Total):** Do NOT suggest "Take Profit" or "Trim" for small gains. Suggest "HOLD" or "ACCUMULATE" to ride the trend.
            - **Large Position (> 20% of Total):** Be defensive. Suggest "Trim" if risk is high.

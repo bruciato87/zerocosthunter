@@ -159,8 +159,8 @@ class Analyzer:
                 # Extract Sentiment Score (Rough approx for now or parse from report)
                 # For Deep Dive, R1 output is text. We use mapping based on verdict.
                 verdict_map = {
-                    "BUY": 85, "ACCUMULATE": 75, "HOLD": 50, 
-                    "SELL": 20, "TRIM": 30
+                    "BUY": 85, "ACCUMULATE": 75, "WATCH": 55, "HOLD": 50, 
+                    "SELL": 20, "AVOID": 15, "TRIM": 30
                 }
                 # Simple extraction from report text (Looking for "Decisione: [VERDICT]")
                 import re
