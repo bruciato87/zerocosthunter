@@ -793,6 +793,9 @@ async def run_async_pipeline():
         # [PHASE C.3] Council Summary extraction
         council_summary = pred.get("council_summary")
         is_council_verified = pred.get("is_council_verified", False)
+        
+        # [FIX] Avoid variable leaking from previous loops (Discovery/Synthetic)
+        portfolio_ticker, holding = find_portfolio_entry(ticker, portfolio_map)
 
         if not ticker: 
             continue
