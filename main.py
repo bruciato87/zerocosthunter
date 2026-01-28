@@ -116,6 +116,12 @@ def run_pipeline():
 async def run_async_pipeline():
     logger.info("Starting Zero-Cost Investment Hunter Pipeline...")
     
+    # [PHASE 787] ONLY_PORTFOLIO_MODE
+    import os
+    ONLY_PORTFOLIO_MODE = os.environ.get("ONLY_PORTFOLIO_MODE", "False").lower() == "true"
+    if ONLY_PORTFOLIO_MODE:
+        logger.info("🔒 ONLY_PORTFOLIO_MODE ENABLED: Skipping general news scanning.")
+    
     # Generate unique run_id for tracking API calls this run
     from datetime import datetime
     import time
@@ -198,14 +204,19 @@ async def run_async_pipeline():
     # 2. Fetch News
     import time as timing_module
     _run_start_time = timing_module.time()
-    _news_fetch_start = timing_module.time()
     
-    news_items = hunter.fetch_news()
-    _news_fetch_time = timing_module.time() - _news_fetch_start
-    
-    if not news_items:
-        print("Hunter: No news found. Exiting.", flush=True)
-        return
+    if ONLY_PORTFOLIO_MODE:
+        news_items = []
+        _news_fetch_time = 0
+        logger.info("Hunter: Skipping news fetch in ONLY_PORTFOLIO_MODE.")
+    else:
+        _news_fetch_start = timing_module.time()
+        news_items = hunter.fetch_news()
+        _news_fetch_time = timing_module.time() - _news_fetch_start
+        
+        if not news_items:
+            print("Hunter: No news found. Continuing to Portfolio Check...", flush=True)
+            news_items = []
 
     # 2.2 Load Portfolio
     # 2.2 Get Last Run Time for Freshness Filter
