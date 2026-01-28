@@ -14,23 +14,25 @@ class Sentinel:
         self.paper_trader = PaperTrader(self.db)
 
 
-    def check_alerts(self, market_data):
+    async def check_alerts(self, market_data):
         """
         Returns a list of notification dictionaries.
         """
         notifications = []
         
         # 1. Price Alerts
-        notifications.extend(self._check_price_alerts(market_data))
+        p_alerts = await self._check_price_alerts(market_data)
+        notifications.extend(p_alerts)
         
         # 2. Paper Portfolio Protection (SL/TP Auto-Execute)
-        self._check_paper_protection(market_data)
+        await self._check_paper_protection(market_data)
 
         # 3. Portfolio Risks (Volatility, SL/TP Alerts)
         try:
             portfolio = self.db.get_portfolio()
             if portfolio:
-                notifications.extend(self._check_portfolio_risks(market_data, portfolio))
+                p_risks = await self._check_portfolio_risks(market_data, portfolio)
+                notifications.extend(p_risks)
         except Exception as e:
             logger.error(f"Sentinel: Risk check failed: {e}")
             
@@ -100,7 +102,7 @@ class Sentinel:
             logger.error(f"Sentinel: Strategic forecast failed: {e}")
             return {"error": str(e)}
 
-    def _check_price_alerts(self, market_data):
+    async def _check_price_alerts(self, market_data):
         notifications = []
         try:
             active_alerts = self.db.get_active_alerts()
@@ -120,8 +122,8 @@ class Sentinel:
 
             for ticker, alerts in ticker_groups.items():
                 try:
-                    # Use Centralized Market Data
-                    price, used_ticker = market_data.get_smart_price_eur(ticker)
+                    # Use Async Centralized Market Data
+                    price, used_ticker = await market_data.get_smart_price_eur_async(ticker)
                     
                     if price <= 0:
                         logger.warning(f"Sentinel: Could not fetch price for {ticker}")
@@ -161,7 +163,7 @@ class Sentinel:
         
         return notifications
 
-    def _check_portfolio_risks(self, market_data, portfolio):
+    async def _check_portfolio_risks(self, market_data, portfolio):
         """
         Scans portfolio for:
         1. Volatility Breaker: Daily drop > 5%
@@ -186,7 +188,7 @@ class Sentinel:
 
             try:
                 # 1. Fetch Price & Change (Strict EUR)
-                price, _, change_pct = market_data.get_smart_price_eur(ticker, include_change=True)
+                price, _, change_pct = await market_data.get_smart_price_eur_async(ticker, include_change=True)
                 
                 if price <= 0: continue
 
@@ -235,38 +237,35 @@ class Sentinel:
         
         return notifications
 
-    def _check_paper_protection(self, market_data):
+    async def _check_paper_protection(self, market_data):
         """
         Checks Paper Portfolio for Stop Loss and Take Profit hits.
         Executes AUTO-SELL if triggered.
+        [OPTIMIZED] Uses parallel price checks.
         """
         try:
+            import asyncio
             # Get admin view of all paper positions
             positions = self.paper_trader.get_portfolio(chat_id=None)
             if not positions: return
 
-            logger.info(f"Sentinel: Monitoring {len(positions)} paper positions for SL/TP...")
+            logger.info(f"Sentinel: Monitoring {len(positions)} paper positions for SL/TP in parallel...")
 
-            for pos in positions:
+            async def check_single_position(pos):
                 ticker = pos['ticker']
                 sl = float(pos.get('stop_loss') or 0)
                 tp = float(pos.get('take_profit') or 0)
-                
-                if sl == 0 and tp == 0: continue
+                if sl == 0 and tp == 0: return
 
                 try:
-                    price, _ = market_data.get_smart_price_eur(ticker)
-                    if price <= 0: continue
+                    price, _ = await market_data.get_smart_price_eur_async(ticker)
+                    if price <= 0: return
 
                     trigger = None
                     reason = ""
-                    
-                    # Check SL (Price drops below SL)
                     if sl > 0 and price <= sl:
                         trigger = "STOP_LOSS"
                         reason = f"Sentinel: STOP LOSS triggered at €{price:.2f} (SL: €{sl:.2f})"
-                    
-                    # Check TP (Price rises above TP)
                     elif tp > 0 and price >= tp:
                         trigger = "TAKE_PROFIT"
                         reason = f"Sentinel: TAKE PROFIT triggered at €{price:.2f} (TP: €{tp:.2f})"
@@ -275,17 +274,12 @@ class Sentinel:
                         chat_id = pos['chat_id']
                         qty = float(pos['quantity'])
                         logger.info(f"Sentinel: Executing {trigger} for {ticker}...")
-                        
-                        self.paper_trader.execute_trade(
-                            chat_id=chat_id,
-                            ticker=ticker,
-                            action="SELL",
-                            quantity=qty,
-                            price_eur=price,
-                            reason=reason
-                        )
+                        self.paper_trader.execute_trade(chat_id, ticker, "SELL", qty, price, reason)
                 except Exception as e:
                     logger.error(f"Sentinel: Error checking paper pos {ticker}: {e}")
+
+            # Run all checks in parallel
+            await asyncio.gather(*(check_single_position(pos) for pos in positions))
 
         except Exception as e:
             logger.error(f"Sentinel: Paper protection scan failed: {e}")

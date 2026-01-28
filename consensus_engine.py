@@ -34,7 +34,7 @@ class ConsensusEngine:
             "analyst": 0.10
         }
 
-    def calculate_weighted_action(self, prediction: Dict) -> Dict:
+    def calculate_weighted_action(self, prediction: Dict, is_owned: bool = False) -> Dict:
         """
         Calculates the final consensus score and action.
         """
@@ -81,13 +81,13 @@ class ConsensusEngine:
         elif final_score >= 25:
             final_action = "BUY"
         elif final_score >= 10:
-            final_action = "ACCUMULATE"
+            final_action = "ACCUMULATE" if is_owned else "WATCH"
         elif final_score <= -60:
-            final_action = "STRONG SELL"
+            final_action = "STRONG SELL" if is_owned else "AVOID (High Risk)"
         elif final_score <= -25:
-            final_action = "SELL"
+            final_action = "SELL" if is_owned else "AVOID"
         else:
-            final_action = "HOLD"
+            final_action = "HOLD" if is_owned else "WATCH"
 
         # Check for extreme disagreement (Disputed flag)
         is_disputed = False

@@ -27,11 +27,15 @@ def test_calculate_weighted_action_disputed():
         "council_full_debate": "ML Prediction: DOWN" # ML (-80)
     }
     
-    result = engine.calculate_weighted_action(prediction)
+    result = engine.calculate_weighted_action(prediction, is_owned=True)
     
     assert "SELL" in result["final_action"]
     assert "Disputed" in result["final_action"]
     assert result["is_disputed"] is True
+    
+    # Test as non-owned
+    result_ext = engine.calculate_weighted_action(prediction, is_owned=False)
+    assert "AVOID" in result_ext["final_action"]
 
 def test_calculate_weighted_action_hold():
     engine = ConsensusEngine()
@@ -43,7 +47,12 @@ def test_calculate_weighted_action_hold():
         "council_full_debate": ""
     }
     
-    result = engine.calculate_weighted_action(prediction)
+    # As owned -> HOLD
+    result_owned = engine.calculate_weighted_action(prediction, is_owned=True)
+    assert result_owned["final_action"] == "HOLD"
     
-    assert result["final_action"] == "HOLD"
-    assert -10 < result["final_score"] < 10
+    # As non-owned -> WATCH
+    result_watch = engine.calculate_weighted_action(prediction, is_owned=False)
+    assert result_watch["final_action"] == "WATCH"
+    
+    assert -10 < result_owned["final_score"] < 10

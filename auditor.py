@@ -21,12 +21,13 @@ class Auditor:
 
     # ... record_signal omitted (unchanged) ...
 
-    def audit_open_signals(self):
+    async def audit_open_signals(self):
         """
         Updates PnL and Status for all OPEN signals.
-        [OPTIMIZED] Collects all updates first, then batches them.
+        [OPTIMIZED] Uses parallel price checks.
         """
         try:
+            import asyncio
             # 1. Fetch OPEN signals
             response = self.db.supabase.table("signal_tracking").select("*").eq("status", "OPEN").execute()
             open_signals = response.data
@@ -35,80 +36,78 @@ class Auditor:
                 logger.info("Auditor: No open signals to audit.")
                 return []
 
-            updates = []
-            pending_updates = []  # [PERFORMANCE] Collect updates to batch at end
-            
-            for sig in open_signals:
+            logger.info(f"Auditor: Auditing {len(open_signals)} open signals in parallel...")
+
+            async def audit_single_signal(sig):
                 ticker = sig['ticker']
                 entry_price = float(sig['entry_price'])
                 req_target_price = sig.get('target_price')
                 target_price = float(req_target_price) if req_target_price else None
                 created_at_iso = sig['created_at']
                 
-                # Check Signal Age
                 try:
-                    # ISO Format from Supabase: "2024-01-01T10:00:00+00:00" or "2024-01-01T10:00:00.123456+00:00"
-                    # Replace 'Z' just in case, handle potential microseconds automatically via fromisoformat in modern python
-                    # Note: Python 3.11+ handles fromisoformat strictly.
-                    # Fallback to simple string split if needed.
                     c_ts = created_at_iso.replace('Z', '+00:00')
                     created_dt = datetime.fromisoformat(c_ts)
                     now_dt = datetime.now(timezone.utc)
                     age_hours = (now_dt - created_dt).total_seconds() / 3600
                 except Exception as e:
                     logger.warning(f"Auditor: Timestamp parse failed for {ticker}: {e}. Treating as NEW.")
-                    age_hours = 0 # Default SAFE (treat as new, don't close)
+                    age_hours = 0
                 
-                # 2. Get Live Price
-                # Uses MarketData helper which handles Crypto/Stocks and Aliases
-                live_price, _ = self.market.get_smart_price_eur(ticker)
+                # 2. Get Live Price (Async)
+                live_price, _ = await self.market.get_smart_price_eur_async(ticker)
                 
                 if not live_price:
-                    logger.warning(f"Auditor: Could not fetch price for {ticker}. Skipping.")
-                    continue
+                    return None
 
                 # 3. Calculate PnL
-                if entry_price > 0:
-                    pnl_pct = ((live_price - entry_price) / entry_price) * 100
-                else: 
-                    pnl_pct = 0.0
-                    
+                pnl_pct = ((live_price - entry_price) / entry_price * 100) if entry_price > 0 else 0.0
                 new_status = "OPEN"
                 
-                # 4. Check Exit Conditions (Only if older than MIN_AGE_HOURS)
+                # 4. Check Exit Conditions
                 if age_hours >= self.MIN_AGE_HOURS:
                     if pnl_pct >= self.TAKE_PROFIT_PCT:
                         new_status = "WIN"
-                    # Require positive PnL to confirm Target Hit (Avoids 0% wins if target <= entry)
                     elif target_price and live_price >= target_price and pnl_pct > 0.5:
                         new_status = "WIN"
                     elif pnl_pct <= self.STOP_LOSS_PCT:
                         new_status = "LOSS"
-                    
-                    # Check Expiration (Age)
                     elif age_hours > (self.MAX_AGE_DAYS * 24):
                         new_status = "EXPIRED"
 
-                # 5. Queue Update (instead of immediate DB call)
-                update_data = {
+                return {
+                    "id": sig["id"],
                     "current_price": live_price,
                     "pnl_percent": round(pnl_pct, 2),
                     "status": new_status,
                     "updated_at": "now()"
                 }
+
+            # Run parallel checks
+            results = await asyncio.gather(*(audit_single_signal(s) for s in open_signals))
+            
+            # Filter None and terminal signals for batch update
+            pending_updates = [r for r in results if r is not None]
+            
+            # Batch update (in simple sequential loop for now as DBHandler usually handles items)
+            # but ideally we collect them and do ONE DB call.
+            # Auditor currently iterates anyway in step 5? No, I'll optimize it here.
+            
+            # Auditor typically returns terminal updates for logging
+            terminal_updates = []
+            for up in pending_updates:
+                self.db.supabase.table("signal_tracking").update({
+                    "current_price": up["current_price"],
+                    "pnl_percent": up["pnl_percent"],
+                    "status": up["status"],
+                    "updated_at": up["updated_at"]
+                }).eq("id", up["id"]).execute()
                 
-                pending_updates.append({
-                    "id": sig['id'],
-                    "data": update_data,
-                    "ticker": ticker,
-                    "new_status": new_status,
-                    "pnl_pct": pnl_pct,
-                    "sig": sig
-                })
-                
-                if new_status != "OPEN":
-                    updates.append(f"{ticker}: {new_status} ({pnl_pct:+.2f}%)")
-                    logger.info(f"Auditor: Signal Closed - {ticker} is {new_status}")
+                if up["status"] != "OPEN":
+                    # Fetch ticker for logging if needed, or pass it through
+                    terminal_updates.append(up)
+            
+            return terminal_updates
             
             # 6. [PERFORMANCE] Batch all updates at once
             if pending_updates:

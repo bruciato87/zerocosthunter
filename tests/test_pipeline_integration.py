@@ -63,7 +63,7 @@ async def test_run_async_pipeline_minimal(mocker):
     # 5. Mock Auditor
     mock_auditor = main.Auditor.return_value
     mock_auditor.get_ticker_stats.return_value = {"status": "WIN", "win_rate": 80}
-    mock_auditor.audit_open_signals.return_value = ["Audit Result 1"]
+    mock_auditor.audit_open_signals = AsyncMock(return_value=["Audit Result 1"])
     
     # 6. Mock Advisor
     mock_adv = main.Advisor.return_value
@@ -77,8 +77,13 @@ async def test_run_async_pipeline_minimal(mocker):
     mock_market = main.MarketData.return_value
     mock_market.get_technical_summary.return_value = "Mock Technical Summary"
     mock_market.get_smart_price_eur.return_value = (50000.0, "EUR")
+    mock_market.get_smart_price_eur_async = AsyncMock(return_value=(50000.0, "EUR"))
     mock_market.calculate_atr.return_value = {"atr": 1000}
     mock_market.get_multi_timeframe_trend.return_value = {"direction": "bullish", "confidence_boost": 1.05}
+    
+    # 8.5 Mock Sentinel
+    mock_sentinel = main.Sentinel.return_value
+    mock_sentinel.check_alerts = AsyncMock(return_value=[])
     
     # 9. Mock SignalIntelligence additional methods
     mock_si = main.SignalIntelligence.return_value
@@ -134,6 +139,7 @@ async def test_run_async_pipeline_minimal(mocker):
     # Mock Notifier
     mock_notifier = main.TelegramNotifier.return_value
     mock_notifier.send_alert = AsyncMock()
+    mock_notifier.send_message = AsyncMock()
     
     # Run the pipeline
     from main import run_async_pipeline
