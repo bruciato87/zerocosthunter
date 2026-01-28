@@ -25,6 +25,7 @@ def mock_all_deps(mocker):
     mocker.patch("main.WhaleWatcher")
     mocker.patch("main.MarketRegimeClassifier")
     mocker.patch("main.Rebalancer")
+    mocker.patch("main.ConsensusEngine")
 
 @pytest.mark.asyncio
 async def test_run_async_pipeline_minimal(mocker):
@@ -89,6 +90,15 @@ async def test_run_async_pipeline_minimal(mocker):
     # 10. Mock MLPredictor additional methods
     mock_ml = main.MLPredictor.return_value
     mock_ml.get_confidence_modifier_from_pred.return_value = 1.0
+
+    # 11. Mock ConsensusEngine
+    mock_ce = main.ConsensusEngine.return_value
+    mock_ce.calculate_weighted_action.return_value = {
+        "final_action": "BUY",
+        "final_score": 75.0,
+        "is_disputed": False,
+        "components": {"analyst": 70, "critic": 80, "council": 70, "ml": 80}
+    }
 
     # 1. Setup minimal prediction data
     mock_prediction = {

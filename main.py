@@ -25,6 +25,7 @@ from whale_watcher import WhaleWatcher
 from market_regime import MarketRegimeClassifier
 from rebalancer import Rebalancer
 from pulse_hunter import PulseHunter
+from consensus_engine import ConsensusEngine
 import re
 import asyncio
 
