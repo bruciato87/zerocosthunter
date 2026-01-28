@@ -80,34 +80,33 @@ class Brain:
     def _get_best_free_model(self, excluded_models: list = None, min_context_needed: int = 32000, task_type: str = "default") -> str:
         """
         Dynamically fetches available models from OpenRouter and selects the best FREE one.
-        Uses fuzzy matching against a preference list to auto-discover new versions.
-        OPTIMIZATION: Uses cached candidate list on retry to avoid repeated API calls.
-        
-        Args:
-            min_context_needed: Minimum context window required. 
-                                DeepSeek R1 (8k limit) is excluded if this is > 10000.
-            task_type: Type of task calling this function. Options:
-                       - "hunt": News batch analysis (medium context, reliability > power)
-                       - "analyze": Deep dive single ticker (reasoning > speed)
-                       - "rebalance": Portfolio analysis (medium)
-                       - "sentiment": Simple classification (small, fast)
-                       - "default": Balanced selection
         """
         if excluded_models is None:
             excluded_models = []
 
+        # Tiered static fallback (Free models only)
+        # These are used if API discovery fails or all discovered models are excluded
+        STATIC_FREE_FALLBACKS = [
+            "google/gemini-2.0-flash-exp:free",
+            "meta-llama/llama-3.3-70b-instruct:free",
+            "google/gemini-2.0-flash-thinking-exp:free",
+            "deepseek/deepseek-chat:free",
+            "qwen/qwen-2.5-72b-instruct:free",
+            "mistralai/mistral-small-24b-instruct-2501:free"
+        ]
+
         # OPTIMIZATION: If we have a fresh cached list, use it instead of calling API
         if self._cached_scored_candidates and (time.time() - self._cache_timestamp < 300):
-            # Find best non-excluded model from cached list
             for score, model_id in self._cached_scored_candidates:
                 if model_id not in excluded_models:
-                    logger.info(f"Using cached model: {model_id} (Score: {score})")
-                    return model_id
-            # All cached models excluded, will fall through to API call below
+                    # STRICT: Ensure it's still free even in cache
+                    if ":free" in model_id:
+                        logger.info(f"Using cached free model: {model_id} (Score: {score})")
+                        return model_id
 
         # Return cached result if fresh (<1 hour) AND valid (not excluded)
         if self._cached_best_model and (time.time() - self._cache_timestamp < 3600):
-            if self._cached_best_model not in excluded_models:
+            if self._cached_best_model not in excluded_models and ":free" in self._cached_best_model:
                 return self._cached_best_model
 
         try:
@@ -551,36 +550,40 @@ class Brain:
     def _generate_with_fallback(self, prompt: str, json_mode: bool = False, model: str = None, prefer_free: bool = True, min_context_needed: int = 32000, task_type: str = "default", prefer_direct: bool = False) -> str:
         """
         Smart AI generation with automatic fallback.
-        
-        Args:
-            prefer_direct: If True, tries Gemini Direct (Tiered) BEFORE OpenRouter.
-                           Used for high-stakes agents like Council and Critic.
+        FREE-ONLY OPTIMIZATION: 
+        1. Only use direct Gemini (limited quota) for "analyze" (Deep Dives) or "rebalance".
+        2. Everything else starts with OpenRouter Free to save Gemini tokens.
         """
-        # If PREPROD, force Gemini Direct
-        force_gemini = (self.app_mode == "PREPROD")
+        # [FREE OPTIMIZATION] Reserved tasks for Gemini Direct
+        HIGH_STAKES_TASKS = ["analyze", "rebalance"]
         
-        if (prefer_direct or force_gemini) and (self.gemini_api_key or self.gemini_client):
+        # If task is not high-stakes, force OpenRouter first even if direct is preferred
+        should_try_direct = (prefer_direct or (self.app_mode == "PREPROD"))
+        if should_try_direct and task_type not in HIGH_STAKES_TASKS:
+            logger.debug(f"Task {task_type} is low-stakes. Bypassing Gemini Direct to save quota.")
+            should_try_direct = False
+
+        if should_try_direct and (self.gemini_api_key or self.gemini_client):
             try:
                 return self._call_gemini_with_tiered_fallback(prompt, json_mode)
             except Exception as e:
-                logger.warning(f"Priority Gemini Direct failed, falling back to OpenRouter: {e}")
-                # Don't return here, continue to OpenRouter
+                logger.warning(f"Priority Gemini Direct failed or exhausted: {e}. Falling back to OpenRouter.")
 
         # Try OpenRouter
         if self.openrouter_api_key:
              try:
-                 return self._call_openrouter([{"role": "user", "content": prompt}], json_mode=json_mode, model=model, min_context_needed=min_context_needed, task_type=task_type)
+                  return self._call_openrouter([{"role": "user", "content": prompt}], json_mode=json_mode, model=model, min_context_needed=min_context_needed, task_type=task_type)
              except Exception as e:
-                 logger.warning(f"OpenRouter failed: {e}")
-                 # Fallback to Gemini if it wasn't already tried as priority
-                 if not (prefer_direct or force_gemini) and (self.gemini_api_key or self.gemini_client):
-                     return self._call_gemini_with_tiered_fallback(prompt, json_mode)
+                  logger.warning(f"OpenRouter failed: {e}")
+                  # Fallback to Gemini if it wasn't already tried
+                  if not should_try_direct and (self.gemini_api_key or self.gemini_client):
+                      return self._call_gemini_with_tiered_fallback(prompt, json_mode)
         
-        # Final Fallback (if everything else failed or OpenRouter key missing)
-        if not (prefer_direct or force_gemini) and (self.gemini_api_key or self.gemini_client):
+        # Final Fallback
+        if not should_try_direct and (self.gemini_api_key or self.gemini_client):
             return self._call_gemini_with_tiered_fallback(prompt, json_mode)
             
-        raise Exception("AI Generation Failed: No valid provider/model succeeded.")
+        raise Exception("AI Generation Failed: No valid free provider/model succeeded.")
 
     def _call_gemini_with_tiered_fallback(self, prompt: str, json_mode: bool) -> str:
         """
@@ -1644,7 +1647,19 @@ class Brain:
                 return result
         except Exception as e:
             logger.error(f"Deep Dive failed: {e}")
-            return "⚠️ Errore durante l'analisi approfondita."
+            # [FREE OPTIMIZATION] Fallback to Math-Only Mini Report instead of generic error
+            return f"""
+⚠️ **AI Generation Unavailable (Quota Exhausted)**
+
+L'analisi testuale profonda non è disponibile al momento, ma ecco i dati quantitativi essenziali:
+
+- **Ticker:** {ticker}
+- **Regime:** {strategic_forecast.get('regime', 'N/A') if 'strategic_forecast' in locals() else 'N/A'}
+- **Technical Verdict:** Basato su ATR/RSI, monitorare i livelli indicati nel messaggio precedente.
+- **Risk Advice:** Esercitare cautela (High Risk) data l'assenza di validazione semantica.
+
+*Riprova tra qualche ora per il report completo.*
+"""
 
 if __name__ == "__main__":
     b = Brain()
