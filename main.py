@@ -43,10 +43,18 @@ logging.basicConfig(
 )
 logger = logging.getLogger("MainController")
 
-def format_alert_msg(ticker, sentiment, confidence, reasoning, source, pred, stop_loss, take_profit, critic_score, critic_reasoning, council_summary):
+def format_alert_msg(ticker, sentiment, confidence, reasoning, source, pred, stop_loss, take_profit, critic_score, critic_reasoning, council_summary, consensus_data=None):
     """
     Refines and formats the signal alert for Telegram with a "Hierarchy of Truth".
+    Now includes a Weighted Consensus Action.
     """
+    # 0. Weighted Consensus Header
+    consensus_header = ""
+    if consensus_data:
+        action = consensus_data.get("final_action", "WAIT")
+        icon_c = "🌟" if "STRONG" in action else "⚖️"
+        consensus_header = f"{icon_c} **Consensus Action:** {action}\n\n"
+
     # 1. Prediction Stats Badge
     asset_type = pred.get("asset_type", "Asset")
     icon = "🟢" if sentiment in ["BUY", "ACCUMULATE"] else "🔴" if sentiment in ["SELL", "PANIC SELL"] else "⚪"
@@ -92,7 +100,8 @@ def format_alert_msg(ticker, sentiment, confidence, reasoning, source, pred, sto
     # 3. Final Construction
     alert_msg = (
         f"{icon} **Signal: {ticker} ({asset_type})**\n"
-        f"**Action:** {sentiment} | **Confidence:** {int(confidence * 100)}%\n"
+        f"{consensus_header}"
+        f"**Hunter Prediction:** {sentiment} ({int(confidence * 100)}%)\n"
         f"{badge}\n\n"
         f"💡 **Catalyst:** {reasoning}"
         f"{expert_section}\n\n"
@@ -150,6 +159,7 @@ async def run_async_pipeline():
         sentinel = Sentinel()
         paper_trader = PaperTrader()
         ml_predictor = MLPredictor()
+        consensus_engine = ConsensusEngine()
         
         # Oracle Modules (Phase B)
         social_scraper = SocialScraper()
@@ -1133,7 +1143,8 @@ async def run_async_pipeline():
         # ----------------------------------------
         
         # Format Alert
-        alert_msg = format_alert_msg(ticker, sentiment, confidence, reasoning, source, pred, stop_loss, take_profit, critic_score, critic_reasoning, council_summary)
+        consensus_data = consensus_engine.calculate_weighted_action(pred)
+        alert_msg = format_alert_msg(ticker, sentiment, confidence, reasoning, source, pred, stop_loss, take_profit, critic_score, critic_reasoning, council_summary, consensus_data=consensus_data)
         
         await notifier.send_alert(alert_msg)
         
