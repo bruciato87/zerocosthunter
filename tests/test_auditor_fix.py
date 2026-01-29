@@ -1,6 +1,6 @@
-
 import asyncio
 import logging
+import pytest
 
 # Mock objects to simulate the environment
 class MockNotifier:
@@ -16,6 +16,7 @@ class MockAuditor:
             {"ticker": "ETH-USD", "pnl_percent": 2.1, "status": "OPEN"}
         ]
 
+@pytest.mark.asyncio
 async def test_audit_notification_flow():
     print("Starting Auditor Fix Verification...")
     
