@@ -33,82 +33,85 @@ class SocialScraper:
 
     def get_reddit_trending(self) -> Dict[str, int]:
         """
-        Scrapes Reddit subreddits via public .json endpoints with advanced stealth.
-        Falls back directly to RSS if blocked, as old.reddit is often also blocked in GH Actions.
+        [PHASE 13 REFINED]
+        Multi-source Social intelligence:
+        1. CoinGecko Trending (Crypto)
+        2. Google News RSS for "Reddit Stock Trends" (Meta-Scraper for Stocks)
+        3. Reddit direct (Stealth/Silent fallback)
         """
         from curl_cffi import requests as c_requests
         import time
         import random
         
         trending = {}
+
+        # --- SOURCE 1: CoinGecko Trending (Reliable Crypto) ---
+        try:
+            cg_url = "https://api.coingecko.com/api/v3/search/trending"
+            resp = requests.get(cg_url, timeout=10)
+            if resp.status_code == 200:
+                data = resp.json()
+                for coin in data.get("coins", []):
+                    item = coin.get("item", {})
+                    symbol = item.get("symbol", "").upper()
+                    if symbol and len(symbol) > 1 and symbol not in self.BLACKLIST:
+                        trending[symbol] = trending.get(symbol, 0) + 5 # Weight Coingecko high (Top 7 only)
+        except Exception as e:
+            logger.debug(f"Social: CoinGecko Trending failed: {e}")
+
+        # --- SOURCE 2: Google News Meta-Scraper (Resilient Stocks/Reddit) ---
+        try:
+            # Query aimed at finding trending stocks discussed on Reddit
+            queries = ["wallstreetbets+trending+stocks", "reddit+stocks+hot"]
+            for q in queries:
+                gn_url = f"https://news.google.com/rss/search?q={q}"
+                resp = requests.get(gn_url, timeout=10)
+                if resp.status_code == 200:
+                    content = resp.text
+                    found = self.TICKER_PATTERN.findall(content)
+                    for ticker in set(found):
+                        if (ticker not in self.BLACKLIST and 
+                            ticker.isupper() and 
+                            len(ticker) > 1 and
+                            not any(c.isdigit() for c in ticker)):
+                            trending[ticker] = trending.get(ticker, 0) + 2
+        except Exception as e:
+            logger.debug(f"Social: Google News fallback failed: {e}")
+
+        # --- SOURCE 3: Silent Reddit Scraping (Stealth) ---
         for sub in self.SUBREDDITS:
-            logger.info(f"🔍 Scraping r/{sub}...")
-            content = ""
-            
-            # Randomized jitter to avoid robotic patterns
-            time.sleep(random.uniform(0.5, 1.5))
-            
             try:
                 # Use a session to maintain cookies/state
                 with c_requests.Session(impersonate="chrome110") as s:
-                    # 1. Try JSON endpoint
-                    url = f"https://www.reddit.com/r/{sub}/hot.json?limit=30" # Reduced limit for speed and stealth
-                    
+                    url = f"https://www.reddit.com/r/{sub}/hot.json?limit=15"
                     headers = {
                         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
                         "Accept-Language": "en-US,en;q=0.9",
                         "Cache-Control": "max-age=0",
-                        "Sec-Ch-Ua": '"Chromium";v="110", "Not A(Brand";v="24", "Google Chrome";v="110"',
-                        "Sec-Ch-Ua-Mobile": "?0",
-                        "Sec-Ch-Ua-Platform": '"Windows"',
-                        "Sec-Fetch-Dest": "document",
-                        "Sec-Fetch-Mode": "navigate",
-                        "Sec-Fetch-Site": "none",
-                        "Sec-Fetch-User": "?1",
                         "Upgrade-Insecure-Requests": "1"
                     }
-                    
                     resp = s.get(url, timeout=10, headers=headers)
-                    
                     if resp.status_code == 200:
-                        try:
-                            data = resp.json()
-                            for post in data.get("data", {}).get("children", []):
-                                p_data = post.get("data", {})
-                                content += f" {p_data.get('title', '')} {p_data.get('selftext', '')}"
-                        except:
-                            # Might be blocked by a login-wall or redirect
-                            resp.status_code = 403
-                    
-                    # 2. Optimized Fallback: RSS (Most resilient from Server/Actions IPs)
-                    if resp.status_code in [403, 429]:
-                        logger.warning(f"⚠️ Reddit blocked ({resp.status_code}) for r/{sub}, bypassing to RSS fallback...")
-                        rss_url = f"https://www.reddit.com/r/{sub}/.rss"
-                        # RSS usually needs a generic User-Agent, not fully impersonated Chrome
-                        rss_resp = requests.get(rss_url, timeout=10, headers={"User-Agent": "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"})
-                        if rss_resp.status_code == 200:
-                            content = rss_resp.text
-                        else:
-                            logger.error(f"❌ RSS fallback also failed for r/{sub}: {rss_resp.status_code}")
-                    elif resp.status_code != 200:
-                        logger.error(f"❌ Failed to scrape r/{sub}: {resp.status_code}")
-                
-                if content:
-                    found_tickers = self.TICKER_PATTERN.findall(content)
-                    for ticker in set(found_tickers):
-                        # Filter criteria: length > 1, not in blacklist, all alpha
-                        if (len(ticker) > 1 and 
-                            ticker not in self.BLACKLIST and 
-                            ticker.isupper() and 
-                            not any(c.isdigit() for c in ticker)):
-                            trending[ticker] = trending.get(ticker, 0) + 1
-                            
-            except Exception as e:
-                logger.error(f"❌ Error scraping r/{sub}: {e}")
+                        data = resp.json()
+                        for post in data.get("data", {}).get("children", []):
+                            p_data = post.get("data", {})
+                            content = f"{p_data.get('title', '')} {p_data.get('selftext', '')}"
+                            found = self.TICKER_PATTERN.findall(content)
+                            for ticker in set(found):
+                                if (ticker not in self.BLACKLIST and 
+                                    ticker.isupper() and 
+                                    len(ticker) > 1 and 
+                                    not any(c.isdigit() for c in ticker)):
+                                    trending[ticker] = trending.get(ticker, 0) + 1
+                    else:
+                        # Silent failure for 403 (expected in Actions)
+                        logger.debug(f"Social: Reddit r/{sub} blocked ({resp.status_code})")
+            except:
+                pass # Fail silently
                 
         # Sort and return top 20
         sorted_trending = dict(sorted(trending.items(), key=lambda x: x[1], reverse=True)[:20])
-        logger.info(f"🔥 Top Reddit Tickers: {sorted_trending}")
+        logger.info(f"🔥 Consolidated Social Tickers: {sorted_trending}")
         return sorted_trending
 
     def get_social_context(self, ticker: str) -> str:
@@ -120,16 +123,16 @@ class SocialScraper:
         velocity_info = self.detect_velocity(ticker.upper(), count)
         velocity_label = f" (Velocity: {velocity_info['status']})" if velocity_info else ""
         
-        if count > 5:
+        if count > 8: # Higher threshold now that sources are merged
             sentiment = "🔥 HIGH HYPE"
-        elif count > 2:
+        elif count > 3:
             sentiment = "👀 MODERATE INTEREST"
         elif count > 0:
             sentiment = "🔹 MENTIONED"
         else:
             sentiment = "🌑 QUIET"
             
-        return f"[SOCIAL ORACLE: {ticker} -> {sentiment} ({count} mentions){velocity_label}]"
+        return f"[SOCIAL ORACLE: {ticker} -> {sentiment} ({count} influence score){velocity_label}]"
 
     def detect_velocity(self, ticker: str, current_count: int) -> Optional[Dict]:
         """Detect if mentions are surging compared to historical average."""
