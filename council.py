@@ -47,8 +47,8 @@ class Council:
             # 1. Single Multi-Persona Prompt
             prompt = self._build_unified_council_prompt(ticker, initial_signal)
             
-            # Call brain once for all personas
-            response = self.brain._generate_with_fallback(prompt, json_mode=True, task_type="analyze", prefer_direct=True)
+            # Call brain once for all personas (forced to background to save Gemini quota)
+            response = self.brain._generate_with_fallback(prompt, json_mode=True, task_type="council_debate", prefer_direct=True)
             
             council_data = json.loads(response)
             
@@ -108,7 +108,7 @@ class Council:
         for name, profile in self.PERSONAS.items():
             try:
                 prompt = self._build_report_critique_prompt(ticker, profile, report_text, context)
-                response = self.brain._generate_with_fallback(prompt, json_mode=True, task_type="analyze", prefer_direct=True)
+                response = self.brain._generate_with_fallback(prompt, json_mode=True, task_type="council_critique", prefer_direct=True)
                 data = json.loads(response)
                 critiques.append(f"- **{name} ({data.get('verdict','CAUTION')})**: {data.get('critique','No comment')}")
             except Exception as e:
@@ -130,7 +130,7 @@ class Council:
         for name, profile in self.PERSONAS.items():
             try:
                 prompt = self._build_strategy_critique_prompt(profile, current_portfolio, proposed_strategy)
-                response = self.brain._generate_with_fallback(prompt, json_mode=True, task_type="rebalance", prefer_direct=True)
+                response = self.brain._generate_with_fallback(prompt, json_mode=True, task_type="council_rebalance", prefer_direct=True)
                 data = json.loads(response)
                 critiques.append(f"- **{name}**: {data.get('verdict','NEUTRAL')} | {data.get('critique','No comment')}")
             except Exception as e:

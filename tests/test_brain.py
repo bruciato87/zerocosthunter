@@ -130,3 +130,46 @@ def test_parse_trade_republic_pdf(mock_brain_deps, mocker):
     assert result["quantity"] == 10.0
     assert result["action"] == "BUY"
     assert brain._generate_with_fallback.called
+
+def test_quota_guard_logic(mock_brain_deps, mocker):
+    """Verify background tasks bypass Gemini Direct."""
+    brain = Brain()
+    brain.gemini_api_key = "fake"
+    brain.openrouter_api_key = "fake"
+    
+    # Mock OpenRouter success
+    mock_post = mocker.patch("requests.post")
+    mock_post.return_value.status_code = 200
+    mock_post.return_value.json.return_value = {"choices": [{"message": {"content": "OR"}}, {"usage": {}}]}
+    
+    # Mock Gemini Direct
+    mock_direct = mocker.patch.object(brain, "_call_gemini_with_tiered_fallback")
+    
+    # Background task with prefer_direct=True should still use OpenRouter
+    brain._generate_with_fallback("Prompt", task_type="council_debate", prefer_direct=True)
+    assert not mock_direct.called
+    
+    # Manual task should use Gemini Direct
+    brain._generate_with_fallback("Prompt", task_type="analyze", prefer_direct=True)
+    assert mock_direct.called
+
+def test_new_sentiments_support(mock_brain_deps, mocker):
+    """Verify system handles new 'WATCH' and 'AVOID' sentiments if returned by AI."""
+    brain = Brain()
+    
+    # Mock OpenRouter response directly
+    mock_post = mocker.patch("requests.post")
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {
+        "choices": [{"message": {"content": '[{"ticker": "AAPL", "sentiment": "WATCH", "reasoning": "Test", "confidence": 0.8, "risk_score": 4, "target_price": "€200", "upside_percentage": 10.0, "stop_loss": 180.0, "take_profit": 220.0}]'}}]
+    }
+    mock_post.return_value = mock_response
+    
+    # Test the logic
+    response_text = brain._generate_with_fallback("Prompt", json_mode=True)
+    import json
+    analysis_results = json.loads(response_text)
+    
+    assert analysis_results[0]["sentiment"] == "WATCH"
+    assert analysis_results[0]["ticker"] == "AAPL"

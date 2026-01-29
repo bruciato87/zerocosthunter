@@ -294,7 +294,7 @@ class Brain:
             raise Exception("OPENROUTER_API_KEY not configured")
 
         excluded_models = []
-        max_retries = 3
+        max_retries = 10 # Robust trial of the free model pool
 
         for attempt in range(max_retries):
             # On first attempt, use passed model OR discover. On retries, ALWAYS rediscover.
@@ -555,12 +555,12 @@ class Brain:
         2. Everything else starts with OpenRouter Free to save Gemini tokens.
         """
         # [FREE OPTIMIZATION] Reserved tasks for Gemini Direct
-        HIGH_STAKES_TASKS = ["analyze", "rebalance"]
+        MANUAL_TASKS = ["analyze", "rebalance", "deep_dive"]
         
-        # If task is not high-stakes, force OpenRouter first even if direct is preferred
+        # If task is not manual (background jobs), force OpenRouter first
         should_try_direct = (prefer_direct or (self.app_mode == "PREPROD"))
-        if should_try_direct and task_type not in HIGH_STAKES_TASKS:
-            logger.debug(f"Task {task_type} is low-stakes. Bypassing Gemini Direct to save quota.")
+        if should_try_direct and task_type not in MANUAL_TASKS:
+            logger.debug(f"Task {task_type} is a background job. Bypassing Gemini Direct to save quota for manual analyze/rebalance.")
             should_try_direct = False
 
         if should_try_direct and (self.gemini_api_key or self.gemini_client):
@@ -860,7 +860,7 @@ class Brain:
 
         **LANGUAGE & FORMAT:**
         - **Reasoning**: MUST be in **ITALIAN**.
-        - **Sentiment**: ONE of: ["BUY", "SELL", "ACCUMULATE", "PANIC SELL", "HOLD"].
+        - **Sentiment**: ONE of: ["BUY", "SELL", "ACCUMULATE", "PANIC SELL", "HOLD", "WATCH", "AVOID"].
         - **Required:** Your reasoning MUST cite the specific data point (Macro or Whale) if it influenced the decision.
         
         **CRITICAL FILTERS & BOOSTS:**
@@ -876,7 +876,9 @@ class Brain:
                 -   **MUST** use "**BUY**" if the opportunity is good.
                 -   **MUST NOT** use "ACCUMULATE" (reserved for existing positions).
                 -   **MUST NOT** use "SELL", "PANIC SELL", or "HOLD" (Cannot sell/hold what is not owned).
-                -   If the sentiment is not a clear "BUY", **DO NOT INCLUDE THIS SIGNAL IN THE OUTPUT**. Skip it entirely.
+                -   **WATCH** for assets with high potential but currently poor entries.
+                -   **AVOID** for bearish stocks or sectors to avoid.
+                -   If the sentiment is not clear, **DO NOT INCLUDE THIS SIGNAL IN THE OUTPUT**. Skip it entirely.
         
         4.  **SENTIMENT TREND BOOST:**
             - You will see previous history tags (e.g. `[History: WIN (3/0) - Last: BUY]`).

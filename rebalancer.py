@@ -864,7 +864,7 @@ class Rebalancer:
                                 "Is this a smart move? Answer in 1 short sentence starting with '💡 FLASH TIP:'."
                             )
                             from brain import Brain
-                            return Brain()._generate_with_fallback(prompt, json_mode=False, task_type="rebalance").strip()
+                            return Brain()._generate_with_fallback(prompt, json_mode=False, task_type="flash_rebalance").strip()
                         except:
                             # Fallback to simple rule text if AI fails
                             return f"📉 **FLASH TRIM Opportunity**: Vendi parte di {asset['ticker']} (RSI {rsi:.0f}). Net Gain: ~€{net_profit:.0f} (dopo fees/tax)."
