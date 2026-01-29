@@ -14,8 +14,18 @@ class SocialScraper:
     
     SUBREDDITS = ["wallstreetbets", "cryptocurrency", "stocks", "pennystocks"]
     TICKER_PATTERN = re.compile(r'\b[A-Z]{2,5}\b')
-    # Filter out common words that look like tickers
-    BLACKLIST = {"THE", "AND", "ARE", "FOR", "NOT", "BUT", "HAS", "ANY", "ALL", "NEW", "NOW", "ONE"}
+    # Filter out common words and noise that look like tickers
+    BLACKLIST = {
+        "THE", "AND", "ARE", "FOR", "NOT", "BUT", "HAS", "ANY", "ALL", "NEW", "NOW", "ONE",
+        "CEO", "IPO", "ETF", "SEC", "FED", "CPI", "USA", "EMA", "RSI", "MACD", "ATH", "ATL",
+        "GDP", "PMI", "STK", "OPT", "CALL", "PUT", "BUY", "SELL", "HOLD", "DD", "MOON", "LAMBO",
+        "HODL", "DYOR", "FOMO", "FUD", "IYKYK", "LFG", "NFA", "WAGMI", "YOLO", "BTW", "FYI", "IMO",
+        "IMHO", "TLDR", "WTF", "LOL", "AFK", "BRB", "GG", "GL", "HF", "IDK", "IKR", "NP", "OMG",
+        "PE", "EPS", "FY", "Q1", "Q2", "Q3", "Q4", "AI", "EU", "UAE", "UK", "US", "UTF", "FT", "MP", 
+        "DAP", "TYO", "DBS", "BULL", "BEAR", "PUMP", "DUMP", "DEX", "CEX", "NFT", "TA", "FA", 
+        "ATH", "FOMO", "SAUCE", "BAGS", "WHALE", "ALPHA", "BETA", "CASH", "GOLD", "SLV", "GLD",
+        "IP", "AT", "ER", "IN", "UP", "GMT", "UTC", "AMA", "DCA", "JUST", "RATES", "INFO", "PLAY", "REAL", "POST"
+    }
 
     def __init__(self):
         # We'll use curl_cffi's requests directly in the method for better impersonation
@@ -24,7 +34,7 @@ class SocialScraper:
     def get_reddit_trending(self) -> Dict[str, int]:
         """
         Scrapes Reddit subreddits via public .json endpoints with advanced stealth.
-        Falls back to RSS or old.reddit.com if blocked.
+        Falls back directly to RSS if blocked, as old.reddit is often also blocked in GH Actions.
         """
         from curl_cffi import requests as c_requests
         import time
@@ -36,58 +46,61 @@ class SocialScraper:
             content = ""
             
             # Randomized jitter to avoid robotic patterns
-            time.sleep(random.uniform(1.5, 3.5))
+            time.sleep(random.uniform(0.5, 1.5))
             
             try:
                 # Use a session to maintain cookies/state
                 with c_requests.Session(impersonate="chrome110") as s:
-                    # 1. Try JSON endpoint (Preferred)
-                    url = f"https://www.reddit.com/r/{sub}/hot.json?limit=50"
+                    # 1. Try JSON endpoint
+                    url = f"https://www.reddit.com/r/{sub}/hot.json?limit=30" # Reduced limit for speed and stealth
                     
                     headers = {
-                        "Accept": "application/json, text/plain, */*",
+                        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
                         "Accept-Language": "en-US,en;q=0.9",
-                        "Referer": "https://www.google.com/",
-                        "Sec-Fetch-Dest": "empty",
-                        "Sec-Fetch-Mode": "cors",
-                        "Sec-Fetch-Site": "same-origin",
-                        "DNT": "1"
+                        "Cache-Control": "max-age=0",
+                        "Sec-Ch-Ua": '"Chromium";v="110", "Not A(Brand";v="24", "Google Chrome";v="110"',
+                        "Sec-Ch-Ua-Mobile": "?0",
+                        "Sec-Ch-Ua-Platform": '"Windows"',
+                        "Sec-Fetch-Dest": "document",
+                        "Sec-Fetch-Mode": "navigate",
+                        "Sec-Fetch-Site": "none",
+                        "Sec-Fetch-User": "?1",
+                        "Upgrade-Insecure-Requests": "1"
                     }
                     
-                    resp = s.get(url, timeout=15, headers=headers)
+                    resp = s.get(url, timeout=10, headers=headers)
                     
                     if resp.status_code == 200:
-                        data = resp.json()
-                        for post in data.get("data", {}).get("children", []):
-                            p_data = post.get("data", {})
-                            content += f" {p_data.get('title', '')} {p_data.get('selftext', '')}"
+                        try:
+                            data = resp.json()
+                            for post in data.get("data", {}).get("children", []):
+                                p_data = post.get("data", {})
+                                content += f" {p_data.get('title', '')} {p_data.get('selftext', '')}"
+                        except:
+                            # Might be blocked by a login-wall or redirect
+                            resp.status_code = 403
                     
-                    # 2. Try Fallback if JSON blocked
-                    elif resp.status_code in [403, 429]:
-                        logger.warning(f"⚠️ JSON blocked ({resp.status_code}) for r/{sub}, trying old.reddit fallback...")
-                        
-                        # Fallback to old.reddit search or listing (often less protected)
-                        alt_url = f"https://old.reddit.com/r/{sub}/"
-                        alt_resp = s.get(alt_url, timeout=15, headers={"Referer": "https://www.google.com/"})
-                        
-                        if alt_resp.status_code == 200:
-                            content = alt_resp.text
+                    # 2. Optimized Fallback: RSS (Most resilient from Server/Actions IPs)
+                    if resp.status_code in [403, 429]:
+                        logger.warning(f"⚠️ Reddit blocked ({resp.status_code}) for r/{sub}, bypassing to RSS fallback...")
+                        rss_url = f"https://www.reddit.com/r/{sub}/.rss"
+                        # RSS usually needs a generic User-Agent, not fully impersonated Chrome
+                        rss_resp = requests.get(rss_url, timeout=10, headers={"User-Agent": "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"})
+                        if rss_resp.status_code == 200:
+                            content = rss_resp.text
                         else:
-                            # Final fallback: RSS
-                            logger.warning(f"⚠️ old.reddit failed ({alt_resp.status_code}), trying RSS...")
-                            rss_url = f"https://www.reddit.com/r/{sub}/.rss"
-                            rss_resp = s.get(rss_url, timeout=15)
-                            if rss_resp.status_code == 200:
-                                content = rss_resp.text
-                            else:
-                                logger.error(f"❌ All Reddit fallbacks failed for r/{sub}: {rss_resp.status_code}")
-                    else:
+                            logger.error(f"❌ RSS fallback also failed for r/{sub}: {rss_resp.status_code}")
+                    elif resp.status_code != 200:
                         logger.error(f"❌ Failed to scrape r/{sub}: {resp.status_code}")
                 
                 if content:
                     found_tickers = self.TICKER_PATTERN.findall(content)
                     for ticker in set(found_tickers):
-                        if ticker not in self.BLACKLIST and ticker.isupper():
+                        # Filter criteria: length > 1, not in blacklist, all alpha
+                        if (len(ticker) > 1 and 
+                            ticker not in self.BLACKLIST and 
+                            ticker.isupper() and 
+                            not any(c.isdigit() for c in ticker)):
                             trending[ticker] = trending.get(ticker, 0) + 1
                             
             except Exception as e:
