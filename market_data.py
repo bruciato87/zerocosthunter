@@ -269,7 +269,7 @@ class MarketData:
                         if include_change: change_pct = extract_change(t_obj)
                         
                         # Cache in persistent DB using NATIVE currency
-                        db.save_ticker_price(ticker_u, raw_price, is_crypto=is_crypto, currency=currency)
+                        db.save_ticker_price(ticker_u, raw_price, is_crypto=is_crypto, currency=currency, resolved_ticker=resolved)
                         
                         # Convert to EUR for immediate return
                         price_eur = raw_price
@@ -435,7 +435,7 @@ class MarketData:
                         try:
                             from db_handler import DBHandler
                             db = DBHandler()
-                            db.save_ticker_price(ticker_u, price, is_crypto=False, currency=currency)
+                            db.save_ticker_price(ticker_u, price, is_crypto=False, currency=currency, resolved_ticker=t_test)
                         except: pass
                         
                         return (*result, change_pct) if include_change else result

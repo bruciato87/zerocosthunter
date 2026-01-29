@@ -300,17 +300,18 @@ class DBHandler:
             logger.debug(f"Cached price fetch skipped for {ticker} (schema or hit): {e}")
             return None
 
-    def save_ticker_price(self, ticker: str, price: float, is_crypto: bool = False, currency: str = "USD"):
+    def save_ticker_price(self, ticker: str, price: float, is_crypto: bool = False, currency: str = "USD", resolved_ticker: str = None):
         """Save discovered price to ticker_cache. Safely ignores missing columns."""
         try:
             t_u = ticker.upper()
+            res_t = resolved_ticker if resolved_ticker else t_u
             data = {
                 "user_ticker": t_u,
                 "last_price": float(price),
                 "last_price_at": datetime.utcnow().isoformat(),
                 "is_crypto": is_crypto,
                 "currency": currency,
-                "resolved_ticker": t_u 
+                "resolved_ticker": res_t 
             }
             try:
                 # Use a specific select check or just try-catch the PGRST204
