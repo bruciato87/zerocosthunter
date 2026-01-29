@@ -145,9 +145,11 @@ class Brain:
 
                 if prompt == 0 and completion == 0:
                     if context_length >= min_context_needed:
+                        # [V4.5] Filter out VISION models (inappropriate for text hunt)
+                        if "-vl-" in model_id.lower() or "vision" in model_id.lower():
+                            continue
+
                         # WHITELIST approach: Only trust verified providers/models
-                        # Added google/ for Gemma models (stable)
-                        
                         trusted_providers = ['meta-llama/', 'mistralai/', 'qwen/', 'nvidia/', 'nousresearch/', 'google/']
                         
                         # DeepSeek R1 (free tier) has ~8k real limit despite claiming 163k.

@@ -77,6 +77,7 @@ class Auditor:
 
                 return {
                     "id": sig["id"],
+                    "ticker": ticker,
                     "current_price": live_price,
                     "pnl_percent": round(pnl_pct, 2),
                     "status": new_status,

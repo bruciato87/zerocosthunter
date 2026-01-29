@@ -1230,7 +1230,7 @@ async def run_async_pipeline():
     logger.info("Running Auditor Checkup...")
     audit_results = await auditor.audit_open_signals()
     if audit_results:
-        summary_audit = "\n".join(audit_results)
+        summary_audit = "\n".join([f"• **{r['ticker']}**: {r['pnl_percent']:+.2f}% ({r['status']})" for r in audit_results])
         await notifier.send_alert(f"⚖️ **Auditor Monitoring Update:**\n{summary_audit}")
 
     # --- MAINTENANCE PHASE (Storage Monitoring) ---
@@ -1328,10 +1328,10 @@ async def run_async_pipeline():
                 model_name = details.get('model', 'Unknown').split('/')[-1].replace(':free', '')
                 try:
                     usage = details.get('usage', {})
-                    # Handle difference between OpenRouter (dict) and Gemini Direct (dict with N/A)
                     if isinstance(usage, dict):
                          total_tok = usage.get('total_tokens', '?')
                          if total_tok == '?': total_tok = "Direct"
+                         elif "FAILED" in str(total_tok): total_tok = "Exhausted (429)"
                     else:
                          total_tok = str(usage)
                 except: total_tok = "?"

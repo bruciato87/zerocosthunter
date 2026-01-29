@@ -63,7 +63,7 @@ async def test_run_async_pipeline_minimal(mocker):
     # 5. Mock Auditor
     mock_auditor = main.Auditor.return_value
     mock_auditor.get_ticker_stats.return_value = {"status": "WIN", "win_rate": 80}
-    mock_auditor.audit_open_signals = AsyncMock(return_value=["Audit Result 1"])
+    mock_auditor.audit_open_signals = AsyncMock(return_value=[{"ticker": "BTC-USD", "pnl_percent": 10.0, "status": "WIN"}])
     
     # 6. Mock Advisor
     mock_adv = main.Advisor.return_value
