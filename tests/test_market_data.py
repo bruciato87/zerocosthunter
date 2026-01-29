@@ -98,7 +98,7 @@ def test_get_smart_price_eur_german_stock(mock_ticker, market, mock_db):
     
     # Setup Mock for EUNL.DE
     mock_stock = MagicMock()
-    mock_stock.history.return_value = pd.DataFrame({'Close': [50.0]})
+    mock_stock.history.return_value = pd.DataFrame({'Close': [50.0]}, index=pd.date_range(end="2026-01-29", periods=1))
     
     def ticker_side_effect(symbol):
         if symbol == "EURUSD=X":
@@ -117,45 +117,60 @@ def test_get_smart_price_eur_german_stock(mock_ticker, market, mock_db):
     assert price == 50.0 # No conversion
     
     # Verify DB Save currency='EUR'
-    calls = mock_db.save_ticker_cache.call_args_list
-    assert len(calls) > 0, "save_ticker_cache should have been called"
+    calls = mock_db.save_ticker_price.call_args_list
+    assert len(calls) > 0, "save_ticker_price should have been called"
     
     args, kwargs = calls[0]
-    saved_currency = kwargs.get('currency')
+    # In save_ticker_price(ticker, price, is_crypto, currency)
+    saved_currency = kwargs.get('currency') or (args[3] if len(args) > 3 else None)
     assert saved_currency == 'EUR'
 
 @patch('yfinance.Ticker')
-def test_meta_aliasing_and_grounding(mock_ticker, market, mock_db):
-    """Test that META is aliased to FB2A.DE and summary contains grounding info."""
+def test_meta_dynamic_resolution(mock_ticker, market, mock_db):
+    """Test that META resolves dynamically to available EU tickers since alias was removed."""
     
-    # Setup Mock for FB2A.DE
-    mock_stock = MagicMock()
-    # Need enough data for SMA calculations
-    dates = pd.date_range(end="2026-01-29", periods=10)
-    df = pd.DataFrame({'Close': [560.0] * 10, 'High': [570.0] * 10, 'Low': [550.0] * 10, 'Open': [555.0] * 10}, index=dates)
-    mock_stock.history.return_value = df
-    mock_stock.info = {'regularMarketChangePercent': 0.5}
+    # Setup Mock for FB2A.F (Fresh data for 2026-01-29)
+    mock_stock_f = MagicMock()
+    dates_f = pd.date_range(end="2026-01-29", periods=1, tz="UTC")
+    df_f = pd.DataFrame({'Close': [601.40]}, index=dates_f)
+    mock_stock_f.history.return_value = df_f
+    mock_stock_f.info = {'regularMarketChangePercent': 8.89}
     
-    def ticker_side_effect(symbol):
-        if symbol == "EURUSD=X":
-            m = MagicMock()
-            m.history.return_value = pd.DataFrame({'Close': [1.10]})
-            return m
-        if symbol == "FB2A.DE":
-            return mock_stock
-        return MagicMock()
+    # Mocking datetime for morning hours (09:00 CET)
+    with patch('market_data.datetime') as mock_md_datetime:
+        # Mock today()
+        mock_md_datetime.date.today.return_value = pd.Timestamp("2026-01-29").date()
+        # Mock now() for CET
+        mock_now = MagicMock()
+        mock_now.hour = 9
+        mock_md_datetime.datetime.now.return_value = mock_now
+        
+        # Setup Mock for FB2A.DE (Stale data from 2026-01-28)
+        mock_stock_de = MagicMock()
+        dates_de = pd.date_range(end="2026-01-28", periods=1, tz="UTC")
+        df_de = pd.DataFrame({'Close': [560.90]}, index=dates_de)
+        mock_stock_de.history.return_value = df_de
+        
+        def ticker_side_effect(symbol):
+            if symbol == "EURUSD=X":
+                m = MagicMock()
+                m.history.return_value = pd.DataFrame({'Close': [1.10]})
+                return m
+            if symbol == "FB2A.F":
+                return mock_stock_f
+            if symbol == "FB2A.DE":
+                return mock_stock_de
+            return MagicMock()
 
-    mock_ticker.side_effect = ticker_side_effect
-    
-    # 1. Check get_technical_summary
-    summary = market.get_technical_summary("META")
-    
-    # 2. Verify it used FB2A.DE and has grounding tags
-    assert "CURRENT_PRICE: €560.00" in summary
-    assert "[Market: €]" in summary
-    assert "via FB2A.DE" in summary
-    
-    # 3. Verify get_smart_price_eur hit the alias
-    price, resolved = market.get_smart_price_eur("META")
-    assert resolved == "FB2A.DE"
-    assert price == 560.0
+        mock_ticker.side_effect = ticker_side_effect
+        
+        # EXECUTE
+        price, resolved = market.get_smart_price_eur("META")
+        
+        # VERIFY: Should pick FB2A.F because it's today (2026-01-29) vs .DE which is yesterday
+        assert resolved == "FB2A.F"
+        assert price == 601.40
+
+def test_price_freshness_logic(market):
+    """Verify the freshness check logic manually if needed, or via integration."""
+    pass

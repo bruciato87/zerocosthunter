@@ -11,11 +11,10 @@ try:
 except Exception:
     pass
 
-# Configure logging
-import requests # Added for CoinGecko
-
+import datetime
+import time
 import logging
-import requests # Added for CoinGecko
+import requests
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -57,13 +56,13 @@ class MarketData:
         
         # Manual overrides for problematic tickers (Trade Republic / EU optimized)
         self.TICKER_ALIASES = {
-            "AAPL": "APC.DE",        # Apple on Xetra
-            "META": "FB2A.DE",       # Meta on Xetra
-            "NVDA": "NVD.DE",        # Nvidia on Xetra
-            "MSFT": "MSF.DE",        # Microsoft on Xetra
-            "GOOGL": "ABE.DE",       # Alphabet (A) on Xetra
-            "AMZN": "AMZ.DE",        # Amazon on Xetra
-            "TSLA": "TL0.DE",        # Tesla on Xetra
+            "AAPL": "APC",           # Apple (Base EU)
+            "META": "FB2A",          # Meta (Base EU)
+            "NVDA": "NVD",           # Nvidia (Base EU)
+            "MSFT": "MSF",           # Microsoft (Base EU)
+            "GOOGL": "ABE",          # Alphabet (Base EU)
+            "AMZN": "AMZ",           # Amazon (Base EU)
+            "TSLA": "TL0",           # Tesla (Base EU)
             "JAZZ": "JAZZ",          # Jazz Pharma on NASDAQ
             "BYD": "BY6.F",          # BYD on Frankfurt
             "BYDDF": "BY6.F",
@@ -383,57 +382,80 @@ class MarketData:
         # Also skip EU suffixes if ticker is from an alias (user explicitly mapped it)
         ticker_is_aliased = ticker_u in self.TICKER_ALIASES
         
-        # If start_ticker already has a suffix, try it directly first
+        # Try suffixes
         initial_candidates = [start_ticker]
-        
         if '.' not in start_ticker:
-            # For US stocks OR aliased tickers, skip EU suffixes entirely
-            if start_ticker in US_STOCKS or ticker_is_aliased:
-                initial_candidates = [start_ticker]  # Only try the mapped/US ticker
+            # During early morning (08:00 - 10:00 CET), Frankfurt (.F) often leads Xetra (.DE) for US Stocks
+            now_cet = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=1)))
+            if 8 <= now_cet.hour <= 10:
+                # Early birds: try Frankfurt first
+                suffixes_eur = ['.F', '.DE', '.MI', '.PA', '.MC', '.AS']
             else:
-                initial_candidates = [start_ticker + s for s in suffixes_eur] + [start_ticker]
+                suffixes_eur = ['.DE', '.F', '.MI', '.PA', '.MC', '.AS']
+            
+            initial_candidates = [start_ticker + s for s in suffixes_eur] + [start_ticker]
+        
+        best_result = None
+        best_change = 0.0
+        best_currency = "USD"
         
         for t_test in initial_candidates:
             try:
                 t_obj = yf.Ticker(t_test)
                 hist = t_obj.history(period="1d")
                 if not hist.empty:
-                    # Determine currency based on ticker suffix
-                    price = hist['Close'].iloc[-1]
+                    last_row = hist.iloc[-1]
+                    price = last_row['Close']
+                    change_pct = 0.0
                     if include_change: change_pct = extract_change(t_obj)
                     
                     # Currency detection based on suffix
                     if t_test.endswith('.HK'):
-                        # Hong Kong stocks - convert HKD to EUR
-                        hkd_eur = eur_usd_rate * 7.8  # HKD/EUR approximate
-                        result = (price / hkd_eur, t_test)
+                        hkd_eur = eur_usd_rate * 7.8 
+                        converted_price = price / hkd_eur
                         currency = "HKD"
                     elif '.' in t_test:
-                        # European markets (.DE, .F, .MI, .PA, .MC, .AS) - already in EUR
-                        result = (price, t_test)
+                        converted_price = price
                         currency = "EUR"
                     else:
-                        # US stocks (no suffix) - convert USD to EUR
-                        result = (price / eur_usd_rate, t_test)
+                        converted_price = price / eur_usd_rate
                         currency = "USD"
                     
-                    # [PERFORMANCE] Store in memory cache
-                    self._price_cache[cache_key] = {
-                        'price': result[0], 'source': result[1], 
-                        'change': change_pct, 'ts': time.time()
-                    }
+                    result = (converted_price, t_test)
                     
-                    # [V11] Save to DB cache for future use (self-learning)
-                    try:
-                        from db_handler import DBHandler
-                        db = DBHandler()
-                        db.save_ticker_cache(ticker_u, t_test, is_crypto=False, currency=currency)
-                    except:
-                        pass  # DB save failed, not critical
+                    # [FRESHNESS CHECK]
+                    row_date = hist.index[-1].date()
+                    is_today = (row_date == datetime.date.today())
                     
-                    return (*result, change_pct) if include_change else result
-            except: pass
-            
+                    if is_today:
+                        self._price_cache[cache_key] = {
+                            'price': result[0], 'source': result[1], 
+                            'change': change_pct, 'ts': time.time()
+                        }
+                        try:
+                            from db_handler import DBHandler
+                            db = DBHandler()
+                            db.save_ticker_price(ticker_u, price, is_crypto=False, currency=currency)
+                        except: pass
+                        
+                        return (*result, change_pct) if include_change else result
+                    
+                    if not best_result:
+                        best_result = result
+                        best_change = change_pct
+                        best_currency = currency
+                
+            except Exception as e:
+                logger.debug(f"Failed to fetch {t_test}: {e}")
+                continue
+        
+        if best_result:
+             self._price_cache[cache_key] = {
+                'price': best_result[0], 'source': best_result[1], 
+                'change': best_change, 'ts': time.time()
+             }
+             return (*best_result, best_change) if include_change else best_result
+             
         return (0.0, None, 0.0) if include_change else (0.0, None)
 
     # =========================================================================

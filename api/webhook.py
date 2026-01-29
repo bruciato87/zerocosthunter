@@ -943,18 +943,22 @@ async def show_portfolio(update: Update, context: ContextTypes.DEFAULT_TYPE):
         msg += f"\n━━━━━━━━━━━━━━━━━━━━\n📁 **{cat}** (Tot: €{cat_total:,.2f})\n"
         
         for a in assets:
-            val_str = f"€{a['current_value']:,.2f}" if a['current_value'] > 0 else "N/A"
+            curr_val = a['current_value']
+            qty = a['quantity']
+            unit_price = curr_val / qty if qty > 0 else 0
+            
+            val_str = f"€{curr_val:,.2f}" if curr_val > 0 else "N/A"
+            unit_price_str = f"€{unit_price:,.2f}" if unit_price > 0 else "N/A"
             icon = "🪙" if cat == "Crypto" else "📈" if cat == "Stock" else "📊"
             
             # Cleaner, less indented format with spacing
-            # Cleaner, less indented format with spacing
-            # Include SL/TP if available
-            sl_info = f"🛑 SL: €{a['stop_loss']:.2f}" if a.get('stop_loss') else "🛑 SL: N/A"
-            tp_info = f"💰 TP: €{a['take_profit']:.2f}" if a.get('take_profit') else "💰 TP: N/A"
-            
+            # Layout: ICON NAME -> TICKER • UNIT_PRICE • QTY • TOTAL_VALUE
             msg += f"\n{icon} **{a.get('asset_name') or a['display_ticker']}**\n"
-            msg += f"   `{a['display_ticker']}`  •  `{val_str}`  •  {a['quantity']} pz\n"
+            msg += f"   `{a['display_ticker']}`  •  `{unit_price_str}`  •  {qty} pz  •  **{val_str}**\n"
+            
             if a.get('stop_loss') or a.get('take_profit'):
+                sl_info = f"🛑 SL: €{a['stop_loss']:.2f}" if a.get('stop_loss') else "🛑 SL: N/A"
+                tp_info = f"💰 TP: €{a['take_profit']:.2f}" if a.get('take_profit') else "💰 TP: N/A"
                 msg += f"   _{sl_info}  |  {tp_info}_\n"
             
             # Action buttons for each asset
