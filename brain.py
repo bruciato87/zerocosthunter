@@ -831,9 +831,10 @@ class Brain:
         - The input news will contain technical tags (e.g. `[Technical: Price: $100, RSI: 80, Trend: BULLISH]`).
         - **YOU MUST INCORPORATE THIS DATA.**
         - **PRICE GROUNDING (CRITICAL):**
-            - Extract "Price" from the technical tag. This is the **TRUE CURRENT PRICE**.
-            - **Target Price Sanity Check:** Compare your extracted Target Price vs Current Price.
-            - **RULE:** If Target is > 50% higher than Current Price (e.g. Current $100, Target $200), **IT IS LIKELY A HALLUCINATION OR PRE-SPLIT DATA.**
+            - Extract `CURRENT_PRICE` from the technical tag (e.g. `CURRENT_PRICE: €100`). This is the **TRUE QUOTE**.
+            - **CURRENCY CONVERSION:** The user operates in **EUR (€)**. Market news often cites USD ($). 
+            - **RULE:** 1 EUR ≈ 1.05 - 1.10 USD. If you see a Target Price in USD in the news, convert it to EUR for your output.
+            - **SANITY CHECK:** If Target is > 50% higher than Current Price (e.g. Current €100, Target €200), **IT IS LIKELY A HALLUCINATION OR CURRENCY MIX-UP (USD vs EUR).**
             - **ACTION:** In this case, ignore the high target. Estimate a conservative resistance (+15-20%) instead.
             - **EXCEPTION:** Only allow >50% if news explicitly mentions "Buyout", "Takeover", or "Clinical Trial Success".
         - **RSI RULE:** If RSI > 75 (Overbought), avoid "BUY" unless news is fundamental-shifting. Prefer "HOLD".
@@ -1584,6 +1585,12 @@ class Brain:
         - **L1 Predictive Analysis:** {l1_context or "Not available"}
         - **Recent News (Full Text):**
         {news_text}
+
+        **PRICE GROUNDING & CURRENCY (CRITICAL):**
+        - All technical prices provided above are in **EUR (€)** unless explicitly marked otherwise.
+        - **HALLUCINATION CHECK:** If you see a Stock (like META, NVDA, AAPL) with a price over €600, you are likely confusing USD with EUR. 
+        - Current Rate: 1 EUR ≈ 1.08 USD. Cross-check your reasoning.
+        - **TRUE PRICE:** Trust the `CURRENT_PRICE` from the Technical Context above. It is the real-time quote for the user's local market (Xetra/DE).
 
 
         **TASK:**

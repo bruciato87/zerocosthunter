@@ -222,6 +222,12 @@ class Critic:
         YOUR TASK:
         Review the report for quality, bias, and realistic risk assessment.
         
+        **PRICE GROUNDING (IMPORTANT):**
+        - If you see "Portfolio Context: OWNED @ €XXX", that is the **AVERAGE COST**, not the current price.
+        - The current market price should be taken from the "Technical Context" or "CURRENT_PRICE" section.
+        - **Target Price check:** Compare the Target Price with the **Current Market Price**, NOT the purchase price.
+        - Current FX Rate: 1 EUR ≈ 1.05 - 1.10 USD. Be careful not to confuse $ and €.
+        
         **CRITICAL:** Respect the current Market Hours and Regime. Do not claim markets are closed if the context indicates otherwise.
         
         OUTPUT JSON ONLY:

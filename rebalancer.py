@@ -542,7 +542,8 @@ class Rebalancer:
             - **PRIORITÀ 2:** Accumula asset con RSI OVERSOLD (<30)
             - **PRIORITÀ 3:** Trimma asset con RSI OVERBOUGHT (>70) SOLO SE il PnL netto giustifica la tassa.
             
-            - **⏰ ORARI MERCATO (FONDAMENTALE):**
+             **⏰ ORARI MERCATO & PREZZI (FONDAMENTALE):**
+              - Tutti i prezzi sono in **EUR (€)**. 1 EUR ≈ 1.05 - 1.10 USD.
               - Se mercato EU è CLOSED: NON suggerire BUY/SELL per ETF europei → HOLD o "domani"
               - Se mercato US è CLOSED: NON suggerire BUY/SELL per stocks USA → HOLD o "riapertura"
               - Crypto sempre aperti.

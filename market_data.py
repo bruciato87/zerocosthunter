@@ -616,7 +616,7 @@ class MarketData:
             
             # [CRITICAL UPDATE] Force Price to EUR using Smart Logic
             # This ensures AI sees the same price as the user's portfolio
-            price_eur, _, smart_change = self.get_smart_price_eur(ticker, include_change=True)
+            price_eur, found_ticker, smart_change = self.get_smart_price_eur(ticker, include_change=True)
             
             if price_eur > 0:
                 display_price = price_eur
@@ -629,8 +629,10 @@ class MarketData:
                 display_sym = "$" # Fallback
             
             # 4. Format Summary
+            # [GROUNDING] Be very explicit about current price and currency for AI
+            source_info = f" (via {found_ticker})" if 'found_ticker' in locals() and found_ticker else ""
             summary = (
-                f"Price: {display_sym}{display_price:.4f} ({change_pct:+.2f}%), "
+                f"CURRENT_PRICE: {display_sym}{display_price:.2f} {change_pct:+.2f}% [Market: {display_sym}]{source_info}, "
                 f"RSI: {rsi:.1f} ({rsi_status}), "
                 f"Trend: {trend}, "
                 f"Diff from 6m High: {dist_from_high:.1f}%"

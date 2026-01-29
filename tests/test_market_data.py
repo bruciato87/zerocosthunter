@@ -123,3 +123,39 @@ def test_get_smart_price_eur_german_stock(mock_ticker, market, mock_db):
     args, kwargs = calls[0]
     saved_currency = kwargs.get('currency')
     assert saved_currency == 'EUR'
+
+@patch('yfinance.Ticker')
+def test_meta_aliasing_and_grounding(mock_ticker, market, mock_db):
+    """Test that META is aliased to FB2A.DE and summary contains grounding info."""
+    
+    # Setup Mock for FB2A.DE
+    mock_stock = MagicMock()
+    # Need enough data for SMA calculations
+    dates = pd.date_range(end="2026-01-29", periods=10)
+    df = pd.DataFrame({'Close': [560.0] * 10, 'High': [570.0] * 10, 'Low': [550.0] * 10, 'Open': [555.0] * 10}, index=dates)
+    mock_stock.history.return_value = df
+    mock_stock.info = {'regularMarketChangePercent': 0.5}
+    
+    def ticker_side_effect(symbol):
+        if symbol == "EURUSD=X":
+            m = MagicMock()
+            m.history.return_value = pd.DataFrame({'Close': [1.10]})
+            return m
+        if symbol == "FB2A.DE":
+            return mock_stock
+        return MagicMock()
+
+    mock_ticker.side_effect = ticker_side_effect
+    
+    # 1. Check get_technical_summary
+    summary = market.get_technical_summary("META")
+    
+    # 2. Verify it used FB2A.DE and has grounding tags
+    assert "CURRENT_PRICE: €560.00" in summary
+    assert "[Market: €]" in summary
+    assert "via FB2A.DE" in summary
+    
+    # 3. Verify get_smart_price_eur hit the alias
+    price, resolved = market.get_smart_price_eur("META")
+    assert resolved == "FB2A.DE"
+    assert price == 560.0
