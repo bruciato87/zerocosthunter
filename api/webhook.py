@@ -805,8 +805,18 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
              net_received = pending['net_received']
              profit = pending['profit']
              tax = pending['tax']
+             tax = pending['tax']
              commission = pending['commission']
         
+        # Log transaction with real net values
+        result = db.log_transaction(
+            ticker=ticker,
+            action="SELL",
+            quantity=quantity,
+            price_per_unit=price,
+            realized_pnl=profit
+        )
+
         if result:
             # --- PORTFOLIO UPDATE LOGIC ---
             # Try to find existing asset to update quantity
@@ -818,7 +828,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if not matched_asset and pending.get('asset_name'):
                 name_to_match = pending['asset_name'].lower()
                 matched_asset = next((p for p in portfolio if p.get('name', '').lower() == name_to_match), None)
-                
+            
             if not matched_asset and pending.get('asset_name'):
                 name_to_match = pending['asset_name'].lower()
                 matched_asset = next((p for p in portfolio if name_to_match in p.get('name', '').lower()), None)
