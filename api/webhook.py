@@ -83,31 +83,43 @@ IS_HUNTING = False
 DEBOUNCE_SECONDS = 15
 
 def debounce_command(func):
-    """Decorator to prevent double execution via Distributed DB Lock."""
+    """Decorator to prevent double execution (Network retries & Manual double-clicks)."""
     async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
-            user_id = update.effective_user.id
-            command_text = update.message.text if update.message and update.message.text else "unknown"
-            command_name = command_text.split()[0] # e.g. /rebalance
+            # 1. Identity & Update ID (Unique for retries)
+            chat_id = update.effective_chat.id if update.effective_chat else 0
+            update_id = update.update_id
             
-            # Create a simplified hash for the lock
-            # We use command_text to differentiate /analyze NVDA from /analyze BTC
+            # 2. Content Hash (To block manual duplicates like sending same photo twice)
+            content_val = "unknown"
+            if update.message:
+                if update.message.text: content_val = update.message.text
+                elif update.message.document: content_val = update.message.document.file_unique_id
+                elif update.message.photo: content_val = update.message.photo[-1].file_unique_id
+            elif update.callback_query:
+                content_val = update.callback_query.data
+                
             import hashlib
-            raw_string = f"{user_id}:{command_text}"
-            command_hash = hashlib.md5(raw_string.encode()).hexdigest()
+            raw_string = f"{chat_id}:{content_val}"
+            content_hash = hashlib.md5(raw_string.encode()).hexdigest()
             
-            # Check DB Lock
+            # Check DB Lock using TWO keys to be super safe
             db = DBHandler()
-            if not db.check_and_lock_command(user_id, command_hash, DEBOUNCE_SECONDS):
-                logger.warning(f"🔒 Distributed Lock: Ignored duplicate {command_name} from {user_id}")
-                return # Silently ignore
+            
+            # Layer 1: Block precise Telegram Retries
+            if not db.check_and_lock_command(chat_id, str(update_id), DEBOUNCE_SECONDS):
+                return
+            
+            # Layer 2: Block Manual Double-Clicks (same content within 15s)
+            if not db.check_and_lock_command(chat_id, content_hash, DEBOUNCE_SECONDS):
+                return
             
             # Execute
             await func(update, context)
             
         except Exception as e:
             logger.error(f"Debounce wrapper error: {e}")
-            # Fallback: run anyway if lock fails
+            # Fallback: run anyway if lock logic fails to avoid blocking the user
             await func(update, context)
             
     return wrapper
@@ -448,6 +460,7 @@ async def whale_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.error(f"Whale Command Fail: {e}")
         await update.message.reply_text("❌ Errore Whale Watcher.")
 
+@debounce_command
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Handle generic text messages for quick interactions:
@@ -530,6 +543,7 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # If no trade detected, just handle normally (maybe ignore or echo)
     logger.debug(f"Unhandled text: {text}")
 
+@debounce_command
 async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle incoming PDF documents from Trade Republic."""
     doc = update.message.document
@@ -609,6 +623,7 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.error(f"Handle document error: {e}")
         await update.message.reply_text(f"❌ Errore sistema: {e}")
 
+@debounce_command
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Check if we are waiting for a SELL screenshot
     if context.user_data.get('expecting_sell_screenshot'):
@@ -716,6 +731,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.error(f"Error: {e}")
         await update.message.reply_text("❌ Errore interno.")
 
+@debounce_command
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
