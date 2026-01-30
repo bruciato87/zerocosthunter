@@ -96,14 +96,16 @@ def test_get_smart_price_eur_btc_usd(mock_ticker, mock_cg, market, mock_db):
 def test_get_smart_price_eur_german_stock(mock_ticker, market, mock_db):
     """Test that a German stock (already EUR) is identified as EUR."""
     
-    # Setup Mock for EUNL.DE
+    # Setup Mock for EUNL.DE with FRESH date
+    import datetime
+    today_str = datetime.date.today().isoformat()
     mock_stock = MagicMock()
-    mock_stock.history.return_value = pd.DataFrame({'Close': [50.0]}, index=pd.date_range(end="2026-01-29", periods=1))
+    mock_stock.history.return_value = pd.DataFrame({'Close': [50.0]}, index=pd.date_range(end=today_str, periods=1))
     
     def ticker_side_effect(symbol):
         if symbol == "EURUSD=X":
             m = MagicMock()
-            m.history.return_value = pd.DataFrame({'Close': [1.10]})
+            m.history.return_value = pd.DataFrame({'Close': [1.10]}, index=pd.date_range(end=today_str, periods=1))
             return m
         if symbol == "EUNL.DE":
             return mock_stock
@@ -129,9 +131,13 @@ def test_get_smart_price_eur_german_stock(mock_ticker, market, mock_db):
 def test_meta_dynamic_resolution(mock_ticker, market, mock_db):
     """Test that META resolves dynamically to available EU tickers since alias was removed."""
     
-    # Setup Mock for FB2A.F (Fresh data for 2026-01-29)
+    # Setup Mock for FB2A.F (Fresh data for Today)
+    import datetime
+    today = datetime.date.today()
+    yesterday = today - datetime.timedelta(days=1)
+    
     mock_stock_f = MagicMock()
-    dates_f = pd.date_range(end="2026-01-29", periods=1, tz="UTC")
+    dates_f = pd.date_range(end=today.isoformat(), periods=1, tz="UTC")
     df_f = pd.DataFrame({'Close': [601.40]}, index=dates_f)
     mock_stock_f.history.return_value = df_f
     mock_stock_f.info = {'regularMarketChangePercent': 8.89}
@@ -139,15 +145,15 @@ def test_meta_dynamic_resolution(mock_ticker, market, mock_db):
     # Mocking datetime for morning hours (09:00 CET)
     with patch('market_data.datetime') as mock_md_datetime:
         # Mock today()
-        mock_md_datetime.date.today.return_value = pd.Timestamp("2026-01-29").date()
+        mock_md_datetime.date.today.return_value = today
         # Mock now() for CET
         mock_now = MagicMock()
         mock_now.hour = 9
         mock_md_datetime.datetime.now.return_value = mock_now
         
-        # Setup Mock for FB2A.DE (Stale data from 2026-01-28)
+        # Setup Mock for FB2A.DE (Stale data from yesterday)
         mock_stock_de = MagicMock()
-        dates_de = pd.date_range(end="2026-01-28", periods=1, tz="UTC")
+        dates_de = pd.date_range(end=yesterday.isoformat(), periods=1, tz="UTC")
         df_de = pd.DataFrame({'Close': [560.90]}, index=dates_de)
         mock_stock_de.history.return_value = df_de
         
@@ -167,7 +173,7 @@ def test_meta_dynamic_resolution(mock_ticker, market, mock_db):
         # EXECUTE
         price, resolved = market.get_smart_price_eur("META")
         
-        # VERIFY: Should pick FB2A.F because it's today (2026-01-29) vs .DE which is yesterday
+        # VERIFY: Should pick FB2A.F because it's today vs .DE which is yesterday
         assert resolved == "FB2A.F"
         assert price == 601.40
 
