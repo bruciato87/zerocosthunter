@@ -2,6 +2,7 @@ import os
 import logging
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional
+import json
 from supabase import create_client, Client
 from dotenv import load_dotenv
 
@@ -666,6 +667,41 @@ class DBHandler:
             self.supabase.table("logs").insert(data).execute()
         except Exception as e:
             print(f"Failed to log system event to DB: {e}") # Fallback to print
+
+    def save_user_state(self, chat_id: int, key: str, state_data: dict):
+        """Saves a temporary state to the DB (Vercel Stateless workaround)."""
+        try:
+            payload = {
+                "level": "STATE",
+                "module": f"{chat_id}:{key}",
+                "message": json.dumps(state_data),
+                "created_at": datetime.utcnow().isoformat()
+            }
+            self.supabase.table("logs").insert(payload).execute()
+            logger.info(f"💾 State saved for user {chat_id}: {key}")
+            return True
+        except Exception as e:
+            logger.error(f"Error saving state: {e}")
+            return False
+
+    def get_user_state(self, chat_id: int, key: str):
+        """Retrieves the latest state from the DB."""
+        try:
+            response = self.supabase.table("logs") \
+                .select("message") \
+                .eq("level", "STATE") \
+                .eq("module", f"{chat_id}:{key}") \
+                .order("created_at", desc=True) \
+                .limit(1) \
+                .execute()
+            
+            if response.data:
+                logger.info(f"📂 State retrieved for user {chat_id}: {key}")
+                return json.loads(response.data[0]['message'])
+            return None
+        except Exception as e:
+            logger.error(f"Error getting state: {e}")
+            return None
 
     # --- DISTRIBUTED LOCK (Idempotency Key) ---
     def acquire_hunt_lock(self, request_id: str, expiry_minutes: int = 2) -> bool:

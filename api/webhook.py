@@ -472,8 +472,12 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_data = context.user_data
 
     # 1. Quick Sell Flow (Expecting Qty after Clicking "Vendi")
-    if user_data.get('expecting_sell_qty'):
-        ticker = user_data.pop('expecting_sell_qty')
+    db = DBHandler()
+    state = db.get_user_state(chat_id, 'expecting_sell_qty')
+    if state:
+        ticker = state['ticker']
+        # Clear state immediately to avoid loop
+        db.save_user_state(chat_id, 'expecting_sell_qty', None) 
         try:
             qty = float(text.replace(',', '.'))
             # Trigger confirmation flow (same as /sell)
@@ -490,7 +494,7 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
             asset = next((p for p in portfolio if p['ticker'].upper() == ticker.upper() or ticker in p['ticker']), None)
             avg_price = asset.get('avg_price', price) if asset else price
 
-            user_data['pending_sell'] = {
+            pending_sell = {
                 'ticker': ticker,
                 'quantity': qty,
                 'price': price,
@@ -501,16 +505,17 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 'commission': 1.0,
                 'profit_pct': ((price - avg_price) / avg_price * 100) if avg_price > 0 else 0
             }
+            db.save_user_state(chat_id, 'pending_sell', pending_sell)
             
-            # Use handle_sell_photo confirmation style
-            pnl_emoji = "🟢" if user_data['pending_sell']['profit'] >= 0 else "🔴"
+            # Use pending_sell from local variable (already saved to DB above)
+            pnl_emoji = "🟢" if pending_sell['profit'] >= 0 else "🔴"
             confirm_msg = (
                 f"📋 **Conferma Vendita (Rapida)**\n\n"
                 f"📊 **{ticker}**\n"
                 f"├ Quantità: {qty}\n"
                 f"├ Prezzo Attuale: €{price:.2f}\n"
-                f"├ Stima Netto: €{user_data['pending_sell']['net_received']:.2f}\n\n"
-                f"{pnl_emoji} **P&L Est:** +€{user_data['pending_sell']['profit']:.2f} ({user_data['pending_sell']['profit_pct']:.1f}%)\n\n"
+                f"├ Stima Netto: €{pending_sell['net_received']:.2f}\n\n"
+                f"{pnl_emoji} **P&L Est:** +€{pending_sell['profit']:.2f} ({pending_sell['profit_pct']:.1f}%)\n\n"
                 f"⚠️ **Confermi?**"
             )
             keyboard = [[
@@ -576,10 +581,9 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
         net_total = trade_data.get('net_total', 0)
         asset_name = trade_data.get('asset_name', ticker)
 
-        # Store in user_data for confirmation
-        # We reuse the same structures as /sell or /add where possible
+        # Store in DB for confirmation (Vercel Stateless Fix)
         if action == "SELL":
-            context.user_data['pending_sell'] = {
+            pending_sell = {
                 'ticker': ticker,
                 'quantity': qty,
                 'price': price,
@@ -589,6 +593,7 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 'profit': 0.0, # Will be calculated if possible
                 'profit_pct': 0.0
             }
+            db.save_user_state(chat_id, 'pending_sell', pending_sell)
             confirm_msg = (
                 f"📋 **Conferma VENDITA (da PDF)**\n\n"
                 f"📊 **{asset_name}**\n"
@@ -599,13 +604,13 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             callback_confirm = "confirm_sell"
         else:
-            # For BUY, we'll store in a similar 'pending_buy' or use existing /add logic
-            context.user_data['pending_add'] = {
+            pending_add = {
                 'ticker': ticker,
                 'quantity': qty,
                 'price': price,
                 'asset_name': asset_name
             }
+            db.save_user_state(chat_id, 'pending_add', pending_add)
             confirm_msg = (
                 f"📋 **Conferma ACQUISTO (da PDF)**\n\n"
                 f"📊 **{asset_name}**\n"
@@ -753,18 +758,19 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if query.data.startswith("sel_"):
         ticker = query.data.replace("sel_", "")
         await query.message.reply_text(f"💸 **Vendi {ticker}**\nQuante quote vuoi vendere? Rispondi con il numero.")
-        context.user_data['expecting_sell_qty'] = ticker
+        db.save_user_state(chat_id, 'expecting_sell_qty', {'ticker': ticker})
         return
     
     # --- SELL CALLBACKS ---
     elif query.data == "cancel_sell":
-        context.user_data.pop('pending_sell', None)
+        db.save_user_state(chat_id, 'pending_sell', None)
         await query.edit_message_text("❌ Operazione di vendita annullata.")
 
     elif query.data == "confirm_sell" or query.data == "confirm_sell_manual":
-        pending = context.user_data.get('pending_sell')
+        # [FIX] Persistent State from DB instead of context.user_data
+        pending = db.get_user_state(chat_id, 'pending_sell')
         if not pending:
-            await query.edit_message_text("❌ Nessuna vendita in attesa.")
+            await query.edit_message_text("❌ Nessuna vendita in attesa (Scaduta o Reset).")
             return
         
         # Execute the sale
@@ -859,7 +865,8 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.edit_message_text(text=f"❌ Errore: {e}")
     elif query.data == "confirm_pdf_buy":
         try:
-            pending = context.user_data.pop('pending_add', None)
+            # [FIX] Persistent State from DB
+            pending = db.get_user_state(chat_id, 'pending_add')
             if not pending:
                 await query.edit_message_text("❌ Nessun acquisto in attesa.")
                 return
@@ -877,8 +884,8 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.edit_message_text(f"❌ Errore DB: {e}")
             
     elif query.data == "cancel_pdf_trade":
-        context.user_data.pop('pending_add', None)
-        context.user_data.pop('pending_sell', None)
+        db.save_user_state(chat_id, 'pending_add', None)
+        db.save_user_state(chat_id, 'pending_sell', None)
         await query.edit_message_text("🗑️ Operazione annullata.")
 
     elif query.data == "confirm_reset":
