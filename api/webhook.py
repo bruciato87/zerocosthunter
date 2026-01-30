@@ -558,6 +558,7 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("📄 **Analizzo il documento Trade Republic...**", parse_mode="Markdown")
     try:
         user_id = update.effective_user.id
+        chat_id = update.effective_chat.id
         file_obj = await doc.get_file()
         file_path = f"/tmp/doc_{user_id}_{doc.file_name}"
         logger.info(f"Downloading PDF: {doc.file_name} for user {user_id}")
@@ -565,6 +566,7 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         from brain import Brain
         brain = Brain()
+        db = DBHandler()
         logger.info(f"Starting brain analysis for {file_path}")
         trade_data = brain.parse_trade_republic_pdf(file_path)
         logger.info(f"Brain analysis completed for {file_path}")
