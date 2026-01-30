@@ -689,8 +689,6 @@ class DBHandler:
         try:
             response = self.supabase.table("logs") \
                 .select("message") \
-            response = self.supabase.table("logs") \
-                .select("message") \
                 .eq("level", "INFO") \
                 .eq("module", f"STATE:{chat_id}:{key}") \
                 .order("created_at", desc=True) \
