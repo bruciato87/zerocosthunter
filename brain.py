@@ -1471,7 +1471,8 @@ class Brain:
             """
             
             # Use Brain's AI generation to parse the text
-            response_text = self._generate_with_fallback(prompt, json_mode=True, task_type="simple")
+            # FORCE prefer_direct=True to get Gemini speed and avoid webhook timeouts
+            response_text = self._generate_with_fallback(prompt, json_mode=True, task_type="simple", prefer_direct=True)
             import json
             result = json.loads(response_text)
             logger.info(f"PDF Parse Result: {result}")

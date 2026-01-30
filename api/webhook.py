@@ -555,11 +555,14 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = update.effective_user.id
         file_obj = await doc.get_file()
         file_path = f"/tmp/doc_{user_id}_{doc.file_name}"
+        logger.info(f"Downloading PDF: {doc.file_name} for user {user_id}")
         await file_obj.download_to_drive(file_path)
 
         from brain import Brain
         brain = Brain()
+        logger.info(f"Starting brain analysis for {file_path}")
         trade_data = brain.parse_trade_republic_pdf(file_path)
+        logger.info(f"Brain analysis completed for {file_path}")
 
         if "error" in trade_data:
             await update.message.reply_text(f"❌ Errore durante l'analisi del PDF: {trade_data['error']}")
@@ -797,7 +800,7 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
              commission = pending['commission']
         
         # Fetch portfolio to update
-        portfolio = db.get_portfolio()
+        portfolio = db.get_portfolio(chat_id=chat_id)
         asset = next((p for p in portfolio if p['ticker'].upper() == ticker.upper() or 
                      ticker.upper() in p['ticker'].upper()), None)
         
