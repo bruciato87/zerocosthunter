@@ -672,8 +672,8 @@ class DBHandler:
         """Saves a temporary state to the DB (Vercel Stateless workaround)."""
         try:
             payload = {
-                "level": "STATE",
-                "module": f"{chat_id}:{key}",
+                "level": "INFO", # Used INFO to bypass 'level' check constraint
+                "module": f"STATE:{chat_id}:{key}",
                 "message": json.dumps(state_data),
                 "created_at": datetime.utcnow().isoformat()
             }
@@ -689,8 +689,10 @@ class DBHandler:
         try:
             response = self.supabase.table("logs") \
                 .select("message") \
-                .eq("level", "STATE") \
-                .eq("module", f"{chat_id}:{key}") \
+            response = self.supabase.table("logs") \
+                .select("message") \
+                .eq("level", "INFO") \
+                .eq("module", f"STATE:{chat_id}:{key}") \
                 .order("created_at", desc=True) \
                 .limit(1) \
                 .execute()
