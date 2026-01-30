@@ -593,7 +593,8 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 'commission': trade_data.get('commission', 1.0),
                 'net_received': net_total,
                 'profit': 0.0, # Will be calculated if possible
-                'profit_pct': 0.0
+                'profit_pct': 0.0,
+                'asset_name': trade_data.get('asset_name', ticker)
             }
             db.save_user_state(chat_id, 'pending_sell', pending_sell)
             confirm_msg = (
