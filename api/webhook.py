@@ -826,19 +826,23 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             # Match priority: Ticker -> Exact Name -> Partial Name
             matched_asset = next((p for p in portfolio if p['ticker'].upper() == ticker.upper()), None)
             
+            # Helper to get name safely
+            def get_p_name(p):
+                return p.get('asset_name') or p.get('name') or ''
+
             if not matched_asset and pending.get('asset_name'):
                 name_to_match = pending['asset_name'].lower()
                 # Check 1: Exact Name
-                matched_asset = next((p for p in portfolio if p.get('name', '').lower() == name_to_match), None)
+                matched_asset = next((p for p in portfolio if get_p_name(p).lower() == name_to_match), None)
             
             if not matched_asset and pending.get('asset_name'):
                 name_to_match = pending['asset_name'].lower()
                 # Check 2: PDF Name contains DB Name
-                matched_asset = next((p for p in portfolio if name_to_match in p.get('name', '').lower()), None)
+                matched_asset = next((p for p in portfolio if get_p_name(p) and get_p_name(p).lower() in name_to_match), None)
                 
-                # Check 3: DB Name contains PDF Name (Reverse - Fix for Tencent)
+                # Check 3: DB Name contains PDF Name (Reverse)
                 if not matched_asset:
-                    matched_asset = next((p for p in portfolio if p.get('name') and p.get('name', '').lower() in name_to_match), None)
+                    matched_asset = next((p for p in portfolio if get_p_name(p) and name_to_match in get_p_name(p).lower()), None)
 
             if matched_asset:
                 # Use the REAL ticker from the portfolio if we matched by name
@@ -908,18 +912,22 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             # Match priority: Ticker -> Exact Name -> Partial Name
             matched_asset = next((p for p in portfolio if p['ticker'].upper() == ticker.upper()), None)
             
+            # Helper to get name safely
+            def get_p_name(p):
+                return p.get('asset_name') or p.get('name') or ''
+
             if not matched_asset and asset_name:
                 name_to_match = asset_name.lower()
-                matched_asset = next((p for p in portfolio if p.get('name', '').lower() == name_to_match), None)
+                matched_asset = next((p for p in portfolio if get_p_name(p).lower() == name_to_match), None)
 
             if not matched_asset and asset_name:
                 name_to_match = asset_name.lower()
                 # PDF Name in DB Name
-                matched_asset = next((p for p in portfolio if name_to_match in p.get('name', '').lower()), None)
+                matched_asset = next((p for p in portfolio if name_to_match in get_p_name(p).lower()), None)
                 
                 # DB Name in PDF Name (Reverse)
                 if not matched_asset:
-                    matched_asset = next((p for p in portfolio if p.get('name') and p.get('name', '').lower() in name_to_match), None)
+                    matched_asset = next((p for p in portfolio if get_p_name(p) and get_p_name(p).lower() in name_to_match), None)
             
             if not matched_asset:
                  # Ensure we don't duplicate simple tickers
