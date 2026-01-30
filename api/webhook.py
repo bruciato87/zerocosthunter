@@ -827,11 +827,17 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
             if not matched_asset and pending.get('asset_name'):
                 name_to_match = pending['asset_name'].lower()
+                # Check 1: Exact Name
                 matched_asset = next((p for p in portfolio if p.get('name', '').lower() == name_to_match), None)
             
             if not matched_asset and pending.get('asset_name'):
                 name_to_match = pending['asset_name'].lower()
+                # Check 2: PDF Name contains DB Name
                 matched_asset = next((p for p in portfolio if name_to_match in p.get('name', '').lower()), None)
+                
+                # Check 3: DB Name contains PDF Name (Reverse - Fix for Tencent)
+                if not matched_asset:
+                    matched_asset = next((p for p in portfolio if p.get('name') and p.get('name', '').lower() in name_to_match), None)
 
             if matched_asset:
                 # Use the REAL ticker from the portfolio if we matched by name
