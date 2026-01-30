@@ -296,7 +296,8 @@ class Brain:
             raise Exception("OPENROUTER_API_KEY not configured")
 
         excluded_models = []
-        max_retries = 10 # Robust trial of the free model pool
+        max_retries = 2 # VERY FAST fallback to Gemini
+        request_timeout = 15 # Webhook safety limit
 
         for attempt in range(max_retries):
             # On first attempt, use passed model OR discover. On retries, ALWAYS rediscover.
@@ -323,16 +324,12 @@ class Brain:
                 "top_p": 0.9  # Standardize top_p
             }
 
-            # NOTE: We DO NOT send response_format={"type": "json_object"} anymore.
-            # Many "Free" models (Llama 3, Mistral, etc.) on OpenRouter do not support it and throw 400 errors.
-            # We rely entirely on the prompt instructions and the Regex parser below.
-
             try:
                 response = requests.post(
                     f"{self.openrouter_base_url}/chat/completions",
                     headers=headers,
                     json=payload,
-                    timeout=120
+                    timeout=request_timeout
                 )
                 
                 # Success checks
@@ -452,16 +449,15 @@ class Brain:
 
                 
                 # Failover triggers (404 Not Found, 429 Rate Limit, 400 Bad Request/Context, 5xx Server)
-                elif response.status_code in [400, 404, 429, 500, 502, 503]:
+                elif response.status_code in [400, 402, 404, 429, 500, 502, 503]:
                     logger.warning(f"OpenRouter Error ({response.status_code}) with {current_model}: {response.text}")
                     excluded_models.append(current_model)
                     
                     # If error was 400 (Bad Request - likely Context Length), invalidate cache to force re-selection
                     if response.status_code == 400:
                         self._cached_scored_candidates = []
-                        
-                    # Wait before retry
-                    time.sleep(2 + attempt) 
+                    
+                    # NO SLEEP here - we are in a webhook, we need speed!
                 
                 else: 
                     response.raise_for_status()
@@ -471,7 +467,7 @@ class Brain:
                 excluded_models.append(current_model)
                 if attempt == max_retries - 1:
                     raise e
-                time.sleep(2) # Brief cooldown
+                # NO SLEEP - move to next model immediately
         
         # Track the last model attempted even on total failure
         self.last_run_details = {

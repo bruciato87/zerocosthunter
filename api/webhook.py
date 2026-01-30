@@ -80,7 +80,7 @@ IS_HUNTING = False
 
 # Deduplication Strategy: Distributed Lock via DB
 # Prevents double execution across Vercel instances
-DEBOUNCE_SECONDS = 15
+DEBOUNCE_SECONDS = 60
 
 def debounce_command(func):
     """Decorator to prevent double execution (Network retries & Manual double-clicks)."""
