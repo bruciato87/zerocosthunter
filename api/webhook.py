@@ -896,15 +896,52 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await query.edit_message_text("❌ Nessun acquisto in attesa.")
                 return
             
-            db.add_to_portfolio(
-                ticker=pending['ticker'],
-                amount=pending['quantity'],
-                price=pending['price'],
-                chat_id=chat_id,
-                asset_name=pending.get('asset_name'),
-                is_confirmed=True
-            )
-            await query.edit_message_text(f"🚀 **Acquisto Confermato!**\n\n📌 {pending['ticker']} aggiunto al portafoglio.")
+            ticker = pending['ticker']
+            quantity = pending['quantity']
+            price = pending['price']
+            asset_name = pending.get('asset_name', ticker)
+            
+            # --- PORTFOLIO UPDATE LOGIC (Smart Match) ---
+            portfolio = db.get_portfolio(chat_id=chat_id)
+            
+            # Match priority: Ticker -> Exact Name -> Partial Name
+            matched_asset = next((p for p in portfolio if p['ticker'].upper() == ticker.upper()), None)
+            
+            if not matched_asset and asset_name:
+                name_to_match = asset_name.lower()
+                matched_asset = next((p for p in portfolio if p.get('name', '').lower() == name_to_match), None)
+
+            if not matched_asset and asset_name:
+                name_to_match = asset_name.lower()
+                # PDF Name in DB Name
+                matched_asset = next((p for p in portfolio if name_to_match in p.get('name', '').lower()), None)
+                
+                # DB Name in PDF Name (Reverse)
+                if not matched_asset:
+                    matched_asset = next((p for p in portfolio if p.get('name') and p.get('name', '').lower() in name_to_match), None)
+            
+            if not matched_asset:
+                 # Ensure we don't duplicate simple tickers
+                 matched_asset = next((p for p in portfolio if p['ticker'] == ticker), None)
+
+            if matched_asset:
+                real_ticker = matched_asset['ticker']
+                current_qty = float(matched_asset.get('quantity', 0))
+                new_qty = current_qty + quantity
+                db.update_asset_quantity(chat_id, real_ticker, new_qty)
+                msg_action = f"🔄 **{real_ticker}** Aggiornato (+{quantity})"
+            else:
+                 db.add_to_portfolio(
+                    chat_id=chat_id,
+                    ticker=ticker,
+                    quantity=quantity,
+                    purchase_price=price,
+                    name=asset_name,
+                    is_confirmed=True
+                 )
+                 msg_action = f"✅ **{ticker}** Aggiunto al Portafoglio!"
+            
+            await query.edit_message_text(f"🚀 **Acquisto Confermato!**\n\n{msg_action}")
         except Exception as e:
             await query.edit_message_text(f"❌ Errore DB: {e}")
             
