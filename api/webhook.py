@@ -807,31 +807,38 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
              tax = pending['tax']
              commission = pending['commission']
         
-        # Fetch portfolio to update
-        portfolio = db.get_portfolio(chat_id=chat_id)
-        asset = next((p for p in portfolio if p['ticker'].upper() == ticker.upper() or 
-                     ticker.upper() in p['ticker'].upper()), None)
-        
-        # Log transaction with real net values
-        result = db.log_transaction(
-            ticker=ticker,
-            action="SELL",
-            quantity=quantity,
-            price_per_unit=price,
-            realized_pnl=profit
-        )
-        
-        if result and asset:
-            # Update portfolio quantity
-            current_qty = float(asset.get('quantity', 0))
-            new_qty = current_qty - quantity
+        if result:
+            # --- PORTFOLIO UPDATE LOGIC ---
+            # Try to find existing asset to update quantity
+            portfolio = db.get_portfolio(chat_id=chat_id)
             
-            if new_qty <= 0:
-                db.delete_asset(chat_id, asset['ticker'])
-                portfolio_msg = "\n\n🗑️ Asset rimosso dal portfolio (vendita totale)"
+            # Match priority: Ticker -> Exact Name -> Partial Name
+            matched_asset = next((p for p in portfolio if p['ticker'].upper() == ticker.upper()), None)
+            
+            if not matched_asset and pending.get('asset_name'):
+                name_to_match = pending['asset_name'].lower()
+                matched_asset = next((p for p in portfolio if p.get('name', '').lower() == name_to_match), None)
+                
+            if not matched_asset and pending.get('asset_name'):
+                name_to_match = pending['asset_name'].lower()
+                matched_asset = next((p for p in portfolio if name_to_match in p.get('name', '').lower()), None)
+
+            if matched_asset:
+                # Use the REAL ticker from the portfolio if we matched by name
+                real_ticker = matched_asset['ticker']
+                current_qty = float(matched_asset.get('quantity', 0))
+                new_qty = current_qty - quantity
+                
+                if new_qty <= 0:
+                    db.delete_asset(chat_id, real_ticker)
+                    portfolio_msg = f"\n\n🗑️ Asset {real_ticker} rimosso (vendita totale)"
+                else:
+                    db.update_asset_quantity(chat_id, real_ticker, new_qty)
+                    portfolio_msg = f"\n\n📉 {real_ticker} aggiornato: {new_qty:.6f} rimanenti"
             else:
-                db.update_asset_quantity(chat_id, asset['ticker'], new_qty)
-                portfolio_msg = f"\n\n📉 Portfolio aggiornato: {new_qty:.6f} unità rimanenti"
+                # Asset not found in portfolio (maybe already deleted or mapped wrong)
+                logger.warning(f"Sold asset {ticker} ({pending.get('asset_name')}) not found in portfolio.")
+                portfolio_msg = "\n\n⚠️ Vendita registrata, ma asset non trovato nel portfolio."
         else:
             portfolio_msg = ""
         
