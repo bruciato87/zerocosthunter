@@ -38,7 +38,7 @@ class Critic:
                 prompt, 
                 json_mode=json_mode, 
                 prefer_direct=True, 
-                task_type="default"
+                task_type="critic_eval"
             )
         except Exception as e:
             logger.error(f"Critic generation failed via Brain: {e}")
@@ -97,8 +97,8 @@ class Critic:
         }}
         """
         try:
-            # Use our prioritized generator
-            response = self._generate_response(prompt, json_mode=True)
+            brain = self._get_brain()
+            response = brain._generate_with_fallback(prompt, json_mode=True, prefer_direct=True, task_type="critic_eval")
             if not response:
                 raise Exception("All Critic AI models failed.")
             
@@ -129,7 +129,8 @@ class Critic:
                 
         except Exception as e:
             logger.error(f"Critic execution failed: {e}")
-            return CriticVerdict("APPROVE", 60, ["AI Connectivity"], "The Expert Broker is currently unavailable. Proceed with caution.")
+            # [IMPROVED FALLBACK] Neutral but cautious
+            return CriticVerdict("HOLD", 60, ["AI Connectivity"], "The Expert Broker is temporarily unavailable. Based on previous volatility, a conservative approach (HOLD/AVOID) is advised until connection is restored.")
 
     def critique_rebalance_strategy(self, strategy_text: str, regime: str, portfolio_value: float, held_assets: List[str] = []) -> str:
         """
@@ -178,11 +179,11 @@ class Critic:
         """
         
         try:
-            # Use our prioritized generator
-            response = self._generate_response(prompt, json_mode=True)
+            brain = self._get_brain()
+            response = brain._generate_with_fallback(prompt, json_mode=True, prefer_direct=True, task_type="critic_rebalance")
             
             if not response:
-                return strategy_text # Fallback to original
+                return f"⚠️ **Broker Review Unavailable**: Failed to generate rebalance critique. Original strategy: \n{strategy_text}" # Fallback to original with error
                 
             # Parse JSON
             try:

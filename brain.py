@@ -18,10 +18,12 @@ logger = logging.getLogger(__name__)
 # OpenRouter Model Tier List (best quality first)
 # These are FREE models on OpenRouter, ordered by capability
 OPENROUTER_MODEL_TIERS = [
+    "google/gemini-2.0-pro-exp-02-05:free",     # Elite (if available)
     "google/gemini-2.0-flash-thinking-exp:free", # Strong Reasoner
-    "google/gemini-2.0-flash-exp:free",        # Fast, Reliable
-    "meta-llama/llama-3.3-70b-instruct:free",  # Good Context
-    "deepseek/deepseek-chat:free",            # Reliable V3
+    "google/gemini-2.0-flash-exp:free",          # Fast, Reliable
+    "meta-llama/llama-3.3-70b-instruct:free",    # Good Context
+    "deepseek/deepseek-chat:free",               # Reliable V3
+    "qwen/qwen-2.5-72b-instruct:free",           # Powerful Backup
 ]
 
 # Gemini Model Tier List (Fallback sequence)
@@ -87,6 +89,7 @@ class Brain:
         # Tiered static fallback (Free models only)
         # These are used if API discovery fails or all discovered models are excluded
         STATIC_FREE_FALLBACKS = [
+            "google/gemini-2.0-pro-exp-02-05:free",
             "google/gemini-2.0-flash-exp:free",
             "meta-llama/llama-3.3-70b-instruct:free",
             "google/gemini-2.0-flash-thinking-exp:free",
@@ -296,8 +299,8 @@ class Brain:
             raise Exception("OPENROUTER_API_KEY not configured")
 
         excluded_models = []
-        max_retries = 2 # VERY FAST fallback to Gemini
-        request_timeout = 15 # Webhook safety limit
+        max_retries = 3 # Increased for better searching
+        request_timeout = 30 # Increased (Thinking models take time)
 
         for attempt in range(max_retries):
             # On first attempt, use passed model OR discover. On retries, ALWAYS rediscover.
@@ -334,9 +337,7 @@ class Brain:
                 
                 # Success checks
                 if response.status_code == 200:
-                    data = response.json()
-                    choice = data["choices"][0]["message"]
-                    content = choice.get("content", "")
+                    # ... rest remains same ...
                     
                     # 1. Track Usage
                     self.last_run_details = {
@@ -553,12 +554,24 @@ class Brain:
         2. Everything else starts with OpenRouter Free to save Gemini tokens.
         """
         # [FREE OPTIMIZATION] Reserved tasks for Gemini Direct
-        MANUAL_TASKS = ["analyze", "rebalance", "deep_dive"]
+        # Manual deep dives, manual rebalance review, and explicit analyze requests.
+        MANUAL_TASKS = ["analyze", "rebalance", "deep_dive", "manual_audit"]
         
-        # If task is not manual (background jobs), force OpenRouter first
+        # Tasks that MUST use OpenRouter first (Background/Hourly scans)
+        BACKGROUND_TASKS = ["hunt", "critic_eval", "council_debate", "council_critique", "council_rebalance"]
+        
+        # Determine if we should attempt Gemini Direct first
         should_try_direct = (prefer_direct or (self.app_mode == "PREPROD"))
+        
+        # STIRCT QUOTA GUARD: Background jobs NEVER bypass OpenRouter
+        if task_type in BACKGROUND_TASKS:
+            if should_try_direct:
+                logger.info(f"Task {task_type} matches BACKGROUND policy. Forcing OpenRouter first to save Gemini quota.")
+            should_try_direct = False
+        
+        # Also bypass if not in manual tasks list (sanity check)
         if should_try_direct and task_type not in MANUAL_TASKS:
-            logger.debug(f"Task {task_type} is a background job. Bypassing Gemini Direct to save quota for manual analyze/rebalance.")
+            logger.debug(f"Task {task_type} is not in MANUAL_TASKS. Bypassing Gemini Direct to save quota.")
             should_try_direct = False
 
         if should_try_direct and (self.gemini_api_key or self.gemini_client):
