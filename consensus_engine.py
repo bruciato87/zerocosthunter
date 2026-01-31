@@ -77,9 +77,9 @@ class ConsensusEngine:
 
         # Map Final Score to Action
         if final_score >= 60:
-            final_action = "STRONG BUY"
+            final_action = "STRONG ACCUMULATE" if is_owned else "STRONG BUY"
         elif final_score >= 25:
-            final_action = "BUY"
+            final_action = "ACCUMULATE" if is_owned else "BUY"
         elif final_score >= 10:
             final_action = "ACCUMULATE" if is_owned else "WATCH"
         elif final_score <= -60:
