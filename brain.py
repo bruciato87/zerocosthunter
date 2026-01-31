@@ -337,13 +337,16 @@ class Brain:
                 
                 # Success checks
                 if response.status_code == 200:
-                    # ... rest remains same ...
+                    data = response.json()
+                    choice = data["choices"][0]["message"]
+                    content = choice.get("content", "")
                     
                     # 1. Track Usage
                     self.last_run_details = {
                         "model": current_model,
                         "usage": data.get("usage", {}),
-                        "provider": "OpenRouter"
+                        "provider": "OpenRouter",
+                        "retry_count": attempt
                     }
                     
                     # 2. DeepSeek Logic (Reasoning Content)
@@ -351,28 +354,24 @@ class Brain:
                     if reasoning and not content:
                         content = reasoning
                     
-                    # 3. JSON Repair - Robust extraction from various LLM response formats
+                    # 3. JSON Repair
                     if json_mode and content:
                         import re
                         import json
                         
                         original_content = content
                         json_valid = False
-                        repair_strategy = "none"  # Track which strategy worked
+                        repair_strategy = "none"
                         
-                        # Strategy 1: Clean markdown code blocks
                         content = re.sub(r'^```(?:json)?\s*', '', content.strip())
                         content = re.sub(r'\s*```$', '', content.strip())
                         
-                        # Strategy 2: Try direct parse first
                         try:
                             json.loads(content)
                             json_valid = True
                             repair_strategy = "direct" if content == original_content.strip() else "markdown_clean"
-                        except:
-                            pass
+                        except: pass
                         
-                        # Strategy 3: Extract JSON array [...] (common for predictions)
                         if not json_valid:
                             array_match = re.search(r'(\[[\s\S]*\])', content)
                             if array_match:
@@ -381,10 +380,8 @@ class Brain:
                                     content = array_match.group(1)
                                     json_valid = True
                                     repair_strategy = "array_extract"
-                                except:
-                                    pass
+                                except: pass
                         
-                        # Strategy 4: Extract JSON object {...}
                         if not json_valid:
                             obj_match = re.search(r'(\{[\s\S]*\})', content)
                             if obj_match:
@@ -393,51 +390,23 @@ class Brain:
                                     content = obj_match.group(1)
                                     json_valid = True
                                     repair_strategy = "object_extract"
-                                except:
-                                    pass
+                                except: pass
                         
-                        # Strategy 5: Remove common LLM artifacts and retry
-                        if not json_valid:
-                            # Remove thinking/explanation before JSON
-                            cleaned = re.sub(r'^.*?(?=[\[\{])', '', original_content, flags=re.DOTALL)
-                            cleaned = re.sub(r'[\]\}][^\]\}]*$', lambda m: m.group(0)[0], cleaned)
-                            try:
-                                json.loads(cleaned.strip())
-                                content = cleaned.strip()
-                                json_valid = True
-                                repair_strategy = "artifact_removal"
-                            except:
-                                pass
-                        
-                        # Store repair info in last_run_details
                         self.last_run_details["json_repair_needed"] = repair_strategy != "direct"
                         self.last_run_details["repair_strategy"] = repair_strategy
                         
                         if not json_valid:
-                            self.last_run_details["repair_strategy"] = "failed"
                             logger.warning(f"Invalid JSON from {current_model}, retrying...")
                             if attempt < max_retries - 1:
                                 excluded_models.append(current_model)
                                 continue
                     
-                    
                     if not content or not content.strip():
-                        self.last_run_details["repair_strategy"] = "failed_empty"
-                        logger.warning(f"OpenRouter model {current_model} returned empty content (200 OK). Treating as failure.")
+                        logger.warning(f"OpenRouter model {current_model} returned empty content.")
                         if attempt < max_retries - 1:
                             excluded_models.append(current_model)
                             continue
                     
-                    # Log Model Usage to Class State (Critical for Reporting)
-                    self.last_run_details = {
-                        "model": current_model,
-                        # OpenRouter returns usage in 'usage' field usually
-                        "usage": response.json().get("usage", {}),
-                        "provider": "OpenRouter",
-                        "repair_strategy": "none", # Will be overwritten if repair is needed later
-                        "retry_count": attempt
-                    }
-
                     # Log Success to DB
                     try:
                         from db_handler import DBHandler
@@ -591,8 +560,11 @@ class Brain:
                       return self._call_gemini_with_tiered_fallback(prompt, json_mode)
         
         # Final Fallback
-        if not should_try_direct and (self.gemini_api_key or self.gemini_client):
+        if not should_try_direct and task_type not in BACKGROUND_TASKS and (self.gemini_api_key or self.gemini_client):
             return self._call_gemini_with_tiered_fallback(prompt, json_mode)
+            
+        if task_type in BACKGROUND_TASKS:
+            raise Exception(f"AI Generation Failed: All OpenRouter free models failed for background task {task_type}. Gemini fallback blocked by quota policy.")
             
         raise Exception("AI Generation Failed: No valid free provider/model succeeded.")
 

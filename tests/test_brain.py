@@ -15,8 +15,12 @@ def mock_brain_deps(mocker, mock_env):
     # Mock Critic to prevent initialization
     mocker.patch("critic.Critic")
     
-    # Mock DBHandler to prevent logging calls
-    mocker.patch("db_handler.DBHandler")
+    # Mock DBHandler to prevent logging calls and return PROD mode
+    mock_db = mocker.patch("db_handler.DBHandler")
+    mock_db.return_value.get_settings.return_value = {"app_mode": "PROD"}
+    
+    # Mock OpenRouter Discovery to avoid network calls
+    mocker.patch("brain.Brain._get_best_free_model", return_value="meta-llama/llama-3.3-70b-instruct:free")
 
 def test_openrouter_success(mock_brain_deps, mocker, monkeypatch):
     """Test standard OpenRouter success path."""
@@ -153,8 +157,9 @@ def test_quota_guard_logic(mock_brain_deps, mocker):
     brain._generate_with_fallback("Prompt", task_type="analyze", prefer_direct=True)
     assert mock_direct.called
 
-def test_new_sentiments_support(mock_brain_deps, mocker):
+def test_new_sentiments_support(mock_brain_deps, mocker, monkeypatch):
     """Verify system handles new 'WATCH' and 'AVOID' sentiments if returned by AI."""
+    monkeypatch.setenv("OPENROUTER_API_KEY", "fake_router_key")
     brain = Brain()
     
     # Mock OpenRouter response directly
