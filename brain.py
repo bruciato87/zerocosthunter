@@ -58,6 +58,10 @@ class Brain:
         self._cached_best_model = None
         self._cached_best_gemini = None # NEW: Cache for discovered Gemini
         self._cache_timestamp = 0
+        
+        # Track AI Model Usage in detail
+        self.usage_history = [] 
+
         self._cached_scored_candidates = []  # NEW: Cache full ranked list
         
         # Track last execution details for reporting
@@ -457,6 +461,7 @@ class Brain:
                         db.log_model_used(current_model)
                     except: pass
                     
+                    self._record_usage(task_type, current_model, "OpenRouter")
                     return content
 
                 
@@ -489,7 +494,7 @@ class Brain:
         }
         raise Exception("OpenRouter: All model attempts failed.")
 
-    def _call_gemini_fallback(self, prompt: str, json_mode: bool = False, model: str = None) -> str:
+    def _call_gemini_fallback(self, prompt: str, json_mode: bool = False, model: str = None, task_type: str = "fallback") -> str:
         """Direct Gemini API call as last-resort fallback."""
         if not self.gemini_client:
             raise Exception("No Gemini client available for fallback")
@@ -549,13 +554,12 @@ class Brain:
                 }
         except: pass
 
-        self.last_run_details = {
-            "model": f"google/{target_model} (Direct)",
-            "usage": usage,
-            "provider": "Google Direct"
-        }
+
+        
+        self._record_usage(task_type, f"google/{target_model}", "Google Direct")
         
         return content
+
 
     def _generate_with_fallback(self, prompt: str, json_mode: bool = False, model: str = None, prefer_free: bool = True, min_context_needed: int = 32000, task_type: str = "default", prefer_direct: bool = False) -> str:
         """
@@ -575,7 +579,7 @@ class Brain:
                 target_gemini = self._get_best_gemini_model(excluded_models=excluded_gemini)
                 if target_gemini:
                     try:
-                        return self._call_gemini_fallback(prompt, json_mode=json_mode, model=target_gemini)
+                        return self._call_gemini_fallback(prompt, json_mode=json_mode, model=target_gemini, task_type=task_type)
                     except Exception as e:
                         if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
                             logger.warning(f"Gemini {target_gemini} exhausted (429). Moving to OpenRouter pool.")
@@ -589,21 +593,23 @@ class Brain:
         # Step 2: Attempt OpenRouter Free Pool
         if self.openrouter_api_key:
             try:
+                # Pass task_type down to OpenRouter call for tracking
                 return self._call_openrouter([{"role": "user", "content": prompt}], json_mode=json_mode, model=model, min_context_needed=min_context_needed, task_type=task_type)
             except Exception as e:
                 logger.warning(f"OpenRouter pool failed: {e}")
+
 
         # Step 3: Emergency Fallback (If everything else failed, try any remaining Gemini tier)
         if self.gemini_client:
             logger.info(f"Triggering Emergency tiered Gemini fallback for {task_type}...")
             try:
-                return self._call_gemini_with_tiered_fallback(prompt, json_mode)
+                return self._call_gemini_with_tiered_fallback(prompt, json_mode, task_type=task_type)
             except Exception as e:
                 logger.error(f"Emergency fallback failed: {e}")
 
         raise Exception(f"AI Generation Failed: All providers (Gemini/OpenRouter) failed for {task_type}")
 
-    def _call_gemini_with_tiered_fallback(self, prompt: str, json_mode: bool) -> str:
+    def _call_gemini_with_tiered_fallback(self, prompt: str, json_mode: bool, task_type: str = "emergency_fallback") -> str:
         """
         Helper for Gemini with tiered fallback.
         If a tier is exhausted (429), moves to the next model immediately.
@@ -611,7 +617,7 @@ class Brain:
         last_error = None
         for model_name in GEMINI_MODEL_TIERS:
             try:
-                return self._call_gemini_fallback(prompt, json_mode=json_mode, model=model_name)
+                return self._call_gemini_fallback(prompt, json_mode=json_mode, model=model_name, task_type=task_type)
             except Exception as e:
                 error_str = str(e)
                 if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
@@ -624,6 +630,51 @@ class Brain:
         
         raise last_error if last_error else Exception("All Gemini tiers failed.")
     
+    def _record_usage(self, task_type: str, model_name: str, provider: str):
+        """Records who did what for the final report."""
+        self.usage_history.append({
+            "task": task_type,
+            "model": model_name,
+            "provider": provider
+        })
+
+    def get_usage_summary(self) -> str:
+        """
+        Returns a formatted string for the Telegram footer.
+        Example: 🤖 AI: Hunter (Gemini Flash) | Critic (Llama 3.3) | Council (DeepSeek)
+        """
+        if not self.usage_history:
+            return "🤖 AI: Unknown"
+            
+        # Deduplicate by task (keep latest)
+        usage_map = {}
+        for entry in self.usage_history:
+            task = entry['task']
+            # Map internal task names to display names
+            if "analyze" in task or "hunt" in task: display = "Hunter"
+            elif "critic" in task: display = "Critic"
+            elif "council" in task: display = "Council"
+            else: display = task.capitalize()
+            
+            # Simplified model name
+            model = entry['model']
+            if "gemini" in model.lower(): 
+                if "flash" in model.lower(): model = "Gemini Flash"
+                elif "pro" in model.lower(): model = "Gemini Pro"
+                else: model = "Gemini"
+            elif "llama" in model.lower(): model = "Llama 3"
+            elif "deepseek" in model.lower(): model = "DeepSeek"
+            elif "qwen" in model.lower(): model = "Qwen"
+            elif "mistral" in model.lower(): model = "Mistral"
+            elif "phi" in model.lower(): model = "Phi-3"
+            else: model = model.split('/')[-1] # Fallback to minimal name
+            
+            usage_map[display] = model
+            
+        # Build string
+        parts = [f"{role} ({model})" for role, model in usage_map.items()]
+        return "🤖 AI: " + " | ".join(parts)
+
     def analyze_news_batch(self, news_list, performance_context=None, insider_context=None, portfolio_context=None, macro_context=None, whale_context=None, market_regime_summary=None, social_context=None, onchain_context=None, strategic_forecast=None):
         """
         [2024 UPDATE] V3.0 Hybrid Brain with Oracle (Phase B).

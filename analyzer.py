@@ -146,12 +146,8 @@ class Analyzer:
             
             # Add AI Model Footer
             try:
-                details = self.brain.last_run_details
-                if details:
-                    model_name = details.get('model', 'Unknown').split('/')[-1].replace(':free', '')
-                    usage = details.get('usage', {})
-                    total_tok = usage.get('total_tokens', 'N/A') if isinstance(usage, dict) else str(usage)
-                    analysis_report += f"\n\n🤖 AI: `{model_name}` | 🎟️ `{total_tok}`"
+                footer = self.brain.get_usage_summary()
+                analysis_report += f"\n\n{footer}"
             except: pass
             
             # 4b. Quant Path: Save ML Prediction Data

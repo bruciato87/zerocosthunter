@@ -129,8 +129,41 @@ class Critic:
                 
         except Exception as e:
             logger.error(f"Critic execution failed: {e}")
-            # [IMPROVED FALLBACK] Neutral but cautious
-            return CriticVerdict("HOLD", 60, ["AI Connectivity"], "The Expert Broker is temporarily unavailable. Based on previous volatility, a conservative approach (HOLD/AVOID) is advised until connection is restored.")
+            
+            # [LAST RESORT RETRY]
+            # If main brain fails (e.g. OpenRouter 429), try a direct lightweight Gemini call
+            try:
+                logger.info("Triggering Last Resort Critic (Gemini Flash)...")
+                brain = self._get_brain()
+                if brain.gemini_client:
+                    # Simplified prompt for emergency mode
+                    emergency_prompt = f"""
+                    You are a Risk Manager. Review this trade proposal:
+                    Ticker: {ticker} | Action: {direction} | Reasoning: {hunter_reasoning}
+                    
+                    Data: {context[:2000]}... (truncated)
+                    
+                    Is this valid? 
+                    Output JSON: {{ "verdict": "APPROVE" or "REJECT", "score": 50, "concerns": ["List 1 major risk"], "reasoning": "Brief verdict." }}
+                    """
+                    # direct call to reliable fast model
+                    response = brain._call_gemini_fallback(emergency_prompt, json_mode=True, model="gemini-1.5-flash")
+                    
+                    # Manual Parse
+                    clean_response = response.replace('```json', '').replace('```', '').strip()
+                    data = json.loads(clean_response)
+                     
+                    return CriticVerdict(
+                        verdict=data.get('verdict', 'REJECT').upper(),
+                        score=int(data.get('score', 50)),
+                        concerns=data.get('concerns', ["Emergency Mode Used"]),
+                        reasoning=f"[Emergency Recovered] {data.get('reasoning', 'Risk check completed.')}"
+                    )
+            except Exception as e2:
+                logger.error(f"Last Resort Critic failed: {e2}")
+
+            # Final Fallback if even Last Resort fails
+            return CriticVerdict("HOLD", 50, ["AI Connectivity Critical"], "Expert Broker unavailable (All AI drivers failed). Defaulting to HOLD for safety.")
 
     def critique_rebalance_strategy(self, strategy_text: str, regime: str, portfolio_value: float, held_assets: List[str] = []) -> str:
         """

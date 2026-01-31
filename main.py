@@ -44,7 +44,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("MainController")
 
-def format_alert_msg(ticker, sentiment, confidence, reasoning, source, pred, stop_loss, take_profit, critic_score, critic_reasoning, council_summary, consensus_data=None):
+def format_alert_msg(ticker, sentiment, confidence, reasoning, source, pred, stop_loss, take_profit, critic_score, critic_reasoning, council_summary, consensus_data=None, ai_footer=None):
     """
     Refines and formats the signal alert for Telegram with a "Hierarchy of Truth".
     Now includes a Weighted Consensus Action.
@@ -108,6 +108,12 @@ def format_alert_msg(ticker, sentiment, confidence, reasoning, source, pred, sto
         f"{expert_section}\n\n"
         f"**Source:** {source}"
     )
+    
+    # 4. Detailed AI Footer
+    if ai_footer:
+        alert_msg += f"\n\n{ai_footer}"
+        
+    return alert_msg
     return alert_msg
 
 def run_pipeline():
@@ -1148,7 +1154,12 @@ async def run_async_pipeline():
         # Format Alert
         is_owned_asset = holding is not None
         consensus_data = consensus_engine.calculate_weighted_action(pred, is_owned=is_owned_asset)
-        alert_msg = format_alert_msg(ticker, sentiment, confidence, reasoning, source, pred, stop_loss, take_profit, critic_score, critic_reasoning, council_summary, consensus_data=consensus_data)
+        alert_msg = format_alert_msg(
+            ticker, sentiment, confidence, reasoning, source, pred, 
+            stop_loss, take_profit, critic_score, critic_reasoning, 
+            council_summary, consensus_data=consensus_data,
+            ai_footer=brain.get_usage_summary()  # NEW: Detailed attribution
+        )
         
         await notifier.send_alert(alert_msg)
         

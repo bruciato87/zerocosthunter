@@ -1,0 +1,1002 @@
+analyze	Set up job	﻿2026-01-31T09:00:11.1165604Z Current runner version: '2.331.0'
+analyze	Set up job	2026-01-31T09:00:11.1199581Z ##[group]Runner Image Provisioner
+analyze	Set up job	2026-01-31T09:00:11.1201095Z Hosted Compute Agent
+analyze	Set up job	2026-01-31T09:00:11.1202135Z Version: 20260123.484
+analyze	Set up job	2026-01-31T09:00:11.1202971Z Commit: 6bd6555ca37d84114959e1c76d2c01448ff61c5d
+analyze	Set up job	2026-01-31T09:00:11.1203848Z Build Date: 2026-01-23T19:41:17Z
+analyze	Set up job	2026-01-31T09:00:11.1205075Z Worker ID: {f832e0e6-cd58-4405-836e-d8756eceef22}
+analyze	Set up job	2026-01-31T09:00:11.1206197Z Azure Region: eastus2
+analyze	Set up job	2026-01-31T09:00:11.1207089Z ##[endgroup]
+analyze	Set up job	2026-01-31T09:00:11.1209739Z ##[group]Operating System
+analyze	Set up job	2026-01-31T09:00:11.1210929Z Ubuntu
+analyze	Set up job	2026-01-31T09:00:11.1211890Z 24.04.3
+analyze	Set up job	2026-01-31T09:00:11.1212700Z LTS
+analyze	Set up job	2026-01-31T09:00:11.1213438Z ##[endgroup]
+analyze	Set up job	2026-01-31T09:00:11.1214148Z ##[group]Runner Image
+analyze	Set up job	2026-01-31T09:00:11.1215086Z Image: ubuntu-24.04
+analyze	Set up job	2026-01-31T09:00:11.1216063Z Version: 20260126.10.1
+analyze	Set up job	2026-01-31T09:00:11.1217862Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260126.10/images/ubuntu/Ubuntu2404-Readme.md
+analyze	Set up job	2026-01-31T09:00:11.1220243Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260126.10
+analyze	Set up job	2026-01-31T09:00:11.1222095Z ##[endgroup]
+analyze	Set up job	2026-01-31T09:00:11.1224026Z ##[group]GITHUB_TOKEN Permissions
+analyze	Set up job	2026-01-31T09:00:11.1226633Z Contents: read
+analyze	Set up job	2026-01-31T09:00:11.1227661Z Metadata: read
+analyze	Set up job	2026-01-31T09:00:11.1228566Z Packages: read
+analyze	Set up job	2026-01-31T09:00:11.1229337Z ##[endgroup]
+analyze	Set up job	2026-01-31T09:00:11.1232303Z Secret source: Actions
+analyze	Set up job	2026-01-31T09:00:11.1234003Z Prepare workflow directory
+analyze	Set up job	2026-01-31T09:00:11.1606274Z Prepare all required actions
+analyze	Set up job	2026-01-31T09:00:11.1645098Z Getting action download info
+analyze	Set up job	2026-01-31T09:00:11.4482733Z Download action repository 'actions/checkout@v3' (SHA:f43a0e5ff2bd294095638e18286ca9a3d1956744)
+analyze	Set up job	2026-01-31T09:00:11.6017592Z Download action repository 'actions/setup-python@v4' (SHA:7f4fc3e22c37d6ff65e88745f38bd3157c663f7c)
+analyze	Set up job	2026-01-31T09:00:11.8388889Z Complete job name: analyze
+analyze	Check out code	﻿2026-01-31T09:00:11.9066318Z ##[group]Run actions/checkout@v3
+analyze	Check out code	2026-01-31T09:00:11.9067312Z with:
+analyze	Check out code	2026-01-31T09:00:11.9067874Z   repository: bruciato87/zerocosthunter
+analyze	Check out code	2026-01-31T09:00:11.9068606Z   token: ***
+analyze	Check out code	2026-01-31T09:00:11.9069026Z   ssh-strict: true
+analyze	Check out code	2026-01-31T09:00:11.9069483Z   persist-credentials: true
+analyze	Check out code	2026-01-31T09:00:11.9069961Z   clean: true
+analyze	Check out code	2026-01-31T09:00:11.9070389Z   sparse-checkout-cone-mode: true
+analyze	Check out code	2026-01-31T09:00:11.9071060Z   fetch-depth: 1
+analyze	Check out code	2026-01-31T09:00:11.9071485Z   fetch-tags: false
+analyze	Check out code	2026-01-31T09:00:11.9071900Z   lfs: false
+analyze	Check out code	2026-01-31T09:00:11.9072296Z   submodules: false
+analyze	Check out code	2026-01-31T09:00:11.9072722Z   set-safe-directory: true
+analyze	Check out code	2026-01-31T09:00:11.9073454Z ##[endgroup]
+analyze	Check out code	2026-01-31T09:00:11.9920739Z Syncing repository: bruciato87/zerocosthunter
+analyze	Check out code	2026-01-31T09:00:11.9922946Z ##[group]Getting Git version info
+analyze	Check out code	2026-01-31T09:00:11.9923750Z Working directory is '/home/runner/work/zerocosthunter/zerocosthunter'
+analyze	Check out code	2026-01-31T09:00:11.9924793Z [command]/usr/bin/git version
+analyze	Check out code	2026-01-31T09:00:12.0749584Z git version 2.52.0
+analyze	Check out code	2026-01-31T09:00:12.0778664Z ##[endgroup]
+analyze	Check out code	2026-01-31T09:00:12.0796830Z Temporarily overriding HOME='/home/runner/work/_temp/1f465cdc-68d3-413b-8c68-84c67492488e' before making global git config changes
+analyze	Check out code	2026-01-31T09:00:12.0799379Z Adding repository directory to the temporary git global config as a safe directory
+analyze	Check out code	2026-01-31T09:00:12.0801743Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/zerocosthunter/zerocosthunter
+analyze	Check out code	2026-01-31T09:00:12.0882970Z Deleting the contents of '/home/runner/work/zerocosthunter/zerocosthunter'
+analyze	Check out code	2026-01-31T09:00:12.0886464Z ##[group]Initializing the repository
+analyze	Check out code	2026-01-31T09:00:12.0890668Z [command]/usr/bin/git init /home/runner/work/zerocosthunter/zerocosthunter
+analyze	Check out code	2026-01-31T09:00:12.1523189Z hint: Using 'master' as the name for the initial branch. This default branch name
+analyze	Check out code	2026-01-31T09:00:12.1524315Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+analyze	Check out code	2026-01-31T09:00:12.1525345Z hint: to use in all of your new repositories, which will suppress this warning,
+analyze	Check out code	2026-01-31T09:00:12.1526160Z hint: call:
+analyze	Check out code	2026-01-31T09:00:12.1526868Z hint:
+analyze	Check out code	2026-01-31T09:00:12.1527410Z hint: 	git config --global init.defaultBranch <name>
+analyze	Check out code	2026-01-31T09:00:12.1528107Z hint:
+analyze	Check out code	2026-01-31T09:00:12.1528723Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+analyze	Check out code	2026-01-31T09:00:12.1529718Z hint: 'development'. The just-created branch can be renamed via this command:
+analyze	Check out code	2026-01-31T09:00:12.1530481Z hint:
+analyze	Check out code	2026-01-31T09:00:12.1531156Z hint: 	git branch -m <name>
+analyze	Check out code	2026-01-31T09:00:12.1531670Z hint:
+analyze	Check out code	2026-01-31T09:00:12.1532312Z hint: Disable this message with "git config set advice.defaultBranchName false"
+analyze	Check out code	2026-01-31T09:00:12.1563680Z Initialized empty Git repository in /home/runner/work/zerocosthunter/zerocosthunter/.git/
+analyze	Check out code	2026-01-31T09:00:12.1575176Z [command]/usr/bin/git remote add origin https://github.com/bruciato87/zerocosthunter
+analyze	Check out code	2026-01-31T09:00:12.1650586Z ##[endgroup]
+analyze	Check out code	2026-01-31T09:00:12.1652049Z ##[group]Disabling automatic garbage collection
+analyze	Check out code	2026-01-31T09:00:12.1653590Z [command]/usr/bin/git config --local gc.auto 0
+analyze	Check out code	2026-01-31T09:00:12.1679798Z ##[endgroup]
+analyze	Check out code	2026-01-31T09:00:12.1680558Z ##[group]Setting up auth
+analyze	Check out code	2026-01-31T09:00:12.1685251Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+analyze	Check out code	2026-01-31T09:00:12.1712805Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+analyze	Check out code	2026-01-31T09:00:12.3635991Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+analyze	Check out code	2026-01-31T09:00:12.3665127Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+analyze	Check out code	2026-01-31T09:00:12.3882990Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+analyze	Check out code	2026-01-31T09:00:12.3915273Z ##[endgroup]
+analyze	Check out code	2026-01-31T09:00:12.3917327Z ##[group]Fetching the repository
+analyze	Check out code	2026-01-31T09:00:12.3990313Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --progress --no-recurse-submodules --depth=1 origin +3e5471c8f00497ec4dd2bbedd83c381f03642143:refs/remotes/origin/main
+analyze	Check out code	2026-01-31T09:00:12.7368661Z remote: Enumerating objects: 135, done.        
+analyze	Check out code	2026-01-31T09:00:12.7370705Z remote: Counting objects:   0% (1/135)        
+analyze	Check out code	2026-01-31T09:00:12.7372195Z remote: Counting objects:   1% (2/135)        
+analyze	Check out code	2026-01-31T09:00:12.7373139Z remote: Counting objects:   2% (3/135)        
+analyze	Check out code	2026-01-31T09:00:12.7374043Z remote: Counting objects:   3% (5/135)        
+analyze	Check out code	2026-01-31T09:00:12.7374946Z remote: Counting objects:   4% (6/135)        
+analyze	Check out code	2026-01-31T09:00:12.7375856Z remote: Counting objects:   5% (7/135)        
+analyze	Check out code	2026-01-31T09:00:12.7376946Z remote: Counting objects:   6% (9/135)        
+analyze	Check out code	2026-01-31T09:00:12.7377849Z remote: Counting objects:   7% (10/135)        
+analyze	Check out code	2026-01-31T09:00:12.7378756Z remote: Counting objects:   8% (11/135)        
+analyze	Check out code	2026-01-31T09:00:12.7379806Z remote: Counting objects:   9% (13/135)        
+analyze	Check out code	2026-01-31T09:00:12.7381037Z remote: Counting objects:  10% (14/135)        
+analyze	Check out code	2026-01-31T09:00:12.7382094Z remote: Counting objects:  11% (15/135)        
+analyze	Check out code	2026-01-31T09:00:12.7383239Z remote: Counting objects:  12% (17/135)        
+analyze	Check out code	2026-01-31T09:00:12.7384398Z remote: Counting objects:  13% (18/135)        
+analyze	Check out code	2026-01-31T09:00:12.7385508Z remote: Counting objects:  14% (19/135)        
+analyze	Check out code	2026-01-31T09:00:12.7386611Z remote: Counting objects:  15% (21/135)        
+analyze	Check out code	2026-01-31T09:00:12.7387703Z remote: Counting objects:  16% (22/135)        
+analyze	Check out code	2026-01-31T09:00:12.7388799Z remote: Counting objects:  17% (23/135)        
+analyze	Check out code	2026-01-31T09:00:12.7389883Z remote: Counting objects:  18% (25/135)        
+analyze	Check out code	2026-01-31T09:00:12.7391192Z remote: Counting objects:  19% (26/135)        
+analyze	Check out code	2026-01-31T09:00:12.7392325Z remote: Counting objects:  20% (27/135)        
+analyze	Check out code	2026-01-31T09:00:12.7393495Z remote: Counting objects:  21% (29/135)        
+analyze	Check out code	2026-01-31T09:00:12.7394744Z remote: Counting objects:  22% (30/135)        
+analyze	Check out code	2026-01-31T09:00:12.7396265Z remote: Counting objects:  23% (32/135)        
+analyze	Check out code	2026-01-31T09:00:12.7397536Z remote: Counting objects:  24% (33/135)        
+analyze	Check out code	2026-01-31T09:00:12.7398891Z remote: Counting objects:  25% (34/135)        
+analyze	Check out code	2026-01-31T09:00:12.7400328Z remote: Counting objects:  26% (36/135)        
+analyze	Check out code	2026-01-31T09:00:12.7402002Z remote: Counting objects:  27% (37/135)        
+analyze	Check out code	2026-01-31T09:00:12.7403393Z remote: Counting objects:  28% (38/135)        
+analyze	Check out code	2026-01-31T09:00:12.7404776Z remote: Counting objects:  29% (40/135)        
+analyze	Check out code	2026-01-31T09:00:12.7406136Z remote: Counting objects:  30% (41/135)        
+analyze	Check out code	2026-01-31T09:00:12.7407486Z remote: Counting objects:  31% (42/135)        
+analyze	Check out code	2026-01-31T09:00:12.7408895Z remote: Counting objects:  32% (44/135)        
+analyze	Check out code	2026-01-31T09:00:12.7410233Z remote: Counting objects:  33% (45/135)        
+analyze	Check out code	2026-01-31T09:00:12.7411897Z remote: Counting objects:  34% (46/135)        
+analyze	Check out code	2026-01-31T09:00:12.7413467Z remote: Counting objects:  35% (48/135)        
+analyze	Check out code	2026-01-31T09:00:12.7414916Z remote: Counting objects:  36% (49/135)        
+analyze	Check out code	2026-01-31T09:00:12.7416689Z remote: Counting objects:  37% (50/135)        
+analyze	Check out code	2026-01-31T09:00:12.7418902Z remote: Counting objects:  38% (52/135)        
+analyze	Check out code	2026-01-31T09:00:12.7420413Z remote: Counting objects:  39% (53/135)        
+analyze	Check out code	2026-01-31T09:00:12.7422151Z remote: Counting objects:  40% (54/135)        
+analyze	Check out code	2026-01-31T09:00:12.7423608Z remote: Counting objects:  41% (56/135)        
+analyze	Check out code	2026-01-31T09:00:12.7425194Z remote: Counting objects:  42% (57/135)        
+analyze	Check out code	2026-01-31T09:00:12.7427190Z remote: Counting objects:  43% (59/135)        
+analyze	Check out code	2026-01-31T09:00:12.7428658Z remote: Counting objects:  44% (60/135)        
+analyze	Check out code	2026-01-31T09:00:12.7430065Z remote: Counting objects:  45% (61/135)        
+analyze	Check out code	2026-01-31T09:00:12.7431730Z remote: Counting objects:  46% (63/135)        
+analyze	Check out code	2026-01-31T09:00:12.7433138Z remote: Counting objects:  47% (64/135)        
+analyze	Check out code	2026-01-31T09:00:12.7434527Z remote: Counting objects:  48% (65/135)        
+analyze	Check out code	2026-01-31T09:00:12.7436138Z remote: Counting objects:  49% (67/135)        
+analyze	Check out code	2026-01-31T09:00:12.7437530Z remote: Counting objects:  50% (68/135)        
+analyze	Check out code	2026-01-31T09:00:12.7438969Z remote: Counting objects:  51% (69/135)        
+analyze	Check out code	2026-01-31T09:00:12.7440362Z remote: Counting objects:  52% (71/135)        
+analyze	Check out code	2026-01-31T09:00:12.7441850Z remote: Counting objects:  53% (72/135)        
+analyze	Check out code	2026-01-31T09:00:12.7443211Z remote: Counting objects:  54% (73/135)        
+analyze	Check out code	2026-01-31T09:00:12.7444592Z remote: Counting objects:  55% (75/135)        
+analyze	Check out code	2026-01-31T09:00:12.7445956Z remote: Counting objects:  56% (76/135)        
+analyze	Check out code	2026-01-31T09:00:12.7447321Z remote: Counting objects:  57% (77/135)        
+analyze	Check out code	2026-01-31T09:00:12.7448679Z remote: Counting objects:  58% (79/135)        
+analyze	Check out code	2026-01-31T09:00:12.7450055Z remote: Counting objects:  59% (80/135)        
+analyze	Check out code	2026-01-31T09:00:12.7451513Z remote: Counting objects:  60% (81/135)        
+analyze	Check out code	2026-01-31T09:00:12.7452866Z remote: Counting objects:  61% (83/135)        
+analyze	Check out code	2026-01-31T09:00:12.7454242Z remote: Counting objects:  62% (84/135)        
+analyze	Check out code	2026-01-31T09:00:12.7455611Z remote: Counting objects:  63% (86/135)        
+analyze	Check out code	2026-01-31T09:00:12.7456989Z remote: Counting objects:  64% (87/135)        
+analyze	Check out code	2026-01-31T09:00:12.7458358Z remote: Counting objects:  65% (88/135)        
+analyze	Check out code	2026-01-31T09:00:12.7459724Z remote: Counting objects:  66% (90/135)        
+analyze	Check out code	2026-01-31T09:00:12.7461210Z remote: Counting objects:  67% (91/135)        
+analyze	Check out code	2026-01-31T09:00:12.7462603Z remote: Counting objects:  68% (92/135)        
+analyze	Check out code	2026-01-31T09:00:12.7463988Z remote: Counting objects:  69% (94/135)        
+analyze	Check out code	2026-01-31T09:00:12.7465389Z remote: Counting objects:  70% (95/135)        
+analyze	Check out code	2026-01-31T09:00:12.7466794Z remote: Counting objects:  71% (96/135)        
+analyze	Check out code	2026-01-31T09:00:12.7468171Z remote: Counting objects:  72% (98/135)        
+analyze	Check out code	2026-01-31T09:00:12.7469533Z remote: Counting objects:  73% (99/135)        
+analyze	Check out code	2026-01-31T09:00:12.7471019Z remote: Counting objects:  74% (100/135)        
+analyze	Check out code	2026-01-31T09:00:12.7472428Z remote: Counting objects:  75% (102/135)        
+analyze	Check out code	2026-01-31T09:00:12.7474013Z remote: Counting objects:  76% (103/135)        
+analyze	Check out code	2026-01-31T09:00:12.7475609Z remote: Counting objects:  77% (104/135)        
+analyze	Check out code	2026-01-31T09:00:12.7477625Z remote: Counting objects:  78% (106/135)        
+analyze	Check out code	2026-01-31T09:00:12.7479709Z remote: Counting objects:  79% (107/135)        
+analyze	Check out code	2026-01-31T09:00:12.7481325Z remote: Counting objects:  80% (108/135)        
+analyze	Check out code	2026-01-31T09:00:12.7482970Z remote: Counting objects:  81% (110/135)        
+analyze	Check out code	2026-01-31T09:00:12.7484596Z remote: Counting objects:  82% (111/135)        
+analyze	Check out code	2026-01-31T09:00:12.7486369Z remote: Counting objects:  83% (113/135)        
+analyze	Check out code	2026-01-31T09:00:12.7488164Z remote: Counting objects:  84% (114/135)        
+analyze	Check out code	2026-01-31T09:00:12.7489558Z remote: Counting objects:  85% (115/135)        
+analyze	Check out code	2026-01-31T09:00:12.7491074Z remote: Counting objects:  86% (117/135)        
+analyze	Check out code	2026-01-31T09:00:12.7492466Z remote: Counting objects:  87% (118/135)        
+analyze	Check out code	2026-01-31T09:00:12.7494301Z remote: Counting objects:  88% (119/135)        
+analyze	Check out code	2026-01-31T09:00:12.7496542Z remote: Counting objects:  89% (121/135)        
+analyze	Check out code	2026-01-31T09:00:12.7498828Z remote: Counting objects:  90% (122/135)        
+analyze	Check out code	2026-01-31T09:00:12.7501243Z remote: Counting objects:  91% (123/135)        
+analyze	Check out code	2026-01-31T09:00:12.7502968Z remote: Counting objects:  92% (125/135)        
+analyze	Check out code	2026-01-31T09:00:12.7504684Z remote: Counting objects:  93% (126/135)        
+analyze	Check out code	2026-01-31T09:00:12.7506758Z remote: Counting objects:  94% (127/135)        
+analyze	Check out code	2026-01-31T09:00:12.7508150Z remote: Counting objects:  95% (129/135)        
+analyze	Check out code	2026-01-31T09:00:12.7509535Z remote: Counting objects:  96% (130/135)        
+analyze	Check out code	2026-01-31T09:00:12.7511173Z remote: Counting objects:  97% (131/135)        
+analyze	Check out code	2026-01-31T09:00:12.7512568Z remote: Counting objects:  98% (133/135)        
+analyze	Check out code	2026-01-31T09:00:12.7513919Z remote: Counting objects:  99% (134/135)        
+analyze	Check out code	2026-01-31T09:00:12.7516005Z remote: Counting objects: 100% (135/135)        
+analyze	Check out code	2026-01-31T09:00:12.7518329Z remote: Counting objects: 100% (135/135), done.        
+analyze	Check out code	2026-01-31T09:00:12.7520352Z remote: Compressing objects:   0% (1/126)        
+analyze	Check out code	2026-01-31T09:00:12.7522413Z remote: Compressing objects:   1% (2/126)        
+analyze	Check out code	2026-01-31T09:00:12.7524699Z remote: Compressing objects:   2% (3/126)        
+analyze	Check out code	2026-01-31T09:00:12.7526272Z remote: Compressing objects:   3% (4/126)        
+analyze	Check out code	2026-01-31T09:00:12.7528331Z remote: Compressing objects:   4% (6/126)        
+analyze	Check out code	2026-01-31T09:00:12.7530265Z remote: Compressing objects:   5% (7/126)        
+analyze	Check out code	2026-01-31T09:00:12.7531872Z remote: Compressing objects:   6% (8/126)        
+analyze	Check out code	2026-01-31T09:00:12.7534129Z remote: Compressing objects:   7% (9/126)        
+analyze	Check out code	2026-01-31T09:00:12.7536391Z remote: Compressing objects:   8% (11/126)        
+analyze	Check out code	2026-01-31T09:00:12.7538725Z remote: Compressing objects:   9% (12/126)        
+analyze	Check out code	2026-01-31T09:00:12.7541153Z remote: Compressing objects:  10% (13/126)        
+analyze	Check out code	2026-01-31T09:00:12.7543463Z remote: Compressing objects:  11% (14/126)        
+analyze	Check out code	2026-01-31T09:00:12.7544930Z remote: Compressing objects:  12% (16/126)        
+analyze	Check out code	2026-01-31T09:00:12.7546828Z remote: Compressing objects:  13% (17/126)        
+analyze	Check out code	2026-01-31T09:00:12.7548400Z remote: Compressing objects:  14% (18/126)        
+analyze	Check out code	2026-01-31T09:00:12.7549787Z remote: Compressing objects:  15% (19/126)        
+analyze	Check out code	2026-01-31T09:00:12.7552069Z remote: Compressing objects:  16% (21/126)        
+analyze	Check out code	2026-01-31T09:00:12.7554453Z remote: Compressing objects:  17% (22/126)        
+analyze	Check out code	2026-01-31T09:00:12.7556411Z remote: Compressing objects:  18% (23/126)        
+analyze	Check out code	2026-01-31T09:00:12.7558348Z remote: Compressing objects:  19% (24/126)        
+analyze	Check out code	2026-01-31T09:00:12.7560096Z remote: Compressing objects:  20% (26/126)        
+analyze	Check out code	2026-01-31T09:00:12.7561741Z remote: Compressing objects:  21% (27/126)        
+analyze	Check out code	2026-01-31T09:00:12.7563266Z remote: Compressing objects:  22% (28/126)        
+analyze	Check out code	2026-01-31T09:00:12.7574023Z remote: Compressing objects:  23% (29/126)        
+analyze	Check out code	2026-01-31T09:00:12.7576004Z remote: Compressing objects:  24% (31/126)        
+analyze	Check out code	2026-01-31T09:00:12.7577485Z remote: Compressing objects:  25% (32/126)        
+analyze	Check out code	2026-01-31T09:00:12.7583268Z remote: Compressing objects:  26% (33/126)        
+analyze	Check out code	2026-01-31T09:00:12.7590047Z remote: Compressing objects:  27% (35/126)        
+analyze	Check out code	2026-01-31T09:00:12.7602129Z remote: Compressing objects:  28% (36/126)        
+analyze	Check out code	2026-01-31T09:00:12.7605616Z remote: Compressing objects:  29% (37/126)        
+analyze	Check out code	2026-01-31T09:00:12.7621312Z remote: Compressing objects:  30% (38/126)        
+analyze	Check out code	2026-01-31T09:00:12.7627225Z remote: Compressing objects:  31% (40/126)        
+analyze	Check out code	2026-01-31T09:00:12.7634672Z remote: Compressing objects:  32% (41/126)        
+analyze	Check out code	2026-01-31T09:00:12.7641490Z remote: Compressing objects:  33% (42/126)        
+analyze	Check out code	2026-01-31T09:00:12.7648862Z remote: Compressing objects:  34% (43/126)        
+analyze	Check out code	2026-01-31T09:00:12.7653489Z remote: Compressing objects:  35% (45/126)        
+analyze	Check out code	2026-01-31T09:00:12.7659180Z remote: Compressing objects:  36% (46/126)        
+analyze	Check out code	2026-01-31T09:00:12.7671760Z remote: Compressing objects:  37% (47/126)        
+analyze	Check out code	2026-01-31T09:00:12.7718050Z remote: Compressing objects:  38% (48/126)        
+analyze	Check out code	2026-01-31T09:00:12.7733039Z remote: Compressing objects:  39% (50/126)        
+analyze	Check out code	2026-01-31T09:00:12.7736199Z remote: Compressing objects:  40% (51/126)        
+analyze	Check out code	2026-01-31T09:00:12.7744031Z remote: Compressing objects:  41% (52/126)        
+analyze	Check out code	2026-01-31T09:00:12.7758018Z remote: Compressing objects:  42% (53/126)        
+analyze	Check out code	2026-01-31T09:00:12.7760552Z remote: Compressing objects:  43% (55/126)        
+analyze	Check out code	2026-01-31T09:00:12.7766341Z remote: Compressing objects:  44% (56/126)        
+analyze	Check out code	2026-01-31T09:00:12.7767832Z remote: Compressing objects:  45% (57/126)        
+analyze	Check out code	2026-01-31T09:00:12.7795918Z remote: Compressing objects:  46% (58/126)        
+analyze	Check out code	2026-01-31T09:00:12.7798199Z remote: Compressing objects:  47% (60/126)        
+analyze	Check out code	2026-01-31T09:00:12.7799664Z remote: Compressing objects:  48% (61/126)        
+analyze	Check out code	2026-01-31T09:00:12.7801278Z remote: Compressing objects:  49% (62/126)        
+analyze	Check out code	2026-01-31T09:00:12.7802692Z remote: Compressing objects:  50% (63/126)        
+analyze	Check out code	2026-01-31T09:00:12.7804291Z remote: Compressing objects:  51% (65/126)        
+analyze	Check out code	2026-01-31T09:00:12.7805682Z remote: Compressing objects:  52% (66/126)        
+analyze	Check out code	2026-01-31T09:00:12.7808660Z remote: Compressing objects:  53% (67/126)        
+analyze	Check out code	2026-01-31T09:00:12.7815853Z remote: Compressing objects:  54% (69/126)        
+analyze	Check out code	2026-01-31T09:00:12.7817724Z remote: Compressing objects:  55% (70/126)        
+analyze	Check out code	2026-01-31T09:00:12.7819610Z remote: Compressing objects:  56% (71/126)        
+analyze	Check out code	2026-01-31T09:00:12.7821874Z remote: Compressing objects:  57% (72/126)        
+analyze	Check out code	2026-01-31T09:00:12.7824053Z remote: Compressing objects:  58% (74/126)        
+analyze	Check out code	2026-01-31T09:00:12.7826360Z remote: Compressing objects:  59% (75/126)        
+analyze	Check out code	2026-01-31T09:00:12.7828424Z remote: Compressing objects:  60% (76/126)        
+analyze	Check out code	2026-01-31T09:00:12.7830180Z remote: Compressing objects:  61% (77/126)        
+analyze	Check out code	2026-01-31T09:00:12.7832475Z remote: Compressing objects:  62% (79/126)        
+analyze	Check out code	2026-01-31T09:00:12.7834577Z remote: Compressing objects:  63% (80/126)        
+analyze	Check out code	2026-01-31T09:00:12.7836992Z remote: Compressing objects:  64% (81/126)        
+analyze	Check out code	2026-01-31T09:00:12.7839211Z remote: Compressing objects:  65% (82/126)        
+analyze	Check out code	2026-01-31T09:00:12.7841243Z remote: Compressing objects:  66% (84/126)        
+analyze	Check out code	2026-01-31T09:00:12.7843519Z remote: Compressing objects:  67% (85/126)        
+analyze	Check out code	2026-01-31T09:00:12.7845710Z remote: Compressing objects:  68% (86/126)        
+analyze	Check out code	2026-01-31T09:00:12.7847172Z remote: Compressing objects:  69% (87/126)        
+analyze	Check out code	2026-01-31T09:00:12.7848524Z remote: Compressing objects:  70% (89/126)        
+analyze	Check out code	2026-01-31T09:00:12.7849922Z remote: Compressing objects:  71% (90/126)        
+analyze	Check out code	2026-01-31T09:00:12.7851436Z remote: Compressing objects:  72% (91/126)        
+analyze	Check out code	2026-01-31T09:00:12.7852791Z remote: Compressing objects:  73% (92/126)        
+analyze	Check out code	2026-01-31T09:00:12.7854320Z remote: Compressing objects:  74% (94/126)        
+analyze	Check out code	2026-01-31T09:00:12.7856425Z remote: Compressing objects:  75% (95/126)        
+analyze	Check out code	2026-01-31T09:00:12.7857872Z remote: Compressing objects:  76% (96/126)        
+analyze	Check out code	2026-01-31T09:00:12.7859430Z remote: Compressing objects:  77% (98/126)        
+analyze	Check out code	2026-01-31T09:00:12.7860918Z remote: Compressing objects:  78% (99/126)        
+analyze	Check out code	2026-01-31T09:00:12.7862267Z remote: Compressing objects:  79% (100/126)        
+analyze	Check out code	2026-01-31T09:00:12.7863613Z remote: Compressing objects:  80% (101/126)        
+analyze	Check out code	2026-01-31T09:00:12.7864954Z remote: Compressing objects:  81% (103/126)        
+analyze	Check out code	2026-01-31T09:00:12.7866495Z remote: Compressing objects:  82% (104/126)        
+analyze	Check out code	2026-01-31T09:00:12.7867850Z remote: Compressing objects:  83% (105/126)        
+analyze	Check out code	2026-01-31T09:00:12.7869181Z remote: Compressing objects:  84% (106/126)        
+analyze	Check out code	2026-01-31T09:00:12.7870515Z remote: Compressing objects:  85% (108/126)        
+analyze	Check out code	2026-01-31T09:00:12.7871983Z remote: Compressing objects:  86% (109/126)        
+analyze	Check out code	2026-01-31T09:00:12.7873334Z remote: Compressing objects:  87% (110/126)        
+analyze	Check out code	2026-01-31T09:00:12.7874855Z remote: Compressing objects:  88% (111/126)        
+analyze	Check out code	2026-01-31T09:00:12.7876267Z remote: Compressing objects:  89% (113/126)        
+analyze	Check out code	2026-01-31T09:00:12.7877668Z remote: Compressing objects:  90% (114/126)        
+analyze	Check out code	2026-01-31T09:00:12.7879218Z remote: Compressing objects:  91% (115/126)        
+analyze	Check out code	2026-01-31T09:00:12.7881195Z remote: Compressing objects:  92% (116/126)        
+analyze	Check out code	2026-01-31T09:00:12.7882608Z remote: Compressing objects:  93% (118/126)        
+analyze	Check out code	2026-01-31T09:00:12.7883971Z remote: Compressing objects:  94% (119/126)        
+analyze	Check out code	2026-01-31T09:00:12.7885360Z remote: Compressing objects:  95% (120/126)        
+analyze	Check out code	2026-01-31T09:00:12.7886709Z remote: Compressing objects:  96% (121/126)        
+analyze	Check out code	2026-01-31T09:00:12.7888049Z remote: Compressing objects:  97% (123/126)        
+analyze	Check out code	2026-01-31T09:00:12.7889633Z remote: Compressing objects:  98% (124/126)        
+analyze	Check out code	2026-01-31T09:00:12.7891398Z remote: Compressing objects:  99% (125/126)        
+analyze	Check out code	2026-01-31T09:00:12.7893276Z remote: Compressing objects: 100% (126/126)        
+analyze	Check out code	2026-01-31T09:00:12.7894751Z remote: Compressing objects: 100% (126/126), done.        
+analyze	Check out code	2026-01-31T09:00:12.8033398Z Receiving objects:   0% (1/135)
+analyze	Check out code	2026-01-31T09:00:12.8035305Z Receiving objects:   1% (2/135)
+analyze	Check out code	2026-01-31T09:00:12.8036933Z Receiving objects:   2% (3/135)
+analyze	Check out code	2026-01-31T09:00:12.8038603Z Receiving objects:   3% (5/135)
+analyze	Check out code	2026-01-31T09:00:12.8040308Z Receiving objects:   4% (6/135)
+analyze	Check out code	2026-01-31T09:00:12.8042171Z Receiving objects:   5% (7/135)
+analyze	Check out code	2026-01-31T09:00:12.8043864Z Receiving objects:   6% (9/135)
+analyze	Check out code	2026-01-31T09:00:12.8044908Z Receiving objects:   7% (10/135)
+analyze	Check out code	2026-01-31T09:00:12.8045912Z Receiving objects:   8% (11/135)
+analyze	Check out code	2026-01-31T09:00:12.8046897Z Receiving objects:   9% (13/135)
+analyze	Check out code	2026-01-31T09:00:12.8047884Z Receiving objects:  10% (14/135)
+analyze	Check out code	2026-01-31T09:00:12.8049259Z Receiving objects:  11% (15/135)
+analyze	Check out code	2026-01-31T09:00:12.8051232Z Receiving objects:  12% (17/135)
+analyze	Check out code	2026-01-31T09:00:12.8052947Z Receiving objects:  13% (18/135)
+analyze	Check out code	2026-01-31T09:00:12.8054402Z Receiving objects:  14% (19/135)
+analyze	Check out code	2026-01-31T09:00:12.8056066Z Receiving objects:  15% (21/135)
+analyze	Check out code	2026-01-31T09:00:12.8057330Z Receiving objects:  16% (22/135)
+analyze	Check out code	2026-01-31T09:00:12.8058544Z Receiving objects:  17% (23/135)
+analyze	Check out code	2026-01-31T09:00:12.8059707Z Receiving objects:  18% (25/135)
+analyze	Check out code	2026-01-31T09:00:12.8061134Z Receiving objects:  19% (26/135)
+analyze	Check out code	2026-01-31T09:00:12.8062355Z Receiving objects:  20% (27/135)
+analyze	Check out code	2026-01-31T09:00:12.8063534Z Receiving objects:  21% (29/135)
+analyze	Check out code	2026-01-31T09:00:12.8064681Z Receiving objects:  22% (30/135)
+analyze	Check out code	2026-01-31T09:00:12.8066522Z Receiving objects:  23% (32/135)
+analyze	Check out code	2026-01-31T09:00:12.8068085Z Receiving objects:  24% (33/135)
+analyze	Check out code	2026-01-31T09:00:12.8069942Z Receiving objects:  25% (34/135)
+analyze	Check out code	2026-01-31T09:00:12.8071170Z Receiving objects:  26% (36/135)
+analyze	Check out code	2026-01-31T09:00:12.8072212Z Receiving objects:  27% (37/135)
+analyze	Check out code	2026-01-31T09:00:12.8076938Z Receiving objects:  28% (38/135)
+analyze	Check out code	2026-01-31T09:00:12.8078231Z Receiving objects:  29% (40/135)
+analyze	Check out code	2026-01-31T09:00:12.8079595Z Receiving objects:  30% (41/135)
+analyze	Check out code	2026-01-31T09:00:12.8081379Z Receiving objects:  31% (42/135)
+analyze	Check out code	2026-01-31T09:00:12.8082598Z Receiving objects:  32% (44/135)
+analyze	Check out code	2026-01-31T09:00:12.8087183Z Receiving objects:  33% (45/135)
+analyze	Check out code	2026-01-31T09:00:12.8089071Z Receiving objects:  34% (46/135)
+analyze	Check out code	2026-01-31T09:00:12.8200567Z Receiving objects:  35% (48/135)
+analyze	Check out code	2026-01-31T09:00:12.8208854Z Receiving objects:  36% (49/135)
+analyze	Check out code	2026-01-31T09:00:12.8215588Z Receiving objects:  37% (50/135)
+analyze	Check out code	2026-01-31T09:00:12.8244072Z Receiving objects:  38% (52/135)
+analyze	Check out code	2026-01-31T09:00:12.8247734Z Receiving objects:  39% (53/135)
+analyze	Check out code	2026-01-31T09:00:12.8249489Z Receiving objects:  40% (54/135)
+analyze	Check out code	2026-01-31T09:00:12.8297199Z Receiving objects:  41% (56/135)
+analyze	Check out code	2026-01-31T09:00:12.8301800Z Receiving objects:  42% (57/135)
+analyze	Check out code	2026-01-31T09:00:12.8303497Z Receiving objects:  43% (59/135)
+analyze	Check out code	2026-01-31T09:00:12.8305373Z Receiving objects:  44% (60/135)
+analyze	Check out code	2026-01-31T09:00:12.8307082Z Receiving objects:  45% (61/135)
+analyze	Check out code	2026-01-31T09:00:12.8308757Z Receiving objects:  46% (63/135)
+analyze	Check out code	2026-01-31T09:00:12.8310254Z Receiving objects:  47% (64/135)
+analyze	Check out code	2026-01-31T09:00:12.8315205Z Receiving objects:  48% (65/135)
+analyze	Check out code	2026-01-31T09:00:12.8316446Z Receiving objects:  49% (67/135)
+analyze	Check out code	2026-01-31T09:00:12.8363739Z Receiving objects:  50% (68/135)
+analyze	Check out code	2026-01-31T09:00:12.8405115Z Receiving objects:  51% (69/135)
+analyze	Check out code	2026-01-31T09:00:12.8406992Z Receiving objects:  52% (71/135)
+analyze	Check out code	2026-01-31T09:00:12.8408615Z Receiving objects:  53% (72/135)
+analyze	Check out code	2026-01-31T09:00:12.8410189Z Receiving objects:  54% (73/135)
+analyze	Check out code	2026-01-31T09:00:12.8411582Z Receiving objects:  55% (75/135)
+analyze	Check out code	2026-01-31T09:00:12.8412622Z Receiving objects:  56% (76/135)
+analyze	Check out code	2026-01-31T09:00:12.8414903Z Receiving objects:  57% (77/135)
+analyze	Check out code	2026-01-31T09:00:12.8416272Z Receiving objects:  58% (79/135)
+analyze	Check out code	2026-01-31T09:00:12.8417325Z Receiving objects:  59% (80/135)
+analyze	Check out code	2026-01-31T09:00:12.8418352Z Receiving objects:  60% (81/135)
+analyze	Check out code	2026-01-31T09:00:12.8419752Z Receiving objects:  61% (83/135)
+analyze	Check out code	2026-01-31T09:00:12.8421141Z Receiving objects:  62% (84/135)
+analyze	Check out code	2026-01-31T09:00:12.8422466Z Receiving objects:  63% (86/135)
+analyze	Check out code	2026-01-31T09:00:12.8424129Z Receiving objects:  64% (87/135)
+analyze	Check out code	2026-01-31T09:00:12.8425436Z Receiving objects:  65% (88/135)
+analyze	Check out code	2026-01-31T09:00:12.8426460Z Receiving objects:  66% (90/135)
+analyze	Check out code	2026-01-31T09:00:12.8427488Z Receiving objects:  67% (91/135)
+analyze	Check out code	2026-01-31T09:00:12.8429249Z Receiving objects:  68% (92/135)
+analyze	Check out code	2026-01-31T09:00:12.8430349Z Receiving objects:  69% (94/135)
+analyze	Check out code	2026-01-31T09:00:12.8431783Z Receiving objects:  70% (95/135)
+analyze	Check out code	2026-01-31T09:00:12.8432834Z Receiving objects:  71% (96/135)
+analyze	Check out code	2026-01-31T09:00:12.8433844Z Receiving objects:  72% (98/135)
+analyze	Check out code	2026-01-31T09:00:12.8434848Z Receiving objects:  73% (99/135)
+analyze	Check out code	2026-01-31T09:00:12.8435904Z Receiving objects:  74% (100/135)
+analyze	Check out code	2026-01-31T09:00:12.8436949Z Receiving objects:  75% (102/135)
+analyze	Check out code	2026-01-31T09:00:12.8437969Z Receiving objects:  76% (103/135)
+analyze	Check out code	2026-01-31T09:00:12.8438993Z Receiving objects:  77% (104/135)
+analyze	Check out code	2026-01-31T09:00:12.8440001Z Receiving objects:  78% (106/135)
+analyze	Check out code	2026-01-31T09:00:12.8441246Z Receiving objects:  79% (107/135)
+analyze	Check out code	2026-01-31T09:00:12.8442308Z Receiving objects:  80% (108/135)
+analyze	Check out code	2026-01-31T09:00:12.8443320Z Receiving objects:  81% (110/135)
+analyze	Check out code	2026-01-31T09:00:12.8444370Z Receiving objects:  82% (111/135)
+analyze	Check out code	2026-01-31T09:00:12.8459749Z Receiving objects:  83% (113/135)
+analyze	Check out code	2026-01-31T09:00:12.8463725Z remote: Total 135 (delta 7), reused 80 (delta 5), pack-reused 0 (from 0)        
+analyze	Check out code	2026-01-31T09:00:12.8466455Z Receiving objects:  84% (114/135)
+analyze	Check out code	2026-01-31T09:00:12.8468228Z Receiving objects:  85% (115/135)
+analyze	Check out code	2026-01-31T09:00:12.8469941Z Receiving objects:  86% (117/135)
+analyze	Check out code	2026-01-31T09:00:12.8471855Z Receiving objects:  87% (118/135)
+analyze	Check out code	2026-01-31T09:00:12.8473634Z Receiving objects:  88% (119/135)
+analyze	Check out code	2026-01-31T09:00:12.8475380Z Receiving objects:  89% (121/135)
+analyze	Check out code	2026-01-31T09:00:12.8477061Z Receiving objects:  90% (122/135)
+analyze	Check out code	2026-01-31T09:00:12.8478733Z Receiving objects:  91% (123/135)
+analyze	Check out code	2026-01-31T09:00:12.8480464Z Receiving objects:  92% (125/135)
+analyze	Check out code	2026-01-31T09:00:12.8482348Z Receiving objects:  93% (126/135)
+analyze	Check out code	2026-01-31T09:00:12.8483991Z Receiving objects:  94% (127/135)
+analyze	Check out code	2026-01-31T09:00:12.8485642Z Receiving objects:  95% (129/135)
+analyze	Check out code	2026-01-31T09:00:12.8487318Z Receiving objects:  96% (130/135)
+analyze	Check out code	2026-01-31T09:00:12.8570594Z Receiving objects:  97% (131/135)
+analyze	Check out code	2026-01-31T09:00:12.8572802Z Receiving objects:  98% (133/135)
+analyze	Check out code	2026-01-31T09:00:12.8574384Z Receiving objects:  99% (134/135)
+analyze	Check out code	2026-01-31T09:00:12.8576060Z Receiving objects: 100% (135/135)
+analyze	Check out code	2026-01-31T09:00:12.8578254Z Receiving objects: 100% (135/135), 491.57 KiB | 9.27 MiB/s, done.
+analyze	Check out code	2026-01-31T09:00:12.8581094Z Resolving deltas:   0% (0/7)
+analyze	Check out code	2026-01-31T09:00:12.8582764Z Resolving deltas:  14% (1/7)
+analyze	Check out code	2026-01-31T09:00:12.8584375Z Resolving deltas:  28% (2/7)
+analyze	Check out code	2026-01-31T09:00:12.8586013Z Resolving deltas:  42% (3/7)
+analyze	Check out code	2026-01-31T09:00:12.8587671Z Resolving deltas:  57% (4/7)
+analyze	Check out code	2026-01-31T09:00:12.8588864Z Resolving deltas:  71% (5/7)
+analyze	Check out code	2026-01-31T09:00:12.8589862Z Resolving deltas:  85% (6/7)
+analyze	Check out code	2026-01-31T09:00:12.8591094Z Resolving deltas: 100% (7/7)
+analyze	Check out code	2026-01-31T09:00:12.8592120Z Resolving deltas: 100% (7/7), done.
+analyze	Check out code	2026-01-31T09:00:12.8779487Z From https://github.com/bruciato87/zerocosthunter
+analyze	Check out code	2026-01-31T09:00:12.8782470Z  * [new ref]         3e5471c8f00497ec4dd2bbedd83c381f03642143 -> origin/main
+analyze	Check out code	2026-01-31T09:00:12.8855619Z ##[endgroup]
+analyze	Check out code	2026-01-31T09:00:12.8857787Z ##[group]Determining the checkout info
+analyze	Check out code	2026-01-31T09:00:12.8859975Z ##[endgroup]
+analyze	Check out code	2026-01-31T09:00:12.8862273Z ##[group]Checking out the ref
+analyze	Check out code	2026-01-31T09:00:12.8864316Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+analyze	Check out code	2026-01-31T09:00:12.9082883Z Switched to a new branch 'main'
+analyze	Check out code	2026-01-31T09:00:12.9085948Z branch 'main' set up to track 'origin/main'.
+analyze	Check out code	2026-01-31T09:00:12.9094303Z ##[endgroup]
+analyze	Check out code	2026-01-31T09:00:12.9126600Z [command]/usr/bin/git log -1 --format='%H'
+analyze	Check out code	2026-01-31T09:00:12.9146817Z '3e5471c8f00497ec4dd2bbedd83c381f03642143'
+analyze	Set up Python	﻿2026-01-31T09:00:12.9445682Z ##[group]Run actions/setup-python@v4
+analyze	Set up Python	2026-01-31T09:00:12.9446782Z with:
+analyze	Set up Python	2026-01-31T09:00:12.9447516Z   python-version: 3.13
+analyze	Set up Python	2026-01-31T09:00:12.9448372Z   cache: pip
+analyze	Set up Python	2026-01-31T09:00:12.9449153Z   check-latest: false
+analyze	Set up Python	2026-01-31T09:00:12.9450247Z   token: ***
+analyze	Set up Python	2026-01-31T09:00:12.9451319Z   update-environment: true
+analyze	Set up Python	2026-01-31T09:00:12.9452325Z   allow-prereleases: false
+analyze	Set up Python	2026-01-31T09:00:12.9453230Z ##[endgroup]
+analyze	Set up Python	2026-01-31T09:00:13.1158005Z ##[group]Installed versions
+analyze	Set up Python	2026-01-31T09:00:13.1702942Z Successfully set up CPython (3.13.11)
+analyze	Set up Python	2026-01-31T09:00:13.1704131Z ##[endgroup]
+analyze	Set up Python	2026-01-31T09:00:13.2352391Z [command]/opt/hostedtoolcache/Python/3.13.11/x64/bin/pip cache dir
+analyze	Set up Python	2026-01-31T09:00:14.5342777Z /home/runner/.cache/pip
+analyze	Set up Python	2026-01-31T09:00:14.6774537Z Cache hit for: setup-python-Linux-24.04-Ubuntu-python-3.13.11-pip-a95b1e6c91b56088b6c615945e2f4ac67a62799decbb011d2d92b76d5f95ac0c
+analyze	Set up Python	2026-01-31T09:00:15.1618551Z Received 89562880 of 89562880 (100.0%), 188.6 MBs/sec
+analyze	Set up Python	2026-01-31T09:00:15.1619401Z Cache Size: ~85 MB (89562880 B)
+analyze	Set up Python	2026-01-31T09:00:15.1656393Z [command]/usr/bin/tar -xf /home/runner/work/_temp/7d302531-451a-42dc-96c1-2ad7eb70ab23/cache.tzst -P -C /home/runner/work/zerocosthunter/zerocosthunter --use-compress-program unzstd
+analyze	Set up Python	2026-01-31T09:00:15.3867619Z Cache restored successfully
+analyze	Set up Python	2026-01-31T09:00:15.4042456Z Cache restored from key: setup-python-Linux-24.04-Ubuntu-python-3.13.11-pip-a95b1e6c91b56088b6c615945e2f4ac67a62799decbb011d2d92b76d5f95ac0c
+analyze	Install dependencies	﻿2026-01-31T09:00:15.4214410Z ##[group]Run python -m pip install --upgrade pip
+analyze	Install dependencies	2026-01-31T09:00:15.4214907Z [36;1mpython -m pip install --upgrade pip[0m
+analyze	Install dependencies	2026-01-31T09:00:15.4215361Z [36;1mif [ -f requirements.txt ]; then pip install -r requirements.txt; fi[0m
+analyze	Install dependencies	2026-01-31T09:00:15.4253715Z shell: /usr/bin/bash -e {0}
+analyze	Install dependencies	2026-01-31T09:00:15.4254026Z env:
+analyze	Install dependencies	2026-01-31T09:00:15.4254308Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.11/x64
+analyze	Install dependencies	2026-01-31T09:00:15.4254767Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.11/x64/lib/pkgconfig
+analyze	Install dependencies	2026-01-31T09:00:15.4255226Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.11/x64
+analyze	Install dependencies	2026-01-31T09:00:15.4255653Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.11/x64
+analyze	Install dependencies	2026-01-31T09:00:15.4256056Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.11/x64
+analyze	Install dependencies	2026-01-31T09:00:15.4256449Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.11/x64/lib
+analyze	Install dependencies	2026-01-31T09:00:15.4257020Z ##[endgroup]
+analyze	Install dependencies	2026-01-31T09:00:16.6942662Z Requirement already satisfied: pip in /opt/hostedtoolcache/Python/3.13.11/x64/lib/python3.13/site-packages (25.3)
+analyze	Install dependencies	2026-01-31T09:00:16.8123072Z Collecting pip
+analyze	Install dependencies	2026-01-31T09:00:16.8797914Z   Downloading pip-26.0-py3-none-any.whl.metadata (4.7 kB)
+analyze	Install dependencies	2026-01-31T09:00:16.8924015Z Downloading pip-26.0-py3-none-any.whl (1.8 MB)
+analyze	Install dependencies	2026-01-31T09:00:17.0306768Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.8/1.8 MB 15.9 MB/s  0:00:00
+analyze	Install dependencies	2026-01-31T09:00:17.0731036Z Installing collected packages: pip
+analyze	Install dependencies	2026-01-31T09:00:17.0732758Z   Attempting uninstall: pip
+analyze	Install dependencies	2026-01-31T09:00:17.0759546Z     Found existing installation: pip 25.3
+analyze	Install dependencies	2026-01-31T09:00:17.1486817Z     Uninstalling pip-25.3:
+analyze	Install dependencies	2026-01-31T09:00:17.1587763Z       Successfully uninstalled pip-25.3
+analyze	Install dependencies	2026-01-31T09:00:18.0466586Z Successfully installed pip-26.0
+analyze	Install dependencies	2026-01-31T09:00:19.0691206Z Collecting supabase>=2.10.0 (from -r requirements.txt (line 1))
+analyze	Install dependencies	2026-01-31T09:00:19.0705123Z   Using cached supabase-2.27.2-py3-none-any.whl.metadata (4.6 kB)
+analyze	Install dependencies	2026-01-31T09:00:19.0976926Z Collecting google-genai>=1.50.0 (from -r requirements.txt (line 2))
+analyze	Install dependencies	2026-01-31T09:00:19.1603518Z   Downloading google_genai-1.61.0-py3-none-any.whl.metadata (53 kB)
+analyze	Install dependencies	2026-01-31T09:00:19.2037389Z Collecting yfinance>=0.2.50 (from -r requirements.txt (line 3))
+analyze	Install dependencies	2026-01-31T09:00:19.2048920Z   Using cached yfinance-1.1.0-py2.py3-none-any.whl.metadata (6.1 kB)
+analyze	Install dependencies	2026-01-31T09:00:19.2188702Z Collecting feedparser>=6.0.10 (from -r requirements.txt (line 4))
+analyze	Install dependencies	2026-01-31T09:00:19.2199871Z   Using cached feedparser-6.0.12-py3-none-any.whl.metadata (2.7 kB)
+analyze	Install dependencies	2026-01-31T09:00:19.2467803Z Collecting python-telegram-bot>=21.0 (from -r requirements.txt (line 5))
+analyze	Install dependencies	2026-01-31T09:00:19.2479220Z   Using cached python_telegram_bot-22.6-py3-none-any.whl.metadata (17 kB)
+analyze	Install dependencies	2026-01-31T09:00:19.2662126Z Collecting python-dotenv>=1.0.1 (from -r requirements.txt (line 6))
+analyze	Install dependencies	2026-01-31T09:00:19.2673731Z   Using cached python_dotenv-1.2.1-py3-none-any.whl.metadata (25 kB)
+analyze	Install dependencies	2026-01-31T09:00:19.3712845Z Collecting pandas>=2.2.0 (from -r requirements.txt (line 7))
+analyze	Install dependencies	2026-01-31T09:00:19.3726022Z   Using cached pandas-3.0.0-cp313-cp313-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl.metadata (79 kB)
+analyze	Install dependencies	2026-01-31T09:00:19.4098345Z Collecting ta>=0.11.0 (from -r requirements.txt (line 8))
+analyze	Install dependencies	2026-01-31T09:00:19.4099828Z   Using cached ta-0.11.0-py3-none-any.whl
+analyze	Install dependencies	2026-01-31T09:00:19.4280101Z Collecting Flask>=3.1.0 (from -r requirements.txt (line 9))
+analyze	Install dependencies	2026-01-31T09:00:19.4291543Z   Using cached flask-3.1.2-py3-none-any.whl.metadata (3.2 kB)
+analyze	Install dependencies	2026-01-31T09:00:19.4451841Z Collecting gunicorn>=23.0.0 (from -r requirements.txt (line 10))
+analyze	Install dependencies	2026-01-31T09:00:19.4463480Z   Using cached gunicorn-24.1.1-py3-none-any.whl.metadata (4.6 kB)
+analyze	Install dependencies	2026-01-31T09:00:19.5079955Z Collecting curl_cffi>=0.13.0 (from -r requirements.txt (line 11))
+analyze	Install dependencies	2026-01-31T09:00:19.5091911Z   Using cached curl_cffi-0.14.0-cp39-abi3-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl.metadata (15 kB)
+analyze	Install dependencies	2026-01-31T09:00:19.5299647Z Collecting trafilatura>=1.12.0 (from -r requirements.txt (line 12))
+analyze	Install dependencies	2026-01-31T09:00:19.5311237Z   Using cached trafilatura-2.0.0-py3-none-any.whl.metadata (12 kB)
+analyze	Install dependencies	2026-01-31T09:00:19.7014068Z Collecting numpy>=2.0.0 (from -r requirements.txt (line 13))
+analyze	Install dependencies	2026-01-31T09:00:19.7026768Z   Using cached numpy-2.4.1-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (6.6 kB)
+analyze	Install dependencies	2026-01-31T09:00:19.7302510Z Collecting pytest>=7.0.0 (from -r requirements.txt (line 14))
+analyze	Install dependencies	2026-01-31T09:00:19.7313433Z   Using cached pytest-9.0.2-py3-none-any.whl.metadata (7.6 kB)
+analyze	Install dependencies	2026-01-31T09:00:19.7487686Z Collecting pytest-mock>=3.10.0 (from -r requirements.txt (line 15))
+analyze	Install dependencies	2026-01-31T09:00:19.7498417Z   Using cached pytest_mock-3.15.1-py3-none-any.whl.metadata (3.9 kB)
+analyze	Install dependencies	2026-01-31T09:00:19.7645085Z Collecting pytest-cov>=4.0.0 (from -r requirements.txt (line 16))
+analyze	Install dependencies	2026-01-31T09:00:19.7655911Z   Using cached pytest_cov-7.0.0-py3-none-any.whl.metadata (31 kB)
+analyze	Install dependencies	2026-01-31T09:00:19.7853918Z Collecting pytest-asyncio>=0.21.0 (from -r requirements.txt (line 17))
+analyze	Install dependencies	2026-01-31T09:00:19.7864785Z   Using cached pytest_asyncio-1.3.0-py3-none-any.whl.metadata (4.1 kB)
+analyze	Install dependencies	2026-01-31T09:00:19.8004433Z Collecting nest-asyncio>=1.6.0 (from -r requirements.txt (line 18))
+analyze	Install dependencies	2026-01-31T09:00:19.8015151Z   Using cached nest_asyncio-1.6.0-py3-none-any.whl.metadata (2.8 kB)
+analyze	Install dependencies	2026-01-31T09:00:19.8218638Z Collecting pypdf>=5.0.0 (from -r requirements.txt (line 19))
+analyze	Install dependencies	2026-01-31T09:00:19.8290133Z   Downloading pypdf-6.6.2-py3-none-any.whl.metadata (7.1 kB)
+analyze	Install dependencies	2026-01-31T09:00:19.8476488Z Collecting realtime==2.27.2 (from supabase>=2.10.0->-r requirements.txt (line 1))
+analyze	Install dependencies	2026-01-31T09:00:19.8489118Z   Using cached realtime-2.27.2-py3-none-any.whl.metadata (7.0 kB)
+analyze	Install dependencies	2026-01-31T09:00:19.8636372Z Collecting supabase-functions==2.27.2 (from supabase>=2.10.0->-r requirements.txt (line 1))
+analyze	Install dependencies	2026-01-31T09:00:19.8647502Z   Using cached supabase_functions-2.27.2-py3-none-any.whl.metadata (2.4 kB)
+analyze	Install dependencies	2026-01-31T09:00:19.8799811Z Collecting storage3==2.27.2 (from supabase>=2.10.0->-r requirements.txt (line 1))
+analyze	Install dependencies	2026-01-31T09:00:19.8811152Z   Using cached storage3-2.27.2-py3-none-any.whl.metadata (2.1 kB)
+analyze	Install dependencies	2026-01-31T09:00:19.8953680Z Collecting supabase-auth==2.27.2 (from supabase>=2.10.0->-r requirements.txt (line 1))
+analyze	Install dependencies	2026-01-31T09:00:19.8964989Z   Using cached supabase_auth-2.27.2-py3-none-any.whl.metadata (6.4 kB)
+analyze	Install dependencies	2026-01-31T09:00:19.9124653Z Collecting postgrest==2.27.2 (from supabase>=2.10.0->-r requirements.txt (line 1))
+analyze	Install dependencies	2026-01-31T09:00:19.9135836Z   Using cached postgrest-2.27.2-py3-none-any.whl.metadata (3.4 kB)
+analyze	Install dependencies	2026-01-31T09:00:19.9308270Z Collecting httpx<0.29,>=0.26 (from supabase>=2.10.0->-r requirements.txt (line 1))
+analyze	Install dependencies	2026-01-31T09:00:19.9319898Z   Using cached httpx-0.28.1-py3-none-any.whl.metadata (7.1 kB)
+analyze	Install dependencies	2026-01-31T09:00:20.1591702Z Collecting yarl>=1.22.0 (from supabase>=2.10.0->-r requirements.txt (line 1))
+analyze	Install dependencies	2026-01-31T09:00:20.1606140Z   Using cached yarl-1.22.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (75 kB)
+analyze	Install dependencies	2026-01-31T09:00:20.1791540Z Collecting deprecation>=2.1.0 (from postgrest==2.27.2->supabase>=2.10.0->-r requirements.txt (line 1))
+analyze	Install dependencies	2026-01-31T09:00:20.1802528Z   Using cached deprecation-2.1.0-py2.py3-none-any.whl.metadata (4.6 kB)
+analyze	Install dependencies	2026-01-31T09:00:20.2821394Z Collecting pydantic<3.0,>=1.9 (from postgrest==2.27.2->supabase>=2.10.0->-r requirements.txt (line 1))
+analyze	Install dependencies	2026-01-31T09:00:20.2833690Z   Using cached pydantic-2.12.5-py3-none-any.whl.metadata (90 kB)
+analyze	Install dependencies	2026-01-31T09:00:20.3061515Z Collecting typing-extensions>=4.14.0 (from realtime==2.27.2->supabase>=2.10.0->-r requirements.txt (line 1))
+analyze	Install dependencies	2026-01-31T09:00:20.3072237Z   Using cached typing_extensions-4.15.0-py3-none-any.whl.metadata (3.3 kB)
+analyze	Install dependencies	2026-01-31T09:00:20.3871744Z Collecting websockets<16,>=11 (from realtime==2.27.2->supabase>=2.10.0->-r requirements.txt (line 1))
+analyze	Install dependencies	2026-01-31T09:00:20.3885149Z   Using cached websockets-15.0.1-cp313-cp313-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (6.8 kB)
+analyze	Install dependencies	2026-01-31T09:00:20.4750689Z Collecting pyiceberg>=0.10.0 (from storage3==2.27.2->supabase>=2.10.0->-r requirements.txt (line 1))
+analyze	Install dependencies	2026-01-31T09:00:20.4752097Z   Using cached pyiceberg-0.10.0-cp313-cp313-manylinux_2_39_x86_64.whl
+analyze	Install dependencies	2026-01-31T09:00:20.5029036Z Collecting pyjwt>=2.10.1 (from pyjwt[crypto]>=2.10.1->supabase-auth==2.27.2->supabase>=2.10.0->-r requirements.txt (line 1))
+analyze	Install dependencies	2026-01-31T09:00:20.5096806Z   Downloading pyjwt-2.11.0-py3-none-any.whl.metadata (4.0 kB)
+analyze	Install dependencies	2026-01-31T09:00:20.5255170Z Collecting strenum>=0.4.15 (from supabase-functions==2.27.2->supabase>=2.10.0->-r requirements.txt (line 1))
+analyze	Install dependencies	2026-01-31T09:00:20.5265647Z   Using cached StrEnum-0.4.15-py3-none-any.whl.metadata (5.3 kB)
+analyze	Install dependencies	2026-01-31T09:00:20.5464139Z Collecting anyio (from httpx<0.29,>=0.26->supabase>=2.10.0->-r requirements.txt (line 1))
+analyze	Install dependencies	2026-01-31T09:00:20.5475045Z   Using cached anyio-4.12.1-py3-none-any.whl.metadata (4.3 kB)
+analyze	Install dependencies	2026-01-31T09:00:20.5679200Z Collecting certifi (from httpx<0.29,>=0.26->supabase>=2.10.0->-r requirements.txt (line 1))
+analyze	Install dependencies	2026-01-31T09:00:20.5690539Z   Using cached certifi-2026.1.4-py3-none-any.whl.metadata (2.5 kB)
+analyze	Install dependencies	2026-01-31T09:00:20.5864918Z Collecting httpcore==1.* (from httpx<0.29,>=0.26->supabase>=2.10.0->-r requirements.txt (line 1))
+analyze	Install dependencies	2026-01-31T09:00:20.5875980Z   Using cached httpcore-1.0.9-py3-none-any.whl.metadata (21 kB)
+analyze	Install dependencies	2026-01-31T09:00:20.6031875Z Collecting idna (from httpx<0.29,>=0.26->supabase>=2.10.0->-r requirements.txt (line 1))
+analyze	Install dependencies	2026-01-31T09:00:20.6043350Z   Using cached idna-3.11-py3-none-any.whl.metadata (8.4 kB)
+analyze	Install dependencies	2026-01-31T09:00:20.6176194Z Collecting h11>=0.16 (from httpcore==1.*->httpx<0.29,>=0.26->supabase>=2.10.0->-r requirements.txt (line 1))
+analyze	Install dependencies	2026-01-31T09:00:20.6187392Z   Using cached h11-0.16.0-py3-none-any.whl.metadata (8.3 kB)
+analyze	Install dependencies	2026-01-31T09:00:20.6355493Z Collecting h2<5,>=3 (from httpx[http2]<0.29,>=0.26->postgrest==2.27.2->supabase>=2.10.0->-r requirements.txt (line 1))
+analyze	Install dependencies	2026-01-31T09:00:20.6366355Z   Using cached h2-4.3.0-py3-none-any.whl.metadata (5.1 kB)
+analyze	Install dependencies	2026-01-31T09:00:20.6500637Z Collecting hyperframe<7,>=6.1 (from h2<5,>=3->httpx[http2]<0.29,>=0.26->postgrest==2.27.2->supabase>=2.10.0->-r requirements.txt (line 1))
+analyze	Install dependencies	2026-01-31T09:00:20.6511310Z   Using cached hyperframe-6.1.0-py3-none-any.whl.metadata (4.3 kB)
+analyze	Install dependencies	2026-01-31T09:00:20.6628856Z Collecting hpack<5,>=4.1 (from h2<5,>=3->httpx[http2]<0.29,>=0.26->postgrest==2.27.2->supabase>=2.10.0->-r requirements.txt (line 1))
+analyze	Install dependencies	2026-01-31T09:00:20.6639415Z   Using cached hpack-4.1.0-py3-none-any.whl.metadata (4.6 kB)
+analyze	Install dependencies	2026-01-31T09:00:20.6768951Z Collecting annotated-types>=0.6.0 (from pydantic<3.0,>=1.9->postgrest==2.27.2->supabase>=2.10.0->-r requirements.txt (line 1))
+analyze	Install dependencies	2026-01-31T09:00:20.6779702Z   Using cached annotated_types-0.7.0-py3-none-any.whl.metadata (15 kB)
+analyze	Install dependencies	2026-01-31T09:00:21.3181366Z Collecting pydantic-core==2.41.5 (from pydantic<3.0,>=1.9->postgrest==2.27.2->supabase>=2.10.0->-r requirements.txt (line 1))
+analyze	Install dependencies	2026-01-31T09:00:21.3194863Z   Using cached pydantic_core-2.41.5-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (7.3 kB)
+analyze	Install dependencies	2026-01-31T09:00:21.3343841Z Collecting typing-inspection>=0.4.2 (from pydantic<3.0,>=1.9->postgrest==2.27.2->supabase>=2.10.0->-r requirements.txt (line 1))
+analyze	Install dependencies	2026-01-31T09:00:21.3355324Z   Using cached typing_inspection-0.4.2-py3-none-any.whl.metadata (2.6 kB)
+analyze	Install dependencies	2026-01-31T09:00:21.3722639Z Collecting google-auth<3.0.0,>=2.47.0 (from google-auth[requests]<3.0.0,>=2.47.0->google-genai>=1.50.0->-r requirements.txt (line 2))
+analyze	Install dependencies	2026-01-31T09:00:21.3794425Z   Downloading google_auth-2.48.0-py3-none-any.whl.metadata (6.2 kB)
+analyze	Install dependencies	2026-01-31T09:00:21.4091031Z Collecting requests<3.0.0,>=2.28.1 (from google-genai>=1.50.0->-r requirements.txt (line 2))
+analyze	Install dependencies	2026-01-31T09:00:21.4103191Z   Using cached requests-2.32.5-py3-none-any.whl.metadata (4.9 kB)
+analyze	Install dependencies	2026-01-31T09:00:21.4267700Z Collecting tenacity<9.2.0,>=8.2.3 (from google-genai>=1.50.0->-r requirements.txt (line 2))
+analyze	Install dependencies	2026-01-31T09:00:21.4284491Z   Using cached tenacity-9.1.2-py3-none-any.whl.metadata (1.2 kB)
+analyze	Install dependencies	2026-01-31T09:00:21.4467100Z Collecting distro<2,>=1.7.0 (from google-genai>=1.50.0->-r requirements.txt (line 2))
+analyze	Install dependencies	2026-01-31T09:00:21.4478194Z   Using cached distro-1.9.0-py3-none-any.whl.metadata (6.8 kB)
+analyze	Install dependencies	2026-01-31T09:00:21.4592159Z Collecting sniffio (from google-genai>=1.50.0->-r requirements.txt (line 2))
+analyze	Install dependencies	2026-01-31T09:00:21.4602046Z   Using cached sniffio-1.3.1-py3-none-any.whl.metadata (3.9 kB)
+analyze	Install dependencies	2026-01-31T09:00:21.4827869Z Collecting pyasn1-modules>=0.2.1 (from google-auth<3.0.0,>=2.47.0->google-auth[requests]<3.0.0,>=2.47.0->google-genai>=1.50.0->-r requirements.txt (line 2))
+analyze	Install dependencies	2026-01-31T09:00:21.4839849Z   Using cached pyasn1_modules-0.4.2-py3-none-any.whl.metadata (3.5 kB)
+analyze	Install dependencies	2026-01-31T09:00:21.6757266Z Collecting cryptography>=38.0.3 (from google-auth<3.0.0,>=2.47.0->google-auth[requests]<3.0.0,>=2.47.0->google-genai>=1.50.0->-r requirements.txt (line 2))
+analyze	Install dependencies	2026-01-31T09:00:21.6831733Z   Downloading cryptography-46.0.4-cp311-abi3-manylinux_2_34_x86_64.whl.metadata (5.7 kB)
+analyze	Install dependencies	2026-01-31T09:00:21.7038126Z Collecting rsa<5,>=3.1.4 (from google-auth<3.0.0,>=2.47.0->google-auth[requests]<3.0.0,>=2.47.0->google-genai>=1.50.0->-r requirements.txt (line 2))
+analyze	Install dependencies	2026-01-31T09:00:21.7049806Z   Using cached rsa-4.9.1-py3-none-any.whl.metadata (5.6 kB)
+analyze	Install dependencies	2026-01-31T09:00:21.7862771Z Collecting charset_normalizer<4,>=2 (from requests<3.0.0,>=2.28.1->google-genai>=1.50.0->-r requirements.txt (line 2))
+analyze	Install dependencies	2026-01-31T09:00:21.7875726Z   Using cached charset_normalizer-3.4.4-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (37 kB)
+analyze	Install dependencies	2026-01-31T09:00:21.8136661Z Collecting urllib3<3,>=1.21.1 (from requests<3.0.0,>=2.28.1->google-genai>=1.50.0->-r requirements.txt (line 2))
+analyze	Install dependencies	2026-01-31T09:00:21.8149694Z   Using cached urllib3-2.6.3-py3-none-any.whl.metadata (6.9 kB)
+analyze	Install dependencies	2026-01-31T09:00:21.8428737Z Collecting pyasn1>=0.1.3 (from rsa<5,>=3.1.4->google-auth<3.0.0,>=2.47.0->google-auth[requests]<3.0.0,>=2.47.0->google-genai>=1.50.0->-r requirements.txt (line 2))
+analyze	Install dependencies	2026-01-31T09:00:21.8441412Z   Using cached pyasn1-0.6.2-py3-none-any.whl.metadata (8.4 kB)
+analyze	Install dependencies	2026-01-31T09:00:21.8644152Z Collecting multitasking>=0.0.7 (from yfinance>=0.2.50->-r requirements.txt (line 3))
+analyze	Install dependencies	2026-01-31T09:00:21.8645194Z   Using cached multitasking-0.0.12-py3-none-any.whl
+analyze	Install dependencies	2026-01-31T09:00:21.8844413Z Collecting platformdirs>=2.0.0 (from yfinance>=0.2.50->-r requirements.txt (line 3))
+analyze	Install dependencies	2026-01-31T09:00:21.8858618Z   Using cached platformdirs-4.5.1-py3-none-any.whl.metadata (12 kB)
+analyze	Install dependencies	2026-01-31T09:00:21.9217536Z Collecting pytz>=2022.5 (from yfinance>=0.2.50->-r requirements.txt (line 3))
+analyze	Install dependencies	2026-01-31T09:00:21.9231737Z   Using cached pytz-2025.2-py2.py3-none-any.whl.metadata (22 kB)
+analyze	Install dependencies	2026-01-31T09:00:21.9635173Z Collecting frozendict>=2.3.4 (from yfinance>=0.2.50->-r requirements.txt (line 3))
+analyze	Install dependencies	2026-01-31T09:00:21.9647987Z   Using cached frozendict-2.4.7-py3-none-any.whl.metadata (23 kB)
+analyze	Install dependencies	2026-01-31T09:00:21.9834454Z Collecting peewee>=3.16.2 (from yfinance>=0.2.50->-r requirements.txt (line 3))
+analyze	Install dependencies	2026-01-31T09:00:21.9845868Z   Using cached peewee-3.19.0-py3-none-any.whl.metadata (7.0 kB)
+analyze	Install dependencies	2026-01-31T09:00:22.0034797Z Collecting beautifulsoup4>=4.11.1 (from yfinance>=0.2.50->-r requirements.txt (line 3))
+analyze	Install dependencies	2026-01-31T09:00:22.0046367Z   Using cached beautifulsoup4-4.14.3-py3-none-any.whl.metadata (3.8 kB)
+analyze	Install dependencies	2026-01-31T09:00:22.0079440Z Collecting curl_cffi>=0.13.0 (from -r requirements.txt (line 11))
+analyze	Install dependencies	2026-01-31T09:00:22.0091376Z   Using cached curl_cffi-0.13.0-cp39-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (13 kB)
+analyze	Install dependencies	2026-01-31T09:00:22.1794785Z Collecting protobuf>=3.19.0 (from yfinance>=0.2.50->-r requirements.txt (line 3))
+analyze	Install dependencies	2026-01-31T09:00:22.1883486Z   Downloading protobuf-6.33.5-cp39-abi3-manylinux2014_x86_64.whl.metadata (593 bytes)
+analyze	Install dependencies	2026-01-31T09:00:22.2947681Z Collecting cffi>=1.12.0 (from curl_cffi>=0.13.0->-r requirements.txt (line 11))
+analyze	Install dependencies	2026-01-31T09:00:22.2961947Z   Using cached cffi-2.0.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (2.6 kB)
+analyze	Install dependencies	2026-01-31T09:00:22.3104686Z Collecting sgmllib3k (from feedparser>=6.0.10->-r requirements.txt (line 4))
+analyze	Install dependencies	2026-01-31T09:00:22.3105860Z   Using cached sgmllib3k-1.0.0-py3-none-any.whl
+analyze	Install dependencies	2026-01-31T09:00:22.3294822Z Collecting python-dateutil>=2.8.2 (from pandas>=2.2.0->-r requirements.txt (line 7))
+analyze	Install dependencies	2026-01-31T09:00:22.3307756Z   Using cached python_dateutil-2.9.0.post0-py2.py3-none-any.whl.metadata (8.4 kB)
+analyze	Install dependencies	2026-01-31T09:00:22.3457338Z Collecting blinker>=1.9.0 (from Flask>=3.1.0->-r requirements.txt (line 9))
+analyze	Install dependencies	2026-01-31T09:00:22.3469937Z   Using cached blinker-1.9.0-py3-none-any.whl.metadata (1.6 kB)
+analyze	Install dependencies	2026-01-31T09:00:22.3641799Z Collecting click>=8.1.3 (from Flask>=3.1.0->-r requirements.txt (line 9))
+analyze	Install dependencies	2026-01-31T09:00:22.3655035Z   Using cached click-8.3.1-py3-none-any.whl.metadata (2.6 kB)
+analyze	Install dependencies	2026-01-31T09:00:22.3785995Z Collecting itsdangerous>=2.2.0 (from Flask>=3.1.0->-r requirements.txt (line 9))
+analyze	Install dependencies	2026-01-31T09:00:22.3798462Z   Using cached itsdangerous-2.2.0-py3-none-any.whl.metadata (1.9 kB)
+analyze	Install dependencies	2026-01-31T09:00:22.3952718Z Collecting jinja2>=3.1.2 (from Flask>=3.1.0->-r requirements.txt (line 9))
+analyze	Install dependencies	2026-01-31T09:00:22.3965114Z   Using cached jinja2-3.1.6-py3-none-any.whl.metadata (2.9 kB)
+analyze	Install dependencies	2026-01-31T09:00:22.4502592Z Collecting markupsafe>=2.1.1 (from Flask>=3.1.0->-r requirements.txt (line 9))
+analyze	Install dependencies	2026-01-31T09:00:22.4518358Z   Using cached markupsafe-3.0.3-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (2.7 kB)
+analyze	Install dependencies	2026-01-31T09:00:22.4712285Z Collecting werkzeug>=3.1.0 (from Flask>=3.1.0->-r requirements.txt (line 9))
+analyze	Install dependencies	2026-01-31T09:00:22.4726406Z   Using cached werkzeug-3.1.5-py3-none-any.whl.metadata (4.0 kB)
+analyze	Install dependencies	2026-01-31T09:00:22.4917270Z Collecting packaging (from gunicorn>=23.0.0->-r requirements.txt (line 10))
+analyze	Install dependencies	2026-01-31T09:00:22.4930244Z   Using cached packaging-26.0-py3-none-any.whl.metadata (3.3 kB)
+analyze	Install dependencies	2026-01-31T09:00:22.5090260Z Collecting courlan>=1.3.2 (from trafilatura>=1.12.0->-r requirements.txt (line 12))
+analyze	Install dependencies	2026-01-31T09:00:22.5102833Z   Using cached courlan-1.3.2-py3-none-any.whl.metadata (17 kB)
+analyze	Install dependencies	2026-01-31T09:00:22.5279999Z Collecting htmldate>=1.9.2 (from trafilatura>=1.12.0->-r requirements.txt (line 12))
+analyze	Install dependencies	2026-01-31T09:00:22.5292342Z   Using cached htmldate-1.9.4-py3-none-any.whl.metadata (10 kB)
+analyze	Install dependencies	2026-01-31T09:00:22.5424460Z Collecting justext>=3.0.1 (from trafilatura>=1.12.0->-r requirements.txt (line 12))
+analyze	Install dependencies	2026-01-31T09:00:22.5436625Z   Using cached justext-3.0.2-py2.py3-none-any.whl.metadata (7.3 kB)
+analyze	Install dependencies	2026-01-31T09:00:22.7174902Z Collecting lxml>=5.3.0 (from trafilatura>=1.12.0->-r requirements.txt (line 12))
+analyze	Install dependencies	2026-01-31T09:00:22.7191443Z   Using cached lxml-6.0.2-cp313-cp313-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl.metadata (3.6 kB)
+analyze	Install dependencies	2026-01-31T09:00:22.7369522Z Collecting iniconfig>=1.0.1 (from pytest>=7.0.0->-r requirements.txt (line 14))
+analyze	Install dependencies	2026-01-31T09:00:22.7381315Z   Using cached iniconfig-2.3.0-py3-none-any.whl.metadata (2.5 kB)
+analyze	Install dependencies	2026-01-31T09:00:22.7520378Z Collecting pluggy<2,>=1.5 (from pytest>=7.0.0->-r requirements.txt (line 14))
+analyze	Install dependencies	2026-01-31T09:00:22.7532523Z   Using cached pluggy-1.6.0-py3-none-any.whl.metadata (4.8 kB)
+analyze	Install dependencies	2026-01-31T09:00:22.7755306Z Collecting pygments>=2.7.2 (from pytest>=7.0.0->-r requirements.txt (line 14))
+analyze	Install dependencies	2026-01-31T09:00:22.7767864Z   Using cached pygments-2.19.2-py3-none-any.whl.metadata (2.5 kB)
+analyze	Install dependencies	2026-01-31T09:00:23.2102661Z Collecting coverage>=7.10.6 (from coverage[toml]>=7.10.6->pytest-cov>=4.0.0->-r requirements.txt (line 16))
+analyze	Install dependencies	2026-01-31T09:00:23.2122777Z   Using cached coverage-7.13.2-cp313-cp313-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl.metadata (8.5 kB)
+analyze	Install dependencies	2026-01-31T09:00:23.2376984Z Collecting soupsieve>=1.6.1 (from beautifulsoup4>=4.11.1->yfinance>=0.2.50->-r requirements.txt (line 3))
+analyze	Install dependencies	2026-01-31T09:00:23.2388367Z   Using cached soupsieve-2.8.3-py3-none-any.whl.metadata (4.6 kB)
+analyze	Install dependencies	2026-01-31T09:00:23.2547953Z Collecting pycparser (from cffi>=1.12.0->curl_cffi>=0.13.0->-r requirements.txt (line 11))
+analyze	Install dependencies	2026-01-31T09:00:23.2558787Z   Using cached pycparser-3.0-py3-none-any.whl.metadata (8.2 kB)
+analyze	Install dependencies	2026-01-31T09:00:23.2723875Z Collecting babel>=2.16.0 (from courlan>=1.3.2->trafilatura>=1.12.0->-r requirements.txt (line 12))
+analyze	Install dependencies	2026-01-31T09:00:23.2736139Z   Using cached babel-2.17.0-py3-none-any.whl.metadata (2.0 kB)
+analyze	Install dependencies	2026-01-31T09:00:23.2930712Z Collecting tld>=0.13 (from courlan>=1.3.2->trafilatura>=1.12.0->-r requirements.txt (line 12))
+analyze	Install dependencies	2026-01-31T09:00:23.2942328Z   Using cached tld-0.13.1-py2.py3-none-any.whl.metadata (10 kB)
+analyze	Install dependencies	2026-01-31T09:00:23.3167542Z Collecting dateparser>=1.1.2 (from htmldate>=1.9.2->trafilatura>=1.12.0->-r requirements.txt (line 12))
+analyze	Install dependencies	2026-01-31T09:00:23.3179524Z   Using cached dateparser-1.2.2-py3-none-any.whl.metadata (29 kB)
+analyze	Install dependencies	2026-01-31T09:00:23.6372068Z Collecting regex>=2024.9.11 (from dateparser>=1.1.2->htmldate>=1.9.2->trafilatura>=1.12.0->-r requirements.txt (line 12))
+analyze	Install dependencies	2026-01-31T09:00:23.6386416Z   Using cached regex-2026.1.15-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (40 kB)
+analyze	Install dependencies	2026-01-31T09:00:23.6562225Z Collecting tzlocal>=0.2 (from dateparser>=1.1.2->htmldate>=1.9.2->trafilatura>=1.12.0->-r requirements.txt (line 12))
+analyze	Install dependencies	2026-01-31T09:00:23.6574510Z   Using cached tzlocal-5.3.1-py3-none-any.whl.metadata (7.6 kB)
+analyze	Install dependencies	2026-01-31T09:00:23.6779610Z Collecting lxml_html_clean (from lxml[html_clean]>=4.4.2->justext>=3.0.1->trafilatura>=1.12.0->-r requirements.txt (line 12))
+analyze	Install dependencies	2026-01-31T09:00:23.6791633Z   Using cached lxml_html_clean-0.4.3-py3-none-any.whl.metadata (2.3 kB)
+analyze	Install dependencies	2026-01-31T09:00:23.7055743Z Collecting cachetools<7.0,>=5.5 (from pyiceberg>=0.10.0->storage3==2.27.2->supabase>=2.10.0->-r requirements.txt (line 1))
+analyze	Install dependencies	2026-01-31T09:00:23.7125942Z   Downloading cachetools-6.2.6-py3-none-any.whl.metadata (5.6 kB)
+analyze	Install dependencies	2026-01-31T09:00:23.7384324Z Collecting fsspec>=2023.1.0 (from pyiceberg>=0.10.0->storage3==2.27.2->supabase>=2.10.0->-r requirements.txt (line 1))
+analyze	Install dependencies	2026-01-31T09:00:23.7396665Z   Using cached fsspec-2026.1.0-py3-none-any.whl.metadata (10 kB)
+analyze	Install dependencies	2026-01-31T09:00:23.7984142Z Collecting mmh3<6.0.0,>=4.0.0 (from pyiceberg>=0.10.0->storage3==2.27.2->supabase>=2.10.0->-r requirements.txt (line 1))
+analyze	Install dependencies	2026-01-31T09:00:23.7997399Z   Using cached mmh3-5.2.0-cp313-cp313-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl.metadata (14 kB)
+analyze	Install dependencies	2026-01-31T09:00:23.8284662Z Collecting pyparsing<4.0.0,>=3.1.0 (from pyiceberg>=0.10.0->storage3==2.27.2->supabase>=2.10.0->-r requirements.txt (line 1))
+analyze	Install dependencies	2026-01-31T09:00:23.8296573Z   Using cached pyparsing-3.3.2-py3-none-any.whl.metadata (5.8 kB)
+analyze	Install dependencies	2026-01-31T09:00:23.8798647Z Collecting pyroaring<2.0.0,>=1.0.0 (from pyiceberg>=0.10.0->storage3==2.27.2->supabase>=2.10.0->-r requirements.txt (line 1))
+analyze	Install dependencies	2026-01-31T09:00:23.8811649Z   Using cached pyroaring-1.0.3-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (10 kB)
+analyze	Install dependencies	2026-01-31T09:00:23.9136125Z Collecting rich<15.0.0,>=10.11.0 (from pyiceberg>=0.10.0->storage3==2.27.2->supabase>=2.10.0->-r requirements.txt (line 1))
+analyze	Install dependencies	2026-01-31T09:00:23.9147444Z   Using cached rich-14.3.1-py3-none-any.whl.metadata (18 kB)
+analyze	Install dependencies	2026-01-31T09:00:23.9290267Z Collecting sortedcontainers==2.4.0 (from pyiceberg>=0.10.0->storage3==2.27.2->supabase>=2.10.0->-r requirements.txt (line 1))
+analyze	Install dependencies	2026-01-31T09:00:23.9301603Z   Using cached sortedcontainers-2.4.0-py2.py3-none-any.whl.metadata (10 kB)
+analyze	Install dependencies	2026-01-31T09:00:23.9440466Z Collecting strictyaml<2.0.0,>=1.7.0 (from pyiceberg>=0.10.0->storage3==2.27.2->supabase>=2.10.0->-r requirements.txt (line 1))
+analyze	Install dependencies	2026-01-31T09:00:23.9451576Z   Using cached strictyaml-1.7.3-py3-none-any.whl.metadata (11 kB)
+analyze	Install dependencies	2026-01-31T09:00:23.9660166Z Collecting markdown-it-py>=2.2.0 (from rich<15.0.0,>=10.11.0->pyiceberg>=0.10.0->storage3==2.27.2->supabase>=2.10.0->-r requirements.txt (line 1))
+analyze	Install dependencies	2026-01-31T09:00:23.9671395Z   Using cached markdown_it_py-4.0.0-py3-none-any.whl.metadata (7.3 kB)
+analyze	Install dependencies	2026-01-31T09:00:23.9868584Z Collecting mdurl~=0.1 (from markdown-it-py>=2.2.0->rich<15.0.0,>=10.11.0->pyiceberg>=0.10.0->storage3==2.27.2->supabase>=2.10.0->-r requirements.txt (line 1))
+analyze	Install dependencies	2026-01-31T09:00:23.9879971Z   Using cached mdurl-0.1.2-py3-none-any.whl.metadata (1.6 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.0191877Z Collecting six>=1.5 (from python-dateutil>=2.8.2->pandas>=2.2.0->-r requirements.txt (line 7))
+analyze	Install dependencies	2026-01-31T09:00:24.0205022Z   Using cached six-1.17.0-py2.py3-none-any.whl.metadata (1.7 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.2709282Z Collecting multidict>=4.0 (from yarl>=1.22.0->supabase>=2.10.0->-r requirements.txt (line 1))
+analyze	Install dependencies	2026-01-31T09:00:24.2782881Z   Downloading multidict-6.7.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.3 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.3314027Z Collecting propcache>=0.2.1 (from yarl>=1.22.0->supabase>=2.10.0->-r requirements.txt (line 1))
+analyze	Install dependencies	2026-01-31T09:00:24.3327532Z   Using cached propcache-0.4.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (13 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.3430320Z Using cached supabase-2.27.2-py3-none-any.whl (16 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.3442303Z Using cached postgrest-2.27.2-py3-none-any.whl (21 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.3453303Z Using cached realtime-2.27.2-py3-none-any.whl (22 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.3464505Z Using cached storage3-2.27.2-py3-none-any.whl (27 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.3475506Z Using cached supabase_auth-2.27.2-py3-none-any.whl (48 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.3486959Z Using cached supabase_functions-2.27.2-py3-none-any.whl (8.5 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.3497792Z Using cached httpx-0.28.1-py3-none-any.whl (73 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.3509081Z Using cached httpcore-1.0.9-py3-none-any.whl (78 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.3520435Z Using cached h2-4.3.0-py3-none-any.whl (61 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.3531528Z Using cached hpack-4.1.0-py3-none-any.whl (34 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.3543414Z Using cached hyperframe-6.1.0-py3-none-any.whl (13 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.3555282Z Using cached pydantic-2.12.5-py3-none-any.whl (463 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.3569520Z Using cached pydantic_core-2.41.5-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (2.1 MB)
+analyze	Install dependencies	2026-01-31T09:00:24.3596119Z Using cached websockets-15.0.1-cp313-cp313-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl (182 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.3669864Z Downloading google_genai-1.61.0-py3-none-any.whl (721 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.4315857Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 721.9/721.9 kB 12.0 MB/s  0:00:00
+analyze	Install dependencies	2026-01-31T09:00:24.4328958Z Using cached anyio-4.12.1-py3-none-any.whl (113 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.4340753Z Using cached distro-1.9.0-py3-none-any.whl (20 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.4411501Z Downloading google_auth-2.48.0-py3-none-any.whl (236 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.4581444Z Using cached requests-2.32.5-py3-none-any.whl (64 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.4592912Z Using cached charset_normalizer-3.4.4-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (153 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.4604479Z Using cached idna-3.11-py3-none-any.whl (71 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.4615585Z Using cached rsa-4.9.1-py3-none-any.whl (34 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.4626652Z Using cached tenacity-9.1.2-py3-none-any.whl (28 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.4637900Z Using cached typing_extensions-4.15.0-py3-none-any.whl (44 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.4650124Z Using cached urllib3-2.6.3-py3-none-any.whl (131 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.4661622Z Using cached yfinance-1.1.0-py2.py3-none-any.whl (129 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.4673276Z Using cached curl_cffi-0.13.0-cp39-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (8.3 MB)
+analyze	Install dependencies	2026-01-31T09:00:24.4745173Z Using cached feedparser-6.0.12-py3-none-any.whl (81 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.4756234Z Using cached python_telegram_bot-22.6-py3-none-any.whl (737 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.4772346Z Using cached python_dotenv-1.2.1-py3-none-any.whl (21 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.4783343Z Using cached pandas-3.0.0-cp313-cp313-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl (10.9 MB)
+analyze	Install dependencies	2026-01-31T09:00:24.4874432Z Using cached flask-3.1.2-py3-none-any.whl (103 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.4885716Z Using cached gunicorn-24.1.1-py3-none-any.whl (114 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.4896981Z Using cached trafilatura-2.0.0-py3-none-any.whl (132 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.4908710Z Using cached numpy-2.4.1-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (16.4 MB)
+analyze	Install dependencies	2026-01-31T09:00:24.5038072Z Using cached pytest-9.0.2-py3-none-any.whl (374 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.5051266Z Using cached pluggy-1.6.0-py3-none-any.whl (20 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.5062180Z Using cached pytest_mock-3.15.1-py3-none-any.whl (10 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.5072815Z Using cached pytest_cov-7.0.0-py3-none-any.whl (22 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.5083442Z Using cached pytest_asyncio-1.3.0-py3-none-any.whl (15 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.5093920Z Using cached nest_asyncio-1.6.0-py3-none-any.whl (5.2 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.5165165Z Downloading pypdf-6.6.2-py3-none-any.whl (329 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.5389237Z Using cached annotated_types-0.7.0-py3-none-any.whl (13 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.5399954Z Using cached beautifulsoup4-4.14.3-py3-none-any.whl (107 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.5412017Z Using cached blinker-1.9.0-py3-none-any.whl (8.5 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.5422585Z Using cached certifi-2026.1.4-py3-none-any.whl (152 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.5434459Z Using cached cffi-2.0.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (219 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.5446574Z Using cached click-8.3.1-py3-none-any.whl (108 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.5457943Z Using cached courlan-1.3.2-py3-none-any.whl (33 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.5468666Z Using cached babel-2.17.0-py3-none-any.whl (10.2 MB)
+analyze	Install dependencies	2026-01-31T09:00:24.5556127Z Using cached coverage-7.13.2-cp313-cp313-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (253 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.5634092Z Downloading cryptography-46.0.4-cp311-abi3-manylinux_2_34_x86_64.whl (4.5 MB)
+analyze	Install dependencies	2026-01-31T09:00:24.6981320Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4.5/4.5 MB 34.8 MB/s  0:00:00
+analyze	Install dependencies	2026-01-31T09:00:24.6993557Z Using cached deprecation-2.1.0-py2.py3-none-any.whl (11 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.7004855Z Using cached frozendict-2.4.7-py3-none-any.whl (16 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.7015636Z Using cached h11-0.16.0-py3-none-any.whl (37 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.7026688Z Using cached htmldate-1.9.4-py3-none-any.whl (31 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.7038216Z Using cached dateparser-1.2.2-py3-none-any.whl (315 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.7052053Z Using cached iniconfig-2.3.0-py3-none-any.whl (7.5 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.7062689Z Using cached itsdangerous-2.2.0-py3-none-any.whl (16 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.7073356Z Using cached jinja2-3.1.6-py3-none-any.whl (134 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.7084624Z Using cached justext-3.0.2-py2.py3-none-any.whl (837 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.7101421Z Using cached lxml-6.0.2-cp313-cp313-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl (5.2 MB)
+analyze	Install dependencies	2026-01-31T09:00:24.7151816Z Using cached markupsafe-3.0.3-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (22 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.7162142Z Using cached packaging-26.0-py3-none-any.whl (74 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.7173119Z Using cached peewee-3.19.0-py3-none-any.whl (411 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.7186619Z Using cached platformdirs-4.5.1-py3-none-any.whl (18 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.7259282Z Downloading protobuf-6.33.5-cp39-abi3-manylinux2014_x86_64.whl (323 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.7327280Z Using cached pyasn1-0.6.2-py3-none-any.whl (83 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.7338967Z Using cached pyasn1_modules-0.4.2-py3-none-any.whl (181 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.7351060Z Using cached pygments-2.19.2-py3-none-any.whl (1.2 MB)
+analyze	Install dependencies	2026-01-31T09:00:24.7371704Z Using cached sortedcontainers-2.4.0-py2.py3-none-any.whl (29 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.7447912Z Downloading cachetools-6.2.6-py3-none-any.whl (11 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.7481303Z Using cached mmh3-5.2.0-cp313-cp313-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (103 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.7492544Z Using cached pyparsing-3.3.2-py3-none-any.whl (122 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.7504483Z Using cached pyroaring-1.0.3-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (2.1 MB)
+analyze	Install dependencies	2026-01-31T09:00:24.7530310Z Using cached rich-14.3.1-py3-none-any.whl (309 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.7543796Z Using cached strictyaml-1.7.3-py3-none-any.whl (123 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.7555028Z Using cached fsspec-2026.1.0-py3-none-any.whl (201 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.7567572Z Using cached markdown_it_py-4.0.0-py3-none-any.whl (87 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.7578933Z Using cached mdurl-0.1.2-py3-none-any.whl (10.0 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.7654850Z Downloading pyjwt-2.11.0-py3-none-any.whl (28 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.7749358Z Using cached python_dateutil-2.9.0.post0-py2.py3-none-any.whl (229 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.7763553Z Using cached pytz-2025.2-py2.py3-none-any.whl (509 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.7779777Z Using cached regex-2026.1.15-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (803 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.7797803Z Using cached six-1.17.0-py2.py3-none-any.whl (11 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.7808907Z Using cached soupsieve-2.8.3-py3-none-any.whl (37 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.7819987Z Using cached StrEnum-0.4.15-py3-none-any.whl (8.9 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.7831378Z Using cached tld-0.13.1-py2.py3-none-any.whl (274 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.7844741Z Using cached typing_inspection-0.4.2-py3-none-any.whl (14 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.7856268Z Using cached tzlocal-5.3.1-py3-none-any.whl (18 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.7868036Z Using cached werkzeug-3.1.5-py3-none-any.whl (225 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.7880631Z Using cached yarl-1.22.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (377 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.7956809Z Downloading multidict-6.7.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (254 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.8024815Z Using cached propcache-0.4.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (204 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.8036639Z Using cached lxml_html_clean-0.4.3-py3-none-any.whl (14 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.8047613Z Using cached pycparser-3.0-py3-none-any.whl (48 kB)
+analyze	Install dependencies	2026-01-31T09:00:24.8058576Z Using cached sniffio-1.3.1-py3-none-any.whl (10 kB)
+analyze	Install dependencies	2026-01-31T09:00:25.1387431Z Installing collected packages: strenum, sortedcontainers, sgmllib3k, pytz, pyroaring, peewee, multitasking, websockets, urllib3, tzlocal, typing-extensions, tld, tenacity, soupsieve, sniffio, six, regex, python-dotenv, pypdf, pyparsing, pyjwt, pygments, pycparser, pyasn1, protobuf, propcache, pluggy, platformdirs, packaging, numpy, nest-asyncio, multidict, mmh3, mdurl, markupsafe, lxml, itsdangerous, iniconfig, idna, hyperframe, hpack, h11, fsspec, frozendict, feedparser, distro, coverage, click, charset_normalizer, certifi, cachetools, blinker, babel, annotated-types, yarl, werkzeug, typing-inspection, rsa, requests, python-dateutil, pytest, pydantic-core, pyasn1-modules, markdown-it-py, lxml_html_clean, jinja2, httpcore, h2, gunicorn, deprecation, courlan, cffi, beautifulsoup4, anyio, strictyaml, rich, pytest-mock, pytest-cov, pytest-asyncio, pydantic, pandas, httpx, Flask, dateparser, curl_cffi, cryptography, yfinance, ta, realtime, python-telegram-bot, pyiceberg, justext, htmldate, google-auth, trafilatura, supabase-functions, supabase-auth, storage3, postgrest, supabase, google-genai
+analyze	Install dependencies	2026-01-31T09:00:41.4157245Z 
+analyze	Install dependencies	2026-01-31T09:00:41.4262794Z Successfully installed Flask-3.1.2 annotated-types-0.7.0 anyio-4.12.1 babel-2.17.0 beautifulsoup4-4.14.3 blinker-1.9.0 cachetools-6.2.6 certifi-2026.1.4 cffi-2.0.0 charset_normalizer-3.4.4 click-8.3.1 courlan-1.3.2 coverage-7.13.2 cryptography-46.0.4 curl_cffi-0.13.0 dateparser-1.2.2 deprecation-2.1.0 distro-1.9.0 feedparser-6.0.12 frozendict-2.4.7 fsspec-2026.1.0 google-auth-2.48.0 google-genai-1.61.0 gunicorn-24.1.1 h11-0.16.0 h2-4.3.0 hpack-4.1.0 htmldate-1.9.4 httpcore-1.0.9 httpx-0.28.1 hyperframe-6.1.0 idna-3.11 iniconfig-2.3.0 itsdangerous-2.2.0 jinja2-3.1.6 justext-3.0.2 lxml-6.0.2 lxml_html_clean-0.4.3 markdown-it-py-4.0.0 markupsafe-3.0.3 mdurl-0.1.2 mmh3-5.2.0 multidict-6.7.1 multitasking-0.0.12 nest-asyncio-1.6.0 numpy-2.4.1 packaging-26.0 pandas-3.0.0 peewee-3.19.0 platformdirs-4.5.1 pluggy-1.6.0 postgrest-2.27.2 propcache-0.4.1 protobuf-6.33.5 pyasn1-0.6.2 pyasn1-modules-0.4.2 pycparser-3.0 pydantic-2.12.5 pydantic-core-2.41.5 pygments-2.19.2 pyiceberg-0.10.0 pyjwt-2.11.0 pyparsing-3.3.2 pypdf-6.6.2 pyroaring-1.0.3 pytest-9.0.2 pytest-asyncio-1.3.0 pytest-cov-7.0.0 pytest-mock-3.15.1 python-dateutil-2.9.0.post0 python-dotenv-1.2.1 python-telegram-bot-22.6 pytz-2025.2 realtime-2.27.2 regex-2026.1.15 requests-2.32.5 rich-14.3.1 rsa-4.9.1 sgmllib3k-1.0.0 six-1.17.0 sniffio-1.3.1 sortedcontainers-2.4.0 soupsieve-2.8.3 storage3-2.27.2 strenum-0.4.15 strictyaml-1.7.3 supabase-2.27.2 supabase-auth-2.27.2 supabase-functions-2.27.2 ta-0.11.0 tenacity-9.1.2 tld-0.13.1 trafilatura-2.0.0 typing-extensions-4.15.0 typing-inspection-0.4.2 tzlocal-5.3.1 urllib3-2.6.3 websockets-15.0.1 werkzeug-3.1.5 yarl-1.22.0 yfinance-1.1.0
+analyze	Run Deep Dive Analysis	﻿2026-01-31T09:00:42.4598586Z ##[group]Run python analyzer.py
+analyze	Run Deep Dive Analysis	2026-01-31T09:00:42.4598924Z [36;1mpython analyzer.py[0m
+analyze	Run Deep Dive Analysis	2026-01-31T09:00:42.4633464Z shell: /usr/bin/bash -e {0}
+analyze	Run Deep Dive Analysis	2026-01-31T09:00:42.4633727Z env:
+analyze	Run Deep Dive Analysis	2026-01-31T09:00:42.4634004Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.11/x64
+analyze	Run Deep Dive Analysis	2026-01-31T09:00:42.4634457Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.11/x64/lib/pkgconfig
+analyze	Run Deep Dive Analysis	2026-01-31T09:00:42.4634915Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.11/x64
+analyze	Run Deep Dive Analysis	2026-01-31T09:00:42.4635308Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.11/x64
+analyze	Run Deep Dive Analysis	2026-01-31T09:00:42.4635884Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.11/x64
+analyze	Run Deep Dive Analysis	2026-01-31T09:00:42.4636278Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.11/x64/lib
+analyze	Run Deep Dive Analysis	2026-01-31T09:00:42.4636837Z   SUPABASE_URL: ***
+analyze	Run Deep Dive Analysis	2026-01-31T09:00:42.4637129Z   SUPABASE_KEY: ***
+analyze	Run Deep Dive Analysis	2026-01-31T09:00:42.4637410Z   GEMINI_API_KEY: ***
+analyze	Run Deep Dive Analysis	2026-01-31T09:00:42.4637840Z   OPENROUTER_API_KEY: ***
+analyze	Run Deep Dive Analysis	2026-01-31T09:00:42.4638175Z   TELEGRAM_BOT_TOKEN: ***
+analyze	Run Deep Dive Analysis	2026-01-31T09:00:42.4638409Z   TELEGRAM_CHAT_ID: ***
+analyze	Run Deep Dive Analysis	2026-01-31T09:00:42.4638675Z   TARGET_CHAT_ID: ***
+analyze	Run Deep Dive Analysis	2026-01-31T09:00:42.4638886Z   TARGET_TICKER: RENDER-USD
+analyze	Run Deep Dive Analysis	2026-01-31T09:00:42.4639113Z ##[endgroup]
+analyze	Run Deep Dive Analysis	2026-01-31T09:00:45.1242188Z 2026-01-31 09:00:45,123 - market_data - INFO - MarketData: Initializing Phase 3 (V4.0 - Smart Sourcing)...
+analyze	Run Deep Dive Analysis	2026-01-31T09:00:45.9939807Z 2026-01-31 09:00:45,993 - httpx - INFO - HTTP Request: GET ***/rest/v1/user_settings?select=%2A&limit=1 "HTTP/2 200 OK"
+analyze	Run Deep Dive Analysis	2026-01-31T09:00:45.9948469Z 2026-01-31 09:00:45,994 - brain - INFO - Brain Mode: PROD
+analyze	Run Deep Dive Analysis	2026-01-31T09:00:45.9949275Z 2026-01-31 09:00:45,994 - brain - INFO - Brain initialized: OpenRouter=YES, Gemini Fallback=YES
+analyze	Run Deep Dive Analysis	2026-01-31T09:00:45.9950026Z 2026-01-31 09:00:45,994 - MarketRegime - INFO - MarketRegimeClassifier: Predictive Layer Active.
+analyze	Run Deep Dive Analysis	2026-01-31T09:00:46.4969181Z 2026-01-31 09:00:46,496 - httpx - INFO - HTTP Request: GET ***/rest/v1/ml_model_state?select=model_version%2Cmodel_weights&order=trained_at.desc&limit=1 "HTTP/2 200 OK"
+analyze	Run Deep Dive Analysis	2026-01-31T09:00:46.4977634Z 2026-01-31 09:00:46,497 - MLPredictor - INFO - ML Predictor: Loaded model pure_gb_v20260125_1831
+analyze	Run Deep Dive Analysis	2026-01-31T09:00:46.4981680Z 2026-01-31 09:00:46,497 - Analyzer - INFO - 🔬 Starting Deep Dive Analysis for RENDER-USD...
+analyze	Run Deep Dive Analysis	2026-01-31T09:00:46.4982594Z 2026-01-31 09:00:46,498 - Analyzer - INFO - Fetching news...
+analyze	Run Deep Dive Analysis	2026-01-31T09:00:46.4983395Z 2026-01-31 09:00:46,498 - hunter - INFO - Fetching deep-dive news for RENDER-USD...
+analyze	Run Deep Dive Analysis	2026-01-31T09:00:46.7491215Z 2026-01-31 09:00:46,748 - httpx - INFO - HTTP Request: GET ***/rest/v1/ticker_cache?select=resolved_ticker%2Cis_crypto%2Ccurrency%2Clast_verified_at%2Cfail_count&user_ticker=eq.RENDER-USD&limit=1 "HTTP/2 200 OK"
+analyze	Run Deep Dive Analysis	2026-01-31T09:00:47.0011652Z 2026-01-31 09:00:47,000 - hunter - INFO - No news for RENDER-USD, trying RNDR...
+analyze	Run Deep Dive Analysis	2026-01-31T09:00:47.0729913Z 2026-01-31 09:00:47,072 - hunter - INFO - No news for RENDER-USD, trying RENDER...
+analyze	Run Deep Dive Analysis	2026-01-31T09:00:47.1495440Z 2026-01-31 09:00:47,149 - hunter - INFO - No news for RENDER-USD, trying RNDR-USD...
+analyze	Run Deep Dive Analysis	2026-01-31T09:00:47.2377948Z 2026-01-31 09:00:47,237 - hunter - INFO - YF has no news for RENDER-USD, searching RSS feeds...
+analyze	Run Deep Dive Analysis	2026-01-31T09:00:51.7492186Z 2026-01-31 09:00:51,748 - hunter - INFO - Found 2 news from RSS feeds for RENDER-USD
+analyze	Run Deep Dive Analysis	2026-01-31T09:00:51.7493133Z 2026-01-31 09:00:51,749 - Analyzer - INFO - Fetching technicals...
+analyze	Run Deep Dive Analysis	2026-01-31T09:00:52.0691584Z 2026-01-31 09:00:52,068 - market_data - INFO - FX Rate Updated: 1.1890605688095093
+analyze	Run Deep Dive Analysis	2026-01-31T09:00:52.5085359Z 2026-01-31 09:00:52,508 - httpx - INFO - HTTP Request: GET ***/rest/v1/ticker_cache?select=is_crypto%2Ccurrency%2Clast_price%2Clast_price_at&user_ticker=eq.RENDER-USD "HTTP/2 200 OK"
+analyze	Run Deep Dive Analysis	2026-01-31T09:00:52.5090075Z 2026-01-31 09:00:52,508 - market_data - INFO - Persistent Cache HIT: RENDER-USD -> €1.37 (Source: USD)
+analyze	Run Deep Dive Analysis	2026-01-31T09:00:52.9016588Z 2026-01-31 09:00:52,901 - MarketRegime - INFO - Market Regime: SIDEWAYS (60%) - normal
+analyze	Run Deep Dive Analysis	2026-01-31T09:00:52.9017573Z 2026-01-31 09:00:52,901 - Analyzer - INFO - Market Regime: SIDEWAYS
+analyze	Run Deep Dive Analysis	2026-01-31T09:01:00.6006554Z 2026-01-31 09:01:00,600 - Analyzer - INFO - Whale Context: Global Status: NEUTRAL
+analyze	Run Deep Dive Analysis	2026-01-31T09:01:00.7799081Z 2026-01-31 09:01:00,779 - httpx - INFO - HTTP Request: GET ***/rest/v1/portfolio?select=%2A "HTTP/2 200 OK"
+analyze	Run Deep Dive Analysis	2026-01-31T09:01:00.7805726Z 2026-01-31 09:01:00,780 - Analyzer - INFO - 🧠 Generating AI Deep Dive (R1)...
+analyze	Run Deep Dive Analysis	2026-01-31T09:01:00.7806761Z 2026-01-31 09:01:00,780 - brain - INFO - Generating Deep Dive for RENDER-USD (OpenRouter auto-select)...
+analyze	Run Deep Dive Analysis	2026-01-31T09:01:00.8537175Z 2026-01-31 09:01:00,853 - httpx - INFO - HTTP Request: GET https://generativelanguage.googleapis.com/v1beta/models "HTTP/1.1 200 OK"
+analyze	Run Deep Dive Analysis	2026-01-31T09:01:00.8623026Z 2026-01-31 09:01:00,862 - brain - WARNING - Gemini discovery failed: 'Model' object has no attribute 'supported_generation_methods'. Using static default.
+analyze	Run Deep Dive Analysis	2026-01-31T09:01:00.8624537Z 2026-01-31 09:01:00,862 - brain - INFO - Gemini Call: Using model gemini-2.0-flash
+analyze	Run Deep Dive Analysis	2026-01-31T09:01:00.8625437Z 2026-01-31 09:01:00,862 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+analyze	Run Deep Dive Analysis	2026-01-31T09:01:00.9422523Z 2026-01-31 09:01:00,941 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent "HTTP/1.1 429 Too Many Requests"
+analyze	Run Deep Dive Analysis	2026-01-31T09:01:00.9427715Z 2026-01-31 09:01:00,942 - brain - WARNING - Gemini gemini-2.0-flash exhausted (429). Moving to OpenRouter pool.
+analyze	Run Deep Dive Analysis	2026-01-31T09:01:01.2411984Z 2026-01-31 09:01:01,240 - brain - INFO - Dynamic Model Selection Winner: deepseek/deepseek-r1-0528:free (Score: 1320) from 12 candidates
+analyze	Run Deep Dive Analysis	2026-01-31T09:02:02.6015874Z 2026-01-31 09:02:02,601 - brain - WARNING - OpenRouter Attempt 1 failed with deepseek/deepseek-r1-0528:free: 'choices'
+analyze	Run Deep Dive Analysis	2026-01-31T09:02:02.6017334Z 2026-01-31 09:02:02,601 - brain - INFO - Using cached free model: meta-llama/llama-3.1-405b-instruct:free (Score: 1250)
+analyze	Run Deep Dive Analysis	2026-01-31T09:02:02.8126918Z 2026-01-31 09:02:02,812 - brain - WARNING - OpenRouter Error (404) with meta-llama/llama-3.1-405b-instruct:free: {"error":{"message":"Provider returned error","code":404,"metadata":{"raw":"No matching route found. It is likely because the model specified in your request is not configured in the Gateway.","provider_name":"ModelRun","is_byok":false}},"user_id":"user_38KqFziK3nyr0CLcndZo9TFtN4Y"}
+analyze	Run Deep Dive Analysis	2026-01-31T09:02:02.8129282Z 2026-01-31 09:02:02,812 - brain - INFO - Using cached free model: nousresearch/hermes-3-llama-3.1-405b:free (Score: 1220)
+analyze	Run Deep Dive Analysis	2026-01-31T09:02:09.3444216Z 2026-01-31 09:02:09,343 - brain - WARNING - OpenRouter Error (402) with nousresearch/hermes-3-llama-3.1-405b:free: {"error":{"message":"Provider returned error","code":402,"metadata":{"raw":"{\"error\":\"API key USD spend limit exceeded. Your account may still have USD balance, but this API key has reached its configured USD spending limit.\"}","provider_name":"Venice","is_byok":false}},"user_id":"user_38KqFziK3nyr0CLcndZo9TFtN4Y"}
+analyze	Run Deep Dive Analysis	2026-01-31T09:02:09.3446662Z 2026-01-31 09:02:09,344 - brain - WARNING - OpenRouter pool failed: OpenRouter: All model attempts failed.
+analyze	Run Deep Dive Analysis	2026-01-31T09:02:09.3452779Z 2026-01-31 09:02:09,344 - brain - INFO - Triggering Emergency tiered Gemini fallback for analyze...
+analyze	Run Deep Dive Analysis	2026-01-31T09:02:09.3453817Z 2026-01-31 09:02:09,345 - brain - INFO - Gemini Call: Using model gemini-2.0-flash
+analyze	Run Deep Dive Analysis	2026-01-31T09:02:09.3454780Z 2026-01-31 09:02:09,345 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+analyze	Run Deep Dive Analysis	2026-01-31T09:02:09.4309755Z 2026-01-31 09:02:09,430 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent "HTTP/1.1 429 Too Many Requests"
+analyze	Run Deep Dive Analysis	2026-01-31T09:02:09.4316050Z 2026-01-31 09:02:09,431 - brain - WARNING - Gemini tier exhausted for gemini-2.0-flash. Trying next...
+analyze	Run Deep Dive Analysis	2026-01-31T09:02:09.4317114Z 2026-01-31 09:02:09,431 - brain - INFO - Gemini Call: Using model gemini-2.0-flash-lite
+analyze	Run Deep Dive Analysis	2026-01-31T09:02:09.4318090Z 2026-01-31 09:02:09,431 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+analyze	Run Deep Dive Analysis	2026-01-31T09:02:09.5027837Z 2026-01-31 09:02:09,502 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent "HTTP/1.1 429 Too Many Requests"
+analyze	Run Deep Dive Analysis	2026-01-31T09:02:09.5033646Z 2026-01-31 09:02:09,503 - brain - WARNING - Gemini tier exhausted for gemini-2.0-flash-lite. Trying next...
+analyze	Run Deep Dive Analysis	2026-01-31T09:02:09.5034999Z 2026-01-31 09:02:09,503 - brain - INFO - Gemini Call: Using model gemini-flash-latest
+analyze	Run Deep Dive Analysis	2026-01-31T09:02:09.5036163Z 2026-01-31 09:02:09,503 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+analyze	Run Deep Dive Analysis	2026-01-31T09:02:18.1639793Z 2026-01-31 09:02:18,163 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent "HTTP/1.1 200 OK"
+analyze	Run Deep Dive Analysis	2026-01-31T09:02:18.7405729Z 2026-01-31 09:02:18,740 - httpx - INFO - HTTP Request: GET ***/rest/v1/user_settings?select=%2A&limit=1 "HTTP/2 200 OK"
+analyze	Run Deep Dive Analysis	2026-01-31T09:02:18.9442933Z 2026-01-31 09:02:18,943 - httpx - INFO - HTTP Request: PATCH ***/rest/v1/user_settings?id=eq.f6c06970-0b9f-4803-b1d1-2d01b213374c "HTTP/2 200 OK"
+analyze	Run Deep Dive Analysis	2026-01-31T09:02:18.9449083Z 2026-01-31 09:02:18,944 - db_handler - INFO - API Counter: gemini_fallback = 17 (today: 2026-01-31)
+analyze	Run Deep Dive Analysis	2026-01-31T09:02:19.1195437Z 2026-01-31 09:02:19,119 - httpx - INFO - HTTP Request: GET ***/rest/v1/user_settings?select=%2A&limit=1 "HTTP/2 200 OK"
+analyze	Run Deep Dive Analysis	2026-01-31T09:02:19.2646203Z 2026-01-31 09:02:19,264 - httpx - INFO - HTTP Request: PATCH ***/rest/v1/user_settings?id=eq.f6c06970-0b9f-4803-b1d1-2d01b213374c "HTTP/2 200 OK"
+analyze	Run Deep Dive Analysis	2026-01-31T09:02:19.2651386Z 2026-01-31 09:02:19,264 - db_handler - INFO - Model Used: google/gemini-flash-latest (count: 17)
+analyze	Run Deep Dive Analysis	2026-01-31T09:02:19.2652620Z 2026-01-31 09:02:19,265 - brain - INFO - Gemini call successful with gemini-flash-latest
+analyze	Run Deep Dive Analysis	2026-01-31T09:02:19.2657997Z 2026-01-31 09:02:19,265 - Council - INFO - 🏛️ THE COUNCIL: Critiquing Deep Dive for RENDER-USD...
+analyze	Run Deep Dive Analysis	2026-01-31T09:02:19.3078949Z 2026-01-31 09:02:19,307 - httpx - INFO - HTTP Request: GET https://generativelanguage.googleapis.com/v1beta/models "HTTP/1.1 200 OK"
+analyze	Run Deep Dive Analysis	2026-01-31T09:02:19.3134220Z 2026-01-31 09:02:19,313 - brain - WARNING - Gemini discovery failed: 'Model' object has no attribute 'supported_generation_methods'. Using static default.
+analyze	Run Deep Dive Analysis	2026-01-31T09:02:19.3135668Z 2026-01-31 09:02:19,313 - brain - INFO - Gemini Call: Using model gemini-2.0-flash
+analyze	Run Deep Dive Analysis	2026-01-31T09:02:19.3136715Z 2026-01-31 09:02:19,313 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+analyze	Run Deep Dive Analysis	2026-01-31T09:02:19.3765463Z 2026-01-31 09:02:19,376 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent "HTTP/1.1 429 Too Many Requests"
+analyze	Run Deep Dive Analysis	2026-01-31T09:02:19.3769816Z 2026-01-31 09:02:19,376 - brain - WARNING - Gemini gemini-2.0-flash exhausted (429). Moving to OpenRouter pool.
+analyze	Run Deep Dive Analysis	2026-01-31T09:02:19.3771445Z 2026-01-31 09:02:19,376 - brain - INFO - Using cached free model: deepseek/deepseek-r1-0528:free (Score: 1320)
+analyze	Run Deep Dive Analysis	2026-01-31T09:03:21.1958166Z 2026-01-31 09:03:21,195 - brain - WARNING - OpenRouter Attempt 1 failed with deepseek/deepseek-r1-0528:free: 'choices'
+analyze	Run Deep Dive Analysis	2026-01-31T09:03:21.1959404Z 2026-01-31 09:03:21,195 - brain - INFO - Using cached free model: meta-llama/llama-3.1-405b-instruct:free (Score: 1250)
+analyze	Run Deep Dive Analysis	2026-01-31T09:03:21.3850277Z 2026-01-31 09:03:21,384 - brain - WARNING - OpenRouter Error (404) with meta-llama/llama-3.1-405b-instruct:free: {"error":{"message":"Provider returned error","code":404,"metadata":{"raw":"No matching route found. It is likely because the model specified in your request is not configured in the Gateway.","provider_name":"ModelRun","is_byok":false}},"user_id":"user_38KqFziK3nyr0CLcndZo9TFtN4Y"}
+analyze	Run Deep Dive Analysis	2026-01-31T09:03:21.3852697Z 2026-01-31 09:03:21,384 - brain - INFO - Using cached free model: nousresearch/hermes-3-llama-3.1-405b:free (Score: 1220)
+analyze	Run Deep Dive Analysis	2026-01-31T09:03:21.6195371Z 2026-01-31 09:03:21,618 - brain - WARNING - OpenRouter Error (429) with nousresearch/hermes-3-llama-3.1-405b:free: {"error":{"message":"Provider returned error","code":429,"metadata":{"raw":"nousresearch/hermes-3-llama-3.1-405b:free is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations","provider_name":"Venice","is_byok":false}},"user_id":"user_38KqFziK3nyr0CLcndZo9TFtN4Y"}
+analyze	Run Deep Dive Analysis	2026-01-31T09:03:21.6198413Z 2026-01-31 09:03:21,619 - brain - WARNING - OpenRouter pool failed: OpenRouter: All model attempts failed.
+analyze	Run Deep Dive Analysis	2026-01-31T09:03:21.6203314Z 2026-01-31 09:03:21,619 - brain - INFO - Triggering Emergency tiered Gemini fallback for council_critique...
+analyze	Run Deep Dive Analysis	2026-01-31T09:03:21.6204211Z 2026-01-31 09:03:21,620 - brain - INFO - Gemini Call: Using model gemini-2.0-flash
+analyze	Run Deep Dive Analysis	2026-01-31T09:03:21.6205190Z 2026-01-31 09:03:21,620 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+analyze	Run Deep Dive Analysis	2026-01-31T09:03:21.7028083Z 2026-01-31 09:03:21,702 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent "HTTP/1.1 429 Too Many Requests"
+analyze	Run Deep Dive Analysis	2026-01-31T09:03:21.7033222Z 2026-01-31 09:03:21,703 - brain - WARNING - Gemini tier exhausted for gemini-2.0-flash. Trying next...
+analyze	Run Deep Dive Analysis	2026-01-31T09:03:21.7034389Z 2026-01-31 09:03:21,703 - brain - INFO - Gemini Call: Using model gemini-2.0-flash-lite
+analyze	Run Deep Dive Analysis	2026-01-31T09:03:21.7035434Z 2026-01-31 09:03:21,703 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+analyze	Run Deep Dive Analysis	2026-01-31T09:03:21.7720238Z 2026-01-31 09:03:21,771 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent "HTTP/1.1 429 Too Many Requests"
+analyze	Run Deep Dive Analysis	2026-01-31T09:03:21.7726683Z 2026-01-31 09:03:21,772 - brain - WARNING - Gemini tier exhausted for gemini-2.0-flash-lite. Trying next...
+analyze	Run Deep Dive Analysis	2026-01-31T09:03:21.7727873Z 2026-01-31 09:03:21,772 - brain - INFO - Gemini Call: Using model gemini-flash-latest
+analyze	Run Deep Dive Analysis	2026-01-31T09:03:21.7728885Z 2026-01-31 09:03:21,772 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+analyze	Run Deep Dive Analysis	2026-01-31T09:03:25.5203440Z 2026-01-31 09:03:25,519 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent "HTTP/1.1 200 OK"
+analyze	Run Deep Dive Analysis	2026-01-31T09:03:26.0973326Z 2026-01-31 09:03:26,096 - httpx - INFO - HTTP Request: GET ***/rest/v1/user_settings?select=%2A&limit=1 "HTTP/2 200 OK"
+analyze	Run Deep Dive Analysis	2026-01-31T09:03:26.2737528Z 2026-01-31 09:03:26,273 - httpx - INFO - HTTP Request: PATCH ***/rest/v1/user_settings?id=eq.f6c06970-0b9f-4803-b1d1-2d01b213374c "HTTP/2 200 OK"
+analyze	Run Deep Dive Analysis	2026-01-31T09:03:26.2742420Z 2026-01-31 09:03:26,274 - db_handler - INFO - API Counter: gemini_fallback = 18 (today: 2026-01-31)
+analyze	Run Deep Dive Analysis	2026-01-31T09:03:26.4512804Z 2026-01-31 09:03:26,450 - httpx - INFO - HTTP Request: GET ***/rest/v1/user_settings?select=%2A&limit=1 "HTTP/2 200 OK"
+analyze	Run Deep Dive Analysis	2026-01-31T09:03:26.5948946Z 2026-01-31 09:03:26,594 - httpx - INFO - HTTP Request: PATCH ***/rest/v1/user_settings?id=eq.f6c06970-0b9f-4803-b1d1-2d01b213374c "HTTP/2 200 OK"
+analyze	Run Deep Dive Analysis	2026-01-31T09:03:26.5953694Z 2026-01-31 09:03:26,595 - db_handler - INFO - Model Used: google/gemini-flash-latest (count: 18)
+analyze	Run Deep Dive Analysis	2026-01-31T09:03:26.5954792Z 2026-01-31 09:03:26,595 - brain - INFO - Gemini call successful with gemini-flash-latest
+analyze	Run Deep Dive Analysis	2026-01-31T09:03:26.6385631Z 2026-01-31 09:03:26,638 - httpx - INFO - HTTP Request: GET https://generativelanguage.googleapis.com/v1beta/models "HTTP/1.1 200 OK"
+analyze	Run Deep Dive Analysis	2026-01-31T09:03:26.6485925Z 2026-01-31 09:03:26,648 - brain - WARNING - Gemini discovery failed: 'Model' object has no attribute 'supported_generation_methods'. Using static default.
+analyze	Run Deep Dive Analysis	2026-01-31T09:03:26.6487074Z 2026-01-31 09:03:26,648 - brain - INFO - Gemini Call: Using model gemini-2.0-flash
+analyze	Run Deep Dive Analysis	2026-01-31T09:03:26.6487859Z 2026-01-31 09:03:26,648 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+analyze	Run Deep Dive Analysis	2026-01-31T09:03:26.7128364Z 2026-01-31 09:03:26,712 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent "HTTP/1.1 429 Too Many Requests"
+analyze	Run Deep Dive Analysis	2026-01-31T09:03:26.7134738Z 2026-01-31 09:03:26,713 - brain - WARNING - Gemini gemini-2.0-flash exhausted (429). Moving to OpenRouter pool.
+analyze	Run Deep Dive Analysis	2026-01-31T09:03:26.7135803Z 2026-01-31 09:03:26,713 - brain - INFO - Using cached free model: deepseek/deepseek-r1-0528:free (Score: 1320)
+analyze	Run Deep Dive Analysis	2026-01-31T09:04:28.0552081Z 2026-01-31 09:04:28,054 - brain - WARNING - OpenRouter Attempt 1 failed with deepseek/deepseek-r1-0528:free: 'choices'
+analyze	Run Deep Dive Analysis	2026-01-31T09:04:28.0554612Z 2026-01-31 09:04:28,054 - brain - INFO - Using cached free model: meta-llama/llama-3.1-405b-instruct:free (Score: 1250)
+analyze	Run Deep Dive Analysis	2026-01-31T09:04:28.3322499Z 2026-01-31 09:04:28,331 - brain - WARNING - OpenRouter Error (404) with meta-llama/llama-3.1-405b-instruct:free: {"error":{"message":"Provider returned error","code":404,"metadata":{"raw":"No matching route found. It is likely because the model specified in your request is not configured in the Gateway.","provider_name":"ModelRun","is_byok":false}},"user_id":"user_38KqFziK3nyr0CLcndZo9TFtN4Y"}
+analyze	Run Deep Dive Analysis	2026-01-31T09:04:28.3326321Z 2026-01-31 09:04:28,331 - brain - INFO - Using cached free model: nousresearch/hermes-3-llama-3.1-405b:free (Score: 1220)
+analyze	Run Deep Dive Analysis	2026-01-31T09:04:28.6473088Z 2026-01-31 09:04:28,646 - brain - WARNING - OpenRouter Error (429) with nousresearch/hermes-3-llama-3.1-405b:free: {"error":{"message":"Provider returned error","code":429,"metadata":{"raw":"nousresearch/hermes-3-llama-3.1-405b:free is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations","provider_name":"Venice","is_byok":false}},"user_id":"user_38KqFziK3nyr0CLcndZo9TFtN4Y"}
+analyze	Run Deep Dive Analysis	2026-01-31T09:04:28.6476542Z 2026-01-31 09:04:28,646 - brain - WARNING - OpenRouter pool failed: OpenRouter: All model attempts failed.
+analyze	Run Deep Dive Analysis	2026-01-31T09:04:28.6483647Z 2026-01-31 09:04:28,647 - brain - INFO - Triggering Emergency tiered Gemini fallback for council_critique...
+analyze	Run Deep Dive Analysis	2026-01-31T09:04:28.6484769Z 2026-01-31 09:04:28,648 - brain - INFO - Gemini Call: Using model gemini-2.0-flash
+analyze	Run Deep Dive Analysis	2026-01-31T09:04:28.6485719Z 2026-01-31 09:04:28,648 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+analyze	Run Deep Dive Analysis	2026-01-31T09:04:28.7428851Z 2026-01-31 09:04:28,742 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent "HTTP/1.1 429 Too Many Requests"
+analyze	Run Deep Dive Analysis	2026-01-31T09:04:28.7433114Z 2026-01-31 09:04:28,743 - brain - WARNING - Gemini tier exhausted for gemini-2.0-flash. Trying next...
+analyze	Run Deep Dive Analysis	2026-01-31T09:04:28.7434314Z 2026-01-31 09:04:28,743 - brain - INFO - Gemini Call: Using model gemini-2.0-flash-lite
+analyze	Run Deep Dive Analysis	2026-01-31T09:04:28.7435445Z 2026-01-31 09:04:28,743 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+analyze	Run Deep Dive Analysis	2026-01-31T09:04:28.8143205Z 2026-01-31 09:04:28,813 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent "HTTP/1.1 429 Too Many Requests"
+analyze	Run Deep Dive Analysis	2026-01-31T09:04:28.8149656Z 2026-01-31 09:04:28,814 - brain - WARNING - Gemini tier exhausted for gemini-2.0-flash-lite. Trying next...
+analyze	Run Deep Dive Analysis	2026-01-31T09:04:28.8151106Z 2026-01-31 09:04:28,814 - brain - INFO - Gemini Call: Using model gemini-flash-latest
+analyze	Run Deep Dive Analysis	2026-01-31T09:04:28.8152168Z 2026-01-31 09:04:28,815 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+analyze	Run Deep Dive Analysis	2026-01-31T09:04:33.0293985Z 2026-01-31 09:04:33,029 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent "HTTP/1.1 200 OK"
+analyze	Run Deep Dive Analysis	2026-01-31T09:04:33.2622583Z 2026-01-31 09:04:33,261 - httpx - INFO - HTTP Request: GET ***/rest/v1/user_settings?select=%2A&limit=1 "HTTP/2 200 OK"
+analyze	Run Deep Dive Analysis	2026-01-31T09:04:33.4224711Z 2026-01-31 09:04:33,422 - httpx - INFO - HTTP Request: PATCH ***/rest/v1/user_settings?id=eq.f6c06970-0b9f-4803-b1d1-2d01b213374c "HTTP/2 200 OK"
+analyze	Run Deep Dive Analysis	2026-01-31T09:04:33.4229593Z 2026-01-31 09:04:33,422 - db_handler - INFO - API Counter: gemini_fallback = 19 (today: 2026-01-31)
+analyze	Run Deep Dive Analysis	2026-01-31T09:04:33.5817335Z 2026-01-31 09:04:33,581 - httpx - INFO - HTTP Request: GET ***/rest/v1/user_settings?select=%2A&limit=1 "HTTP/2 200 OK"
+analyze	Run Deep Dive Analysis	2026-01-31T09:04:33.7231992Z 2026-01-31 09:04:33,722 - httpx - INFO - HTTP Request: PATCH ***/rest/v1/user_settings?id=eq.f6c06970-0b9f-4803-b1d1-2d01b213374c "HTTP/2 200 OK"
+analyze	Run Deep Dive Analysis	2026-01-31T09:04:33.7237241Z 2026-01-31 09:04:33,723 - db_handler - INFO - Model Used: google/gemini-flash-latest (count: 19)
+analyze	Run Deep Dive Analysis	2026-01-31T09:04:33.7238026Z 2026-01-31 09:04:33,723 - brain - INFO - Gemini call successful with gemini-flash-latest
+analyze	Run Deep Dive Analysis	2026-01-31T09:04:33.7647281Z 2026-01-31 09:04:33,764 - httpx - INFO - HTTP Request: GET https://generativelanguage.googleapis.com/v1beta/models "HTTP/1.1 200 OK"
+analyze	Run Deep Dive Analysis	2026-01-31T09:04:33.7704582Z 2026-01-31 09:04:33,770 - brain - WARNING - Gemini discovery failed: 'Model' object has no attribute 'supported_generation_methods'. Using static default.
+analyze	Run Deep Dive Analysis	2026-01-31T09:04:33.7706132Z 2026-01-31 09:04:33,770 - brain - INFO - Gemini Call: Using model gemini-2.0-flash
+analyze	Run Deep Dive Analysis	2026-01-31T09:04:33.7706885Z 2026-01-31 09:04:33,770 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+analyze	Run Deep Dive Analysis	2026-01-31T09:04:33.8394815Z 2026-01-31 09:04:33,839 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent "HTTP/1.1 429 Too Many Requests"
+analyze	Run Deep Dive Analysis	2026-01-31T09:04:33.8400076Z 2026-01-31 09:04:33,839 - brain - WARNING - Gemini gemini-2.0-flash exhausted (429). Moving to OpenRouter pool.
+analyze	Run Deep Dive Analysis	2026-01-31T09:04:33.8401254Z 2026-01-31 09:04:33,839 - brain - INFO - Using cached free model: deepseek/deepseek-r1-0528:free (Score: 1320)
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:35.0667860Z 2026-01-31 09:05:35,066 - brain - WARNING - OpenRouter Attempt 1 failed with deepseek/deepseek-r1-0528:free: 'choices'
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:35.0668915Z 2026-01-31 09:05:35,066 - brain - INFO - Using cached free model: meta-llama/llama-3.1-405b-instruct:free (Score: 1250)
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:35.3716768Z 2026-01-31 09:05:35,371 - brain - WARNING - OpenRouter Error (404) with meta-llama/llama-3.1-405b-instruct:free: {"error":{"message":"Provider returned error","code":404,"metadata":{"raw":"No matching route found. It is likely because the model specified in your request is not configured in the Gateway.","provider_name":"ModelRun","is_byok":false}},"user_id":"user_38KqFziK3nyr0CLcndZo9TFtN4Y"}
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:35.3718758Z 2026-01-31 09:05:35,371 - brain - INFO - Using cached free model: nousresearch/hermes-3-llama-3.1-405b:free (Score: 1220)
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:40.4668935Z 2026-01-31 09:05:40,466 - brain - WARNING - OpenRouter Error (402) with nousresearch/hermes-3-llama-3.1-405b:free: {"error":{"message":"Provider returned error","code":402,"metadata":{"raw":"{\"error\":\"API key USD spend limit exceeded. Your account may still have USD balance, but this API key has reached its configured USD spending limit.\"}","provider_name":"Venice","is_byok":false}},"user_id":"user_38KqFziK3nyr0CLcndZo9TFtN4Y"}
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:40.4671237Z 2026-01-31 09:05:40,466 - brain - WARNING - OpenRouter pool failed: OpenRouter: All model attempts failed.
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:40.4677506Z 2026-01-31 09:05:40,467 - brain - INFO - Triggering Emergency tiered Gemini fallback for council_critique...
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:40.4678550Z 2026-01-31 09:05:40,467 - brain - INFO - Gemini Call: Using model gemini-2.0-flash
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:40.4679503Z 2026-01-31 09:05:40,467 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:40.5432732Z 2026-01-31 09:05:40,543 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent "HTTP/1.1 429 Too Many Requests"
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:40.5437824Z 2026-01-31 09:05:40,543 - brain - WARNING - Gemini tier exhausted for gemini-2.0-flash. Trying next...
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:40.5438656Z 2026-01-31 09:05:40,543 - brain - INFO - Gemini Call: Using model gemini-2.0-flash-lite
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:40.5439349Z 2026-01-31 09:05:40,543 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:40.6754108Z 2026-01-31 09:05:40,675 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent "HTTP/1.1 429 Too Many Requests"
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:40.6758466Z 2026-01-31 09:05:40,675 - brain - WARNING - Gemini tier exhausted for gemini-2.0-flash-lite. Trying next...
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:40.6759778Z 2026-01-31 09:05:40,675 - brain - INFO - Gemini Call: Using model gemini-flash-latest
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:40.6760375Z 2026-01-31 09:05:40,675 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:44.4870695Z 2026-01-31 09:05:44,486 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent "HTTP/1.1 200 OK"
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:45.0637381Z 2026-01-31 09:05:45,063 - httpx - INFO - HTTP Request: GET ***/rest/v1/user_settings?select=%2A&limit=1 "HTTP/2 200 OK"
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:45.2280176Z 2026-01-31 09:05:45,227 - httpx - INFO - HTTP Request: PATCH ***/rest/v1/user_settings?id=eq.f6c06970-0b9f-4803-b1d1-2d01b213374c "HTTP/2 200 OK"
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:45.2285718Z 2026-01-31 09:05:45,228 - db_handler - INFO - API Counter: gemini_fallback = 20 (today: 2026-01-31)
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:45.3729876Z 2026-01-31 09:05:45,372 - httpx - INFO - HTTP Request: GET ***/rest/v1/user_settings?select=%2A&limit=1 "HTTP/2 200 OK"
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:45.5076711Z 2026-01-31 09:05:45,507 - httpx - INFO - HTTP Request: PATCH ***/rest/v1/user_settings?id=eq.f6c06970-0b9f-4803-b1d1-2d01b213374c "HTTP/2 200 OK"
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:45.5081433Z 2026-01-31 09:05:45,507 - db_handler - INFO - Model Used: google/gemini-flash-latest (count: 20)
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:45.5082434Z 2026-01-31 09:05:45,508 - brain - INFO - Gemini call successful with gemini-flash-latest
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:46.2214543Z 2026-01-31 09:05:46,221 - httpx - INFO - HTTP Request: GET ***/rest/v1/user_settings?select=%2A&limit=1 "HTTP/2 200 OK"
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:46.2219756Z 2026-01-31 09:05:46,221 - brain - INFO - Brain Mode: PROD
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:46.2220486Z 2026-01-31 09:05:46,221 - brain - INFO - Brain initialized: OpenRouter=YES, Gemini Fallback=YES
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:46.2780441Z 2026-01-31 09:05:46,277 - httpx - INFO - HTTP Request: GET https://generativelanguage.googleapis.com/v1beta/models "HTTP/1.1 200 OK"
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:46.2836341Z 2026-01-31 09:05:46,283 - brain - WARNING - Gemini discovery failed: 'Model' object has no attribute 'supported_generation_methods'. Using static default.
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:46.2837471Z 2026-01-31 09:05:46,283 - brain - INFO - Gemini Call: Using model gemini-2.0-flash
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:46.2838229Z 2026-01-31 09:05:46,283 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:46.3417171Z 2026-01-31 09:05:46,341 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent "HTTP/1.1 429 Too Many Requests"
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:46.3422249Z 2026-01-31 09:05:46,342 - brain - WARNING - Gemini gemini-2.0-flash exhausted (429). Moving to OpenRouter pool.
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:46.4809300Z 2026-01-31 09:05:46,480 - brain - INFO - Dynamic Model Selection Winner: meta-llama/llama-3.3-70b-instruct:free (Score: 1220) from 11 candidates
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:46.8558218Z 2026-01-31 09:05:46,855 - brain - WARNING - OpenRouter Error (404) with meta-llama/llama-3.3-70b-instruct:free: {"error":{"message":"Provider returned error","code":404,"metadata":{"raw":"No matching route found. It is likely because the model specified in your request is not configured in the Gateway.","provider_name":"ModelRun","is_byok":false}},"user_id":"user_38KqFziK3nyr0CLcndZo9TFtN4Y"}
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:46.8560251Z 2026-01-31 09:05:46,855 - brain - INFO - Using cached free model: qwen/qwen3-coder:free (Score: 1040)
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:47.2285576Z 2026-01-31 09:05:47,228 - brain - WARNING - OpenRouter Error (429) with qwen/qwen3-coder:free: {"error":{"message":"Provider returned error","code":429,"metadata":{"raw":"qwen/qwen3-coder:free is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations","provider_name":"Venice","is_byok":false}},"user_id":"user_38KqFziK3nyr0CLcndZo9TFtN4Y"}
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:47.2288976Z 2026-01-31 09:05:47,228 - brain - INFO - Using cached free model: meta-llama/llama-3.1-405b-instruct:free (Score: 950)
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:47.4078738Z 2026-01-31 09:05:47,407 - brain - WARNING - OpenRouter Error (404) with meta-llama/llama-3.1-405b-instruct:free: {"error":{"message":"Provider returned error","code":404,"metadata":{"raw":"No matching route found. It is likely because the model specified in your request is not configured in the Gateway.","provider_name":"ModelRun","is_byok":false}},"user_id":"user_38KqFziK3nyr0CLcndZo9TFtN4Y"}
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:47.4081010Z 2026-01-31 09:05:47,407 - brain - WARNING - OpenRouter pool failed: OpenRouter: All model attempts failed.
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:47.4087270Z 2026-01-31 09:05:47,408 - brain - INFO - Triggering Emergency tiered Gemini fallback for critic_eval...
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:47.4088183Z 2026-01-31 09:05:47,408 - brain - INFO - Gemini Call: Using model gemini-2.0-flash
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:47.4088978Z 2026-01-31 09:05:47,408 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:47.4660607Z 2026-01-31 09:05:47,465 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent "HTTP/1.1 429 Too Many Requests"
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:47.4667903Z 2026-01-31 09:05:47,466 - brain - WARNING - Gemini tier exhausted for gemini-2.0-flash. Trying next...
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:47.4669045Z 2026-01-31 09:05:47,466 - brain - INFO - Gemini Call: Using model gemini-2.0-flash-lite
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:47.4670102Z 2026-01-31 09:05:47,466 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:47.5308672Z 2026-01-31 09:05:47,530 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent "HTTP/1.1 429 Too Many Requests"
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:47.5315852Z 2026-01-31 09:05:47,531 - brain - WARNING - Gemini tier exhausted for gemini-2.0-flash-lite. Trying next...
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:47.5317014Z 2026-01-31 09:05:47,531 - brain - INFO - Gemini Call: Using model gemini-flash-latest
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:47.5318045Z 2026-01-31 09:05:47,531 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:52.3813894Z 2026-01-31 09:05:52,381 - httpx - INFO - HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent "HTTP/1.1 200 OK"
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:52.5894981Z 2026-01-31 09:05:52,589 - httpx - INFO - HTTP Request: GET ***/rest/v1/user_settings?select=%2A&limit=1 "HTTP/2 200 OK"
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:52.7251268Z 2026-01-31 09:05:52,724 - httpx - INFO - HTTP Request: PATCH ***/rest/v1/user_settings?id=eq.f6c06970-0b9f-4803-b1d1-2d01b213374c "HTTP/2 200 OK"
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:52.7256260Z 2026-01-31 09:05:52,725 - db_handler - INFO - API Counter: gemini_fallback = 21 (today: 2026-01-31)
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:52.8595203Z 2026-01-31 09:05:52,859 - httpx - INFO - HTTP Request: GET ***/rest/v1/user_settings?select=%2A&limit=1 "HTTP/2 200 OK"
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:52.9946858Z 2026-01-31 09:05:52,994 - httpx - INFO - HTTP Request: PATCH ***/rest/v1/user_settings?id=eq.f6c06970-0b9f-4803-b1d1-2d01b213374c "HTTP/2 200 OK"
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:52.9951818Z 2026-01-31 09:05:52,995 - db_handler - INFO - Model Used: google/gemini-flash-latest (count: 21)
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:52.9952886Z 2026-01-31 09:05:52,995 - brain - INFO - Gemini call successful with gemini-flash-latest
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:53.3123620Z 2026-01-31 09:05:53,311 - httpx - INFO - HTTP Request: GET ***/rest/v1/ticker_cache?select=is_crypto%2Ccurrency%2Clast_price%2Clast_price_at&user_ticker=eq.RENDER-USD "HTTP/2 200 OK"
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:53.3128826Z 2026-01-31 09:05:53,312 - market_data - INFO - Persistent Cache HIT: RENDER-USD -> €1.37 (Source: USD)
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:53.3131407Z 2026-01-31 09:05:53,312 - Analyzer - INFO - Quant Data: Verdict=HOLD, Score=50, Regime=SIDEWAYS
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:53.4334789Z 2026-01-31 09:05:53,433 - MarketRegime - INFO - MarketRegimeClassifier: Predictive Layer Active.
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:53.6969868Z 2026-01-31 09:05:53,696 - MarketRegime - INFO - Market Regime: SIDEWAYS (60%) - normal
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:53.6984277Z 2026-01-31 09:05:53,698 - MLPredictor - INFO - ML Prediction: DOWN (55%)
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:53.9266455Z 2026-01-31 09:05:53,926 - httpx - INFO - HTTP Request: POST ***/rest/v1/ml_predictions "HTTP/2 201 Created"
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:53.9271307Z 2026-01-31 09:05:53,926 - Analyzer - INFO - ✅ ML Data Point saved (Quant Path)
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:53.9272301Z 2026-01-31 09:05:53,926 - Analyzer - INFO - Sending report to ***...
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:54.2469278Z 2026-01-31 09:05:54,246 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot***/getMe "HTTP/1.1 200 OK"
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:54.3388621Z 2026-01-31 09:05:54,338 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot***/sendMessage "HTTP/1.1 400 Bad Request"
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:54.5159398Z 2026-01-31 09:05:54,515 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot***/sendMessage "HTTP/1.1 200 OK"
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:54.5167475Z 2026-01-31 09:05:54,516 - telegram_bot - INFO - Telegram message sent to *** (HTML Fallback).
+analyze	Run Deep Dive Analysis	2026-01-31T09:05:54.5171229Z 2026-01-31 09:05:54,516 - Analyzer - INFO - ✅ Analysis completed and sent.
+analyze	Post Set up Python	﻿2026-01-31T09:05:54.8332483Z Post job cleanup.
+analyze	Post Set up Python	2026-01-31T09:05:54.9862035Z Cache hit occurred on the primary key setup-python-Linux-24.04-Ubuntu-python-3.13.11-pip-a95b1e6c91b56088b6c615945e2f4ac67a62799decbb011d2d92b76d5f95ac0c, not saving cache.
+analyze	Post Check out code	﻿2026-01-31T09:05:55.0031638Z Post job cleanup.
+analyze	Post Check out code	2026-01-31T09:05:55.0750360Z [command]/usr/bin/git version
+analyze	Post Check out code	2026-01-31T09:05:55.0784661Z git version 2.52.0
+analyze	Post Check out code	2026-01-31T09:05:55.0827032Z Temporarily overriding HOME='/home/runner/work/_temp/21cb3ca7-bc00-46ab-8e76-fb8eb4ad8704' before making global git config changes
+analyze	Post Check out code	2026-01-31T09:05:55.0828079Z Adding repository directory to the temporary git global config as a safe directory
+analyze	Post Check out code	2026-01-31T09:05:55.0831037Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/zerocosthunter/zerocosthunter
+analyze	Post Check out code	2026-01-31T09:05:55.0861585Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+analyze	Post Check out code	2026-01-31T09:05:55.0890222Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+analyze	Post Check out code	2026-01-31T09:05:55.1173037Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+analyze	Post Check out code	2026-01-31T09:05:55.1192173Z http.https://github.com/.extraheader
+analyze	Post Check out code	2026-01-31T09:05:55.1203304Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+analyze	Post Check out code	2026-01-31T09:05:55.1230293Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+analyze	Complete job	﻿2026-01-31T09:05:55.1586335Z Cleaning up orphan processes
