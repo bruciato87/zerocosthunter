@@ -553,6 +553,12 @@ class Brain:
                     "candidates_tokens": response.usage_metadata.candidates_token_count
                 }
         except: pass
+        
+        self.last_run_details = {
+            "model": f"google/{target_model} (Direct)",
+            "usage": usage,
+            "provider": "Google Direct"
+        }
 
 
         
