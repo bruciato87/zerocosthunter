@@ -15,12 +15,11 @@ def mock_brain_deps(mocker, mock_env):
     # Mock Critic to prevent initialization
     mocker.patch("critic.Critic")
     
-    # Mock DBHandler to prevent logging calls and return PROD mode
-    mock_db = mocker.patch("db_handler.DBHandler")
-    mock_db.return_value.get_settings.return_value = {"app_mode": "PROD"}
-    
-    # Mock OpenRouter Discovery to avoid network calls
+    # Mock OpenRouter Discovery
     mocker.patch("brain.Brain._get_best_free_model", return_value="meta-llama/llama-3.3-70b-instruct:free")
+    
+    # Mock Gemini Discovery
+    mocker.patch("brain.Brain._get_best_gemini_model", return_value="gemini-2.0-flash-exp")
 
 def test_openrouter_success(mock_brain_deps, mocker, monkeypatch):
     """Test standard OpenRouter success path."""
@@ -36,7 +35,9 @@ def test_openrouter_success(mock_brain_deps, mocker, monkeypatch):
     mock_post.return_value = mock_response
     
     brain = Brain()
-    # Force use of OpenRouter
+    # 1. Mock Gemini to fail/unavailable to reach OpenRouter
+    mocker.patch.object(brain, "_get_best_gemini_model", return_value=None)
+    
     brain.app_mode = "PROD" 
     
     result = brain._generate_with_fallback("Test Prompt")
@@ -135,27 +136,27 @@ def test_parse_trade_republic_pdf(mock_brain_deps, mocker):
     assert result["action"] == "BUY"
     assert brain._generate_with_fallback.called
 
-def test_quota_guard_logic(mock_brain_deps, mocker):
-    """Verify background tasks bypass Gemini Direct."""
+def test_priority_logic(mock_brain_deps, mocker):
+    """Verify system prioritizes Gemini then OpenRouter."""
     brain = Brain()
     brain.gemini_api_key = "fake"
     brain.openrouter_api_key = "fake"
     
-    # Mock OpenRouter success
-    mock_post = mocker.patch("requests.post")
-    mock_post.return_value.status_code = 200
-    mock_post.return_value.json.return_value = {"choices": [{"message": {"content": "OR"}}, {"usage": {}}]}
+    # Mock Gemini success
+    mock_gemini = mocker.patch.object(brain, "_call_gemini_fallback", return_value="GEMINI_WIN")
     
-    # Mock Gemini Direct
-    mock_direct = mocker.patch.object(brain, "_call_gemini_with_tiered_fallback")
+    # Mock OpenRouter (should not be called if Gemini succeeds)
+    mock_or = mocker.patch.object(brain, "_call_openrouter", return_value="OR_WIN")
     
-    # Background task with prefer_direct=True should still use OpenRouter
-    brain._generate_with_fallback("Prompt", task_type="council_debate", prefer_direct=True)
-    assert not mock_direct.called
+    result = brain._generate_with_fallback("Prompt", task_type="hunt")
+    assert result == "GEMINI_WIN"
+    assert mock_gemini.called
+    assert not mock_or.called
     
-    # Manual task should use Gemini Direct
-    brain._generate_with_fallback("Prompt", task_type="analyze", prefer_direct=True)
-    assert mock_direct.called
+    # Now simulate Gemini failure
+    mock_gemini.side_effect = Exception("429")
+    result = brain._generate_with_fallback("Prompt", task_type="hunt")
+    assert result == "OR_WIN"
 
 def test_new_sentiments_support(mock_brain_deps, mocker, monkeypatch):
     """Verify system handles new 'WATCH' and 'AVOID' sentiments if returned by AI."""
@@ -172,6 +173,9 @@ def test_new_sentiments_support(mock_brain_deps, mocker, monkeypatch):
     mock_post.return_value = mock_response
     
     # Test the logic
+    # Mock Gemini discovery to return None to force OpenRouter
+    mocker.patch.object(brain, "_get_best_gemini_model", return_value=None)
+    
     response_text = brain._generate_with_fallback("Prompt", json_mode=True)
     import json
     analysis_results = json.loads(response_text)
