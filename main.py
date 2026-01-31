@@ -131,7 +131,7 @@ async def run_async_pipeline():
         last_model = api_usage.get('last_model', 'None (first run)')
         models_used = api_usage.get('models', {})
         
-        logger.info(f"📊 API Usage Report [START]:")
+        logger.info(f"API Usage Report [START]:")
         logger.info(f"   📅 Date: {api_usage.get('date')}")
         logger.info(f"   🤖 Last Model: {last_model}")
         logger.info(f"   🔷 OpenRouter calls today: {api_usage.get('openrouter', 0)}")
@@ -1259,7 +1259,7 @@ async def run_async_pipeline():
         last_model = api_usage.get('last_model', 'N/A')
         model_short = last_model.split('/')[-1].replace(':free', '') if last_model != 'N/A' else 'N/A'
         
-        logger.info(f"📊 API Usage Report [END]:")
+        logger.info(f"API Usage Report [END]:")
         logger.info(f"   🆔 Run ID: {run_id}")
         logger.info(f"   🤖 Model Used: {model_short}")
         logger.info(f"   📞 This Run: {openrouter_this_run} OpenRouter calls")
@@ -1268,7 +1268,7 @@ async def run_async_pipeline():
         # Show per-model breakdown
         models_used = api_usage.get('models', {})
         if models_used:
-            logger.info(f"   📊 Per-Model Stats:")
+            logger.info(f"   Per-Model Stats:")
             for model, count in list(models_used.items())[:5]:
                 m_short = model.split('/')[-1].replace(':free', '')
                 logger.info(f"      └ {m_short}: {count}")

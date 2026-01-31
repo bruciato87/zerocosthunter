@@ -219,7 +219,8 @@ class Brain:
         scored_candidates = []
         
         for model_id in available_models:
-            if model_id in excluded_models:
+            # BLACKLIST: Skip unstable/buggy models (e.g. Gemma 3 returning 404s)
+            if model_id in excluded_models or any(b in model_id.lower() for b in ['gemma-3', 'deepseek/deepseek-v3']):
                 continue
                 
             score = 0
@@ -555,8 +556,8 @@ class Brain:
                   return self._call_openrouter([{"role": "user", "content": prompt}], json_mode=json_mode, model=model, min_context_needed=min_context_needed, task_type=task_type)
              except Exception as e:
                   logger.warning(f"OpenRouter failed: {e}")
-                  # Fallback to Gemini if it wasn't already tried
-                  if not should_try_direct and (self.gemini_api_key or self.gemini_client):
+                  # Fallback to Gemini ONLY if NOT a background task
+                  if not should_try_direct and task_type not in BACKGROUND_TASKS and (self.gemini_api_key or self.gemini_client):
                       return self._call_gemini_with_tiered_fallback(prompt, json_mode)
         
         # Final Fallback
