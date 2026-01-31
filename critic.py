@@ -147,7 +147,8 @@ class Critic:
                     Output JSON: {{ "verdict": "APPROVE" or "REJECT", "score": 50, "concerns": ["List 1 major risk"], "reasoning": "Brief verdict." }}
                     """
                     # direct call to reliable fast model
-                    response = brain._call_gemini_fallback(emergency_prompt, json_mode=True, model="gemini-1.5-flash")
+                    # Use a known valid model from tiers or specific flash
+                    response = brain._call_gemini_fallback(emergency_prompt, json_mode=True, model="gemini-2.0-flash", task_type="critic_last_resort")
                     
                     # Manual Parse
                     clean_response = response.replace('```json', '').replace('```', '').strip()

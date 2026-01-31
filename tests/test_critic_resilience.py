@@ -44,7 +44,7 @@ def test_critic_last_resort_retry(mock_brain_class):
     mock_brain_instance._call_gemini_fallback.assert_called_once()
     call_args = mock_brain_instance._call_gemini_fallback.call_args
     assert "You are a Risk Manager" in call_args[0][0] # Prompt check
-    assert call_args[1]['model'] == "gemini-1.5-flash" # Model check
+    assert call_args[1]['model'] == "gemini-2.0-flash" # Model check
 
 @patch('brain.Brain')
 def test_critic_total_failure_fallback(mock_brain_class):
