@@ -50,9 +50,9 @@ class Economist:
         weekday = now.weekday()  # 0=Monday, 6=Sunday
         
         status = {
-            "crypto": "🟢 OPEN (24/7)",
-            "us_stocks": "🔴 CLOSED",
-            "eu_stocks": "🔴 CLOSED",
+            "crypto": "OPEN (24/7)",
+            "us_stocks": "CLOSED",
+            "eu_stocks": "CLOSED",
             "is_weekend": weekday >= 5,
             "is_us_holiday": today in self.US_HOLIDAYS_2026,
             "current_time_italy": now.strftime("%H:%M CET")
@@ -227,9 +227,9 @@ class Economist:
                 change = ((current - start) / start) * 100
                 dxy_context = f"{current:.2f}"
                 if change > 1.0:
-                    dxy_trend = "📈 RISING (Bearish for Crypto/Gold)"
+                    dxy_trend = "RISING (Bearish for Crypto/Gold)"
                 elif change < -1.0:
-                    dxy_trend = "📉 FALLING (Bullish for Crypto/Gold)"
+                    dxy_trend = "FALLING (Bullish for Crypto/Gold)"
                 else:
                     dxy_trend = "➡️ STABLE"
         except Exception as e:
@@ -261,14 +261,14 @@ class Economist:
         📊 Risk Level: {risk}
         📋 Reason: {reason if reason else "Normal Market Conditions"}
         
-        🔥 VIX (Fear): {vix_context}
-        💵 10Y Yield: {yield_context}
-        💲 DXY (Dollar): {dxy_context} {dxy_trend}
-        😱 Fear & Greed: {fg_context}
+        VIX (Fear): {vix_context}
+        10Y Yield: {yield_context}
+        DXY (Dollar): {dxy_context} {dxy_trend}
+        Fear & Greed: {fg_context}
         
-        📅 FED 2026 Next Mtg: {self._get_next_meeting()}
+        FED 2026 Next Mtg: {self._get_next_meeting()}
         
-        🎯 STRATEGY: {'⚠️ CAUTION: Do NOT Buy volatile assets.' if risk == 'HIGH' else '🟡 MODERATE: Be selective.' if risk == 'MEDIUM' else '✅ GREEN LIGHT: Macro environment stable.'}
+        STRATEGY: {'CAUTION: Do NOT Buy volatile assets.' if risk == 'HIGH' else 'MODERATE: Be selective.' if risk == 'MEDIUM' else 'GREEN LIGHT: Macro environment stable.'}
         
         **MARKET RULES:**
         - If US/EU CLOSED: Only Crypto signals are actionable now

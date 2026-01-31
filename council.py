@@ -41,7 +41,7 @@ class Council:
             logger.warning("Council: Brain instance missing, simplified consensus used.")
             return initial_signal
 
-        logger.info(f"🏛️ THE COUNCIL: Debating {ticker}...")
+        logger.info(f"THE COUNCIL: Debating {ticker}...")
 
         try:
             # 1. Single Multi-Persona Prompt

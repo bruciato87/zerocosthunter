@@ -111,7 +111,7 @@ class SocialScraper:
                 
         # Sort and return top 20
         sorted_trending = dict(sorted(trending.items(), key=lambda x: x[1], reverse=True)[:20])
-        logger.info(f"🔥 Consolidated Social Tickers: {sorted_trending}")
+        logger.info(f"Consolidated Social Tickers: {sorted_trending}")
         return sorted_trending
 
     def get_social_context(self, ticker: str) -> str:
@@ -124,13 +124,13 @@ class SocialScraper:
         velocity_label = f" (Velocity: {velocity_info['status']})" if velocity_info else ""
         
         if count > 8: # Higher threshold now that sources are merged
-            sentiment = "🔥 HIGH HYPE"
+            sentiment = "HIGH HYPE"
         elif count > 3:
-            sentiment = "👀 MODERATE INTEREST"
+            sentiment = "MODERATE INTEREST"
         elif count > 0:
-            sentiment = "🔹 MENTIONED"
+            sentiment = "MENTIONED"
         else:
-            sentiment = "🌑 QUIET"
+            sentiment = "QUIET"
             
         return f"[SOCIAL ORACLE: {ticker} -> {sentiment} ({count} influence score){velocity_label}]"
 

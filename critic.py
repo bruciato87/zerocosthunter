@@ -138,7 +138,7 @@ class Critic:
         Example: If Regime is BEARISH, blocks buying meme coins or increasing high-risk exposure.
         Enforces that 'HOLD' is ONLY used for assets actually owned.
         """
-        logger.info(f"🧐 Critic evaluating rebalance strategy (Regime: {regime})...")
+        logger.info(f"Critic evaluating rebalance strategy (Regime: {regime})...")
         
         held_assets_str = ", ".join(held_assets) if held_assets else "NONE"
         

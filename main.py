@@ -132,15 +132,15 @@ async def run_async_pipeline():
         models_used = api_usage.get('models', {})
         
         logger.info(f"API Usage Report [START]:")
-        logger.info(f"   📅 Date: {api_usage.get('date')}")
-        logger.info(f"   🤖 Last Model: {last_model}")
-        logger.info(f"   🔷 OpenRouter calls today: {api_usage.get('openrouter', 0)}")
+        logger.info(f"   Date: {api_usage.get('date')}")
+        logger.info(f"   Last Model: {last_model}")
+        logger.info(f"   OpenRouter calls today: {api_usage.get('openrouter', 0)}")
         if models_used:
             for model, count in list(models_used.items())[:3]:  # Show top 3 models
                 model_short = model.split('/')[-1].replace(':free', '')
                 logger.info(f"      └ {model_short}: {count} calls")
-        logger.info(f"   ⏰ Reset at: {api_usage.get('reset_at_local', 'N/A')} ({api_usage.get('hours_until_reset', 0):.1f}h from now)")
-        logger.info(f"   🆔 Run ID: {run_id}")
+        logger.info(f"   Reset at: {api_usage.get('reset_at_local', 'N/A')} ({api_usage.get('hours_until_reset', 0):.1f}h from now)")
+        logger.info(f"   Run ID: {run_id}")
     except:
         pass
 
@@ -204,8 +204,8 @@ async def run_async_pipeline():
     _news_fetch_time = timing_module.time() - _news_fetch_start
     
     if not news_items:
-        print("Hunter: No news found. Exiting.", flush=True)
-        return
+        logger.info("Hunter: No fresh RSS news found. Proceeding with Pulse/Synthetic checks.")
+        news_items = []
 
     # 2.2 Load Portfolio
     # 2.2 Get Last Run Time for Freshness Filter
@@ -433,7 +433,7 @@ async def run_async_pipeline():
     local_tech_cache = {}
     local_price_cache = {}
     
-    logger.info(f"⚡ Batch Fetching Data for {len(unique_tickers)} unique tickers...")
+    logger.info(f"Batch Fetching Data for {len(unique_tickers)} unique tickers...")
     
     for ticker in unique_tickers:
         try:
@@ -455,7 +455,7 @@ async def run_async_pipeline():
             # [PERFORMANCE] Register failure to filter noise in future runs
             db.register_ticker_failure(ticker)
 
-    logger.info(f"✅ Local Cache Ready. Enriched {len(unique_tickers)} tickers.")
+    logger.info(f"Local Cache Ready. Enriched {len(unique_tickers)} tickers.")
 
     # --- NEW DEDUPLICATION & MERGING (Moved up to save resources) ---
     merged_map = {}
@@ -499,20 +499,23 @@ async def run_async_pipeline():
 
     # Add synthetic assets that have no news
     # (We'll handle this in the next block)
-    unique_news_items_list = list(merged_map.values())
-    logger.info(f"Deduplicated news for analysis: {len(news_items)} -> {len(unique_news_items_list)}")
+    # --- ENRICHMENT PREPARATION ---
+    # We will enrich all items (RSS + Synthetic + Pulse) before sending to AI
+    analysis_batch = []
+    
+    # 1. Add Deduplicated RSS News
+    analysis_batch.extend(list(merged_map.values()))
+    logger.info(f"Deduplicated news for analysis: {len(news_items)} -> {len(analysis_batch)}")
 
-    # Enrich ONLY the merged unique items
-    for item in unique_news_items_list:
+    # Enrich RSS news items with Technicals & Portfolio context
+    for item in analysis_batch:
         detected_ticker = item.get('ticker')
         if detected_ticker:
             extras = []
             
             # 2. Technicals (FROM LOCAL CACHE)
-            # Use get() with fallback to avoid key errors
             tech_summary = local_tech_cache.get(detected_ticker)
             if not tech_summary:
-                # Fallback: try to fetch if missed by unique set
                 tech_summary = market.get_technical_summary(detected_ticker)
             
             extras.append(f"Technical: {tech_summary}")
@@ -527,7 +530,6 @@ async def run_async_pipeline():
                     logger.warning(f"Signal Intelligence failed for {detected_ticker}: {e}")
             
             # 3. Portfolio
-            # Helper: find portfolio entry with ticker variants
             def find_portfolio_entry(ticker, portfolio):
                 if ticker in portfolio: return ticker, portfolio[ticker]
                 base = ticker.replace('-USD', '').replace('-EUR', '')
@@ -538,7 +540,6 @@ async def run_async_pipeline():
             portfolio_ticker, holding = find_portfolio_entry(detected_ticker, portfolio_map)
             
             if holding:
-                # Use LOCAL PRICE CACHE
                 current_price_eur = local_price_cache.get(detected_ticker, 0.0)
                 if current_price_eur == 0.0:
                      current_price_eur, _ = market.get_smart_price_eur(detected_ticker)
@@ -559,28 +560,24 @@ async def run_async_pipeline():
             logger.debug(f"Enriched {detected_ticker} news.")
 
     # --- SYNTHETIC PORTFOLIO INJECTION ---
-    # Ensure ALL portfolio assets are analyzed. Use CANONICAL tickers.
-    found_tickers = set()
-    for i in news_items:
+    # Ensure ALL portfolio assets are analyzed.
+    found_tickers_in_rss = set()
+    for i in analysis_batch:
         if i.get('ticker'):
             t = i['ticker']
             if t in CANONICAL_MAP: t = CANONICAL_MAP[t]
-            found_tickers.add(t)
+            found_tickers_in_rss.add(t)
 
     for p_ticker, holding in portfolio_map.items():
-        # Normalize portfolio ticker for check
         norm_p_ticker = CANONICAL_MAP.get(p_ticker, p_ticker)
         
-        if norm_p_ticker not in found_tickers:
-            print(f"Hunter: Portfolio Asset {norm_p_ticker} not in news. Generating Synthetic Check...", flush=True)
+        if norm_p_ticker not in found_tickers_in_rss:
+            logger.info(f"Hunter: Portfolio Asset {norm_p_ticker} not in news. Generating Synthetic Check...")
             try:
-                # 1. Fetch Technicals using ORIGINAL ticker (market data handles aliases) or Normalized?
-                # Best to use normalized if it's a standard YF ticker like BTC-USD
                 fetch_ticker = norm_p_ticker
-                
                 tech_summary = market.get_technical_summary(fetch_ticker)
                 
-                # PnL Calculation for Synthetic - USE EUR PRICING (consistent with real news enrichment)
+                # PnL Calculation for Synthetic
                 pnl_str = ""
                 current_price_eur, _ = market.get_smart_price_eur(fetch_ticker)
                 
@@ -588,20 +585,19 @@ async def run_async_pipeline():
                     pnl_pct = ((current_price_eur - holding['avg_price']) / holding['avg_price']) * 100
                     sign = "+" if pnl_pct >= 0 else ""
                     pnl_str = f" | PnL: {sign}{pnl_pct:.2f}%"
-                    logger.info(f"Synthetic PnL for {fetch_ticker}: €{current_price_eur:.4f} vs avg €{holding['avg_price']:.4f} = {pnl_pct:.2f}%")
+                    logger.info(f"Synthetic PnL for {fetch_ticker}: {pnl_pct:.2f}%")
 
-                # 2. Create Synthetic Item
                 synthetic_item = {
                     "title": f"PORTFOLIO CHECK: {fetch_ticker}",
                     "link": f"https://finance.yahoo.com/quote/{fetch_ticker}",
                     "summary": f"Routine technical check for owned asset. {tech_summary}. [Portfolio: OWNED {holding['quantity']} @ €{holding['avg_price']:.2f}{pnl_str}]",
                     "published": "Just Now",
-                    "ticker": fetch_ticker, # Use Normalized
+                    "ticker": fetch_ticker,
                     "synthetic": True,
                     "source": "Portfolio Technicals"
                 }
-                news_items.append(synthetic_item)
-                logger.info(f"Injected Synthetic Item for {fetch_ticker}")
+                analysis_batch.append(synthetic_item)
+                logger.debug(f"Injected Synthetic Item for {fetch_ticker}")
             except Exception as e:
                 logger.error(f"Failed to generate synthetic item for {norm_p_ticker}: {e}")
                 
@@ -622,10 +618,13 @@ async def run_async_pipeline():
                 "confidence_modifier": anomaly['confidence_modifier'],
                 "source": "Market Pulse"
             }
-            news_items.append(pulse_item)
-            logger.info(f"⚡ Pulse: Injected anomaly for {ticker} ({len(anomaly['findings'])} findings)")
+            analysis_batch.append(pulse_item)
+            logger.info(f"Pulse: Injected anomaly for {ticker}")
     except Exception as e:
         logger.error(f"Market Pulse failed: {e}")
+
+    # Final check on analysis batch
+    logger.info(f"Total items for AI analysis: {len(analysis_batch)}")
     # ----------------------------------------------
 
     # 3. Analyze with AI
@@ -752,7 +751,7 @@ async def run_async_pipeline():
     _ai_start_time = timing_module.time()
     try:
         predictions = brain.analyze_news_batch(
-            unique_news_items_list, 
+            analysis_batch, 
             performance_context=performance_context, 
             insider_context=insider_context,
             portfolio_context=advisor_analysis,
@@ -908,7 +907,7 @@ async def run_async_pipeline():
                 confluence_multiplier = confluence.get('multiplier', 1.0)
                 confidence = min(1.0, confidence * confluence_multiplier)
                 if confluence.get('alignment', 0) >= 2:
-                    logger.info(f"L1 Confluence [{ticker}]: {confluence.get('alignment')}/3 aligned → confidence boost {confluence_multiplier:.2f}")
+                    logger.info(f"L1 Confluence [{ticker}]: {confluence.get('alignment')}/3 aligned -> confidence boost {confluence_multiplier:.2f}")
                     reasoning += f"\n✅ Confluence: {confluence.get('reason', 'N/A')}"
             except Exception as e:
                 logger.warning(f"L1 Confluence failed for {ticker}: {e}")
@@ -919,10 +918,10 @@ async def run_async_pipeline():
                 mtf_boost = mtf.get('confidence_boost', 1.0)
                 if mtf.get('direction') == 'mixed':
                     confidence *= mtf_boost  # Penalize mixed signals
-                    logger.info(f"L1 MTF [{ticker}]: Mixed timeframes → penalty {mtf_boost:.2f}")
+                    logger.info(f"L1 MTF [{ticker}]: Mixed timeframes -> penalty {mtf_boost:.2f}")
                 elif mtf.get('direction') in ['bullish', 'bearish']:
                     confidence = min(1.0, confidence * mtf_boost)
-                    logger.info(f"L1 MTF [{ticker}]: {mtf.get('direction')} ({mtf.get('alignment')}/3) → boost {mtf_boost:.2f}")
+                    logger.info(f"L1 MTF [{ticker}]: {mtf.get('direction')} ({mtf.get('alignment')}/3) -> boost {mtf_boost:.2f}")
                     reasoning += f" [MTF: {mtf.get('direction')} {mtf.get('alignment')}/3]"
             except Exception as e:
                 logger.warning(f"L1 MTF failed for {ticker}: {e}")
@@ -933,7 +932,7 @@ async def run_async_pipeline():
                 sentiment_agg = SentimentAggregator()
                 adjusted_conf = sentiment_agg.adjust_confidence(confidence, sentiment)
                 if adjusted_conf != confidence:
-                    logger.info(f"L1 Sentiment [{ticker}]: Adjusted confidence {confidence:.2f} → {adjusted_conf:.2f}")
+                    logger.info(f"L1 Sentiment [{ticker}]: Adjusted confidence {confidence:.2f} -> {adjusted_conf:.2f}")
                     confidence = adjusted_conf
                     mkt_score = sentiment_agg.get_score()
                     reasoning += f"\n📊 Mkt Sentiment: {mkt_score}"
@@ -950,17 +949,17 @@ async def run_async_pipeline():
                     # Bullish divergence on BUY signal = boost
                     if div_type == 'bullish' and sentiment in ['BUY', 'ACCUMULATE']:
                         confidence = min(1.0, confidence * div_boost)
-                        logger.info(f"L2 Divergence [{ticker}]: Bullish divergence → boost {div_boost:.2f}")
+                        logger.info(f"L2 Divergence [{ticker}]: Bullish divergence -> boost {div_boost:.2f}")
                         reasoning += f"\n📐 Divergence: Bullish ({divergence.get('strength'):.0%})"
                     # Bearish divergence on BUY signal = warning
                     elif div_type == 'bearish' and sentiment in ['BUY', 'ACCUMULATE']:
                         confidence *= 0.90  # Penalize
-                        logger.info(f"L2 Divergence [{ticker}]: Bearish divergence on BUY → penalty")
+                        logger.info(f"L2 Divergence [{ticker}]: Bearish divergence on BUY -> penalty")
                         reasoning += "\n⚠️ Divergence: Bearish (Caution)"
                     # Bearish divergence on SELL signal = boost
                     elif div_type == 'bearish' and sentiment in ['SELL', 'TRIM']:
                         confidence = min(1.0, confidence * div_boost)
-                        logger.info(f"L2 Divergence [{ticker}]: Bearish divergence on SELL → boost")
+                        logger.info(f"L2 Divergence [{ticker}]: Bearish divergence on SELL -> boost")
             except Exception as e:
                 logger.warning(f"L2 Divergence failed for {ticker}: {e}")
             
@@ -981,7 +980,7 @@ async def run_async_pipeline():
                 ml_type = "ML" if ml_pred.is_ml else "Rule"
                 
                 if ml_modifier != 1.0:
-                    logger.info(f"L4 ML [{ticker}]: {ml_pred.direction} ({ml_pred.confidence:.0%}) → modifier {ml_modifier:.2f}")
+                    logger.info(f"L4 ML [{ticker}]: {ml_pred.direction} ({ml_pred.confidence:.0%}) -> modifier {ml_modifier:.2f}")
                     if ml_modifier > 1.0:
                         reasoning += f"\n🤖 ML Check: {ml_type} agrees ({ml_pred.direction} {ml_pred.confidence:.0%})"
                     else:
@@ -999,13 +998,13 @@ async def run_async_pipeline():
                         penalty = 0.75  # -25% confidence
                         confidence = min(1.0, confidence * penalty)
                         reasoning += f"\n⚠️ RSI: OVERBOUGHT ({rsi:.0f}) - caution"
-                        logger.info(f"L5 RSI [{ticker}]: RSI {rsi:.0f} > 80 → BUY penalty {penalty}")
+                        logger.info(f"L5 RSI [{ticker}]: RSI {rsi:.0f} > 80 -> BUY penalty {penalty}")
                     # Penalize SELL when extremely oversold (RSI < 20)
                     elif rsi < 20 and sentiment in ['SELL', 'TRIM', 'PANIC SELL']:
                         penalty = 0.75
                         confidence = min(1.0, confidence * penalty)
                         reasoning += f"\n⚠️ RSI: OVERSOLD ({rsi:.0f}) - caution"
-                        logger.info(f"L5 RSI [{ticker}]: RSI {rsi:.0f} < 20 → SELL penalty {penalty}")
+                        logger.info(f"L5 RSI [{ticker}]: RSI {rsi:.0f} < 20 -> SELL penalty {penalty}")
             except Exception as e:
                 logger.warning(f"L5 RSI filter failed for {ticker}: {e}")
             
@@ -1260,10 +1259,10 @@ async def run_async_pipeline():
         model_short = last_model.split('/')[-1].replace(':free', '') if last_model != 'N/A' else 'N/A'
         
         logger.info(f"API Usage Report [END]:")
-        logger.info(f"   🆔 Run ID: {run_id}")
-        logger.info(f"   🤖 Model Used: {model_short}")
-        logger.info(f"   📞 This Run: {openrouter_this_run} OpenRouter calls")
-        logger.info(f"   📅 Total Today: {api_usage.get('openrouter', 0)} OpenRouter calls")
+        logger.info(f"   Run ID: {run_id}")
+        logger.info(f"   Model Used: {model_short}")
+        logger.info(f"   This Run: {openrouter_this_run} OpenRouter calls")
+        logger.info(f"   Total Today: {api_usage.get('openrouter', 0)} OpenRouter calls")
         
         # Show per-model breakdown
         models_used = api_usage.get('models', {})
@@ -1273,7 +1272,7 @@ async def run_async_pipeline():
                 m_short = model.split('/')[-1].replace(':free', '')
                 logger.info(f"      └ {m_short}: {count}")
         
-        logger.info(f"   ⏰ Reset in: {api_usage.get('hours_until_reset', 0):.1f}h ({api_usage.get('reset_at_local', 'N/A')})")
+        logger.info(f"   Reset in: {api_usage.get('hours_until_reset', 0):.1f}h ({api_usage.get('reset_at_local', 'N/A')})")
     except Exception as e:
         logger.warning(f"API usage report failed: {e}")
 
@@ -1320,8 +1319,6 @@ async def run_async_pipeline():
     
     # Send completion notification to Telegram
     try:
-        # Build AI Tech Footer
-        ai_footer = ""
         try:
             details = brain.last_run_details
             if details:
@@ -1334,15 +1331,30 @@ async def run_async_pipeline():
                          elif "FAILED" in str(total_tok): total_tok = "Exhausted (429)"
                     else:
                          total_tok = str(usage)
-                except: total_tok = "?"
-                
-                ai_footer = f"\n\n🤖 AI Model: `{model_name}`\n🎟️ Tokens: `{total_tok}`"
-        except: pass
+                except:
+                    total_tok = "?"
+                ai_footer = f"\n🤖 AI: {model_name} ({total_tok} tokens)"
+        except Exception as e:
+            logger.debug(f"Failed to build ai_footer: {e}")
+            ai_footer = ""
 
-        if processed_count > 0:
-            await notifier.send_alert(f"✅ **Caccia Completata!**\n📊 Processati {processed_count} segnali validi.{flash_tip}{ai_footer}")
+        # --- FINAL SUMMARY ---
+        total_time = timing_module.time() - _run_start_time
+        
+        final_report = f"✅ Caccia Completata!\n🔍 Analizzati {len(analysis_batch)} item in {total_time:.1f}s."
+        
+        if ai_footer:
+            final_report += ai_footer
+        
+        if processed_count == 0:
+            final_report += "\n🔍 Nessun nuovo segnale significativo trovato."
         else:
-            await notifier.send_alert(f"✅ **Caccia Completata!**\n🔍 Nessun nuovo segnale significativo trovato.{flash_tip}{ai_footer}")
+            final_report += f"\n🎯 Generati {processed_count} nuovi segnali."
+        
+        if flash_tip:
+            final_report += flash_tip
+        
+        await notifier.send_message(user_settings.get("telegram_chat_id"), final_report)
     except Exception as e:
         logger.warning(f"Failed to send completion notification: {e}")
 

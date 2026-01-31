@@ -114,8 +114,8 @@ class PulseHunter:
 
     def scan(self) -> List[Dict]:
         """Scan the entire watchlist and return actionable pulse triggers."""
-        logger.info("⚡ Market Pulse: Starting quantitative scan...")
         watchlist = self._get_watchlist()
+        logger.info(f"PulseHunter: Scanning {len(watchlist)} tickers...")
         
         results = []
         for ticker in watchlist:

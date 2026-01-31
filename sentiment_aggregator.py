@@ -26,7 +26,7 @@ class SentimentAggregator:
     def __init__(self):
         self._cache = {}
         self._cache_ttl = 300  # 5 minutes
-        logger.info("SentimentAggregator initialized")
+        logger.info("SentimentAggregator: Analyzing cross-source sentiment...")
     
     def get_fear_greed_stock(self) -> Optional[int]:
         """Get CNN Fear & Greed Index for stocks."""

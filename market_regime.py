@@ -40,7 +40,7 @@ class MarketRegimeClassifier:
         self._cache = {}
         self._cache_time = None
         self.CACHE_TTL_MINUTES = 30
-        logger.info("MarketRegimeClassifier initialized")
+        logger.info("MarketRegimeClassifier: Predictive Layer Active.")
     
     def _fetch_indicator(self, ticker: str, period: str = "6mo") -> Dict:
         """Fetch price data and calculate indicators for a ticker."""

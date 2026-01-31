@@ -71,7 +71,7 @@ class Brain:
         
         # Log initialization
         if self.openrouter_api_key:
-            logger.info(f"Brain initialized: OpenRouter=✅, Gemini Fallback={'✅' if self.gemini_api_key else '❌'}")
+            logger.info(f"Brain initialized: OpenRouter=YES, Gemini Fallback={'YES' if self.gemini_api_key else 'NO'}")
         else:
             logger.warning(f"Brain initialized: OpenRouter=❌ (no API key), Gemini={'✅' if self.gemini_api_key else '❌'}")
             
@@ -1034,10 +1034,10 @@ class Brain:
                         logger.warning(f"⚠️ CRITIC SOFT VETO {sig['ticker']} (Score: {verdict_obj.score}): {verdict_obj.reasoning}")
                     
                     elif verdict_obj.score <= 80:
-                        logger.info(f"⚖️ CRITIC CAUTIOUS APPROVAL {sig['ticker']} (Score: {verdict_obj.score})")
+                        logger.info(f"CRITIC CAUTIOUS APPROVAL {sig['ticker']} (Score: {verdict_obj.score})")
                     
                     else:
-                        logger.info(f"✅ CRITIC STRONG APPROVAL {sig['ticker']} (Score: {verdict_obj.score})")
+                        logger.info(f"CRITIC STRONG APPROVAL {sig['ticker']} (Score: {verdict_obj.score})")
                         if verdict_obj.score > 90:
                             sig['confidence'] = min(0.99, float(sig.get('confidence', 0.5)) + 0.05)
                 

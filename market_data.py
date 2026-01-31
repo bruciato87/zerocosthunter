@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 class MarketData:
     def __init__(self):
-        logger.info("MarketData Class Loaded (v2.1 - Smart Price Enabled)")
+        logger.info(f"MarketData Class Loaded (v2.1 - Smart Price Enabled)")
         
         # [PERFORMANCE] Session-level cache to avoid redundant API calls
         self._price_cache = {}      # ticker -> (price, source, change_pct, timestamp)

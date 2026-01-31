@@ -20,7 +20,7 @@ class OnChainWatcher:
         Fetches on-chain data for a ticker from DexScreener.
         Searches for the ticker and returns the most liquid pair.
         """
-        logger.info(f"🧬 Fetching On-Chain data for {ticker}...")
+        logger.info(f"Fetching On-Chain data for {ticker}...")
         try:
             url = f"{self.BASE_URL}/search?q={ticker}"
             resp = self.session.get(url, timeout=10)
@@ -32,7 +32,7 @@ class OnChainWatcher:
             pairs = data.get("pairs", [])
             
             if not pairs:
-                logger.info(f"🌑 No DEX pairs found for {ticker}")
+                logger.info(f"No DEX pairs found for {ticker}")
                 return None
             
             # Sort by liquidity descending to find the main pair
@@ -53,7 +53,7 @@ class OnChainWatcher:
             }
             
         except Exception as e:
-            logger.error(f"❌ Error fetching on-chain data: {e}")
+            logger.error(f"Error fetching on-chain data: {e}")
             return None
 
     def get_onchain_context(self, ticker: str) -> str:

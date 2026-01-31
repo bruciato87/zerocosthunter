@@ -142,7 +142,7 @@ class Auditor:
                                 )
                                 # Update with lesson
                                 mem.update_outcome(pu["sig"].get('signal_id'), pu["pnl_pct"], lesson)
-                                logger.info(f"📚 Lesson generated for {pu['ticker']}: {lesson[:50]}...")
+                                logger.info(f"Lesson generated for {pu['ticker']}: {lesson[:50]}...")
                         except Exception as lesson_err:
                             logger.warning(f"Lesson generation failed for {pu['ticker']}: {lesson_err}")
 

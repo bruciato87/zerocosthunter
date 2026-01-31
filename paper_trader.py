@@ -139,7 +139,7 @@ class PaperTrader:
                         "quantity": new_qty
                     }).eq("id", holding['id']).execute()
 
-            logger.info(f"PaperTrader: {action} {quantity} {ticker} @ €{price_eur} executed. Cash remaining: €{new_cash:.2f}")
+            logger.info(f"PAPER: RECORDED {action} of {quantity} {ticker} @ {price_eur:.4f} EUR executed. Cash remaining: €{new_cash:.2f}")
             return True
 
         except Exception as e:

@@ -281,11 +281,11 @@ class WhaleWatcher:
             if w['side'] == "BUY":
                 buy_vol += w['value_usd']
                 if val_m > 2.0: # Raise threshold for log
-                    significant_events.append(f"🟢 ${val_m:.1f}M {w.get('type','BUY')} ({w['market']}) on {w['symbol'].replace('USDT', '')}")
+                    significant_events.append(f"${val_m:.1f}M {w.get('type','BUY')} ({w['market']}) on {w['symbol'].replace('USDT', '')}")
             else:
                 sell_vol += w['value_usd']
                 if val_m > 2.0:
-                    significant_events.append(f"🔴 ${val_m:.1f}M {w.get('type','SELL')} ({w['market']}) on {w['symbol'].replace('USDT', '')}")
+                    significant_events.append(f"${val_m:.1f}M {w.get('type','SELL')} ({w['market']}) on {w['symbol'].replace('USDT', '')}")
         
         total_vol = buy_vol + sell_vol
         futures_pct = (futures_vol_share / total_vol * 100) if total_vol > 0 else 0
