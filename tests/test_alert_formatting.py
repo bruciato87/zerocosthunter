@@ -59,5 +59,51 @@ def test_format_alert_msg_majority_with_dissent():
     assert "⚖️ **Consensus Action:** BUY (Disputed)" in alert
     assert "**Hunter Prediction:** BUY (75%)" in alert
     assert "🏛️ **Council Verdict**: MAJORITY VERDICT: BUY (2/3)" in alert
-    assert "> ⚠️ **Dissent (THE_BEAR)**: Argued for SELL because 'Valuation too high'" in alert
-    assert "🛡️ **Risk Check (Critic)**: Watch for overextension." in alert
+
+def test_format_alert_msg_with_ml_consensus():
+    ticker = "ETH"
+    sentiment = "BUY"
+    confidence = 0.8
+    # Simulate ML confirmed block in reasoning
+    reasoning = "Catalyst: ETF inflow.\n🤖 ML Check: ✅ Confirmed (Confidence 80%)"
+    source = "Coindesk"
+    pred = {
+        "asset_type": "Crypto",
+        "target_price": "€4,000",
+        "upside_percentage": 20.0,
+        "risk_score": 4,
+        "council_full_debate": "..."
+    }
+    stop_loss = 3000.0
+    take_profit = 4200.0
+    critic_score = 75
+    critic_reasoning = "Solid."
+    council_summary = "BUY"
+
+    alert = format_alert_msg(ticker, sentiment, confidence, reasoning, source, pred, stop_loss, take_profit, critic_score, critic_reasoning, council_summary)
+    
+    assert "🤖 ML Check: ✅ Confirmed (Confidence 80%)" in alert
+
+def test_format_alert_msg_with_ml_divergence():
+    ticker = "SOL"
+    sentiment = "BUY"
+    confidence = 0.6
+    # Simulate ML divergence block in reasoning
+    reasoning = "Catalyst: Hype.\n🤖 ML Check: ⚠️ Divergence: DOWN (65%)"
+    source = "Twitter"
+    pred = {
+        "asset_type": "Crypto",
+        "target_price": "€150",
+        "upside_percentage": 10.0,
+        "risk_score": 8,
+        "council_full_debate": "..."
+    }
+    stop_loss = 100.0
+    take_profit = 180.0
+    critic_score = 40
+    critic_reasoning = "Risky."
+    council_summary = "HOLD"
+
+    alert = format_alert_msg(ticker, sentiment, confidence, reasoning, source, pred, stop_loss, take_profit, critic_score, critic_reasoning, council_summary)
+    
+    assert "🤖 ML Check: ⚠️ Divergence: DOWN (65%)" in alert

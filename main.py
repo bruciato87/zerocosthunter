@@ -988,9 +988,11 @@ async def run_async_pipeline():
                 if ml_modifier != 1.0:
                     logger.info(f"L4 ML [{ticker}]: {ml_pred.direction} ({ml_pred.confidence:.0%}) -> modifier {ml_modifier:.2f}")
                     if ml_modifier > 1.0:
-                        reasoning += f"\n🤖 ML Check: {ml_type} agrees ({ml_pred.direction} {ml_pred.confidence:.0%})"
+                        reasoning += f"\n🤖 ML Check: ✅ Confirmed (Confidence {ml_pred.confidence:.0%})"
                     else:
-                        reasoning += f"\n🤖 ML Check: {ml_type} doubtful ({ml_pred.direction})"
+                        match = "Neutral" if ml_pred.direction == "HOLD" else "Divergence"
+                        emoji = "⏸️" if ml_pred.direction == "HOLD" else "⚠️"
+                        reasoning += f"\n🤖 ML Check: {emoji} {match}: {ml_pred.direction} ({ml_pred.confidence:.0%})"
             except Exception as e:
                 logger.warning(f"L4 ML failed for {ticker}: {e}")
             
