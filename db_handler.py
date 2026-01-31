@@ -1344,6 +1344,6 @@ if __name__ == "__main__":
     # Test connection
     try:
         db = DBHandler()
-        print("Supabase connection successful.")
+        logger.info("Supabase connected successfully.")
     except Exception as e:
         print(f"Supabase connection failed: {e}")

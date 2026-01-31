@@ -1354,7 +1354,8 @@ async def run_async_pipeline():
         if flash_tip:
             final_report += flash_tip
         
-        await notifier.send_message(user_settings.get("telegram_chat_id"), final_report)
+        target_chat = user_settings.get("telegram_chat_id") or notifier.chat_id
+        await notifier.send_message(target_chat, final_report)
     except Exception as e:
         logger.warning(f"Failed to send completion notification: {e}")
 

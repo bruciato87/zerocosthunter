@@ -12,9 +12,9 @@ class TelegramNotifier:
         self.chat_id = os.environ.get("TELEGRAM_CHAT_ID")
         
         if not self.token:
-            logger.critical("❌ TELEGRAM_BOT_TOKEN IS MISSING! Notifications will NOT be sent.")
+            logger.critical("TELEGRAM_BOT_TOKEN IS MISSING! Notifications will NOT be sent.")
         if not self.chat_id:
-            logger.critical("❌ TELEGRAM_CHAT_ID IS MISSING! Notifications will NOT be sent.")
+            logger.critical("TELEGRAM_CHAT_ID IS MISSING! Notifications will NOT be sent.")
 
     async def send_alert(self, message):
         """Send a formatted message to the default user."""
@@ -38,7 +38,7 @@ class TelegramNotifier:
             return
         
         if not chat_id:
-            logger.error("❌ Attempted to send message but Chat ID is None.")
+            logger.error("Attempted to send message but Chat ID is None.")
             return
 
         try:
