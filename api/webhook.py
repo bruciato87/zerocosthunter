@@ -2,6 +2,7 @@ import os
 import logging
 import asyncio
 import json
+from pathlib import Path
 from flask import Flask, request, render_template, redirect, session, url_for, flash
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, BotCommand
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
@@ -38,6 +39,95 @@ logger = logging.getLogger("VercelWebhook")
 
 TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 DASHBOARD_PASSWORD = os.environ.get("DASHBOARD_PASSWORD", "hunter")
+RUN_REPORT_TYPES = ("hunt", "analyze", "rebalance", "trainml")
+RUN_REPORT_KEY_PRIORITY = {
+    "hunt": ("signals_generated", "news_items_processed", "signal_yield", "openrouter_calls_this_run", "total_time_seconds"),
+    "analyze": ("verdict_score", "news_items_fetched", "technicals_loaded", "report_length_chars"),
+    "rebalance": ("quant_order_count", "actionable_suggestions_count", "fallback_used", "portfolio_value_eur"),
+    "trainml": ("promotions", "rollbacks", "usable_components", "training_samples", "classifier_accuracy"),
+}
+
+
+def _load_latest_run_report(run_type: str, reports_dir: str = "run_logs/latest") -> dict:
+    """Load and normalize the latest observability report for one run type."""
+    normalized = {
+        "run_type": run_type,
+        "status": "missing",
+        "summary": "No report available yet.",
+        "completed_at": None,
+        "duration_seconds": None,
+        "kpis": {},
+        "context": {},
+        "errors": [],
+        "exists": False,
+    }
+
+    report_path = Path(reports_dir) / f"{run_type}_latest.json"
+    if not report_path.exists():
+        return normalized
+
+    try:
+        payload = json.loads(report_path.read_text(encoding="utf-8"))
+    except Exception as e:
+        logger.warning("Dashboard observability: failed reading %s: %s", report_path, e)
+        normalized.update(
+            {
+                "status": "invalid",
+                "summary": f"Invalid report payload: {e}",
+            }
+        )
+        return normalized
+
+    normalized.update(
+        {
+            "run_type": str(payload.get("run_type", run_type)),
+            "status": str(payload.get("status", "unknown")).lower(),
+            "summary": str(payload.get("summary", "")),
+            "completed_at": payload.get("completed_at"),
+            "duration_seconds": payload.get("duration_seconds"),
+            "kpis": payload.get("kpis") if isinstance(payload.get("kpis"), dict) else {},
+            "context": payload.get("context") if isinstance(payload.get("context"), dict) else {},
+            "errors": payload.get("errors") if isinstance(payload.get("errors"), list) else [],
+            "exists": True,
+        }
+    )
+    return normalized
+
+
+def _top_kpis_for_dashboard(report: dict, limit: int = 5) -> list:
+    """Select the most relevant KPI pairs for dashboard cards."""
+    kpis = report.get("kpis") or {}
+    if not isinstance(kpis, dict):
+        return []
+
+    run_type = report.get("run_type", "")
+    selected = []
+    used = set()
+
+    for key in RUN_REPORT_KEY_PRIORITY.get(run_type, ()):
+        if key in kpis:
+            selected.append((key, kpis.get(key)))
+            used.add(key)
+        if len(selected) >= limit:
+            return selected
+
+    for key in sorted(kpis.keys()):
+        if key in used:
+            continue
+        selected.append((key, kpis.get(key)))
+        if len(selected) >= limit:
+            break
+    return selected
+
+
+def build_observability_dashboard(reports_dir: str = "run_logs/latest") -> dict:
+    """Aggregate latest run observability reports for the web dashboard."""
+    runs = []
+    for run_type in RUN_REPORT_TYPES:
+        report = _load_latest_run_report(run_type=run_type, reports_dir=reports_dir)
+        report["kpi_items"] = _top_kpis_for_dashboard(report)
+        runs.append(report)
+    return {"runs": runs, "reports_dir": reports_dir}
 
 # --- Routes ---
 
@@ -1659,6 +1749,15 @@ def dashboard():
         ticker_cache_stats = {}
         rebalancer_learning = {}
 
+    # 15. Run Observability (Step 4 dashboard view)
+    try:
+        observability = build_observability_dashboard(
+            reports_dir=os.environ.get("RUN_REPORT_DIR", "run_logs/latest")
+        )
+    except Exception as e:
+        logger.error(f"Observability Dashboard Error: {e}")
+        observability = {"runs": [], "reports_dir": os.environ.get("RUN_REPORT_DIR", "run_logs/latest")}
+
     return render_template('dashboard.html', 
                            signals=signals, 
                            portfolio=portfolio, 
@@ -1685,7 +1784,8 @@ def dashboard():
                            benchmark_data=benchmark_data,
                            ml_stats=ml_stats,
                            ticker_cache_stats=ticker_cache_stats,
-                           rebalancer_learning=rebalancer_learning)
+                           rebalancer_learning=rebalancer_learning,
+                           observability=observability)
 
 
 @app.route('/api/webhook', methods=['POST'])
@@ -2716,4 +2816,3 @@ async def analyze_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
-

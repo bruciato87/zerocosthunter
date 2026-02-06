@@ -88,6 +88,60 @@
             </div>
         </header>
 
+        <!-- RUN OBSERVABILITY -->
+        <section class="mb-6">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="text-sm font-semibold text-cyan-300 uppercase tracking-wider">📡 Run Observability</h2>
+                {% if observability and observability.reports_dir %}
+                <span class="text-[10px] text-gray-500 font-mono">source: {{ observability.reports_dir }}</span>
+                {% endif %}
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                {% for run in observability.runs %}
+                <div class="bg-gray-800 rounded-xl p-4 border border-gray-700 shadow-lg">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm font-bold text-white uppercase">{{ run.run_type }}</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold border
+                            {% if run.status == 'success' %}bg-green-900/30 text-green-400 border-green-800
+                            {% elif run.status == 'error' %}bg-red-900/30 text-red-400 border-red-800
+                            {% elif run.status == 'missing' %}bg-gray-700/40 text-gray-400 border-gray-600
+                            {% else %}bg-yellow-900/30 text-yellow-300 border-yellow-700{% endif %}">
+                            {{ run.status|upper }}
+                        </span>
+                    </div>
+
+                    <div class="text-[11px] text-gray-400 mb-2">
+                        {% if run.completed_at %}
+                        Completed: <span class="font-mono local-time" data-iso="{{ run.completed_at }}">{{ run.completed_at }}</span>
+                        {% else %}
+                        Completed: <span class="font-mono">N/A</span>
+                        {% endif %}
+                    </div>
+                    <div class="text-[11px] text-gray-400 mb-2">
+                        Duration: <span class="font-mono">{{ run.duration_seconds if run.duration_seconds is not none else "N/A" }}</span>
+                    </div>
+
+                    {% if run.kpi_items %}
+                    <div class="border-t border-gray-700 pt-2 mt-2 space-y-1">
+                        {% for k, v in run.kpi_items %}
+                        <div class="flex justify-between text-[11px]">
+                            <span class="text-gray-500 truncate pr-2">{{ k }}</span>
+                            <span class="text-cyan-300 font-mono">{{ v }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-[11px] text-gray-500 border-t border-gray-700 pt-2 mt-2">No KPI available</div>
+                    {% endif %}
+
+                    {% if run.summary %}
+                    <div class="text-[11px] text-gray-400 mt-2 border-t border-gray-700 pt-2">{{ run.summary }}</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+
         <!-- TABS (Simple Toggle for V1) -->
         <div class="flex gap-4 mb-6 border-b border-gray-700">
             <button class="px-4 py-2 text-indigo-400 border-b-2 border-indigo-400 font-bold"
