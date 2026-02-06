@@ -1,7 +1,11 @@
 import json
 from pathlib import Path
 
-from api.webhook import build_observability_dashboard, _dashboard_fast_mode_enabled
+from api.webhook import (
+    build_observability_dashboard,
+    _dashboard_fast_mode_enabled,
+    _make_dashboard_health,
+)
 
 
 def test_build_observability_dashboard_reads_latest_reports(tmp_path):
@@ -67,3 +71,18 @@ def test_dashboard_fast_mode_default_true_on_vercel(monkeypatch):
 def test_dashboard_fast_mode_can_be_forced_off(monkeypatch):
     monkeypatch.setenv("VERCEL", "1")
     assert _dashboard_fast_mode_enabled(force_full=True) is False
+
+
+def test_make_dashboard_health_payload():
+    payload = _make_dashboard_health(
+        fast_mode=True,
+        backend_ms=123.456,
+        httpx_calls=17,
+        fallbacks=["benchmark_comparison", "whale_watcher"],
+        force_full=False,
+    )
+    assert payload["mode"] == "FAST"
+    assert payload["backend_ms"] == 123.5
+    assert payload["httpx_calls"] == 17
+    assert payload["fallbacks_count"] == 2
+    assert payload["force_full"] is False

@@ -2,13 +2,15 @@ import os
 import logging
 import asyncio
 import json
+import time
+from contextvars import ContextVar
 from pathlib import Path
 from flask import Flask, request, render_template, redirect, session, url_for, flash
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, BotCommand
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
 import yfinance as yf
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timezone
 import sys
 import httpx
 
@@ -46,6 +48,8 @@ RUN_REPORT_KEY_PRIORITY = {
     "rebalance": ("quant_order_count", "actionable_suggestions_count", "fallback_used", "portfolio_value_eur"),
     "trainml": ("promotions", "rollbacks", "usable_components", "training_samples", "classifier_accuracy"),
 }
+_HTTPX_CALL_COUNTER: ContextVar = ContextVar("dashboard_httpx_call_counter", default=None)
+_HTTPX_COUNTER_INSTALLED = False
 
 
 def _is_truthy(value: str) -> bool:
@@ -63,6 +67,56 @@ def _dashboard_fast_mode_enabled(force_full: bool = False) -> bool:
     if env_override is not None:
         return _is_truthy(env_override)
     return os.environ.get("VERCEL") == "1"
+
+
+def _install_httpx_call_counter() -> None:
+    """
+    Install lightweight request counting hooks for httpx.
+    Counter value is stored in a ContextVar so each dashboard request has isolated counts.
+    """
+    global _HTTPX_COUNTER_INSTALLED
+    if _HTTPX_COUNTER_INSTALLED:
+        return
+
+    original_client_request = httpx.Client.request
+    original_async_client_request = httpx.AsyncClient.request
+
+    def _increment_counter():
+        counter = _HTTPX_CALL_COUNTER.get()
+        if isinstance(counter, dict):
+            counter["count"] = int(counter.get("count", 0)) + 1
+
+    def _wrapped_client_request(self, method, url, *args, **kwargs):
+        _increment_counter()
+        return original_client_request(self, method, url, *args, **kwargs)
+
+    async def _wrapped_async_client_request(self, method, url, *args, **kwargs):
+        _increment_counter()
+        return await original_async_client_request(self, method, url, *args, **kwargs)
+
+    httpx.Client.request = _wrapped_client_request
+    httpx.AsyncClient.request = _wrapped_async_client_request
+    _HTTPX_COUNTER_INSTALLED = True
+
+
+def _make_dashboard_health(
+    *,
+    fast_mode: bool,
+    backend_ms: float,
+    httpx_calls: int,
+    fallbacks: list,
+    force_full: bool,
+) -> dict:
+    mode = "FAST" if fast_mode else "FULL"
+    return {
+        "mode": mode,
+        "backend_ms": round(float(backend_ms), 1),
+        "httpx_calls": int(httpx_calls),
+        "fallbacks": list(fallbacks),
+        "fallbacks_count": len(fallbacks),
+        "force_full": bool(force_full),
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
 
 
 def _load_latest_run_report(run_type: str, reports_dir: str = "run_logs/latest") -> dict:
@@ -1502,9 +1556,20 @@ async def setticker_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 def dashboard():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
+    dashboard_t0 = time.perf_counter()
     force_full = _is_truthy(request.args.get("full", "0"))
     fast_mode = _dashboard_fast_mode_enabled(force_full=force_full)
     logger.info("Dashboard request mode: %s", "FAST" if fast_mode else "FULL")
+    _install_httpx_call_counter()
+    httpx_counter_state = {"count": 0}
+    httpx_counter_token = _HTTPX_CALL_COUNTER.set(httpx_counter_state)
+    fast_mode_fallbacks = [
+        "advisor_deep_analysis",
+        "whale_watcher",
+        "paper_portfolio_repricing",
+        "benchmark_comparison",
+        "sector_rotation_ranking",
+    ] if fast_mode else []
 
     db = DBHandler()
     market = MarketData()
@@ -1798,35 +1863,55 @@ def dashboard():
         logger.error(f"Observability Dashboard Error: {e}")
         observability = {"runs": [], "reports_dir": os.environ.get("RUN_REPORT_DIR", "run_logs/latest")}
 
-    return render_template('dashboard.html', 
-                           signals=signals, 
-                           portfolio=portfolio, 
-                           history=history,
-                           total_value_eur=total_val, 
-                           total_invested_eur=total_inv, 
-                           total_pl_eur=total_pl, 
-                           total_pl_percent=pl_pct,
-                           chart_labels=dates,
-                           chart_data=json.dumps(chart_d),
-                           last_run=last_run,
-                           last_run_iso=last_run_iso,
-                           now_iso=datetime.utcnow().isoformat(),
-                           audit_stats=audit_stats,
-                           market_mood=market_mood,
-                           advisor_analysis=advisor_analysis,
-                           macro_stats=macro_stats,
-                           whale_stats=whale_stats,
-                           paper_portfolio=paper_portfolio_enriched,
-                           paper_total_value=paper_total_value,
-                           market_regime=market_regime,
-                           sector_rotation=sector_rotation,
-                           backtest_results=backtest_results,
-                           benchmark_data=benchmark_data,
-                           ml_stats=ml_stats,
-                           ticker_cache_stats=ticker_cache_stats,
-                           rebalancer_learning=rebalancer_learning,
-                           observability=observability,
-                           dashboard_fast_mode=fast_mode)
+    dashboard_health = _make_dashboard_health(
+        fast_mode=fast_mode,
+        backend_ms=(time.perf_counter() - dashboard_t0) * 1000.0,
+        httpx_calls=httpx_counter_state.get("count", 0),
+        fallbacks=fast_mode_fallbacks,
+        force_full=force_full,
+    )
+    logger.info(
+        "Dashboard health: mode=%s backend_ms=%.1f httpx_calls=%s fallbacks=%s",
+        dashboard_health["mode"],
+        dashboard_health["backend_ms"],
+        dashboard_health["httpx_calls"],
+        dashboard_health["fallbacks_count"],
+    )
+
+    try:
+        rendered = render_template('dashboard.html', 
+                               signals=signals, 
+                               portfolio=portfolio, 
+                               history=history,
+                               total_value_eur=total_val, 
+                               total_invested_eur=total_inv, 
+                               total_pl_eur=total_pl, 
+                               total_pl_percent=pl_pct,
+                               chart_labels=dates,
+                               chart_data=json.dumps(chart_d),
+                               last_run=last_run,
+                               last_run_iso=last_run_iso,
+                               now_iso=datetime.utcnow().isoformat(),
+                               audit_stats=audit_stats,
+                               market_mood=market_mood,
+                               advisor_analysis=advisor_analysis,
+                               macro_stats=macro_stats,
+                               whale_stats=whale_stats,
+                               paper_portfolio=paper_portfolio_enriched,
+                               paper_total_value=paper_total_value,
+                               market_regime=market_regime,
+                               sector_rotation=sector_rotation,
+                               backtest_results=backtest_results,
+                               benchmark_data=benchmark_data,
+                               ml_stats=ml_stats,
+                               ticker_cache_stats=ticker_cache_stats,
+                               rebalancer_learning=rebalancer_learning,
+                               observability=observability,
+                               dashboard_fast_mode=fast_mode,
+                               dashboard_health=dashboard_health)
+    finally:
+        _HTTPX_CALL_COUNTER.reset(httpx_counter_token)
+    return rendered
 
 
 @app.route('/api/webhook', methods=['POST'])
