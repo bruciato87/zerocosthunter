@@ -26,6 +26,7 @@ from market_regime import MarketRegimeClassifier
 from rebalancer import Rebalancer
 from pulse_hunter import PulseHunter
 from consensus_engine import ConsensusEngine
+from run_observability import RunObservability
 import re
 import asyncio
 from datetime import datetime, timezone
@@ -164,6 +165,12 @@ async def run_async_pipeline():
     # Generate unique run_id for tracking API calls this run
     import time
     run_id = f"RUN_{int(time.time())}"
+    run_observer = RunObservability(
+        "hunt",
+        run_id=run_id,
+        context={"entrypoint": "main.run_async_pipeline"},
+    )
+    openrouter_this_run = 0
     
     # 0. Log Start (for Dashboard visibility even if timeout occurs)
     try:
@@ -212,6 +219,11 @@ async def run_async_pipeline():
         pulse = PulseHunter(market_instance=market)
     except Exception as e:
         logger.critical(f"Initialization failed: {e}")
+        run_observer.add_error("initialization", e)
+        run_observer.finalize(
+            status="error",
+            summary="Hunt initialization failed before pipeline execution.",
+        )
         return
 
     # 1.5 Sentinel Checks (Price Alerts)
@@ -1439,6 +1451,29 @@ async def run_async_pipeline():
         await notifier.send_message(target_chat, final_report)
     except Exception as e:
         logger.warning(f"Failed to send completion notification: {e}")
+
+    model_used = brain.last_run_details.get("model", "unknown") if isinstance(brain.last_run_details, dict) else "unknown"
+    news_processed = len(news_items) if isinstance(news_items, list) else 0
+    signal_yield = round((processed_count / news_processed), 4) if news_processed > 0 else 0.0
+    run_observer.finalize(
+        status="success",
+        summary="Hunt pipeline completed.",
+        kpis={
+            "news_items_processed": news_processed,
+            "signals_generated": processed_count,
+            "signal_yield": signal_yield,
+            "total_time_seconds": round(_total_run_time, 3),
+            "ai_time_seconds": round(_ai_time, 3),
+            "news_fetch_time_seconds": round(_news_fetch_time, 3),
+            "openrouter_calls_this_run": int(openrouter_this_run or 0),
+            "json_repair_needed": bool(brain.last_run_details.get("json_repair_needed", False)) if isinstance(brain.last_run_details, dict) else False,
+            "retry_count": int(brain.last_run_details.get("retry_count", 0)) if isinstance(brain.last_run_details, dict) else 0,
+        },
+        context={
+            "model_used": model_used,
+            "run_id": run_id,
+        },
+    )
 
 if __name__ == "__main__":
     # Scheduled / Manual CLI Execution

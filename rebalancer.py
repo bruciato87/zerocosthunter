@@ -9,6 +9,7 @@ import logging
 import os
 from typing import Dict, List, Optional, Tuple
 from datetime import datetime, timedelta, timezone
+from run_observability import RunObservability
 try:
     from zoneinfo import ZoneInfo
 except ImportError:
@@ -86,6 +87,7 @@ class Rebalancer:
         self.ai_model = "gemini-1.5-flash"
         self.api_key = os.environ.get("GEMINI_API_KEY")
         self.dry_run = _env_flag("DRY_RUN")
+        self._last_report_metrics: Dict[str, object] = {}
         if self.dry_run:
             logger.info("Rebalancer DRY_RUN enabled: AI calls, Telegram sends, and DB logging are disabled.")
     
@@ -1076,6 +1078,8 @@ class Rebalancer:
         except Exception as e:
             logger.warning(f"Macro regime display failed: {e}")
         
+        suggestions: List[str] = []
+
         # AI Strategy (FIRST - most important)
         if self.dry_run:
             logger.info("DRY_RUN: skipping AI strategy generation.")
@@ -1163,6 +1167,17 @@ class Rebalancer:
                     total_tok = usage.get('total_tokens', 'N/A') if isinstance(usage, dict) else str(usage)
                     report += f"\n\n🤖 AI: `{model_name}` | 🎟️ `{total_tok}`"
         except: pass
+
+        self._last_report_metrics = {
+            "portfolio_value_eur": round(float(analysis.get("total_value", 0) or 0), 2),
+            "assets_count": len(analysis.get("assets", [])),
+            "sectors_count": len(analysis.get("sector_allocation", {})),
+            "quant_order_count": len(quant_plan),
+            "fallback_used": bool(fallback_used),
+            "has_ai_strategy": bool(not fallback_used),
+            "actionable_suggestions_count": len(suggestions),
+            "report_length_chars": len(report),
+        }
         
         return report
     
@@ -1222,9 +1237,15 @@ class Rebalancer:
         If TARGET_CHAT_ID is set in env, sends only to that user.
         """
         logger.info("Running daily rebalancing analysis...")
+        observer = RunObservability(
+            "rebalance",
+            dry_run=self.dry_run,
+            context={"entrypoint": "rebalancer.run_daily"},
+        )
         
         # Check for Targeted Execution (e.g. from /rebalance command)
         target_chat_id = os.environ.get("TARGET_CHAT_ID")
+        observer.set_context("target_chat_id", str(target_chat_id or "broadcast"))
         
         try:
             report = self.format_rebalance_report()
@@ -1248,9 +1269,20 @@ class Rebalancer:
                 self.db.log_system_event("INFO", "Rebalancer", "Daily rebalancing report sent")
             
             logger.info("Daily rebalancing report sent successfully")
+            observer.finalize(
+                status="success",
+                summary="Rebalance run completed.",
+                kpis=self._last_report_metrics,
+            )
             
         except Exception as e:
             logger.error(f"Daily rebalancing failed: {e}")
+            observer.add_error("run_daily", e)
+            observer.finalize(
+                status="error",
+                summary="Rebalance run failed.",
+                kpis=self._last_report_metrics,
+            )
             if self.dry_run:
                 logger.error("DRY_RUN: DB error log skipped.")
             else:

@@ -10,6 +10,7 @@ import asyncio
 import logging
 import sys
 from datetime import datetime
+from run_observability import RunObservability
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -52,6 +53,13 @@ class Analyzer:
         Perform deep dive analysis on a ticker and send report to Telegram.
         """
         logger.info(f"🔬 Starting Deep Dive Analysis for {ticker}...")
+        observer = RunObservability(
+            "analyze",
+            dry_run=self.dry_run,
+            context={"ticker": ticker, "target_chat_id": str(target_chat_id)},
+        )
+        verdict = "HOLD"
+        sentiment_score = 50
         
         try:
             # 1. Fetch News (Top 3)
@@ -221,9 +229,31 @@ class Analyzer:
                 await self.notifier.send_message(chat_id=target_chat_id, message=analysis_report)
             
             logger.info("✅ Analysis completed.")
+            observer.finalize(
+                status="success",
+                summary="Analyze completed.",
+                kpis={
+                    "news_items_fetched": len(news_items) if isinstance(news_items, list) else 0,
+                    "technicals_loaded": bool(technical_summary),
+                    "portfolio_assets_scanned": len(portfolio) if isinstance(portfolio, list) else 0,
+                    "report_length_chars": len(analysis_report),
+                    "verdict_score": sentiment_score,
+                },
+                context={
+                    "market_regime": regime,
+                    "verdict": verdict,
+                    "portfolio_owned": bool(portfolio_item),
+                },
+            )
             
         except Exception as e:
             logger.error(f"Analysis failed: {e}")
+            observer.add_error("analyze_ticker", e)
+            observer.finalize(
+                status="error",
+                summary=f"Analyze failed for {ticker}.",
+                context={"verdict": verdict, "last_known_regime": locals().get("regime", "NEUTRAL")},
+            )
             error_msg = f"❌ **Errore Analisi {ticker}**: {str(e)[:200]}"
             if self.dry_run:
                 logger.error("DRY_RUN: error notification to Telegram skipped.")

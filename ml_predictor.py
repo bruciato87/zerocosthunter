@@ -17,6 +17,7 @@ import json
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 from dataclasses import dataclass
+from run_observability import RunObservability
 
 import numpy as np
 import pandas as pd
@@ -2284,6 +2285,11 @@ if __name__ == "__main__":
             from telegram_bot import TelegramNotifier
         
         async def run_remote_training():
+            observer = RunObservability(
+                "trainml",
+                dry_run=is_dry_run,
+                context={"target_chat_id": str(target_chat_id)},
+            )
             notifier = TelegramNotifier() if not is_dry_run else None
             ml = MLPredictor()
             
@@ -2332,8 +2338,32 @@ if __name__ == "__main__":
                         f"📈 Samples: {stats.get('training_samples', 0)}\n\n"
                         f"{'🧪 DRY RUN: nessun salvataggio su Supabase.' if is_dry_run else '💡 Champion aggiornato solo se gate PASS.'}"
                     )
+                    observer.finalize(
+                        status="success",
+                        summary="TrainML completed.",
+                        kpis={
+                            "training_success": True,
+                            "promotions": promotions,
+                            "rollbacks": rollbacks,
+                            "usable_components": training_report.get("usable_components", 0),
+                            "classifier_accuracy": round(float(acc), 6),
+                            "regressor_score": round(float(r2), 6),
+                            "lstm_score": round(float(mse), 6),
+                            "training_samples": stats.get("training_samples", 0),
+                        },
+                        context={
+                            "classifier_gate": _gate_summary("classifier"),
+                            "regressor_gate": _gate_summary("regressor"),
+                            "lstm_gate": _gate_summary("lstm"),
+                        },
+                    )
                 else:
                     msg = "❌ Training non utilizzabile: nessun champion disponibile dopo i controlli di gate."
+                    observer.finalize(
+                        status="error",
+                        summary="TrainML ended with no usable champion.",
+                        kpis={"training_success": False},
+                    )
                 
                 if notifier:
                     await notifier.send_message(target_chat_id, msg)
@@ -2342,6 +2372,12 @@ if __name__ == "__main__":
                 
             except Exception as e:
                 logger.error(f"Remote training script error: {e}")
+                observer.add_error("run_remote_training", e)
+                observer.finalize(
+                    status="error",
+                    summary="TrainML failed with an exception.",
+                    kpis={"training_success": False},
+                )
                 if notifier:
                     await notifier.send_message(target_chat_id, f"❌ Errore critico script: {e}")
                 elif is_dry_run:
