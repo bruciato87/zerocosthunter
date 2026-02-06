@@ -1,0 +1,254 @@
+name: Market Scan & Hunter 🏹
+
+on:
+  schedule:
+    # Hunt runs every 2 hours: 6:00, 8:00-22:00 UTC (Skipping 7:00 for rebalance)
+    - cron: '0 6 * * *'
+    - cron: '0 8-22/2 * * *'
+    # Daily Rebalancing at 14:45 UTC (15:45 CET - USA Open)
+    - cron: '45 14 * * *'
+    # Weekly Summary on Sunday at 18:00 UTC (19:00 Italy)
+    - cron: '0 18 * * 0'
+    # Weekly ML Training on Sunday at 04:00 UTC (05:00 Italy)
+    - cron: '0 4 * * 0'
+  # Allow manual trigger from GitHub UI
+  workflow_dispatch:
+    inputs:
+      job_type:
+        description: 'Job to run'
+        required: true
+        default: 'hunt'
+        type: choice
+        options:
+          - hunt
+          - rebalance
+          - weekly_summary
+          - analyze
+          - portfolio_backtest
+          - trainml
+      target_chat_id:
+        description: 'Target Chat ID for report'
+        required: false
+        type: string
+      target_ticker:
+        description: 'Ticker for Deep Dive Analysis'
+        required: false
+        type: string
+      backtest_period:
+        description: 'Backtest Period (days) or Train Mode'
+        required: false
+        default: '180'
+        type: string
+      dry_run:
+        description: 'Safe mode: skip AI tokens/Telegram/DB writes for analyze/rebalance/trainml'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  hunt:
+    runs-on: ubuntu-latest
+    # Run on schedule (6:00 and every 2h 8:00-22:00 UTC) or manual
+    if: github.event.schedule == '0 6 * * *' || github.event.schedule == '0 8-22/2 * * *' || (github.event_name == 'workflow_dispatch' && github.event.inputs.job_type == 'hunt')
+    
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.13'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+    - name: Run Tests
+      env:
+        SUPABASE_URL: "https://fake.supabase.co"
+        SUPABASE_KEY: "fake_key"
+        GEMINI_API_KEY: "fake_key"
+      run: |
+        pip install pytest pytest-mock pytest-asyncio
+        pytest \
+          tests/test_ml_robustness.py \
+          tests/test_pipeline_integration.py \
+          tests/test_economist_regressions.py \
+          tests/test_main_hardening.py \
+          tests/test_webhook_handlers.py
+
+    - name: Run Hunter Pipeline
+      env:
+        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      run: |
+        python main.py
+
+  rebalance:
+    runs-on: ubuntu-latest
+    # Run at 14:45 UTC daily (USA Open) or manual
+    if: github.event.schedule == '45 14 * * *' || (github.event_name == 'workflow_dispatch' && github.event.inputs.job_type == 'rebalance')
+    
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.13'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+    - name: Run Daily Rebalancing
+      env:
+        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        GEMINI_API_KEY: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run == 'true') && 'fake_key' || secrets.GEMINI_API_KEY }}
+        OPENROUTER_API_KEY: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run == 'true') && 'fake_key' || secrets.OPENROUTER_API_KEY }}
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        TARGET_CHAT_ID: ${{ github.event.inputs.target_chat_id }}
+        DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run || 'false' }}
+      run: |
+        python rebalancer.py
+
+  weekly_summary:
+    runs-on: ubuntu-latest
+    # Run Sunday at 18:00 UTC or manual with weekly_summary selected
+    if: github.event.schedule == '0 18 * * 0' || (github.event_name == 'workflow_dispatch' && github.event.inputs.job_type == 'weekly_summary')
+    
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.13'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+    - name: Send Weekly Summary
+      env:
+        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      run: |
+        python -c "import asyncio; from benchmark import Benchmark; asyncio.run(Benchmark().send_weekly_summary())"
+
+  analyze:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.job_type == 'analyze'
+    
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.13'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+    - name: Run Deep Dive Analysis
+      env:
+        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        GEMINI_API_KEY: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run == 'true') && 'fake_key' || secrets.GEMINI_API_KEY }}
+        OPENROUTER_API_KEY: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run == 'true') && 'fake_key' || secrets.OPENROUTER_API_KEY }}
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        TARGET_CHAT_ID: ${{ github.event.inputs.target_chat_id }}
+        TARGET_TICKER: ${{ github.event.inputs.target_ticker }}
+        DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run || 'false' }}
+      run: |
+        python analyzer.py
+
+  portfolio_backtest:
+    runs-on: ubuntu-latest
+    # Only manual trigger with portfolio_backtest selected
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.job_type == 'portfolio_backtest'
+    
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.13'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+    - name: Run Portfolio Backtest
+      env:
+        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        TARGET_CHAT_ID: ${{ github.event.inputs.target_chat_id }}
+        BACKTEST_PERIOD: ${{ github.event.inputs.backtest_period }}
+      run: |
+        python portfolio_backtest.py
+
+  trainml:
+    runs-on: ubuntu-latest
+    # Weekly on Sunday at 04:00 UTC (05:00 Italy) or manual trigger
+    if: github.event.schedule == '0 4 * * 0' || (github.event_name == 'workflow_dispatch' && github.event.inputs.job_type == 'trainml')
+    
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.13'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+    - name: Run ML Training
+      env:
+        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        # For scheduled runs, use default TELEGRAM_CHAT_ID; for manual, use input if provided
+        TARGET_CHAT_ID: ${{ github.event.inputs.target_chat_id || secrets.TELEGRAM_CHAT_ID }}
+        DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run || 'false' }}
+      run: |
+        python ml_predictor.py

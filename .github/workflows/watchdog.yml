@@ -1,0 +1,36 @@
+name: Position Watchdog
+on:
+  schedule:
+    # Distributed throughout the day (UTC times, CET = UTC+1)
+    - cron: '0 7 * * *'   # 08:00 CET - Pre-market check
+    - cron: '0 11 * * *'  # 12:00 CET - Mid-day momentum
+    - cron: '0 15 * * *'  # 16:00 CET - Pre-close EU
+    - cron: '0 19 * * *'  # 20:00 CET - Post-close EU, US/Crypto
+  workflow_dispatch:  # Manual trigger
+
+env:
+  SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+  SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+  TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+  TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+  GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+
+jobs:
+  watchdog:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Position Watchdog
+        run: python position_watchdog.py

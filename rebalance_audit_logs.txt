@@ -1,0 +1,897 @@
+rebalance	Set up job	﻿2026-01-24T19:14:48.4703130Z Current runner version: '2.331.0'
+rebalance	Set up job	2026-01-24T19:14:48.4726645Z ##[group]Runner Image Provisioner
+rebalance	Set up job	2026-01-24T19:14:48.4727569Z Hosted Compute Agent
+rebalance	Set up job	2026-01-24T19:14:48.4728178Z Version: 20260115.477
+rebalance	Set up job	2026-01-24T19:14:48.4728804Z Commit: 4b342d620503cbe250a3154040964899ea7c9b00
+rebalance	Set up job	2026-01-24T19:14:48.4729583Z Build Date: 2026-01-15T22:32:41Z
+rebalance	Set up job	2026-01-24T19:14:48.4730295Z Worker ID: {fdfb8554-c0d8-41bd-b3dd-f5ca56eecbbd}
+rebalance	Set up job	2026-01-24T19:14:48.4730983Z Azure Region: westus
+rebalance	Set up job	2026-01-24T19:14:48.4731617Z ##[endgroup]
+rebalance	Set up job	2026-01-24T19:14:48.4733118Z ##[group]Operating System
+rebalance	Set up job	2026-01-24T19:14:48.4733814Z Ubuntu
+rebalance	Set up job	2026-01-24T19:14:48.4734386Z 24.04.3
+rebalance	Set up job	2026-01-24T19:14:48.4735056Z LTS
+rebalance	Set up job	2026-01-24T19:14:48.4735666Z ##[endgroup]
+rebalance	Set up job	2026-01-24T19:14:48.4736219Z ##[group]Runner Image
+rebalance	Set up job	2026-01-24T19:14:48.4736799Z Image: ubuntu-24.04
+rebalance	Set up job	2026-01-24T19:14:48.4737424Z Version: 20260119.4.1
+rebalance	Set up job	2026-01-24T19:14:48.4738475Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260119.4/images/ubuntu/Ubuntu2404-Readme.md
+rebalance	Set up job	2026-01-24T19:14:48.4740195Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260119.4
+rebalance	Set up job	2026-01-24T19:14:48.4741126Z ##[endgroup]
+rebalance	Set up job	2026-01-24T19:14:48.4742341Z ##[group]GITHUB_TOKEN Permissions
+rebalance	Set up job	2026-01-24T19:14:48.4744154Z Contents: read
+rebalance	Set up job	2026-01-24T19:14:48.4745050Z Metadata: read
+rebalance	Set up job	2026-01-24T19:14:48.4745620Z Packages: read
+rebalance	Set up job	2026-01-24T19:14:48.4746153Z ##[endgroup]
+rebalance	Set up job	2026-01-24T19:14:48.4748363Z Secret source: Actions
+rebalance	Set up job	2026-01-24T19:14:48.4749168Z Prepare workflow directory
+rebalance	Set up job	2026-01-24T19:14:48.5068221Z Prepare all required actions
+rebalance	Set up job	2026-01-24T19:14:48.5107622Z Getting action download info
+rebalance	Set up job	2026-01-24T19:14:48.9119488Z Download action repository 'actions/checkout@v3' (SHA:f43a0e5ff2bd294095638e18286ca9a3d1956744)
+rebalance	Set up job	2026-01-24T19:14:49.0310195Z Download action repository 'actions/setup-python@v4' (SHA:7f4fc3e22c37d6ff65e88745f38bd3157c663f7c)
+rebalance	Set up job	2026-01-24T19:14:49.2200129Z Complete job name: rebalance
+rebalance	Check out code	﻿2026-01-24T19:14:49.2871494Z ##[group]Run actions/checkout@v3
+rebalance	Check out code	2026-01-24T19:14:49.2872384Z with:
+rebalance	Check out code	2026-01-24T19:14:49.2872843Z   repository: bruciato87/zerocosthunter
+rebalance	Check out code	2026-01-24T19:14:49.2873555Z   token: ***
+rebalance	Check out code	2026-01-24T19:14:49.2873969Z   ssh-strict: true
+rebalance	Check out code	2026-01-24T19:14:49.2874413Z   persist-credentials: true
+rebalance	Check out code	2026-01-24T19:14:49.2875130Z   clean: true
+rebalance	Check out code	2026-01-24T19:14:49.2875571Z   sparse-checkout-cone-mode: true
+rebalance	Check out code	2026-01-24T19:14:49.2876082Z   fetch-depth: 1
+rebalance	Check out code	2026-01-24T19:14:49.2876493Z   fetch-tags: false
+rebalance	Check out code	2026-01-24T19:14:49.2876910Z   lfs: false
+rebalance	Check out code	2026-01-24T19:14:49.2877307Z   submodules: false
+rebalance	Check out code	2026-01-24T19:14:49.2877759Z   set-safe-directory: true
+rebalance	Check out code	2026-01-24T19:14:49.2878477Z ##[endgroup]
+rebalance	Check out code	2026-01-24T19:14:49.3723294Z Syncing repository: bruciato87/zerocosthunter
+rebalance	Check out code	2026-01-24T19:14:49.3725423Z ##[group]Getting Git version info
+rebalance	Check out code	2026-01-24T19:14:49.3726252Z Working directory is '/home/runner/work/zerocosthunter/zerocosthunter'
+rebalance	Check out code	2026-01-24T19:14:49.3727327Z [command]/usr/bin/git version
+rebalance	Check out code	2026-01-24T19:14:49.3809546Z git version 2.52.0
+rebalance	Check out code	2026-01-24T19:14:49.3835657Z ##[endgroup]
+rebalance	Check out code	2026-01-24T19:14:49.3849536Z Temporarily overriding HOME='/home/runner/work/_temp/ee6c4949-8244-4a32-8df4-127dc6f67098' before making global git config changes
+rebalance	Check out code	2026-01-24T19:14:49.3850982Z Adding repository directory to the temporary git global config as a safe directory
+rebalance	Check out code	2026-01-24T19:14:49.3852879Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/zerocosthunter/zerocosthunter
+rebalance	Check out code	2026-01-24T19:14:49.3889724Z Deleting the contents of '/home/runner/work/zerocosthunter/zerocosthunter'
+rebalance	Check out code	2026-01-24T19:14:49.3893194Z ##[group]Initializing the repository
+rebalance	Check out code	2026-01-24T19:14:49.3896401Z [command]/usr/bin/git init /home/runner/work/zerocosthunter/zerocosthunter
+rebalance	Check out code	2026-01-24T19:14:49.4025269Z hint: Using 'master' as the name for the initial branch. This default branch name
+rebalance	Check out code	2026-01-24T19:14:49.4026907Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+rebalance	Check out code	2026-01-24T19:14:49.4028541Z hint: to use in all of your new repositories, which will suppress this warning,
+rebalance	Check out code	2026-01-24T19:14:49.4029853Z hint: call:
+rebalance	Check out code	2026-01-24T19:14:49.4030758Z hint:
+rebalance	Check out code	2026-01-24T19:14:49.4031584Z hint: 	git config --global init.defaultBranch <name>
+rebalance	Check out code	2026-01-24T19:14:49.4032235Z hint:
+rebalance	Check out code	2026-01-24T19:14:49.4032806Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+rebalance	Check out code	2026-01-24T19:14:49.4033731Z hint: 'development'. The just-created branch can be renamed via this command:
+rebalance	Check out code	2026-01-24T19:14:49.4034451Z hint:
+rebalance	Check out code	2026-01-24T19:14:49.4035115Z hint: 	git branch -m <name>
+rebalance	Check out code	2026-01-24T19:14:49.4035752Z hint:
+rebalance	Check out code	2026-01-24T19:14:49.4036685Z hint: Disable this message with "git config set advice.defaultBranchName false"
+rebalance	Check out code	2026-01-24T19:14:49.4037767Z Initialized empty Git repository in /home/runner/work/zerocosthunter/zerocosthunter/.git/
+rebalance	Check out code	2026-01-24T19:14:49.4039884Z [command]/usr/bin/git remote add origin https://github.com/bruciato87/zerocosthunter
+rebalance	Check out code	2026-01-24T19:14:49.4070304Z ##[endgroup]
+rebalance	Check out code	2026-01-24T19:14:49.4071115Z ##[group]Disabling automatic garbage collection
+rebalance	Check out code	2026-01-24T19:14:49.4072659Z [command]/usr/bin/git config --local gc.auto 0
+rebalance	Check out code	2026-01-24T19:14:49.4098239Z ##[endgroup]
+rebalance	Check out code	2026-01-24T19:14:49.4098973Z ##[group]Setting up auth
+rebalance	Check out code	2026-01-24T19:14:49.4103180Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+rebalance	Check out code	2026-01-24T19:14:49.4128852Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+rebalance	Check out code	2026-01-24T19:14:49.4493336Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+rebalance	Check out code	2026-01-24T19:14:49.4523796Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+rebalance	Check out code	2026-01-24T19:14:49.4740513Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+rebalance	Check out code	2026-01-24T19:14:49.4773147Z ##[endgroup]
+rebalance	Check out code	2026-01-24T19:14:49.4774320Z ##[group]Fetching the repository
+rebalance	Check out code	2026-01-24T19:14:49.4780875Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --progress --no-recurse-submodules --depth=1 origin +0b37da1514f162870a6638e8a1acc7fcf833eba6:refs/remotes/origin/main
+rebalance	Check out code	2026-01-24T19:14:49.8363535Z remote: Enumerating objects: 96, done.        
+rebalance	Check out code	2026-01-24T19:14:49.8365713Z remote: Counting objects:   1% (1/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8366600Z remote: Counting objects:   2% (2/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8367297Z remote: Counting objects:   3% (3/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8367982Z remote: Counting objects:   4% (4/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8368659Z remote: Counting objects:   5% (5/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8369332Z remote: Counting objects:   6% (6/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8370001Z remote: Counting objects:   7% (7/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8370669Z remote: Counting objects:   8% (8/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8371340Z remote: Counting objects:   9% (9/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8372069Z remote: Counting objects:  10% (10/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8372763Z remote: Counting objects:  11% (11/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8374215Z remote: Counting objects:  12% (12/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8375231Z remote: Counting objects:  13% (13/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8375933Z remote: Counting objects:  14% (14/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8376620Z remote: Counting objects:  15% (15/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8377305Z remote: Counting objects:  16% (16/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8378001Z remote: Counting objects:  17% (17/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8378687Z remote: Counting objects:  18% (18/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8379325Z remote: Counting objects:  19% (19/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8380027Z remote: Counting objects:  20% (20/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8380646Z remote: Counting objects:  21% (21/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8381255Z remote: Counting objects:  22% (22/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8381889Z remote: Counting objects:  23% (23/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8382744Z remote: Counting objects:  25% (24/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8383340Z remote: Counting objects:  26% (25/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8383941Z remote: Counting objects:  27% (26/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8384762Z remote: Counting objects:  28% (27/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8385392Z remote: Counting objects:  29% (28/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8385984Z remote: Counting objects:  30% (29/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8386588Z remote: Counting objects:  31% (30/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8387184Z remote: Counting objects:  32% (31/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8387778Z remote: Counting objects:  33% (32/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8388377Z remote: Counting objects:  34% (33/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8388971Z remote: Counting objects:  35% (34/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8389565Z remote: Counting objects:  36% (35/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8390159Z remote: Counting objects:  37% (36/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8390803Z remote: Counting objects:  38% (37/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8391407Z remote: Counting objects:  39% (38/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8391995Z remote: Counting objects:  40% (39/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8392585Z remote: Counting objects:  41% (40/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8393178Z remote: Counting objects:  42% (41/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8393780Z remote: Counting objects:  43% (42/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8394373Z remote: Counting objects:  44% (43/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8395199Z remote: Counting objects:  45% (44/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8395791Z remote: Counting objects:  46% (45/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8396378Z remote: Counting objects:  47% (46/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8396963Z remote: Counting objects:  48% (47/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8397547Z remote: Counting objects:  50% (48/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8398193Z remote: Counting objects:  51% (49/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8398979Z remote: Counting objects:  52% (50/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8399585Z remote: Counting objects:  53% (51/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8400184Z remote: Counting objects:  54% (52/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8400770Z remote: Counting objects:  55% (53/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8401357Z remote: Counting objects:  56% (54/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8401947Z remote: Counting objects:  57% (55/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8402533Z remote: Counting objects:  58% (56/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8403110Z remote: Counting objects:  59% (57/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8403689Z remote: Counting objects:  60% (58/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8404271Z remote: Counting objects:  61% (59/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8405131Z remote: Counting objects:  62% (60/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8405741Z remote: Counting objects:  63% (61/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8406333Z remote: Counting objects:  64% (62/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8406923Z remote: Counting objects:  65% (63/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8407521Z remote: Counting objects:  66% (64/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8408138Z remote: Counting objects:  67% (65/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8408734Z remote: Counting objects:  68% (66/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8409365Z remote: Counting objects:  69% (67/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8409954Z remote: Counting objects:  70% (68/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8410537Z remote: Counting objects:  71% (69/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8411129Z remote: Counting objects:  72% (70/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8411718Z remote: Counting objects:  73% (71/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8412301Z remote: Counting objects:  75% (72/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8412879Z remote: Counting objects:  76% (73/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8413465Z remote: Counting objects:  77% (74/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8414049Z remote: Counting objects:  78% (75/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8414768Z remote: Counting objects:  79% (76/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8415383Z remote: Counting objects:  80% (77/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8416105Z remote: Counting objects:  81% (78/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8416687Z remote: Counting objects:  82% (79/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8417268Z remote: Counting objects:  83% (80/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8417890Z remote: Counting objects:  84% (81/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8418473Z remote: Counting objects:  85% (82/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8419057Z remote: Counting objects:  86% (83/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8419637Z remote: Counting objects:  87% (84/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8420229Z remote: Counting objects:  88% (85/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8420817Z remote: Counting objects:  89% (86/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8421407Z remote: Counting objects:  90% (87/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8446657Z remote: Counting objects:  91% (88/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8447756Z remote: Counting objects:  92% (89/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8448506Z remote: Counting objects:  93% (90/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8449155Z remote: Counting objects:  94% (91/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8449763Z remote: Counting objects:  95% (92/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8450370Z remote: Counting objects:  96% (93/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8450979Z remote: Counting objects:  97% (94/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8451571Z remote: Counting objects:  98% (95/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8452166Z remote: Counting objects: 100% (96/96)        
+rebalance	Check out code	2026-01-24T19:14:49.8452790Z remote: Counting objects: 100% (96/96), done.        
+rebalance	Check out code	2026-01-24T19:14:49.8453422Z remote: Compressing objects:   1% (1/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8454036Z remote: Compressing objects:   2% (2/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8454885Z remote: Compressing objects:   3% (3/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8455556Z remote: Compressing objects:   4% (4/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8456184Z remote: Compressing objects:   5% (5/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8456795Z remote: Compressing objects:   6% (6/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8457610Z remote: Compressing objects:   7% (7/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8458221Z remote: Compressing objects:   8% (8/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8458842Z remote: Compressing objects:   9% (9/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8459455Z remote: Compressing objects:  10% (10/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8460074Z remote: Compressing objects:  11% (11/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8460687Z remote: Compressing objects:  13% (12/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8461301Z remote: Compressing objects:  14% (13/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8461934Z remote: Compressing objects:  15% (14/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8462554Z remote: Compressing objects:  16% (15/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8463165Z remote: Compressing objects:  17% (16/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8463776Z remote: Compressing objects:  18% (17/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8464384Z remote: Compressing objects:  19% (18/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8465289Z remote: Compressing objects:  20% (19/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8465914Z remote: Compressing objects:  21% (20/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8466519Z remote: Compressing objects:  22% (21/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8467126Z remote: Compressing objects:  23% (22/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8645531Z remote: Compressing objects:  25% (23/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8646861Z remote: Compressing objects:  26% (24/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8648176Z remote: Compressing objects:  27% (25/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8649021Z remote: Compressing objects:  28% (26/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8649812Z remote: Compressing objects:  29% (27/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8650630Z remote: Compressing objects:  30% (28/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8651347Z remote: Compressing objects:  31% (29/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8652016Z remote: Compressing objects:  32% (30/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8652681Z remote: Compressing objects:  33% (31/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8653367Z remote: Compressing objects:  34% (32/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8654042Z remote: Compressing objects:  35% (33/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8655152Z remote: Compressing objects:  36% (34/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8656090Z remote: Compressing objects:  38% (35/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8656877Z remote: Compressing objects:  39% (36/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8657717Z remote: Compressing objects:  40% (37/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8658385Z remote: Compressing objects:  41% (38/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8659044Z remote: Compressing objects:  42% (39/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8659710Z remote: Compressing objects:  43% (40/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8660343Z remote: Compressing objects:  44% (41/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8660963Z remote: Compressing objects:  45% (42/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8661593Z remote: Compressing objects:  46% (43/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8662209Z remote: Compressing objects:  47% (44/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8732824Z remote: Compressing objects:  48% (45/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8734198Z remote: Compressing objects:  50% (46/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8735360Z remote: Compressing objects:  51% (47/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8736163Z remote: Compressing objects:  52% (48/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8737003Z remote: Compressing objects:  53% (49/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8737843Z remote: Compressing objects:  54% (50/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8738696Z remote: Compressing objects:  55% (51/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8739417Z remote: Compressing objects:  56% (52/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8740095Z remote: Compressing objects:  57% (53/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8740768Z remote: Compressing objects:  58% (54/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8741435Z remote: Compressing objects:  59% (55/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8742104Z remote: Compressing objects:  60% (56/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8742797Z remote: Compressing objects:  61% (57/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8743466Z remote: Compressing objects:  63% (58/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8744848Z remote: Compressing objects:  64% (59/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8745997Z remote: Compressing objects:  65% (60/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8746706Z remote: Compressing objects:  66% (61/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8747329Z remote: Compressing objects:  67% (62/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8747951Z remote: Compressing objects:  68% (63/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8748557Z remote: Compressing objects:  69% (64/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8749177Z remote: Compressing objects:  70% (65/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8749780Z remote: Compressing objects:  71% (66/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8750463Z remote: Compressing objects:  72% (67/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8751099Z remote: Compressing objects:  73% (68/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8751731Z remote: Compressing objects:  75% (69/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8752351Z remote: Compressing objects:  76% (70/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8753285Z remote: Compressing objects:  77% (71/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8754447Z remote: Compressing objects:  78% (72/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8755700Z remote: Compressing objects:  79% (73/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8756708Z remote: Compressing objects:  80% (74/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8757749Z remote: Compressing objects:  81% (75/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8758786Z remote: Compressing objects:  82% (76/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8759439Z remote: Compressing objects:  83% (77/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8760054Z remote: Compressing objects:  84% (78/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8760670Z remote: Compressing objects:  85% (79/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8761476Z remote: Compressing objects:  86% (80/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8762131Z remote: Compressing objects:  88% (81/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8762739Z remote: Compressing objects:  89% (82/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8763357Z remote: Compressing objects:  90% (83/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8763978Z remote: Compressing objects:  91% (84/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8764847Z remote: Compressing objects:  92% (85/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8765745Z remote: Compressing objects:  93% (86/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8766372Z remote: Compressing objects:  94% (87/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8766984Z remote: Compressing objects:  95% (88/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8767585Z remote: Compressing objects:  96% (89/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8768194Z remote: Compressing objects:  97% (90/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8768798Z remote: Compressing objects:  98% (91/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8769394Z remote: Compressing objects: 100% (92/92)        
+rebalance	Check out code	2026-01-24T19:14:49.8770045Z remote: Compressing objects: 100% (92/92), done.        
+rebalance	Check out code	2026-01-24T19:14:49.9492221Z remote: Total 96 (delta 1), reused 53 (delta 0), pack-reused 0 (from 0)        
+rebalance	Check out code	2026-01-24T19:14:49.9559566Z From https://github.com/bruciato87/zerocosthunter
+rebalance	Check out code	2026-01-24T19:14:49.9591659Z  * [new ref]         0b37da1514f162870a6638e8a1acc7fcf833eba6 -> origin/main
+rebalance	Check out code	2026-01-24T19:14:49.9594321Z ##[endgroup]
+rebalance	Check out code	2026-01-24T19:14:49.9595662Z ##[group]Determining the checkout info
+rebalance	Check out code	2026-01-24T19:14:49.9596945Z ##[endgroup]
+rebalance	Check out code	2026-01-24T19:14:49.9597821Z ##[group]Checking out the ref
+rebalance	Check out code	2026-01-24T19:14:49.9599184Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+rebalance	Check out code	2026-01-24T19:14:49.9752634Z Switched to a new branch 'main'
+rebalance	Check out code	2026-01-24T19:14:49.9756106Z branch 'main' set up to track 'origin/main'.
+rebalance	Check out code	2026-01-24T19:14:49.9763225Z ##[endgroup]
+rebalance	Check out code	2026-01-24T19:14:49.9795412Z [command]/usr/bin/git log -1 --format='%H'
+rebalance	Check out code	2026-01-24T19:14:49.9816234Z '0b37da1514f162870a6638e8a1acc7fcf833eba6'
+rebalance	Set up Python	﻿2026-01-24T19:14:50.0052663Z ##[group]Run actions/setup-python@v4
+rebalance	Set up Python	2026-01-24T19:14:50.0053228Z with:
+rebalance	Set up Python	2026-01-24T19:14:50.0053622Z   python-version: 3.13
+rebalance	Set up Python	2026-01-24T19:14:50.0054065Z   cache: pip
+rebalance	Set up Python	2026-01-24T19:14:50.0054477Z   check-latest: false
+rebalance	Set up Python	2026-01-24T19:14:50.0055257Z   token: ***
+rebalance	Set up Python	2026-01-24T19:14:50.0055676Z   update-environment: true
+rebalance	Set up Python	2026-01-24T19:14:50.0056174Z   allow-prereleases: false
+rebalance	Set up Python	2026-01-24T19:14:50.0056635Z ##[endgroup]
+rebalance	Set up Python	2026-01-24T19:14:50.1790814Z ##[group]Installed versions
+rebalance	Set up Python	2026-01-24T19:14:50.1904761Z Successfully set up CPython (3.13.11)
+rebalance	Set up Python	2026-01-24T19:14:50.1906401Z ##[endgroup]
+rebalance	Set up Python	2026-01-24T19:14:50.2773435Z [command]/opt/hostedtoolcache/Python/3.13.11/x64/bin/pip cache dir
+rebalance	Set up Python	2026-01-24T19:14:52.1866273Z /home/runner/.cache/pip
+rebalance	Set up Python	2026-01-24T19:14:52.4653228Z Cache hit for: setup-python-Linux-24.04-Ubuntu-python-3.13.11-pip-09f61419707a1464e4d2cb88605230ca7497eaa582df8ef1e923e8431c03405c
+rebalance	Set up Python	2026-01-24T19:14:53.7445896Z Received 4194304 of 88626762 (4.7%), 4.0 MBs/sec
+rebalance	Set up Python	2026-01-24T19:14:54.4915451Z Received 88626762 of 88626762 (100.0%), 48.3 MBs/sec
+rebalance	Set up Python	2026-01-24T19:14:54.4917313Z Cache Size: ~85 MB (88626762 B)
+rebalance	Set up Python	2026-01-24T19:14:54.4994969Z [command]/usr/bin/tar -xf /home/runner/work/_temp/857f1ac1-e339-4a34-bd6b-e0c58983772c/cache.tzst -P -C /home/runner/work/zerocosthunter/zerocosthunter --use-compress-program unzstd
+rebalance	Set up Python	2026-01-24T19:14:54.6895786Z Cache restored successfully
+rebalance	Set up Python	2026-01-24T19:14:54.7072432Z Cache restored from key: setup-python-Linux-24.04-Ubuntu-python-3.13.11-pip-09f61419707a1464e4d2cb88605230ca7497eaa582df8ef1e923e8431c03405c
+rebalance	Install dependencies	﻿2026-01-24T19:14:54.7235045Z ##[group]Run python -m pip install --upgrade pip
+rebalance	Install dependencies	2026-01-24T19:14:54.7235618Z [36;1mpython -m pip install --upgrade pip[0m
+rebalance	Install dependencies	2026-01-24T19:14:54.7236131Z [36;1mif [ -f requirements.txt ]; then pip install -r requirements.txt; fi[0m
+rebalance	Install dependencies	2026-01-24T19:14:54.7276669Z shell: /usr/bin/bash -e {0}
+rebalance	Install dependencies	2026-01-24T19:14:54.7277022Z env:
+rebalance	Install dependencies	2026-01-24T19:14:54.7277349Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.11/x64
+rebalance	Install dependencies	2026-01-24T19:14:54.7277915Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.11/x64/lib/pkgconfig
+rebalance	Install dependencies	2026-01-24T19:14:54.7278426Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.11/x64
+rebalance	Install dependencies	2026-01-24T19:14:54.7278880Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.11/x64
+rebalance	Install dependencies	2026-01-24T19:14:54.7279319Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.11/x64
+rebalance	Install dependencies	2026-01-24T19:14:54.7279764Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.11/x64/lib
+rebalance	Install dependencies	2026-01-24T19:14:54.7280393Z ##[endgroup]
+rebalance	Install dependencies	2026-01-24T19:14:55.8539003Z Requirement already satisfied: pip in /opt/hostedtoolcache/Python/3.13.11/x64/lib/python3.13/site-packages (25.3)
+rebalance	Install dependencies	2026-01-24T19:14:56.4599810Z Collecting supabase>=2.10.0 (from -r requirements.txt (line 1))
+rebalance	Install dependencies	2026-01-24T19:14:56.4619829Z   Using cached supabase-2.27.2-py3-none-any.whl.metadata (4.6 kB)
+rebalance	Install dependencies	2026-01-24T19:14:56.4828039Z Collecting google-genai>=1.50.0 (from -r requirements.txt (line 2))
+rebalance	Install dependencies	2026-01-24T19:14:56.4845599Z   Using cached google_genai-1.60.0-py3-none-any.whl.metadata (53 kB)
+rebalance	Install dependencies	2026-01-24T19:14:56.5187272Z Collecting yfinance>=0.2.50 (from -r requirements.txt (line 3))
+rebalance	Install dependencies	2026-01-24T19:14:56.5199277Z   Using cached yfinance-1.1.0-py2.py3-none-any.whl.metadata (6.1 kB)
+rebalance	Install dependencies	2026-01-24T19:14:56.5335206Z Collecting feedparser>=6.0.10 (from -r requirements.txt (line 4))
+rebalance	Install dependencies	2026-01-24T19:14:56.5346648Z   Using cached feedparser-6.0.12-py3-none-any.whl.metadata (2.7 kB)
+rebalance	Install dependencies	2026-01-24T19:14:56.5638472Z Collecting python-telegram-bot>=21.0 (from -r requirements.txt (line 5))
+rebalance	Install dependencies	2026-01-24T19:14:56.5655949Z   Using cached python_telegram_bot-22.6-py3-none-any.whl.metadata (17 kB)
+rebalance	Install dependencies	2026-01-24T19:14:56.5860024Z Collecting python-dotenv>=1.0.1 (from -r requirements.txt (line 6))
+rebalance	Install dependencies	2026-01-24T19:14:56.5871850Z   Using cached python_dotenv-1.2.1-py3-none-any.whl.metadata (25 kB)
+rebalance	Install dependencies	2026-01-24T19:14:56.7022130Z Collecting pandas>=2.2.0 (from -r requirements.txt (line 7))
+rebalance	Install dependencies	2026-01-24T19:14:56.7035618Z   Using cached pandas-3.0.0-cp313-cp313-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl.metadata (79 kB)
+rebalance	Install dependencies	2026-01-24T19:14:56.7473863Z Collecting ta>=0.11.0 (from -r requirements.txt (line 8))
+rebalance	Install dependencies	2026-01-24T19:14:56.7475394Z   Using cached ta-0.11.0-py3-none-any.whl
+rebalance	Install dependencies	2026-01-24T19:14:56.7743449Z Collecting Flask>=3.1.0 (from -r requirements.txt (line 9))
+rebalance	Install dependencies	2026-01-24T19:14:56.7756686Z   Using cached flask-3.1.2-py3-none-any.whl.metadata (3.2 kB)
+rebalance	Install dependencies	2026-01-24T19:14:56.7925867Z Collecting gunicorn>=23.0.0 (from -r requirements.txt (line 10))
+rebalance	Install dependencies	2026-01-24T19:14:56.7938713Z   Using cached gunicorn-24.1.1-py3-none-any.whl.metadata (4.6 kB)
+rebalance	Install dependencies	2026-01-24T19:14:56.8411914Z Collecting curl_cffi>=0.13.0 (from -r requirements.txt (line 11))
+rebalance	Install dependencies	2026-01-24T19:14:56.8425379Z   Using cached curl_cffi-0.14.0-cp39-abi3-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl.metadata (15 kB)
+rebalance	Install dependencies	2026-01-24T19:14:56.8668566Z Collecting trafilatura>=1.12.0 (from -r requirements.txt (line 12))
+rebalance	Install dependencies	2026-01-24T19:14:56.8680255Z   Using cached trafilatura-2.0.0-py3-none-any.whl.metadata (12 kB)
+rebalance	Install dependencies	2026-01-24T19:14:57.0530816Z Collecting numpy>=2.0.0 (from -r requirements.txt (line 13))
+rebalance	Install dependencies	2026-01-24T19:14:57.0544308Z   Using cached numpy-2.4.1-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (6.6 kB)
+rebalance	Install dependencies	2026-01-24T19:14:57.0880555Z Collecting pytest>=7.0.0 (from -r requirements.txt (line 14))
+rebalance	Install dependencies	2026-01-24T19:14:57.0892205Z   Using cached pytest-9.0.2-py3-none-any.whl.metadata (7.6 kB)
+rebalance	Install dependencies	2026-01-24T19:14:57.1069892Z Collecting pytest-mock>=3.10.0 (from -r requirements.txt (line 15))
+rebalance	Install dependencies	2026-01-24T19:14:57.1080846Z   Using cached pytest_mock-3.15.1-py3-none-any.whl.metadata (3.9 kB)
+rebalance	Install dependencies	2026-01-24T19:14:57.1228460Z Collecting pytest-cov>=4.0.0 (from -r requirements.txt (line 16))
+rebalance	Install dependencies	2026-01-24T19:14:57.1239293Z   Using cached pytest_cov-7.0.0-py3-none-any.whl.metadata (31 kB)
+rebalance	Install dependencies	2026-01-24T19:14:57.1460294Z Collecting pytest-asyncio>=0.21.0 (from -r requirements.txt (line 17))
+rebalance	Install dependencies	2026-01-24T19:14:57.1471488Z   Using cached pytest_asyncio-1.3.0-py3-none-any.whl.metadata (4.1 kB)
+rebalance	Install dependencies	2026-01-24T19:14:57.1609947Z Collecting nest-asyncio>=1.6.0 (from -r requirements.txt (line 18))
+rebalance	Install dependencies	2026-01-24T19:14:57.1622506Z   Using cached nest_asyncio-1.6.0-py3-none-any.whl.metadata (2.8 kB)
+rebalance	Install dependencies	2026-01-24T19:14:57.1758409Z Collecting realtime==2.27.2 (from supabase>=2.10.0->-r requirements.txt (line 1))
+rebalance	Install dependencies	2026-01-24T19:14:57.1769001Z   Using cached realtime-2.27.2-py3-none-any.whl.metadata (7.0 kB)
+rebalance	Install dependencies	2026-01-24T19:14:57.1915496Z Collecting supabase-functions==2.27.2 (from supabase>=2.10.0->-r requirements.txt (line 1))
+rebalance	Install dependencies	2026-01-24T19:14:57.1926439Z   Using cached supabase_functions-2.27.2-py3-none-any.whl.metadata (2.4 kB)
+rebalance	Install dependencies	2026-01-24T19:14:57.2071726Z Collecting storage3==2.27.2 (from supabase>=2.10.0->-r requirements.txt (line 1))
+rebalance	Install dependencies	2026-01-24T19:14:57.2082178Z   Using cached storage3-2.27.2-py3-none-any.whl.metadata (2.1 kB)
+rebalance	Install dependencies	2026-01-24T19:14:57.2215304Z Collecting supabase-auth==2.27.2 (from supabase>=2.10.0->-r requirements.txt (line 1))
+rebalance	Install dependencies	2026-01-24T19:14:57.2226285Z   Using cached supabase_auth-2.27.2-py3-none-any.whl.metadata (6.4 kB)
+rebalance	Install dependencies	2026-01-24T19:14:57.2378408Z Collecting postgrest==2.27.2 (from supabase>=2.10.0->-r requirements.txt (line 1))
+rebalance	Install dependencies	2026-01-24T19:14:57.2389053Z   Using cached postgrest-2.27.2-py3-none-any.whl.metadata (3.4 kB)
+rebalance	Install dependencies	2026-01-24T19:14:57.2565289Z Collecting httpx<0.29,>=0.26 (from supabase>=2.10.0->-r requirements.txt (line 1))
+rebalance	Install dependencies	2026-01-24T19:14:57.2576079Z   Using cached httpx-0.28.1-py3-none-any.whl.metadata (7.1 kB)
+rebalance	Install dependencies	2026-01-24T19:14:57.5049290Z Collecting yarl>=1.22.0 (from supabase>=2.10.0->-r requirements.txt (line 1))
+rebalance	Install dependencies	2026-01-24T19:14:57.5063280Z   Using cached yarl-1.22.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (75 kB)
+rebalance	Install dependencies	2026-01-24T19:14:57.5220760Z Collecting deprecation>=2.1.0 (from postgrest==2.27.2->supabase>=2.10.0->-r requirements.txt (line 1))
+rebalance	Install dependencies	2026-01-24T19:14:57.5231648Z   Using cached deprecation-2.1.0-py2.py3-none-any.whl.metadata (4.6 kB)
+rebalance	Install dependencies	2026-01-24T19:14:57.6394177Z Collecting pydantic<3.0,>=1.9 (from postgrest==2.27.2->supabase>=2.10.0->-r requirements.txt (line 1))
+rebalance	Install dependencies	2026-01-24T19:14:57.6407212Z   Using cached pydantic-2.12.5-py3-none-any.whl.metadata (90 kB)
+rebalance	Install dependencies	2026-01-24T19:14:57.6757321Z Collecting typing-extensions>=4.14.0 (from realtime==2.27.2->supabase>=2.10.0->-r requirements.txt (line 1))
+rebalance	Install dependencies	2026-01-24T19:14:57.6768176Z   Using cached typing_extensions-4.15.0-py3-none-any.whl.metadata (3.3 kB)
+rebalance	Install dependencies	2026-01-24T19:14:57.7650110Z Collecting websockets<16,>=11 (from realtime==2.27.2->supabase>=2.10.0->-r requirements.txt (line 1))
+rebalance	Install dependencies	2026-01-24T19:14:57.7662461Z   Using cached websockets-15.0.1-cp313-cp313-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (6.8 kB)
+rebalance	Install dependencies	2026-01-24T19:14:57.8415711Z Collecting pyiceberg>=0.10.0 (from storage3==2.27.2->supabase>=2.10.0->-r requirements.txt (line 1))
+rebalance	Install dependencies	2026-01-24T19:14:57.8417020Z   Using cached pyiceberg-0.10.0-cp313-cp313-manylinux_2_39_x86_64.whl
+rebalance	Install dependencies	2026-01-24T19:14:57.8887179Z Collecting pyjwt>=2.10.1 (from pyjwt[crypto]>=2.10.1->supabase-auth==2.27.2->supabase>=2.10.0->-r requirements.txt (line 1))
+rebalance	Install dependencies	2026-01-24T19:14:57.8898608Z   Using cached PyJWT-2.10.1-py3-none-any.whl.metadata (4.0 kB)
+rebalance	Install dependencies	2026-01-24T19:14:57.9044351Z Collecting strenum>=0.4.15 (from supabase-functions==2.27.2->supabase>=2.10.0->-r requirements.txt (line 1))
+rebalance	Install dependencies	2026-01-24T19:14:57.9056289Z   Using cached StrEnum-0.4.15-py3-none-any.whl.metadata (5.3 kB)
+rebalance	Install dependencies	2026-01-24T19:14:57.9247237Z Collecting anyio (from httpx<0.29,>=0.26->supabase>=2.10.0->-r requirements.txt (line 1))
+rebalance	Install dependencies	2026-01-24T19:14:57.9258519Z   Using cached anyio-4.12.1-py3-none-any.whl.metadata (4.3 kB)
+rebalance	Install dependencies	2026-01-24T19:14:57.9458885Z Collecting certifi (from httpx<0.29,>=0.26->supabase>=2.10.0->-r requirements.txt (line 1))
+rebalance	Install dependencies	2026-01-24T19:14:57.9470324Z   Using cached certifi-2026.1.4-py3-none-any.whl.metadata (2.5 kB)
+rebalance	Install dependencies	2026-01-24T19:14:57.9654969Z Collecting httpcore==1.* (from httpx<0.29,>=0.26->supabase>=2.10.0->-r requirements.txt (line 1))
+rebalance	Install dependencies	2026-01-24T19:14:57.9666213Z   Using cached httpcore-1.0.9-py3-none-any.whl.metadata (21 kB)
+rebalance	Install dependencies	2026-01-24T19:14:57.9797649Z Collecting idna (from httpx<0.29,>=0.26->supabase>=2.10.0->-r requirements.txt (line 1))
+rebalance	Install dependencies	2026-01-24T19:14:57.9809144Z   Using cached idna-3.11-py3-none-any.whl.metadata (8.4 kB)
+rebalance	Install dependencies	2026-01-24T19:14:57.9915439Z Collecting h11>=0.16 (from httpcore==1.*->httpx<0.29,>=0.26->supabase>=2.10.0->-r requirements.txt (line 1))
+rebalance	Install dependencies	2026-01-24T19:14:57.9926345Z   Using cached h11-0.16.0-py3-none-any.whl.metadata (8.3 kB)
+rebalance	Install dependencies	2026-01-24T19:14:58.0098884Z Collecting h2<5,>=3 (from httpx[http2]<0.29,>=0.26->postgrest==2.27.2->supabase>=2.10.0->-r requirements.txt (line 1))
+rebalance	Install dependencies	2026-01-24T19:14:58.0110425Z   Using cached h2-4.3.0-py3-none-any.whl.metadata (5.1 kB)
+rebalance	Install dependencies	2026-01-24T19:14:58.0221419Z Collecting hyperframe<7,>=6.1 (from h2<5,>=3->httpx[http2]<0.29,>=0.26->postgrest==2.27.2->supabase>=2.10.0->-r requirements.txt (line 1))
+rebalance	Install dependencies	2026-01-24T19:14:58.0232184Z   Using cached hyperframe-6.1.0-py3-none-any.whl.metadata (4.3 kB)
+rebalance	Install dependencies	2026-01-24T19:14:58.0328938Z Collecting hpack<5,>=4.1 (from h2<5,>=3->httpx[http2]<0.29,>=0.26->postgrest==2.27.2->supabase>=2.10.0->-r requirements.txt (line 1))
+rebalance	Install dependencies	2026-01-24T19:14:58.0339491Z   Using cached hpack-4.1.0-py3-none-any.whl.metadata (4.6 kB)
+rebalance	Install dependencies	2026-01-24T19:14:58.0455921Z Collecting annotated-types>=0.6.0 (from pydantic<3.0,>=1.9->postgrest==2.27.2->supabase>=2.10.0->-r requirements.txt (line 1))
+rebalance	Install dependencies	2026-01-24T19:14:58.0466596Z   Using cached annotated_types-0.7.0-py3-none-any.whl.metadata (15 kB)
+rebalance	Install dependencies	2026-01-24T19:14:58.7501938Z Collecting pydantic-core==2.41.5 (from pydantic<3.0,>=1.9->postgrest==2.27.2->supabase>=2.10.0->-r requirements.txt (line 1))
+rebalance	Install dependencies	2026-01-24T19:14:58.7516703Z   Using cached pydantic_core-2.41.5-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (7.3 kB)
+rebalance	Install dependencies	2026-01-24T19:14:58.7635612Z Collecting typing-inspection>=0.4.2 (from pydantic<3.0,>=1.9->postgrest==2.27.2->supabase>=2.10.0->-r requirements.txt (line 1))
+rebalance	Install dependencies	2026-01-24T19:14:58.7648288Z   Using cached typing_inspection-0.4.2-py3-none-any.whl.metadata (2.6 kB)
+rebalance	Install dependencies	2026-01-24T19:14:58.8078631Z Collecting google-auth<3.0.0,>=2.47.0 (from google-auth[requests]<3.0.0,>=2.47.0->google-genai>=1.50.0->-r requirements.txt (line 2))
+rebalance	Install dependencies	2026-01-24T19:14:58.8091226Z   Using cached google_auth-2.47.0-py3-none-any.whl.metadata (6.4 kB)
+rebalance	Install dependencies	2026-01-24T19:14:58.8640590Z Collecting requests<3.0.0,>=2.28.1 (from google-genai>=1.50.0->-r requirements.txt (line 2))
+rebalance	Install dependencies	2026-01-24T19:14:58.8653160Z   Using cached requests-2.32.5-py3-none-any.whl.metadata (4.9 kB)
+rebalance	Install dependencies	2026-01-24T19:14:58.8830229Z Collecting tenacity<9.2.0,>=8.2.3 (from google-genai>=1.50.0->-r requirements.txt (line 2))
+rebalance	Install dependencies	2026-01-24T19:14:58.8842458Z   Using cached tenacity-9.1.2-py3-none-any.whl.metadata (1.2 kB)
+rebalance	Install dependencies	2026-01-24T19:14:58.9063046Z Collecting distro<2,>=1.7.0 (from google-genai>=1.50.0->-r requirements.txt (line 2))
+rebalance	Install dependencies	2026-01-24T19:14:58.9075837Z   Using cached distro-1.9.0-py3-none-any.whl.metadata (6.8 kB)
+rebalance	Install dependencies	2026-01-24T19:14:58.9182198Z Collecting sniffio (from google-genai>=1.50.0->-r requirements.txt (line 2))
+rebalance	Install dependencies	2026-01-24T19:14:58.9194170Z   Using cached sniffio-1.3.1-py3-none-any.whl.metadata (3.9 kB)
+rebalance	Install dependencies	2026-01-24T19:14:58.9428467Z Collecting pyasn1-modules>=0.2.1 (from google-auth<3.0.0,>=2.47.0->google-auth[requests]<3.0.0,>=2.47.0->google-genai>=1.50.0->-r requirements.txt (line 2))
+rebalance	Install dependencies	2026-01-24T19:14:58.9440337Z   Using cached pyasn1_modules-0.4.2-py3-none-any.whl.metadata (3.5 kB)
+rebalance	Install dependencies	2026-01-24T19:14:58.9606020Z Collecting rsa<5,>=3.1.4 (from google-auth<3.0.0,>=2.47.0->google-auth[requests]<3.0.0,>=2.47.0->google-genai>=1.50.0->-r requirements.txt (line 2))
+rebalance	Install dependencies	2026-01-24T19:14:58.9618087Z   Using cached rsa-4.9.1-py3-none-any.whl.metadata (5.6 kB)
+rebalance	Install dependencies	2026-01-24T19:14:59.0581048Z Collecting charset_normalizer<4,>=2 (from requests<3.0.0,>=2.28.1->google-genai>=1.50.0->-r requirements.txt (line 2))
+rebalance	Install dependencies	2026-01-24T19:14:59.0595207Z   Using cached charset_normalizer-3.4.4-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (37 kB)
+rebalance	Install dependencies	2026-01-24T19:14:59.0940791Z Collecting urllib3<3,>=1.21.1 (from requests<3.0.0,>=2.28.1->google-genai>=1.50.0->-r requirements.txt (line 2))
+rebalance	Install dependencies	2026-01-24T19:14:59.0955111Z   Using cached urllib3-2.6.3-py3-none-any.whl.metadata (6.9 kB)
+rebalance	Install dependencies	2026-01-24T19:14:59.1286396Z Collecting pyasn1>=0.1.3 (from rsa<5,>=3.1.4->google-auth<3.0.0,>=2.47.0->google-auth[requests]<3.0.0,>=2.47.0->google-genai>=1.50.0->-r requirements.txt (line 2))
+rebalance	Install dependencies	2026-01-24T19:14:59.1299892Z   Using cached pyasn1-0.6.2-py3-none-any.whl.metadata (8.4 kB)
+rebalance	Install dependencies	2026-01-24T19:14:59.1619867Z Collecting multitasking>=0.0.7 (from yfinance>=0.2.50->-r requirements.txt (line 3))
+rebalance	Install dependencies	2026-01-24T19:14:59.1621192Z   Using cached multitasking-0.0.12-py3-none-any.whl
+rebalance	Install dependencies	2026-01-24T19:14:59.1828699Z Collecting platformdirs>=2.0.0 (from yfinance>=0.2.50->-r requirements.txt (line 3))
+rebalance	Install dependencies	2026-01-24T19:14:59.1841055Z   Using cached platformdirs-4.5.1-py3-none-any.whl.metadata (12 kB)
+rebalance	Install dependencies	2026-01-24T19:14:59.2213067Z Collecting pytz>=2022.5 (from yfinance>=0.2.50->-r requirements.txt (line 3))
+rebalance	Install dependencies	2026-01-24T19:14:59.2225421Z   Using cached pytz-2025.2-py2.py3-none-any.whl.metadata (22 kB)
+rebalance	Install dependencies	2026-01-24T19:14:59.2743825Z Collecting frozendict>=2.3.4 (from yfinance>=0.2.50->-r requirements.txt (line 3))
+rebalance	Install dependencies	2026-01-24T19:14:59.2756929Z   Using cached frozendict-2.4.7-py3-none-any.whl.metadata (23 kB)
+rebalance	Install dependencies	2026-01-24T19:14:59.2958709Z Collecting peewee>=3.16.2 (from yfinance>=0.2.50->-r requirements.txt (line 3))
+rebalance	Install dependencies	2026-01-24T19:14:59.2970398Z   Using cached peewee-3.19.0-py3-none-any.whl.metadata (7.0 kB)
+rebalance	Install dependencies	2026-01-24T19:14:59.3126949Z Collecting beautifulsoup4>=4.11.1 (from yfinance>=0.2.50->-r requirements.txt (line 3))
+rebalance	Install dependencies	2026-01-24T19:14:59.3138257Z   Using cached beautifulsoup4-4.14.3-py3-none-any.whl.metadata (3.8 kB)
+rebalance	Install dependencies	2026-01-24T19:14:59.3200901Z Collecting curl_cffi>=0.13.0 (from -r requirements.txt (line 11))
+rebalance	Install dependencies	2026-01-24T19:14:59.3212543Z   Using cached curl_cffi-0.13.0-cp39-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (13 kB)
+rebalance	Install dependencies	2026-01-24T19:14:59.5117679Z Collecting protobuf>=3.19.0 (from yfinance>=0.2.50->-r requirements.txt (line 3))
+rebalance	Install dependencies	2026-01-24T19:14:59.5131375Z   Using cached protobuf-6.33.4-cp39-abi3-manylinux2014_x86_64.whl.metadata (593 bytes)
+rebalance	Install dependencies	2026-01-24T19:14:59.6250737Z Collecting cffi>=1.12.0 (from curl_cffi>=0.13.0->-r requirements.txt (line 11))
+rebalance	Install dependencies	2026-01-24T19:14:59.6264913Z   Using cached cffi-2.0.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (2.6 kB)
+rebalance	Install dependencies	2026-01-24T19:14:59.6406385Z Collecting sgmllib3k (from feedparser>=6.0.10->-r requirements.txt (line 4))
+rebalance	Install dependencies	2026-01-24T19:14:59.6408212Z   Using cached sgmllib3k-1.0.0-py3-none-any.whl
+rebalance	Install dependencies	2026-01-24T19:14:59.6637188Z Collecting python-dateutil>=2.8.2 (from pandas>=2.2.0->-r requirements.txt (line 7))
+rebalance	Install dependencies	2026-01-24T19:14:59.6649174Z   Using cached python_dateutil-2.9.0.post0-py2.py3-none-any.whl.metadata (8.4 kB)
+rebalance	Install dependencies	2026-01-24T19:14:59.6767222Z Collecting blinker>=1.9.0 (from Flask>=3.1.0->-r requirements.txt (line 9))
+rebalance	Install dependencies	2026-01-24T19:14:59.6778864Z   Using cached blinker-1.9.0-py3-none-any.whl.metadata (1.6 kB)
+rebalance	Install dependencies	2026-01-24T19:14:59.6928036Z Collecting click>=8.1.3 (from Flask>=3.1.0->-r requirements.txt (line 9))
+rebalance	Install dependencies	2026-01-24T19:14:59.6939515Z   Using cached click-8.3.1-py3-none-any.whl.metadata (2.6 kB)
+rebalance	Install dependencies	2026-01-24T19:14:59.7028804Z Collecting itsdangerous>=2.2.0 (from Flask>=3.1.0->-r requirements.txt (line 9))
+rebalance	Install dependencies	2026-01-24T19:14:59.7040192Z   Using cached itsdangerous-2.2.0-py3-none-any.whl.metadata (1.9 kB)
+rebalance	Install dependencies	2026-01-24T19:14:59.7162829Z Collecting jinja2>=3.1.2 (from Flask>=3.1.0->-r requirements.txt (line 9))
+rebalance	Install dependencies	2026-01-24T19:14:59.7174042Z   Using cached jinja2-3.1.6-py3-none-any.whl.metadata (2.9 kB)
+rebalance	Install dependencies	2026-01-24T19:14:59.7678953Z Collecting markupsafe>=2.1.1 (from Flask>=3.1.0->-r requirements.txt (line 9))
+rebalance	Install dependencies	2026-01-24T19:14:59.7691469Z   Using cached markupsafe-3.0.3-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (2.7 kB)
+rebalance	Install dependencies	2026-01-24T19:14:59.7895411Z Collecting werkzeug>=3.1.0 (from Flask>=3.1.0->-r requirements.txt (line 9))
+rebalance	Install dependencies	2026-01-24T19:14:59.7906701Z   Using cached werkzeug-3.1.5-py3-none-any.whl.metadata (4.0 kB)
+rebalance	Install dependencies	2026-01-24T19:14:59.8071689Z Collecting packaging (from gunicorn>=23.0.0->-r requirements.txt (line 10))
+rebalance	Install dependencies	2026-01-24T19:14:59.8082632Z   Using cached packaging-26.0-py3-none-any.whl.metadata (3.3 kB)
+rebalance	Install dependencies	2026-01-24T19:14:59.8277614Z Collecting courlan>=1.3.2 (from trafilatura>=1.12.0->-r requirements.txt (line 12))
+rebalance	Install dependencies	2026-01-24T19:14:59.8288340Z   Using cached courlan-1.3.2-py3-none-any.whl.metadata (17 kB)
+rebalance	Install dependencies	2026-01-24T19:14:59.8464716Z Collecting htmldate>=1.9.2 (from trafilatura>=1.12.0->-r requirements.txt (line 12))
+rebalance	Install dependencies	2026-01-24T19:14:59.8476182Z   Using cached htmldate-1.9.4-py3-none-any.whl.metadata (10 kB)
+rebalance	Install dependencies	2026-01-24T19:14:59.8583521Z Collecting justext>=3.0.1 (from trafilatura>=1.12.0->-r requirements.txt (line 12))
+rebalance	Install dependencies	2026-01-24T19:14:59.8595170Z   Using cached justext-3.0.2-py2.py3-none-any.whl.metadata (7.3 kB)
+rebalance	Install dependencies	2026-01-24T19:15:00.0375711Z Collecting lxml>=5.3.0 (from trafilatura>=1.12.0->-r requirements.txt (line 12))
+rebalance	Install dependencies	2026-01-24T19:15:00.0388683Z   Using cached lxml-6.0.2-cp313-cp313-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl.metadata (3.6 kB)
+rebalance	Install dependencies	2026-01-24T19:15:00.0604499Z Collecting iniconfig>=1.0.1 (from pytest>=7.0.0->-r requirements.txt (line 14))
+rebalance	Install dependencies	2026-01-24T19:15:00.0615906Z   Using cached iniconfig-2.3.0-py3-none-any.whl.metadata (2.5 kB)
+rebalance	Install dependencies	2026-01-24T19:15:00.0759200Z Collecting pluggy<2,>=1.5 (from pytest>=7.0.0->-r requirements.txt (line 14))
+rebalance	Install dependencies	2026-01-24T19:15:00.0770515Z   Using cached pluggy-1.6.0-py3-none-any.whl.metadata (4.8 kB)
+rebalance	Install dependencies	2026-01-24T19:15:00.0954851Z Collecting pygments>=2.7.2 (from pytest>=7.0.0->-r requirements.txt (line 14))
+rebalance	Install dependencies	2026-01-24T19:15:00.0972573Z   Using cached pygments-2.19.2-py3-none-any.whl.metadata (2.5 kB)
+rebalance	Install dependencies	2026-01-24T19:15:00.4622152Z Collecting coverage>=7.10.6 (from coverage[toml]>=7.10.6->pytest-cov>=4.0.0->-r requirements.txt (line 16))
+rebalance	Install dependencies	2026-01-24T19:15:00.4635782Z   Using cached coverage-7.13.1-cp313-cp313-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl.metadata (8.5 kB)
+rebalance	Install dependencies	2026-01-24T19:15:00.5031330Z Collecting soupsieve>=1.6.1 (from beautifulsoup4>=4.11.1->yfinance>=0.2.50->-r requirements.txt (line 3))
+rebalance	Install dependencies	2026-01-24T19:15:00.5042804Z   Using cached soupsieve-2.8.3-py3-none-any.whl.metadata (4.6 kB)
+rebalance	Install dependencies	2026-01-24T19:15:00.5217160Z Collecting pycparser (from cffi>=1.12.0->curl_cffi>=0.13.0->-r requirements.txt (line 11))
+rebalance	Install dependencies	2026-01-24T19:15:00.5228312Z   Using cached pycparser-3.0-py3-none-any.whl.metadata (8.2 kB)
+rebalance	Install dependencies	2026-01-24T19:15:00.5389970Z Collecting babel>=2.16.0 (from courlan>=1.3.2->trafilatura>=1.12.0->-r requirements.txt (line 12))
+rebalance	Install dependencies	2026-01-24T19:15:00.5400485Z   Using cached babel-2.17.0-py3-none-any.whl.metadata (2.0 kB)
+rebalance	Install dependencies	2026-01-24T19:15:00.5627867Z Collecting tld>=0.13 (from courlan>=1.3.2->trafilatura>=1.12.0->-r requirements.txt (line 12))
+rebalance	Install dependencies	2026-01-24T19:15:00.5638469Z   Using cached tld-0.13.1-py2.py3-none-any.whl.metadata (10 kB)
+rebalance	Install dependencies	2026-01-24T19:15:00.6675091Z Collecting dateparser>=1.1.2 (from htmldate>=1.9.2->trafilatura>=1.12.0->-r requirements.txt (line 12))
+rebalance	Install dependencies	2026-01-24T19:15:00.6688278Z   Using cached dateparser-1.2.2-py3-none-any.whl.metadata (29 kB)
+rebalance	Install dependencies	2026-01-24T19:15:01.0262227Z Collecting regex>=2024.9.11 (from dateparser>=1.1.2->htmldate>=1.9.2->trafilatura>=1.12.0->-r requirements.txt (line 12))
+rebalance	Install dependencies	2026-01-24T19:15:01.0275679Z   Using cached regex-2026.1.15-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (40 kB)
+rebalance	Install dependencies	2026-01-24T19:15:01.0441324Z Collecting tzlocal>=0.2 (from dateparser>=1.1.2->htmldate>=1.9.2->trafilatura>=1.12.0->-r requirements.txt (line 12))
+rebalance	Install dependencies	2026-01-24T19:15:01.0453098Z   Using cached tzlocal-5.3.1-py3-none-any.whl.metadata (7.6 kB)
+rebalance	Install dependencies	2026-01-24T19:15:01.0724152Z Collecting lxml_html_clean (from lxml[html_clean]>=4.4.2->justext>=3.0.1->trafilatura>=1.12.0->-r requirements.txt (line 12))
+rebalance	Install dependencies	2026-01-24T19:15:01.0735971Z   Using cached lxml_html_clean-0.4.3-py3-none-any.whl.metadata (2.3 kB)
+rebalance	Install dependencies	2026-01-24T19:15:01.1084326Z Collecting cachetools<7.0,>=5.5 (from pyiceberg>=0.10.0->storage3==2.27.2->supabase>=2.10.0->-r requirements.txt (line 1))
+rebalance	Install dependencies	2026-01-24T19:15:01.1095810Z   Using cached cachetools-6.2.4-py3-none-any.whl.metadata (5.6 kB)
+rebalance	Install dependencies	2026-01-24T19:15:01.1352102Z Collecting fsspec>=2023.1.0 (from pyiceberg>=0.10.0->storage3==2.27.2->supabase>=2.10.0->-r requirements.txt (line 1))
+rebalance	Install dependencies	2026-01-24T19:15:01.1362864Z   Using cached fsspec-2026.1.0-py3-none-any.whl.metadata (10 kB)
+rebalance	Install dependencies	2026-01-24T19:15:01.1990924Z Collecting mmh3<6.0.0,>=4.0.0 (from pyiceberg>=0.10.0->storage3==2.27.2->supabase>=2.10.0->-r requirements.txt (line 1))
+rebalance	Install dependencies	2026-01-24T19:15:01.2002786Z   Using cached mmh3-5.2.0-cp313-cp313-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl.metadata (14 kB)
+rebalance	Install dependencies	2026-01-24T19:15:01.2557104Z Collecting pyparsing<4.0.0,>=3.1.0 (from pyiceberg>=0.10.0->storage3==2.27.2->supabase>=2.10.0->-r requirements.txt (line 1))
+rebalance	Install dependencies	2026-01-24T19:15:01.2569290Z   Using cached pyparsing-3.3.2-py3-none-any.whl.metadata (5.8 kB)
+rebalance	Install dependencies	2026-01-24T19:15:01.3093423Z Collecting pyroaring<2.0.0,>=1.0.0 (from pyiceberg>=0.10.0->storage3==2.27.2->supabase>=2.10.0->-r requirements.txt (line 1))
+rebalance	Install dependencies	2026-01-24T19:15:01.3106406Z   Using cached pyroaring-1.0.3-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (10 kB)
+rebalance	Install dependencies	2026-01-24T19:15:01.3533394Z Collecting rich<15.0.0,>=10.11.0 (from pyiceberg>=0.10.0->storage3==2.27.2->supabase>=2.10.0->-r requirements.txt (line 1))
+rebalance	Install dependencies	2026-01-24T19:15:01.3545045Z   Using cached rich-14.3.0-py3-none-any.whl.metadata (18 kB)
+rebalance	Install dependencies	2026-01-24T19:15:01.3687013Z Collecting sortedcontainers==2.4.0 (from pyiceberg>=0.10.0->storage3==2.27.2->supabase>=2.10.0->-r requirements.txt (line 1))
+rebalance	Install dependencies	2026-01-24T19:15:01.3697608Z   Using cached sortedcontainers-2.4.0-py2.py3-none-any.whl.metadata (10 kB)
+rebalance	Install dependencies	2026-01-24T19:15:01.3816347Z Collecting strictyaml<2.0.0,>=1.7.0 (from pyiceberg>=0.10.0->storage3==2.27.2->supabase>=2.10.0->-r requirements.txt (line 1))
+rebalance	Install dependencies	2026-01-24T19:15:01.3827063Z   Using cached strictyaml-1.7.3-py3-none-any.whl.metadata (11 kB)
+rebalance	Install dependencies	2026-01-24T19:15:01.4130761Z Collecting markdown-it-py>=2.2.0 (from rich<15.0.0,>=10.11.0->pyiceberg>=0.10.0->storage3==2.27.2->supabase>=2.10.0->-r requirements.txt (line 1))
+rebalance	Install dependencies	2026-01-24T19:15:01.4141858Z   Using cached markdown_it_py-4.0.0-py3-none-any.whl.metadata (7.3 kB)
+rebalance	Install dependencies	2026-01-24T19:15:01.4396098Z Collecting mdurl~=0.1 (from markdown-it-py>=2.2.0->rich<15.0.0,>=10.11.0->pyiceberg>=0.10.0->storage3==2.27.2->supabase>=2.10.0->-r requirements.txt (line 1))
+rebalance	Install dependencies	2026-01-24T19:15:01.4407133Z   Using cached mdurl-0.1.2-py3-none-any.whl.metadata (1.6 kB)
+rebalance	Install dependencies	2026-01-24T19:15:01.6299726Z Collecting cryptography>=3.4.0 (from pyjwt[crypto]>=2.10.1->supabase-auth==2.27.2->supabase>=2.10.0->-r requirements.txt (line 1))
+rebalance	Install dependencies	2026-01-24T19:15:01.6312989Z   Using cached cryptography-46.0.3-cp311-abi3-manylinux_2_34_x86_64.whl.metadata (5.7 kB)
+rebalance	Install dependencies	2026-01-24T19:15:01.6567512Z Collecting six>=1.5 (from python-dateutil>=2.8.2->pandas>=2.2.0->-r requirements.txt (line 7))
+rebalance	Install dependencies	2026-01-24T19:15:01.6579935Z   Using cached six-1.17.0-py2.py3-none-any.whl.metadata (1.7 kB)
+rebalance	Install dependencies	2026-01-24T19:15:01.9310938Z Collecting multidict>=4.0 (from yarl>=1.22.0->supabase>=2.10.0->-r requirements.txt (line 1))
+rebalance	Install dependencies	2026-01-24T19:15:01.9325291Z   Using cached multidict-6.7.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.3 kB)
+rebalance	Install dependencies	2026-01-24T19:15:01.9886392Z Collecting propcache>=0.2.1 (from yarl>=1.22.0->supabase>=2.10.0->-r requirements.txt (line 1))
+rebalance	Install dependencies	2026-01-24T19:15:01.9900898Z   Using cached propcache-0.4.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (13 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.0080644Z Using cached supabase-2.27.2-py3-none-any.whl (16 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.0091836Z Using cached postgrest-2.27.2-py3-none-any.whl (21 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.0102849Z Using cached realtime-2.27.2-py3-none-any.whl (22 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.0114188Z Using cached storage3-2.27.2-py3-none-any.whl (27 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.0125397Z Using cached supabase_auth-2.27.2-py3-none-any.whl (48 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.0137279Z Using cached supabase_functions-2.27.2-py3-none-any.whl (8.5 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.0148347Z Using cached httpx-0.28.1-py3-none-any.whl (73 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.0159712Z Using cached httpcore-1.0.9-py3-none-any.whl (78 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.0171007Z Using cached h2-4.3.0-py3-none-any.whl (61 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.0182258Z Using cached hpack-4.1.0-py3-none-any.whl (34 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.0193277Z Using cached hyperframe-6.1.0-py3-none-any.whl (13 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.0204311Z Using cached pydantic-2.12.5-py3-none-any.whl (463 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.0219515Z Using cached pydantic_core-2.41.5-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (2.1 MB)
+rebalance	Install dependencies	2026-01-24T19:15:02.0245644Z Using cached websockets-15.0.1-cp313-cp313-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl (182 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.0257905Z Using cached google_genai-1.60.0-py3-none-any.whl (719 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.0273677Z Using cached anyio-4.12.1-py3-none-any.whl (113 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.0285736Z Using cached distro-1.9.0-py3-none-any.whl (20 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.0296837Z Using cached google_auth-2.47.0-py3-none-any.whl (234 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.0309256Z Using cached requests-2.32.5-py3-none-any.whl (64 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.0321193Z Using cached charset_normalizer-3.4.4-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (153 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.0332721Z Using cached idna-3.11-py3-none-any.whl (71 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.0343749Z Using cached rsa-4.9.1-py3-none-any.whl (34 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.0354999Z Using cached tenacity-9.1.2-py3-none-any.whl (28 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.0366244Z Using cached typing_extensions-4.15.0-py3-none-any.whl (44 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.0377328Z Using cached urllib3-2.6.3-py3-none-any.whl (131 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.0388974Z Using cached yfinance-1.1.0-py2.py3-none-any.whl (129 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.0400947Z Using cached curl_cffi-0.13.0-cp39-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (8.3 MB)
+rebalance	Install dependencies	2026-01-24T19:15:02.0471762Z Using cached feedparser-6.0.12-py3-none-any.whl (81 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.0483184Z Using cached python_telegram_bot-22.6-py3-none-any.whl (737 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.0500064Z Using cached python_dotenv-1.2.1-py3-none-any.whl (21 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.0511422Z Using cached pandas-3.0.0-cp313-cp313-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl (10.9 MB)
+rebalance	Install dependencies	2026-01-24T19:15:02.0601579Z Using cached flask-3.1.2-py3-none-any.whl (103 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.0613046Z Using cached gunicorn-24.1.1-py3-none-any.whl (114 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.0624774Z Using cached trafilatura-2.0.0-py3-none-any.whl (132 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.0637197Z Using cached numpy-2.4.1-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (16.4 MB)
+rebalance	Install dependencies	2026-01-24T19:15:02.0767965Z Using cached pytest-9.0.2-py3-none-any.whl (374 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.0781392Z Using cached pluggy-1.6.0-py3-none-any.whl (20 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.0792451Z Using cached pytest_mock-3.15.1-py3-none-any.whl (10 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.0803431Z Using cached pytest_cov-7.0.0-py3-none-any.whl (22 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.0814681Z Using cached pytest_asyncio-1.3.0-py3-none-any.whl (15 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.0825446Z Using cached nest_asyncio-1.6.0-py3-none-any.whl (5.2 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.0836530Z Using cached annotated_types-0.7.0-py3-none-any.whl (13 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.0847571Z Using cached beautifulsoup4-4.14.3-py3-none-any.whl (107 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.0859077Z Using cached blinker-1.9.0-py3-none-any.whl (8.5 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.0870036Z Using cached certifi-2026.1.4-py3-none-any.whl (152 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.0882248Z Using cached cffi-2.0.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (219 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.0897186Z Using cached click-8.3.1-py3-none-any.whl (108 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.0908887Z Using cached courlan-1.3.2-py3-none-any.whl (33 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.0920091Z Using cached babel-2.17.0-py3-none-any.whl (10.2 MB)
+rebalance	Install dependencies	2026-01-24T19:15:02.1007309Z Using cached coverage-7.13.1-cp313-cp313-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (252 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.1019660Z Using cached deprecation-2.1.0-py2.py3-none-any.whl (11 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.1030616Z Using cached frozendict-2.4.7-py3-none-any.whl (16 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.1041701Z Using cached h11-0.16.0-py3-none-any.whl (37 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.1052693Z Using cached htmldate-1.9.4-py3-none-any.whl (31 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.1063836Z Using cached dateparser-1.2.2-py3-none-any.whl (315 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.1077335Z Using cached iniconfig-2.3.0-py3-none-any.whl (7.5 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.1088414Z Using cached itsdangerous-2.2.0-py3-none-any.whl (16 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.1099482Z Using cached jinja2-3.1.6-py3-none-any.whl (134 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.1110645Z Using cached justext-3.0.2-py2.py3-none-any.whl (837 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.1127533Z Using cached lxml-6.0.2-cp313-cp313-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl (5.2 MB)
+rebalance	Install dependencies	2026-01-24T19:15:02.1176413Z Using cached markupsafe-3.0.3-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (22 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.1186373Z Using cached packaging-26.0-py3-none-any.whl (74 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.1197268Z Using cached peewee-3.19.0-py3-none-any.whl (411 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.1210593Z Using cached platformdirs-4.5.1-py3-none-any.whl (18 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.1221305Z Using cached protobuf-6.33.4-cp39-abi3-manylinux2014_x86_64.whl (323 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.1233893Z Using cached pyasn1-0.6.2-py3-none-any.whl (83 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.1245092Z Using cached pyasn1_modules-0.4.2-py3-none-any.whl (181 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.1256867Z Using cached pygments-2.19.2-py3-none-any.whl (1.2 MB)
+rebalance	Install dependencies	2026-01-24T19:15:02.1276174Z Using cached sortedcontainers-2.4.0-py2.py3-none-any.whl (29 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.1286632Z Using cached cachetools-6.2.4-py3-none-any.whl (11 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.1297654Z Using cached mmh3-5.2.0-cp313-cp313-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (103 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.1308364Z Using cached pyparsing-3.3.2-py3-none-any.whl (122 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.1319948Z Using cached pyroaring-1.0.3-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (2.1 MB)
+rebalance	Install dependencies	2026-01-24T19:15:02.1344820Z Using cached rich-14.3.0-py3-none-any.whl (309 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.1357742Z Using cached strictyaml-1.7.3-py3-none-any.whl (123 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.1368805Z Using cached fsspec-2026.1.0-py3-none-any.whl (201 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.1380520Z Using cached markdown_it_py-4.0.0-py3-none-any.whl (87 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.1394032Z Using cached mdurl-0.1.2-py3-none-any.whl (10.0 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.1407443Z Using cached PyJWT-2.10.1-py3-none-any.whl (22 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.1418643Z Using cached cryptography-46.0.3-cp311-abi3-manylinux_2_34_x86_64.whl (4.5 MB)
+rebalance	Install dependencies	2026-01-24T19:15:02.1463570Z Using cached python_dateutil-2.9.0.post0-py2.py3-none-any.whl (229 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.1476039Z Using cached pytz-2025.2-py2.py3-none-any.whl (509 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.1490810Z Using cached regex-2026.1.15-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (803 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.1506814Z Using cached six-1.17.0-py2.py3-none-any.whl (11 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.1517521Z Using cached soupsieve-2.8.3-py3-none-any.whl (37 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.1528124Z Using cached StrEnum-0.4.15-py3-none-any.whl (8.9 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.1538858Z Using cached tld-0.13.1-py2.py3-none-any.whl (274 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.1552510Z Using cached typing_inspection-0.4.2-py3-none-any.whl (14 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.1562201Z Using cached tzlocal-5.3.1-py3-none-any.whl (18 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.1572739Z Using cached werkzeug-3.1.5-py3-none-any.whl (225 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.1585242Z Using cached yarl-1.22.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (377 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.1598854Z Using cached multidict-6.7.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (254 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.1611347Z Using cached propcache-0.4.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (204 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.1622961Z Using cached lxml_html_clean-0.4.3-py3-none-any.whl (14 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.1634021Z Using cached pycparser-3.0-py3-none-any.whl (48 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.1644901Z Using cached sniffio-1.3.1-py3-none-any.whl (10 kB)
+rebalance	Install dependencies	2026-01-24T19:15:02.4972630Z Installing collected packages: strenum, sortedcontainers, sgmllib3k, pytz, pyroaring, peewee, multitasking, websockets, urllib3, tzlocal, typing-extensions, tld, tenacity, soupsieve, sniffio, six, regex, python-dotenv, pyparsing, pyjwt, pygments, pycparser, pyasn1, protobuf, propcache, pluggy, platformdirs, packaging, numpy, nest-asyncio, multidict, mmh3, mdurl, markupsafe, lxml, itsdangerous, iniconfig, idna, hyperframe, hpack, h11, fsspec, frozendict, feedparser, distro, coverage, click, charset_normalizer, certifi, cachetools, blinker, babel, annotated-types, yarl, werkzeug, typing-inspection, rsa, requests, python-dateutil, pytest, pydantic-core, pyasn1-modules, markdown-it-py, lxml_html_clean, jinja2, httpcore, h2, gunicorn, deprecation, courlan, cffi, beautifulsoup4, anyio, strictyaml, rich, pytest-mock, pytest-cov, pytest-asyncio, pydantic, pandas, httpx, google-auth, Flask, dateparser, curl_cffi, cryptography, yfinance, ta, realtime, python-telegram-bot, pyiceberg, justext, htmldate, trafilatura, supabase-functions, supabase-auth, storage3, postgrest, google-genai, supabase
+rebalance	Install dependencies	2026-01-24T19:15:18.1567859Z 
+rebalance	Install dependencies	2026-01-24T19:15:18.1676670Z Successfully installed Flask-3.1.2 annotated-types-0.7.0 anyio-4.12.1 babel-2.17.0 beautifulsoup4-4.14.3 blinker-1.9.0 cachetools-6.2.4 certifi-2026.1.4 cffi-2.0.0 charset_normalizer-3.4.4 click-8.3.1 courlan-1.3.2 coverage-7.13.1 cryptography-46.0.3 curl_cffi-0.13.0 dateparser-1.2.2 deprecation-2.1.0 distro-1.9.0 feedparser-6.0.12 frozendict-2.4.7 fsspec-2026.1.0 google-auth-2.47.0 google-genai-1.60.0 gunicorn-24.1.1 h11-0.16.0 h2-4.3.0 hpack-4.1.0 htmldate-1.9.4 httpcore-1.0.9 httpx-0.28.1 hyperframe-6.1.0 idna-3.11 iniconfig-2.3.0 itsdangerous-2.2.0 jinja2-3.1.6 justext-3.0.2 lxml-6.0.2 lxml_html_clean-0.4.3 markdown-it-py-4.0.0 markupsafe-3.0.3 mdurl-0.1.2 mmh3-5.2.0 multidict-6.7.0 multitasking-0.0.12 nest-asyncio-1.6.0 numpy-2.4.1 packaging-26.0 pandas-3.0.0 peewee-3.19.0 platformdirs-4.5.1 pluggy-1.6.0 postgrest-2.27.2 propcache-0.4.1 protobuf-6.33.4 pyasn1-0.6.2 pyasn1-modules-0.4.2 pycparser-3.0 pydantic-2.12.5 pydantic-core-2.41.5 pygments-2.19.2 pyiceberg-0.10.0 pyjwt-2.10.1 pyparsing-3.3.2 pyroaring-1.0.3 pytest-9.0.2 pytest-asyncio-1.3.0 pytest-cov-7.0.0 pytest-mock-3.15.1 python-dateutil-2.9.0.post0 python-dotenv-1.2.1 python-telegram-bot-22.6 pytz-2025.2 realtime-2.27.2 regex-2026.1.15 requests-2.32.5 rich-14.3.0 rsa-4.9.1 sgmllib3k-1.0.0 six-1.17.0 sniffio-1.3.1 sortedcontainers-2.4.0 soupsieve-2.8.3 storage3-2.27.2 strenum-0.4.15 strictyaml-1.7.3 supabase-2.27.2 supabase-auth-2.27.2 supabase-functions-2.27.2 ta-0.11.0 tenacity-9.1.2 tld-0.13.1 trafilatura-2.0.0 typing-extensions-4.15.0 typing-inspection-0.4.2 tzlocal-5.3.1 urllib3-2.6.3 websockets-15.0.1 werkzeug-3.1.5 yarl-1.22.0 yfinance-1.1.0
+rebalance	Run Daily Rebalancing	﻿2026-01-24T19:15:19.0201957Z ##[group]Run python rebalancer.py
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:19.0202303Z [36;1mpython rebalancer.py[0m
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:19.0236188Z shell: /usr/bin/bash -e {0}
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:19.0236444Z env:
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:19.0236711Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.11/x64
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:19.0237170Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.11/x64/lib/pkgconfig
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:19.0237625Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.11/x64
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:19.0238028Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.11/x64
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:19.0238412Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.11/x64
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:19.0238802Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.11/x64/lib
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:19.0239458Z   SUPABASE_URL: ***
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:19.0239749Z   SUPABASE_KEY: ***
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:19.0240024Z   GEMINI_API_KEY: ***
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:19.0240469Z   OPENROUTER_API_KEY: ***
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:19.0240801Z   TELEGRAM_BOT_TOKEN: ***
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:19.0241032Z   TELEGRAM_CHAT_ID: ***
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:19.0241280Z   TARGET_CHAT_ID: 
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:19.0241479Z ##[endgroup]
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:21.1585797Z INFO:market_data:MarketData Class Loaded (v2.1 - Smart Price Enabled)
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:21.1586552Z INFO:market_data:MarketData Class Loaded (v2.1 - Smart Price Enabled)
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:22.4847220Z INFO:httpx:HTTP Request: GET ***/rest/v1/strategy_rules?select=%2A "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:22.4857011Z INFO:strategy_manager:StrategyManager: Loaded 8 rules from DB
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:22.5935663Z INFO:Rebalancer:Running daily rebalancing analysis...
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:23.2165590Z INFO:httpx:HTTP Request: GET ***/rest/v1/portfolio?select=%2A "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:24.2311316Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=last_price%2Clast_price_at%2Cis_crypto%2Ccurrency&user_ticker=eq.EUNL.DE "HTTP/2 400 Bad Request"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:24.8094052Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=resolved_ticker%2Cis_crypto%2Ccurrency%2Clast_verified_at%2Cfail_count&user_ticker=eq.EUNL.DE&limit=1 "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:25.1066109Z INFO:httpx:HTTP Request: POST ***/rest/v1/ticker_cache?on_conflict=user_ticker "HTTP/2 400 Bad Request"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:25.3188910Z INFO:httpx:HTTP Request: POST ***/rest/v1/ticker_cache?on_conflict=user_ticker "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:25.9810218Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=last_price%2Clast_price_at%2Cis_crypto%2Ccurrency&user_ticker=eq.BTC-USD "HTTP/2 400 Bad Request"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:26.1796729Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=resolved_ticker%2Cis_crypto%2Ccurrency%2Clast_verified_at%2Cfail_count&user_ticker=eq.BTC-USD&limit=1 "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:26.4643055Z INFO:httpx:HTTP Request: POST ***/rest/v1/ticker_cache?on_conflict=user_ticker "HTTP/2 400 Bad Request"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:26.6597642Z INFO:httpx:HTTP Request: POST ***/rest/v1/ticker_cache?on_conflict=user_ticker "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:27.4564219Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=last_price%2Clast_price_at%2Cis_crypto%2Ccurrency&user_ticker=eq.ETH-USD "HTTP/2 400 Bad Request"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:27.6637857Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=resolved_ticker%2Cis_crypto%2Ccurrency%2Clast_verified_at%2Cfail_count&user_ticker=eq.ETH-USD&limit=1 "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:28.4871949Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=last_price%2Clast_price_at%2Cis_crypto%2Ccurrency&user_ticker=eq.ETH-USD "HTTP/2 400 Bad Request"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:28.6722667Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=resolved_ticker%2Cis_crypto%2Ccurrency%2Clast_verified_at%2Cfail_count&user_ticker=eq.ETH-USD&limit=1 "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:29.1829225Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=last_price%2Clast_price_at%2Cis_crypto%2Ccurrency&user_ticker=eq.TCT "HTTP/2 400 Bad Request"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:29.3772322Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=resolved_ticker%2Cis_crypto%2Ccurrency%2Clast_verified_at%2Cfail_count&user_ticker=eq.TCT&limit=1 "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:29.7109489Z INFO:httpx:HTTP Request: POST ***/rest/v1/ticker_cache?on_conflict=user_ticker "HTTP/2 400 Bad Request"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:29.9186126Z INFO:httpx:HTTP Request: POST ***/rest/v1/ticker_cache?on_conflict=user_ticker "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:30.2516526Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=last_price%2Clast_price_at%2Cis_crypto%2Ccurrency&user_ticker=eq.0700.HK "HTTP/2 400 Bad Request"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:30.4508027Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=resolved_ticker%2Cis_crypto%2Ccurrency%2Clast_verified_at%2Cfail_count&user_ticker=eq.0700.HK&limit=1 "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:30.7790274Z INFO:httpx:HTTP Request: POST ***/rest/v1/ticker_cache?on_conflict=user_ticker "HTTP/2 400 Bad Request"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:30.9753910Z INFO:httpx:HTTP Request: POST ***/rest/v1/ticker_cache?on_conflict=user_ticker "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:31.2392962Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=last_price%2Clast_price_at%2Cis_crypto%2Ccurrency&user_ticker=eq.3XC "HTTP/2 400 Bad Request"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:31.4244738Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=resolved_ticker%2Cis_crypto%2Ccurrency%2Clast_verified_at%2Cfail_count&user_ticker=eq.3XC&limit=1 "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:31.6937245Z INFO:httpx:HTTP Request: POST ***/rest/v1/ticker_cache?on_conflict=user_ticker "HTTP/2 400 Bad Request"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:31.8797880Z INFO:httpx:HTTP Request: POST ***/rest/v1/ticker_cache?on_conflict=user_ticker "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:32.2080258Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=last_price%2Clast_price_at%2Cis_crypto%2Ccurrency&user_ticker=eq.1810.HK "HTTP/2 400 Bad Request"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:32.4097603Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=resolved_ticker%2Cis_crypto%2Ccurrency%2Clast_verified_at%2Cfail_count&user_ticker=eq.1810.HK&limit=1 "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:32.7362494Z INFO:httpx:HTTP Request: POST ***/rest/v1/ticker_cache?on_conflict=user_ticker "HTTP/2 400 Bad Request"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:32.9371596Z INFO:httpx:HTTP Request: POST ***/rest/v1/ticker_cache?on_conflict=user_ticker "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:33.1996542Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=last_price%2Clast_price_at%2Cis_crypto%2Ccurrency&user_ticker=eq.BYDDF "HTTP/2 400 Bad Request"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:33.3858864Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=resolved_ticker%2Cis_crypto%2Ccurrency%2Clast_verified_at%2Cfail_count&user_ticker=eq.BYDDF&limit=1 "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:33.7008928Z INFO:httpx:HTTP Request: POST ***/rest/v1/ticker_cache?on_conflict=user_ticker "HTTP/2 400 Bad Request"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:33.8877116Z INFO:httpx:HTTP Request: POST ***/rest/v1/ticker_cache?on_conflict=user_ticker "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:34.3281675Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=last_price%2Clast_price_at%2Cis_crypto%2Ccurrency&user_ticker=eq.BY6.F "HTTP/2 400 Bad Request"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:34.5119919Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=resolved_ticker%2Cis_crypto%2Ccurrency%2Clast_verified_at%2Cfail_count&user_ticker=eq.BY6.F&limit=1 "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:34.8896244Z INFO:httpx:HTTP Request: POST ***/rest/v1/ticker_cache?on_conflict=user_ticker "HTTP/2 400 Bad Request"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:35.0890943Z INFO:httpx:HTTP Request: POST ***/rest/v1/ticker_cache?on_conflict=user_ticker "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:35.3426495Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=last_price%2Clast_price_at%2Cis_crypto%2Ccurrency&user_ticker=eq.RENDER "HTTP/2 400 Bad Request"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:35.5419226Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=resolved_ticker%2Cis_crypto%2Ccurrency%2Clast_verified_at%2Cfail_count&user_ticker=eq.RENDER&limit=1 "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:36.0101631Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=last_price%2Clast_price_at%2Cis_crypto%2Ccurrency&user_ticker=eq.RENDER-USD "HTTP/2 400 Bad Request"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:36.2000317Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=resolved_ticker%2Cis_crypto%2Ccurrency%2Clast_verified_at%2Cfail_count&user_ticker=eq.RENDER-USD&limit=1 "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:36.6508076Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=last_price%2Clast_price_at%2Cis_crypto%2Ccurrency&user_ticker=eq.AAPL "HTTP/2 400 Bad Request"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:36.8518909Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=resolved_ticker%2Cis_crypto%2Ccurrency%2Clast_verified_at%2Cfail_count&user_ticker=eq.AAPL&limit=1 "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:37.2240742Z INFO:httpx:HTTP Request: POST ***/rest/v1/ticker_cache?on_conflict=user_ticker "HTTP/2 400 Bad Request"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:37.4299403Z INFO:httpx:HTTP Request: POST ***/rest/v1/ticker_cache?on_conflict=user_ticker "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:37.7985182Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=last_price%2Clast_price_at%2Cis_crypto%2Ccurrency&user_ticker=eq.XRP-EUR "HTTP/2 400 Bad Request"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:37.9918018Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=resolved_ticker%2Cis_crypto%2Ccurrency%2Clast_verified_at%2Cfail_count&user_ticker=eq.XRP-EUR&limit=1 "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:38.4131761Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=last_price%2Clast_price_at%2Cis_crypto%2Ccurrency&user_ticker=eq.XRP-EUR "HTTP/2 400 Bad Request"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:38.5987840Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=resolved_ticker%2Cis_crypto%2Ccurrency%2Clast_verified_at%2Cfail_count&user_ticker=eq.XRP-EUR&limit=1 "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:39.0282955Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=last_price%2Clast_price_at%2Cis_crypto%2Ccurrency&user_ticker=eq.NVDA "HTTP/2 400 Bad Request"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:39.2170205Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=resolved_ticker%2Cis_crypto%2Ccurrency%2Clast_verified_at%2Cfail_count&user_ticker=eq.NVDA&limit=1 "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:39.5266344Z INFO:httpx:HTTP Request: POST ***/rest/v1/ticker_cache?on_conflict=user_ticker "HTTP/2 400 Bad Request"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:39.7178374Z INFO:httpx:HTTP Request: POST ***/rest/v1/ticker_cache?on_conflict=user_ticker "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:40.0476854Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=last_price%2Clast_price_at%2Cis_crypto%2Ccurrency&user_ticker=eq.META "HTTP/2 400 Bad Request"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:40.2329092Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=resolved_ticker%2Cis_crypto%2Ccurrency%2Clast_verified_at%2Cfail_count&user_ticker=eq.META&limit=1 "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:40.5092639Z INFO:httpx:HTTP Request: POST ***/rest/v1/ticker_cache?on_conflict=user_ticker "HTTP/2 400 Bad Request"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:40.7001873Z INFO:httpx:HTTP Request: POST ***/rest/v1/ticker_cache?on_conflict=user_ticker "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:41.0182132Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=last_price%2Clast_price_at%2Cis_crypto%2Ccurrency&user_ticker=eq.SOL-USD "HTTP/2 400 Bad Request"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:41.2143961Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=resolved_ticker%2Cis_crypto%2Ccurrency%2Clast_verified_at%2Cfail_count&user_ticker=eq.SOL-USD&limit=1 "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:41.7142539Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=last_price%2Clast_price_at%2Cis_crypto%2Ccurrency&user_ticker=eq.SOL-USD "HTTP/2 400 Bad Request"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:41.9003036Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=resolved_ticker%2Cis_crypto%2Ccurrency%2Clast_verified_at%2Cfail_count&user_ticker=eq.SOL-USD&limit=1 "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:42.3358661Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=last_price%2Clast_price_at%2Cis_crypto%2Ccurrency&user_ticker=eq.ADA-USD "HTTP/2 400 Bad Request"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:42.5308559Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=resolved_ticker%2Cis_crypto%2Ccurrency%2Clast_verified_at%2Cfail_count&user_ticker=eq.ADA-USD&limit=1 "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:48.9592446Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=last_price%2Clast_price_at%2Cis_crypto%2Ccurrency&user_ticker=eq.ADA-USD "HTTP/2 400 Bad Request"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:49.1458085Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=resolved_ticker%2Cis_crypto%2Ccurrency%2Clast_verified_at%2Cfail_count&user_ticker=eq.ADA-USD&limit=1 "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:49.6082707Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=last_price%2Clast_price_at%2Cis_crypto%2Ccurrency&user_ticker=eq.JAZZ "HTTP/2 400 Bad Request"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:49.8016218Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=resolved_ticker%2Cis_crypto%2Ccurrency%2Clast_verified_at%2Cfail_count&user_ticker=eq.JAZZ&limit=1 "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:50.0789357Z INFO:httpx:HTTP Request: POST ***/rest/v1/ticker_cache?on_conflict=user_ticker "HTTP/2 400 Bad Request"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:50.2746200Z INFO:httpx:HTTP Request: POST ***/rest/v1/ticker_cache?on_conflict=user_ticker "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:50.5090764Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=resolved_ticker%2Cis_crypto%2Ccurrency%2Clast_verified_at%2Cfail_count&user_ticker=eq.JAZZ&limit=1 "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:50.6809661Z INFO:MarketRegime:MarketRegimeClassifier initialized
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:51.0727959Z INFO:MarketRegime:Market Regime: SIDEWAYS (60%) - normal
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:51.0728863Z INFO:strategy_manager:L9 Regime: SIDEWAYS (60%) -> Targets: Crypto=25.0%, Tech=25.0%
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:51.8775090Z INFO:httpx:HTTP Request: GET ***/rest/v1/predictions?select=ticker%2Csentiment%2Cconfidence_score%2Ctarget_price&created_at=gte.2026-01-17T19%3A15%3A51.658019&order=created_at.desc&limit=10 "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:53.2832251Z INFO:SectorRotation:SectorRotationTracker initialized
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:55.1745646Z INFO:SectorRotation:Sector Rotation: NEUTRAL (50%). Leading: Energy, Small Caps, Technology. Lagging: Utilities, Financials, Crypto
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:55.1746523Z INFO:MarketRegime:MarketRegimeClassifier initialized
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:55.3984273Z INFO:MarketRegime:Market Regime: SIDEWAYS (60%) - normal
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:55.3984993Z INFO:Rebalancer:Rebalance: L2 context added - NEUTRAL, SIDEWAYS
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:55.4032644Z INFO:PatternRecognizer:PatternRecognizer initialized
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:55.6449415Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=resolved_ticker%2Cis_crypto%2Ccurrency%2Clast_verified_at%2Cfail_count&user_ticker=eq.EUNL.DE&limit=1 "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:55.7061613Z INFO:PatternRecognizer:Detected 3 patterns for EUNL.DE
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:55.9545998Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=resolved_ticker%2Cis_crypto%2Ccurrency%2Clast_verified_at%2Cfail_count&user_ticker=eq.EUNL.DE&limit=1 "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:55.9692095Z INFO:PatternRecognizer:Detected 3 patterns for EUNL.DE
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:56.2224268Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=resolved_ticker%2Cis_crypto%2Ccurrency%2Clast_verified_at%2Cfail_count&user_ticker=eq.BTC-USD&limit=1 "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:56.2691863Z INFO:PatternRecognizer:Detected 3 patterns for BTC-USD
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:56.8612477Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=resolved_ticker%2Cis_crypto%2Ccurrency%2Clast_verified_at%2Cfail_count&user_ticker=eq.BTC-USD&limit=1 "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:56.8759441Z INFO:PatternRecognizer:Detected 3 patterns for BTC-USD
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:57.1183313Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=resolved_ticker%2Cis_crypto%2Ccurrency%2Clast_verified_at%2Cfail_count&user_ticker=eq.META&limit=1 "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:57.1705402Z INFO:PatternRecognizer:Detected 4 patterns for META
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:57.4139698Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=resolved_ticker%2Cis_crypto%2Ccurrency%2Clast_verified_at%2Cfail_count&user_ticker=eq.META&limit=1 "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:57.4297150Z INFO:PatternRecognizer:Detected 4 patterns for META
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:57.6806957Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=resolved_ticker%2Cis_crypto%2Ccurrency%2Clast_verified_at%2Cfail_count&user_ticker=eq.NVDA&limit=1 "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:57.7638611Z INFO:PatternRecognizer:Detected 4 patterns for NVDA
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:58.0136783Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=resolved_ticker%2Cis_crypto%2Ccurrency%2Clast_verified_at%2Cfail_count&user_ticker=eq.RENDER&limit=1 "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:58.0633986Z INFO:PatternRecognizer:Detected 0 patterns for RENDER
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:58.0635062Z INFO:Rebalancer:Rebalance: L3 patterns found for 3 assets
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:58.0635678Z INFO:MarketRegime:MarketRegimeClassifier initialized
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:58.3188258Z INFO:MarketRegime:Market Regime: SIDEWAYS (60%) - normal
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:58.3188997Z INFO:strategy_manager:L9 Regime: SIDEWAYS (60%) -> Targets: Crypto=25.0%, Tech=25.0%
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:58.3190135Z INFO:Rebalancer:Rebalance: Strategy context added for 6 assets
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:58.3220629Z INFO:Rebalancer:Rebalance: Running backtest for 14 assets...
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:58.5591695Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=resolved_ticker%2Cis_crypto%2Ccurrency%2Clast_verified_at%2Cfail_count&user_ticker=eq.EUNL.DE&limit=1 "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:58.7930677Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=resolved_ticker%2Cis_crypto%2Ccurrency%2Clast_verified_at%2Cfail_count&user_ticker=eq.BTC-USD&limit=1 "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:59.0516017Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=resolved_ticker%2Cis_crypto%2Ccurrency%2Clast_verified_at%2Cfail_count&user_ticker=eq.META&limit=1 "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:59.2944038Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=resolved_ticker%2Cis_crypto%2Ccurrency%2Clast_verified_at%2Cfail_count&user_ticker=eq.NVDA&limit=1 "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:59.5555137Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=resolved_ticker%2Cis_crypto%2Ccurrency%2Clast_verified_at%2Cfail_count&user_ticker=eq.RENDER&limit=1 "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:15:59.7929529Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=resolved_ticker%2Cis_crypto%2Ccurrency%2Clast_verified_at%2Cfail_count&user_ticker=eq.ETH-USD&limit=1 "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:16:00.0249540Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=resolved_ticker%2Cis_crypto%2Ccurrency%2Clast_verified_at%2Cfail_count&user_ticker=eq.JAZZ&limit=1 "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:16:00.2921340Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=resolved_ticker%2Cis_crypto%2Ccurrency%2Clast_verified_at%2Cfail_count&user_ticker=eq.SOL-USD&limit=1 "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:16:00.5460489Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=resolved_ticker%2Cis_crypto%2Ccurrency%2Clast_verified_at%2Cfail_count&user_ticker=eq.ADA-USD&limit=1 "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:16:00.7998886Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=resolved_ticker%2Cis_crypto%2Ccurrency%2Clast_verified_at%2Cfail_count&user_ticker=eq.XRP-EUR&limit=1 "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:16:01.0530935Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=resolved_ticker%2Cis_crypto%2Ccurrency%2Clast_verified_at%2Cfail_count&user_ticker=eq.TCT&limit=1 "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:16:01.6042734Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=resolved_ticker%2Cis_crypto%2Ccurrency%2Clast_verified_at%2Cfail_count&user_ticker=eq.BYDDF&limit=1 "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:16:01.8755648Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=resolved_ticker%2Cis_crypto%2Ccurrency%2Clast_verified_at%2Cfail_count&user_ticker=eq.3XC&limit=1 "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:16:02.1249886Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=resolved_ticker%2Cis_crypto%2Ccurrency%2Clast_verified_at%2Cfail_count&user_ticker=eq.AAPL&limit=1 "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:16:02.4457601Z ERROR:yfinance:HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 3XC"}}}
+rebalance	Run Daily Rebalancing	2026-01-24T19:16:02.5183378Z ERROR:yfinance:$3XC: possibly delisted; no timezone found
+rebalance	Run Daily Rebalancing	2026-01-24T19:16:02.5498759Z ERROR:yfinance:$TCT: possibly delisted; no price data found  (1d 2025-10-26 19:16:02.125159 -> 2026-01-24 19:16:02.125159)
+rebalance	Run Daily Rebalancing	2026-01-24T19:16:02.5976615Z ERROR:yfinance:
+rebalance	Run Daily Rebalancing	2026-01-24T19:16:02.5977172Z 2 Failed downloads:
+rebalance	Run Daily Rebalancing	2026-01-24T19:16:02.5977807Z ERROR:yfinance:['3XC']: possibly delisted; no timezone found
+rebalance	Run Daily Rebalancing	2026-01-24T19:16:02.5978636Z ERROR:yfinance:['TCT']: possibly delisted; no price data found  (1d 2025-10-26 19:16:02.125159 -> 2026-01-24 19:16:02.125159)
+rebalance	Run Daily Rebalancing	2026-01-24T19:16:02.6188634Z INFO:Rebalancer:Rebalance: Backtest context added (Sharpe: -3.06, MaxDD: -13.6%)
+rebalance	Run Daily Rebalancing	2026-01-24T19:16:03.1068425Z INFO:httpx:HTTP Request: GET ***/rest/v1/portfolio?select=%2A "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:16:03.8286751Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=last_price%2Clast_price_at%2Cis_crypto%2Ccurrency&user_ticker=eq.ETH-USD "HTTP/2 400 Bad Request"
+rebalance	Run Daily Rebalancing	2026-01-24T19:16:04.0305570Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=resolved_ticker%2Cis_crypto%2Ccurrency%2Clast_verified_at%2Cfail_count&user_ticker=eq.ETH-USD&limit=1 "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:16:04.3615729Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=last_price%2Clast_price_at%2Cis_crypto%2Ccurrency&user_ticker=eq.RENDER "HTTP/2 400 Bad Request"
+rebalance	Run Daily Rebalancing	2026-01-24T19:16:04.5504916Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=resolved_ticker%2Cis_crypto%2Ccurrency%2Clast_verified_at%2Cfail_count&user_ticker=eq.RENDER&limit=1 "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:16:04.8770653Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=last_price%2Clast_price_at%2Cis_crypto%2Ccurrency&user_ticker=eq.XRP-EUR "HTTP/2 400 Bad Request"
+rebalance	Run Daily Rebalancing	2026-01-24T19:16:05.0609448Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=resolved_ticker%2Cis_crypto%2Ccurrency%2Clast_verified_at%2Cfail_count&user_ticker=eq.XRP-EUR&limit=1 "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:16:05.3945705Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=last_price%2Clast_price_at%2Cis_crypto%2Ccurrency&user_ticker=eq.SOL-USD "HTTP/2 400 Bad Request"
+rebalance	Run Daily Rebalancing	2026-01-24T19:16:05.5911755Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=resolved_ticker%2Cis_crypto%2Ccurrency%2Clast_verified_at%2Cfail_count&user_ticker=eq.SOL-USD&limit=1 "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:16:05.9163603Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=last_price%2Clast_price_at%2Cis_crypto%2Ccurrency&user_ticker=eq.ADA-USD "HTTP/2 400 Bad Request"
+rebalance	Run Daily Rebalancing	2026-01-24T19:16:06.1042368Z INFO:httpx:HTTP Request: GET ***/rest/v1/ticker_cache?select=resolved_ticker%2Cis_crypto%2Ccurrency%2Clast_verified_at%2Cfail_count&user_ticker=eq.ADA-USD&limit=1 "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:16:06.5353534Z INFO:httpx:HTTP Request: GET ***/rest/v1/user_settings?select=%2A&limit=1 "HTTP/2 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:16:06.5360246Z INFO:brain:Brain Mode: PROD
+rebalance	Run Daily Rebalancing	2026-01-24T19:16:06.5361227Z INFO:brain:Brain initialized: OpenRouter=✅, Gemini Fallback=✅
+rebalance	Run Daily Rebalancing	2026-01-24T19:16:06.5361940Z INFO:Rebalancer:Calling Brain for AI strategy...
+rebalance	Run Daily Rebalancing	2026-01-24T19:16:06.7897178Z INFO:brain:Dynamic Model Selection Winner: deepseek/deepseek-r1-0528:free (Score: 1320) from 18 candidates
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:08.3484741Z WARNING:brain:OpenRouter model deepseek/deepseek-r1-0528:free returned empty content (200 OK). Treating as failure.
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:08.3486775Z INFO:brain:Using cached model: meta-llama/llama-3.1-405b-instruct:free (Score: 1250)
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:08.8652415Z WARNING:brain:OpenRouter Error (404) with meta-llama/llama-3.1-405b-instruct:free: {"error":{"message":"Provider returned error","code":404,"metadata":{"raw":"No matching route found. It is likely because the model specified in your request is not configured in the Gateway.","provider_name":"ModelRun","is_byok":false}},"user_id":"user_38KqFziK3nyr0CLcndZo9TFtN4Y"}
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:11.8653762Z INFO:brain:Using cached model: nousresearch/hermes-3-llama-3.1-405b:free (Score: 1220)
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:12.1582250Z WARNING:brain:OpenRouter Error (429) with nousresearch/hermes-3-llama-3.1-405b:free: {"error":{"message":"Provider returned error","code":429,"metadata":{"raw":"nousresearch/hermes-3-llama-3.1-405b:free is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations","provider_name":"Venice","is_byok":false}},"user_id":"user_38KqFziK3nyr0CLcndZo9TFtN4Y"}
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.1583558Z WARNING:brain:OpenRouter failed: OpenRouter: All model attempts failed.
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.1588730Z INFO:brain:Gemini Call: Using model gemini-3-flash
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.1589573Z INFO:google_genai.models:AFC is enabled with max remote calls: 10.
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.2814905Z INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash:generateContent "HTTP/1.1 404 Not Found"
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.2820503Z ERROR:brain:Gemini gemini-3-flash failed with non-429 error: 404 NOT_FOUND. {'error': {'code': 404, 'message': 'models/gemini-3-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.', 'status': 'NOT_FOUND'}}
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.2822221Z INFO:brain:Gemini Call: Using model gemini-2.5-flash
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.2822720Z INFO:google_genai.models:AFC is enabled with max remote calls: 10.
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.4053535Z INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 429 Too Many Requests"
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.4060377Z WARNING:brain:Gemini tier exhausted for gemini-2.5-flash. Trying next...
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.4061253Z INFO:brain:Gemini Call: Using model gemini-2.5-flash-lite
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.4061830Z INFO:google_genai.models:AFC is enabled with max remote calls: 10.
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5273177Z INFO:httpx:HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent "HTTP/1.1 429 Too Many Requests"
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5279625Z WARNING:brain:Gemini tier exhausted for gemini-2.5-flash-lite. Trying next...
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5289574Z ERROR:Rebalancer:AI suggestion failed with exception: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-2.5-flash-lite\nPlease retry in 43.498791277s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-2.5-flash-lite'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '43s'}]}}
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5431567Z ERROR:Rebalancer:Traceback (most recent call last):
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5440595Z   File "/home/runner/work/zerocosthunter/zerocosthunter/brain.py", line 571, in _generate_with_fallback
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5442101Z     return self._call_openrouter([{"role": "user", "content": prompt}], json_mode=json_mode, model=model, min_context_needed=min_context_needed, task_type=task_type)
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5443544Z            ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5445345Z   File "/home/runner/work/zerocosthunter/zerocosthunter/brain.py", line 480, in _call_openrouter
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5446423Z     raise Exception("OpenRouter: All model attempts failed.")
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5447103Z Exception: OpenRouter: All model attempts failed.
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5447504Z 
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5447837Z During handling of the above exception, another exception occurred:
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5448332Z 
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5448507Z Traceback (most recent call last):
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5449457Z   File "/home/runner/work/zerocosthunter/zerocosthunter/rebalancer.py", line 539, in _get_ai_suggestion
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5450705Z     response_text = brain._generate_with_fallback(prompt, json_mode=False, task_type="rebalance")
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5452017Z   File "/home/runner/work/zerocosthunter/zerocosthunter/brain.py", line 576, in _generate_with_fallback
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5453072Z     return self._call_gemini_with_tiered_fallback(prompt, json_mode)
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5453791Z            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5455040Z   File "/home/runner/work/zerocosthunter/zerocosthunter/brain.py", line 603, in _call_gemini_with_tiered_fallback
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5456268Z     raise last_error if last_error else Exception("All Gemini tiers failed.")
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5457488Z   File "/home/runner/work/zerocosthunter/zerocosthunter/brain.py", line 592, in _call_gemini_with_tiered_fallback
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5458687Z     return self._call_gemini_fallback(prompt, json_mode=json_mode, model=model_name)
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5459538Z            ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5460841Z   File "/home/runner/work/zerocosthunter/zerocosthunter/brain.py", line 501, in _call_gemini_fallback
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5461866Z     response = self.gemini_client.models.generate_content(
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5462453Z         model=target_model,
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5462844Z         contents=prompt,
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5463229Z         config=config
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5463568Z     )
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5464702Z   File "/opt/hostedtoolcache/Python/3.13.11/x64/lib/python3.13/site-packages/google/genai/models.py", line 5227, in generate_content
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5465778Z     response = self._generate_content(
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5466373Z         model=model, contents=contents, config=parsed_config
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5466910Z     )
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5467846Z   File "/opt/hostedtoolcache/Python/3.13.11/x64/lib/python3.13/site-packages/google/genai/models.py", line 4009, in _generate_content
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5468940Z     response = self._api_client.request(
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5469485Z         'post', path, request_dict, http_options
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5469968Z     )
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5470863Z   File "/opt/hostedtoolcache/Python/3.13.11/x64/lib/python3.13/site-packages/google/genai/_api_client.py", line 1386, in request
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5472090Z     response = self._request(http_request, http_options, stream=False)
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5473315Z   File "/opt/hostedtoolcache/Python/3.13.11/x64/lib/python3.13/site-packages/google/genai/_api_client.py", line 1222, in _request
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5474860Z     return self._retry(self._request_once, http_request, stream)  # type: ignore[no-any-return]
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5475711Z            ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5476792Z   File "/opt/hostedtoolcache/Python/3.13.11/x64/lib/python3.13/site-packages/tenacity/__init__.py", line 477, in __call__
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5477813Z     do = self.iter(retry_state=retry_state)
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5478789Z   File "/opt/hostedtoolcache/Python/3.13.11/x64/lib/python3.13/site-packages/tenacity/__init__.py", line 378, in iter
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5479757Z     result = action(retry_state)
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5480717Z   File "/opt/hostedtoolcache/Python/3.13.11/x64/lib/python3.13/site-packages/tenacity/__init__.py", line 420, in exc_check
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5481953Z     raise retry_exc.reraise()
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5482365Z           ~~~~~~~~~~~~~~~~~^^
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5483300Z   File "/opt/hostedtoolcache/Python/3.13.11/x64/lib/python3.13/site-packages/tenacity/__init__.py", line 187, in reraise
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5484332Z     raise self.last_attempt.result()
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5484966Z           ~~~~~~~~~~~~~~~~~~~~~~~~^^
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5485866Z   File "/opt/hostedtoolcache/Python/3.13.11/x64/lib/python3.13/concurrent/futures/_base.py", line 449, in result
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5486807Z     return self.__get_result()
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5487219Z            ~~~~~~~~~~~~~~~~~^^
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5488116Z   File "/opt/hostedtoolcache/Python/3.13.11/x64/lib/python3.13/concurrent/futures/_base.py", line 401, in __get_result
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5489111Z     raise self._exception
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5490039Z   File "/opt/hostedtoolcache/Python/3.13.11/x64/lib/python3.13/site-packages/tenacity/__init__.py", line 480, in __call__
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5491004Z     result = fn(*args, **kwargs)
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5492072Z   File "/opt/hostedtoolcache/Python/3.13.11/x64/lib/python3.13/site-packages/google/genai/_api_client.py", line 1199, in _request_once
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5493206Z     errors.APIError.raise_for_response(response)
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5493760Z     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5495055Z   File "/opt/hostedtoolcache/Python/3.13.11/x64/lib/python3.13/site-packages/google/genai/errors.py", line 121, in raise_for_response
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5496289Z     cls.raise_error(response.status_code, response_json, response)
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5496979Z     ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5498296Z   File "/opt/hostedtoolcache/Python/3.13.11/x64/lib/python3.13/site-packages/google/genai/errors.py", line 146, in raise_error
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5499505Z     raise ClientError(status_code, response_json, response)
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5507133Z google.genai.errors.ClientError: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-2.5-flash-lite\nPlease retry in 43.498791277s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-2.5-flash-lite'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '43s'}]}}
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5514824Z 
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:16.5515209Z WARNING:Rebalancer:AI Strategy returned None - using rule-based fallback
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:17.1002268Z INFO:httpx:HTTP Request: POST https://api.telegram.org/bot***/getMe "HTTP/1.1 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:17.2612195Z INFO:httpx:HTTP Request: POST https://api.telegram.org/bot***/sendMessage "HTTP/1.1 400 Bad Request"
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:17.2615675Z WARNING:telegram_bot:Markdown failed (Can't parse entities: can't find end of the entity starting at byte offset 1478), retrying as plain text...
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:17.4650530Z INFO:httpx:HTTP Request: POST https://api.telegram.org/bot***/sendMessage "HTTP/1.1 200 OK"
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:17.4656260Z INFO:telegram_bot:Telegram message sent (plain text) to ***.
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:17.8007455Z INFO:httpx:HTTP Request: POST ***/rest/v1/logs "HTTP/2 201 Created"
+rebalance	Run Daily Rebalancing	2026-01-24T19:17:17.8011542Z INFO:Rebalancer:Daily rebalancing report sent successfully
+rebalance	Post Set up Python	﻿2026-01-24T19:17:18.2468455Z Post job cleanup.
+rebalance	Post Set up Python	2026-01-24T19:17:18.3992556Z Cache hit occurred on the primary key setup-python-Linux-24.04-Ubuntu-python-3.13.11-pip-09f61419707a1464e4d2cb88605230ca7497eaa582df8ef1e923e8431c03405c, not saving cache.
+rebalance	Post Check out code	﻿2026-01-24T19:17:18.4127871Z Post job cleanup.
+rebalance	Post Check out code	2026-01-24T19:17:18.4858972Z [command]/usr/bin/git version
+rebalance	Post Check out code	2026-01-24T19:17:18.4894488Z git version 2.52.0
+rebalance	Post Check out code	2026-01-24T19:17:18.4941407Z Temporarily overriding HOME='/home/runner/work/_temp/8999be72-eb30-47a1-97d2-b37acd1af6e1' before making global git config changes
+rebalance	Post Check out code	2026-01-24T19:17:18.4942477Z Adding repository directory to the temporary git global config as a safe directory
+rebalance	Post Check out code	2026-01-24T19:17:18.4945664Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/zerocosthunter/zerocosthunter
+rebalance	Post Check out code	2026-01-24T19:17:18.4981984Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+rebalance	Post Check out code	2026-01-24T19:17:18.5013714Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+rebalance	Post Check out code	2026-01-24T19:17:18.5251279Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+rebalance	Post Check out code	2026-01-24T19:17:18.5272721Z http.https://github.com/.extraheader
+rebalance	Post Check out code	2026-01-24T19:17:18.5284255Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+rebalance	Post Check out code	2026-01-24T19:17:18.5313589Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+rebalance	Complete job	﻿2026-01-24T19:17:18.5658712Z Cleaning up orphan processes
