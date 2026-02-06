@@ -3,6 +3,7 @@
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
+import pandas as pd
 import pytest
 
 from ml_predictor import MLPredictor
@@ -61,6 +62,39 @@ def test_gate_candidate_rolls_back_when_gain_is_insufficient():
     assert gate["gate_status"] == "ROLLED_BACK"
 
 
+def test_normalize_metric_for_gate_ignores_legacy_out_of_range_values():
+    ml = _build_predictor()
+    assert ml._normalize_metric_for_gate("lstm", 804.68, "legacy") is None
+    assert ml._normalize_metric_for_gate("regressor", -0.61, "legacy") is None
+    assert ml._normalize_metric_for_gate("classifier", 0.73, "registry") == 0.73
+
+
+def test_get_features_caches_invalid_ticker_failure():
+    ml = _build_predictor()
+    ml._session_cache["_global"] = {
+        "vix_level": 20.0,
+        "vix_change": 0.0,
+        "market_regime_encoded": 0,
+        "_sent_stock": {"fear_greed_score": 50, "whale_activity_score": 0},
+        "_sent_crypto": {"fear_greed_score": 50, "whale_activity_score": 0},
+        "_trending": {},
+    }
+
+    with patch("ticker_resolver.is_probable_ticker", return_value=True), \
+         patch("ticker_resolver.resolve_ticker", return_value="SPACEX"), \
+         patch("yfinance.Ticker") as mock_ticker:
+        mock_ticker.return_value.history.return_value = pd.DataFrame()
+
+        first = ml._get_features("SPACEX")
+        second = ml._get_features("SPACEX")
+
+    assert first is None
+    assert second is None
+    # Only one network attempt: second call hits in-memory failure cache.
+    assert mock_ticker.call_count == 1
+    assert ml._feature_cache.get("SPACEX") is None
+
+
 def test_train_classification_keeps_champion_on_gate_reject():
     ml = _build_predictor()
     ml.dry_run = True
@@ -106,4 +140,3 @@ def test_train_classification_keeps_champion_on_gate_reject():
     assert report.get("promoted") is False
     assert report.get("rolled_back") is True
     assert report.get("usable") is True
-

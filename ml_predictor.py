@@ -670,18 +670,32 @@ class MLPredictor:
         try:
             import ta
             from ticker_resolver import resolve_ticker
+            ticker_u = (ticker or "").upper().strip()
+            if not ticker_u:
+                return None
+
+            if ticker_u in self._feature_cache and self._feature_cache[ticker_u] is None:
+                return None
             
             # Check cache first
-            if ticker in self._market_data_cache:
-                hist = self._market_data_cache[ticker]
+            if ticker_u in self._market_data_cache:
+                hist = self._market_data_cache[ticker_u]
             else:
                 import yfinance as yf
-                search_ticker = resolve_ticker(ticker)
-                if not search_ticker: return None
+                search_ticker = resolve_ticker(ticker_u)
+                if not search_ticker:
+                    self._record_ticker_data_failure(ticker_u, "resolve_ticker returned None for sequence extraction")
+                    return None
                 hist = yf.Ticker(search_ticker).history(period="60d")
-                self._market_data_cache[ticker] = hist
+                if hist.empty and search_ticker != ticker_u:
+                    hist = yf.Ticker(ticker_u).history(period="60d")
+                self._market_data_cache[ticker_u] = hist
 
-            if hist.empty or len(hist) < 30: return None
+            if hist.empty:
+                self._record_ticker_data_failure(ticker_u, "empty yfinance history for LSTM sequence")
+                return None
+            if len(hist) < 30:
+                return None
             
             df = hist.copy()
             # ... Rest of logic remains the same but uses 'hist' from cache ...
@@ -727,7 +741,17 @@ class MLPredictor:
         """Extract features for prediction."""
         try:
             import ta
-            from ticker_resolver import resolve_ticker
+            from ticker_resolver import resolve_ticker, is_probable_ticker
+            ticker_u = (ticker or "").upper().strip()
+            if not ticker_u:
+                return None
+
+            if ticker_u in self._feature_cache:
+                return self._feature_cache[ticker_u]
+
+            if not is_probable_ticker(ticker_u):
+                self._record_ticker_data_failure(ticker_u, "ticker failed basic sanity pattern")
+                return None
             
             # --- 1. SESSION-LEVEL GLOBAL FEATURES (Populated once per run) ---
             if "_global" not in self._session_cache:
@@ -779,21 +803,27 @@ class MLPredictor:
             global_features = self._session_cache["_global"]
             
             # --- 2. TICKER-SPECIFIC MARKET DATA (Cached iteratively) ---
-            if ticker in self._market_data_cache:
-                hist = self._market_data_cache[ticker]
+            if ticker_u in self._market_data_cache:
+                hist = self._market_data_cache[ticker_u]
             else:
                 import yfinance as yf
-                search_ticker = resolve_ticker(ticker)
-                if not search_ticker: return None
+                search_ticker = resolve_ticker(ticker_u)
+                if not search_ticker:
+                    self._record_ticker_data_failure(ticker_u, "resolve_ticker returned None")
+                    return None
                 t = yf.Ticker(search_ticker)
                 hist = t.history(period="3mo")
                 if hist.empty or len(hist) < 30:
-                    if search_ticker != ticker:
-                        t = yf.Ticker(ticker)
+                    if search_ticker != ticker_u:
+                        t = yf.Ticker(ticker_u)
                         hist = t.history(period="3mo")
-                self._market_data_cache[ticker] = hist
+                self._market_data_cache[ticker_u] = hist
                 
-            if hist.empty or len(hist) < 30:
+            if hist.empty:
+                self._record_ticker_data_failure(ticker_u, "empty yfinance history")
+                return None
+            if len(hist) < 30:
+                self._feature_cache[ticker_u] = None
                 return None
             
             df = hist.copy()
@@ -887,7 +917,6 @@ class MLPredictor:
             features['is_opex_week'] = 1 if is_opex_week(now) else 0
             
             # Phase 2: Sentiment & Hype (Using session cache)
-            ticker_u = ticker.upper()
             is_crypto = ticker_u in ['BTC', 'ETH', 'SOL', 'XRP', 'DOGE', 'ADA', 'AVAX', 'MATIC', 'DOT', 'ATOM', 'LINK', 'UNI', 'AAVE', 'RENDER']
             
             # Sentiment scores
@@ -917,10 +946,14 @@ class MLPredictor:
                 except (ValueError, TypeError):
                     features[key] = 0.0
                     
+            self._feature_cache[ticker_u] = features
             return features
             
         except Exception as e:
             logger.error(f"ML Feature extraction failed for {ticker}: {e}")
+            ticker_u = (ticker or "").upper().strip()
+            if ticker_u:
+                self._feature_cache[ticker_u] = None
             return None
     
     def _rule_based_predict(self, features: Dict) -> Tuple[str, float]:
@@ -1233,6 +1266,45 @@ class MLPredictor:
         except Exception:
             return default
 
+    def _normalize_metric_for_gate(self, model_type: str, metric: Optional[float], source: str) -> Optional[float]:
+        """
+        Normalize legacy metrics before comparing challenger vs champion.
+        Current gate metrics are probabilities/accuracies in [0, 1].
+        """
+        if metric is None:
+            return None
+        metric_f = self._safe_float(metric, None)
+        if metric_f is None:
+            return None
+        if 0.0 <= metric_f <= 1.0:
+            return metric_f
+        logger.warning(
+            f"ML Gate [{model_type}] ignoring incompatible champion metric from {source}: {metric_f}. "
+            "Expected range is [0,1]."
+        )
+        return None
+
+    def _record_ticker_data_failure(self, ticker: str, reason: str = ""):
+        """
+        Cache invalid tickers for the current run and increment DB fail_count.
+        Prevents repeated yfinance 404 loops during training.
+        """
+        ticker_u = (ticker or "").upper().strip()
+        if not ticker_u:
+            return
+        self._feature_cache[ticker_u] = None
+        self._market_data_cache[ticker_u] = pd.DataFrame()
+        if reason:
+            logger.info(f"ML data skip {ticker_u}: {reason}")
+
+        if self.dry_run:
+            return
+        try:
+            if self.db and hasattr(self.db, "register_ticker_failure"):
+                self.db.register_ticker_failure(ticker_u)
+        except Exception as e:
+            logger.debug(f"Failed to register ticker failure for {ticker_u}: {e}")
+
     @staticmethod
     def _is_missing_table_error(error: Exception, table_name: str) -> bool:
         """Detect Supabase missing table/schema errors."""
@@ -1461,7 +1533,7 @@ class MLPredictor:
         if self._ml_registry_enabled:
             try:
                 reg = self.db.supabase.table("ml_model_registry") \
-                    .select("model_version, candidate_metric, is_active") \
+                    .select("model_version, candidate_metric, metric_name, is_active") \
                     .eq("model_type", model_type) \
                     .eq("role", "CHAMPION") \
                     .eq("is_active", True) \
@@ -1471,9 +1543,13 @@ class MLPredictor:
                 if reg.data:
                     row = reg.data[0]
                     champion["model_version"] = row.get("model_version")
-                    champion["metric"] = self._safe_float(row.get("candidate_metric"), None)
-                    if champion["metric"] is not None:
-                        return champion
+                    champion["metric"] = self._normalize_metric_for_gate(
+                        model_type=model_type,
+                        metric=self._safe_float(row.get("candidate_metric"), None),
+                        source=f"ml_model_registry/{row.get('metric_name') or 'unknown'}",
+                    )
+                    # If registry has a champion row, trust it as source-of-truth.
+                    return champion
             except Exception as e:
                 if self._is_missing_table_error(e, "ml_model_registry"):
                     self._ml_registry_enabled = False
@@ -1490,7 +1566,11 @@ class MLPredictor:
             if state.data:
                 row = state.data[0]
                 champion["model_version"] = row.get("model_version")
-                champion["metric"] = self._safe_float(row.get("accuracy"), None)
+                champion["metric"] = self._normalize_metric_for_gate(
+                    model_type=model_type,
+                    metric=self._safe_float(row.get("accuracy"), None),
+                    source="ml_model_state/accuracy",
+                )
         except Exception as e:
             logger.warning(f"Champion lookup (model_state) failed: {e}")
 

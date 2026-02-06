@@ -1,6 +1,8 @@
 import os
 import logging
 import asyncio
+import html
+import re
 from telegram import Bot
 
 # Configure logging
@@ -28,11 +30,23 @@ class TelegramNotifier:
         """Escape special characters for Telegram MarkdownV2."""
         # Characters to escape: _ * [ ] ( ) ~ ` > # + - = | { } . !
         escape_chars = r'_*[]()~`>#+-=|{}.!'
-        import re
         return re.sub(f'([{re.escape(escape_chars)}])', r'\\\1', text)
 
+    @staticmethod
+    def _markdownish_to_html(text: str) -> str:
+        """
+        Convert simple markdown-like formatting to safe HTML for Telegram.
+        Supported:
+        - **bold** -> <b>bold</b>
+        - `code` -> <code>code</code>
+        """
+        safe = html.escape(text or "")
+        safe = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", safe, flags=re.DOTALL)
+        safe = re.sub(r"`([^`]+?)`", r"<code>\1</code>", safe)
+        return safe
+
     async def send_message(self, chat_id, message):
-        """Send a message to a specific chat_id with tiered fallbacks."""
+        """Send a message to a specific chat_id with robust HTML-first fallback."""
         if not self.token:
             logger.info(f"Mock Alert (No Bot Configured): {message}")
             return
@@ -44,31 +58,14 @@ class TelegramNotifier:
         try:
             async with Bot(token=self.token) as bot:
                 try:
-                    # Attempt 1: Markdown (legacy, more forgiving for simple bold/code)
-                    await bot.send_message(chat_id=chat_id, text=message, parse_mode='Markdown')
-                    logger.info(f"Telegram message sent to {chat_id} (Markdown).")
-                except Exception:
-                    try:
-                        # Attempt 2: HTML (often more robust for AI text)
-                        # We convert **bold** and `code` to HTML equivalents using regex for pairs
-                        import re
-                        html_msg = message
-                        # Bold: **text** -> <b>text</b>
-                        html_msg = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', html_msg)
-                        # Code: `text` -> <code>text</code>
-                        html_msg = re.sub(r'`(.*?)`', r'<code>\1</code>', html_msg)
-                        
-                        await bot.send_message(chat_id=chat_id, text=html_msg, parse_mode='HTML')
-                        logger.info(f"Telegram message sent to {chat_id} (HTML Fallback).")
-                    except Exception as html_err:
-                        logger.warning(f"HTML fallback failed ({html_err}), retrying as plain text...")
-                        # Attempt 3: Plain text (Guaranteed)
-                        clean_msg = message.replace("**", "").replace("__", "").replace("`", "")
-                        await bot.send_message(chat_id=chat_id, text=clean_msg)
-                        logger.info(f"Telegram message sent to {chat_id} (Plain Text).")
-        except Exception as e:
-            logger.error(f"Failed to send Telegram message: {e}")
-                    
+                    html_msg = self._markdownish_to_html(message)
+                    await bot.send_message(chat_id=chat_id, text=html_msg, parse_mode='HTML')
+                    logger.info(f"Telegram message sent to {chat_id} (HTML).")
+                except Exception as html_err:
+                    logger.warning(f"HTML send failed ({html_err}), retrying as plain text...")
+                    clean_msg = (message or "").replace("**", "").replace("__", "").replace("`", "")
+                    await bot.send_message(chat_id=chat_id, text=clean_msg)
+                    logger.info(f"Telegram message sent to {chat_id} (Plain Text).")
         except Exception as e:
             logger.error(f"Failed to send Telegram message: {e}")
 
