@@ -58,15 +58,16 @@ def _is_truthy(value: str) -> bool:
 
 def _dashboard_fast_mode_enabled(force_full: bool = False) -> bool:
     """
-    Enable fast dashboard mode by default on Vercel to avoid request timeouts.
-    Override with DASHBOARD_FAST_MODE env or `?full=1` query string.
+    Fast mode is opt-in via DASHBOARD_FAST_MODE.
+    FULL mode is now the default, including on Vercel.
+    `?full=1` continues to force FULL.
     """
     if force_full:
         return False
     env_override = os.environ.get("DASHBOARD_FAST_MODE")
     if env_override is not None:
         return _is_truthy(env_override)
-    return os.environ.get("VERCEL") == "1"
+    return False
 
 
 def _install_httpx_call_counter() -> None:

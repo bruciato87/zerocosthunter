@@ -62,9 +62,14 @@ def test_build_observability_dashboard_handles_invalid_json(tmp_path):
     assert runs["analyze"]["exists"] is False
 
 
-def test_dashboard_fast_mode_default_true_on_vercel(monkeypatch):
+def test_dashboard_fast_mode_default_false_on_vercel(monkeypatch):
     monkeypatch.delenv("DASHBOARD_FAST_MODE", raising=False)
     monkeypatch.setenv("VERCEL", "1")
+    assert _dashboard_fast_mode_enabled(force_full=False) is False
+
+
+def test_dashboard_fast_mode_can_be_enabled_with_env(monkeypatch):
+    monkeypatch.setenv("DASHBOARD_FAST_MODE", "true")
     assert _dashboard_fast_mode_enabled(force_full=False) is True
 
 
