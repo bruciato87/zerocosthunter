@@ -1,6 +1,6 @@
 import os
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Optional
 import json
 from supabase import create_client, Client
@@ -288,7 +288,7 @@ class DBHandler:
             data = {
                 "user_ticker": t_u,
                 "fail_count": new_count,
-                "last_verified_at": datetime.utcnow().isoformat()
+                "last_verified_at": datetime.now(timezone.utc).isoformat()
             }
             # Preserve existing resolved maps if any
             if current and "resolved_ticker" in current:
@@ -324,7 +324,9 @@ class DBHandler:
             updated_at_str = data.get("last_price_at")
             
             if price and updated_at_str:
-                updated_at = datetime.fromisoformat(updated_at_str.replace('Z', '+00:00'))
+                updated_at = self._parse_iso_timestamp(updated_at_str)
+                if not updated_at:
+                    return None
                 if datetime.now(updated_at.tzinfo) - updated_at < timedelta(minutes=max_age_minutes):
                     return {
                         "price": float(price),
@@ -335,6 +337,79 @@ class DBHandler:
         except Exception as e:
             logger.debug(f"Cached price fetch skipped for {ticker} (schema or hit): {e}")
             return None
+
+    @staticmethod
+    def _parse_iso_timestamp(ts: str):
+        """Parse ISO timestamps returned by Supabase, handling trailing Z."""
+        if not ts or not isinstance(ts, str):
+            return None
+        try:
+            parsed = datetime.fromisoformat(ts.replace('Z', '+00:00'))
+            if parsed.tzinfo is None:
+                parsed = parsed.replace(tzinfo=timezone.utc)
+            return parsed.astimezone(timezone.utc)
+        except Exception:
+            return None
+
+    def get_cached_prices_batch(self, tickers: list, max_age_minutes: int = 15) -> dict:
+        """
+        Fetch fresh cached prices for multiple tickers in a reduced number of queries.
+        Returns:
+            {
+                "AAPL": {"price": 100.0, "is_crypto": False, "currency": "USD"},
+                ...
+            }
+        """
+        if not tickers:
+            return {}
+        try:
+            targets = []
+            seen = set()
+            for ticker in tickers:
+                if not isinstance(ticker, str) or not ticker.strip():
+                    continue
+                t_u = ticker.upper().strip()
+                if t_u not in seen:
+                    seen.add(t_u)
+                    targets.append(t_u)
+
+            if not targets:
+                return {}
+
+            results = {}
+            now_utc = datetime.now(timezone.utc)
+            batch_size = 80
+
+            for i in range(0, len(targets), batch_size):
+                chunk = targets[i:i + batch_size]
+                try:
+                    response = self.supabase.table("ticker_cache") \
+                        .select("user_ticker, is_crypto, currency, last_price, last_price_at") \
+                        .in_("user_ticker", chunk) \
+                        .execute()
+                except Exception as schema_err:
+                    logger.debug(f"Schema mismatch for ticker_cache in get_cached_prices_batch: {schema_err}")
+                    continue
+
+                for row in response.data or []:
+                    price = row.get("last_price")
+                    updated_at = self._parse_iso_timestamp(row.get("last_price_at"))
+                    if price is None or not updated_at:
+                        continue
+                    reference_now = datetime.now(updated_at.tzinfo) if updated_at.tzinfo else now_utc
+                    if reference_now - updated_at <= timedelta(minutes=max_age_minutes):
+                        user_ticker = (row.get("user_ticker") or "").upper()
+                        if not user_ticker:
+                            continue
+                        results[user_ticker] = {
+                            "price": float(price),
+                            "is_crypto": row.get("is_crypto", False),
+                            "currency": row.get("currency", "USD")
+                        }
+            return results
+        except Exception as e:
+            logger.debug(f"Batch cached price fetch skipped: {e}")
+            return {}
 
     def save_ticker_price(self, ticker: str, price: float, is_crypto: bool = False, currency: str = "USD", resolved_ticker: str = None):
         """Save discovered price to ticker_cache. Safely ignores missing columns."""
@@ -347,7 +422,7 @@ class DBHandler:
             data = {
                 "user_ticker": t_u,
                 "last_price": float(price),
-                "last_price_at": datetime.utcnow().isoformat(),
+                "last_price_at": datetime.now(timezone.utc).isoformat(),
                 "is_crypto": is_crypto,
                 "currency": currency,
                 "resolved_ticker": res_t 
@@ -372,6 +447,67 @@ class DBHandler:
         except Exception as e:
             logger.debug(f"Error saving ticker price for {ticker}: {e}")
 
+    def save_ticker_prices_batch(self, price_rows: list):
+        """
+        Upsert multiple ticker prices in batched requests.
+        Input row schema:
+            {
+                "ticker": "AAPL",
+                "price": 100.0,
+                "is_crypto": False,
+                "currency": "USD",
+                "resolved_ticker": "AAPL"
+            }
+        """
+        if self.dry_run:
+            logger.debug("DRY_RUN: skip save_ticker_prices_batch")
+            return
+        if not price_rows:
+            return
+
+        payload = []
+        now_iso = datetime.now(timezone.utc).isoformat()
+        for row in price_rows:
+            ticker = str(row.get("ticker", "")).upper().strip()
+            if not ticker:
+                continue
+            resolved = str(row.get("resolved_ticker", ticker)).upper().strip() or ticker
+            try:
+                price_val = float(row.get("price", 0))
+            except Exception:
+                continue
+            payload.append({
+                "user_ticker": ticker,
+                "last_price": price_val,
+                "last_price_at": now_iso,
+                "is_crypto": bool(row.get("is_crypto", False)),
+                "currency": row.get("currency", "USD"),
+                "resolved_ticker": resolved,
+            })
+
+        if not payload:
+            return
+
+        batch_size = 120
+        for i in range(0, len(payload), batch_size):
+            chunk = payload[i:i + batch_size]
+            try:
+                self.supabase.table("ticker_cache").upsert(chunk, on_conflict="user_ticker").execute()
+            except Exception as schema_err:
+                msg = str(schema_err)
+                if "column" in msg or "PGRST204" in msg or "not found" in msg:
+                    logger.debug(f"Schema mismatch in save_ticker_prices_batch, falling back row-wise: {msg}")
+                    for item in chunk:
+                        self.save_ticker_price(
+                            item["user_ticker"],
+                            item["last_price"],
+                            is_crypto=item.get("is_crypto", False),
+                            currency=item.get("currency", "USD"),
+                            resolved_ticker=item.get("resolved_ticker")
+                        )
+                else:
+                    logger.debug(f"Batch save ticker price failed: {schema_err}")
+
     def update_asset_quantity(self, chat_id: int, ticker: str, new_quantity: float):
         """Manually update the quantity of a confirmed asset."""
         try:
@@ -391,7 +527,7 @@ class DBHandler:
         try:
             # Note: 'updated_at' is used as proxy for 'recently added' since created_at is missing
             # Using updated_at is a good proxy for 'recently added'.
-            time_threshold = (datetime.utcnow() - timedelta(minutes=minutes)).isoformat()
+            time_threshold = (datetime.now(timezone.utc) - timedelta(minutes=minutes)).isoformat()
             response = self.supabase.table("portfolio") \
                 .select("*") \
                 .eq("chat_id", chat_id) \
@@ -636,7 +772,7 @@ class DBHandler:
         Returns current counters dict.
         """
         try:
-            today = datetime.utcnow().strftime('%Y-%m-%d')
+            today = datetime.now(timezone.utc).strftime('%Y-%m-%d')
             settings = self.get_settings()
             
             # Get or initialize counters
@@ -660,7 +796,7 @@ class DBHandler:
             # Track per-run if run_id provided
             if run_id:
                 if run_id not in counters["runs"]:
-                    counters["runs"][run_id] = {"openrouter": 0, "gemini_fallback": 0, "started_at": datetime.utcnow().isoformat(), "model_used": None}
+                    counters["runs"][run_id] = {"openrouter": 0, "gemini_fallback": 0, "started_at": datetime.now(timezone.utc).isoformat(), "model_used": None}
                 counters["runs"][run_id][provider] = counters["runs"][run_id].get(provider, 0) + 1
             
             # Save to DB
@@ -679,7 +815,7 @@ class DBHandler:
         Tracks per-model usage for visibility.
         """
         try:
-            today = datetime.utcnow().strftime('%Y-%m-%d')
+            today = datetime.now(timezone.utc).strftime('%Y-%m-%d')
             settings = self.get_settings()
             counters = settings.get("api_counters") or {}
             
@@ -759,7 +895,7 @@ class DBHandler:
         - OR Sentiment has CHANGED (e.g. was HOLD, now BUY).
         """
         try:
-            time_threshold = (datetime.utcnow() - timedelta(hours=hours)).isoformat()
+            time_threshold = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat()
             
             # Fetch most recent prediction for this ticker
             response = self.supabase.table("predictions") \
@@ -798,7 +934,7 @@ class DBHandler:
                 "level": level,
                 "module": module,
                 "message": message,
-                "created_at": datetime.utcnow().isoformat()
+                "created_at": datetime.now(timezone.utc).isoformat()
             }
             self.supabase.table("logs").insert(data).execute()
         except Exception as e:
@@ -811,7 +947,7 @@ class DBHandler:
                 "level": "INFO", # Used INFO to bypass 'level' check constraint
                 "module": f"STATE:{chat_id}:{key}",
                 "message": json.dumps(state_data),
-                "created_at": datetime.utcnow().isoformat()
+                "created_at": datetime.now(timezone.utc).isoformat()
             }
             self.supabase.table("logs").insert(payload).execute()
             logger.info(f"💾 State saved for user {chat_id}: {key}")
@@ -863,7 +999,9 @@ class DBHandler:
             if response.data:
                 last_event = response.data[0]
                 last_msg = last_event.get("message", "")
-                created_at = datetime.fromisoformat(last_event.get("created_at").replace('Z', '+00:00')).replace(tzinfo=None)
+                created_at = self._parse_iso_timestamp(last_event.get("created_at"))
+                if not created_at:
+                    created_at = datetime.now(timezone.utc)
                 
                 # Check Idempotency (Prevent Retries of SAME request)
                 # Message format: "LOCKED|123456" or "RELEASED|123456"
@@ -874,7 +1012,7 @@ class DBHandler:
                 # Check if currently locked by ANOTHER request
                 if "LOCKED" in last_msg:
                     # Check expiry
-                    now = datetime.utcnow()
+                    now = datetime.now(timezone.utc)
                     if (now - created_at).total_seconds() < (expiry_minutes * 60):
                         logger.warning(f"Hunt Locked by another process. Active since {created_at}")
                         return False # BUSY
@@ -921,7 +1059,7 @@ class DBHandler:
     def deactivate_alert(self, alert_id: str, trigger_msg: str = None):
         """Marks alert as inactive (triggered)."""
         try:
-            data = {"is_active": False, "triggered_at": datetime.utcnow().isoformat()}
+            data = {"is_active": False, "triggered_at": datetime.now(timezone.utc).isoformat()}
             if trigger_msg:
                 data["trigger_message"] = trigger_msg
             
@@ -997,7 +1135,7 @@ class DBHandler:
                 "total_value": total_value,
                 "realized_pnl": realized_pnl,
                 "notes": notes,
-                "created_at": datetime.utcnow().isoformat()
+                "created_at": datetime.now(timezone.utc).isoformat()
             }
             response = self.supabase.table("transactions").insert(data).execute()
             logger.info(f"💰 Transaction logged: {action} {quantity} {ticker} @ €{price_per_unit:.2f}")
@@ -1025,14 +1163,12 @@ class DBHandler:
             last_ts_str = settings.get("last_command_ts")
             last_hash = settings.get("last_command_hash")
             
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             
             if last_ts_str and last_hash:
-                last_ts = datetime.fromisoformat(last_ts_str.replace('Z', '+00:00'))
-                # Handle naive datetime if necessary (though UTC now is naive usually in Py < 3.11 without timezone)
-                # Ensure comparison compatibility
-                if last_ts.tzinfo is not None:
-                    last_ts = last_ts.replace(tzinfo=None) # Make naive UTC for simple diff
+                last_ts = self._parse_iso_timestamp(last_ts_str)
+                if not last_ts:
+                    last_ts = now
                 
                 elapsed = (now - last_ts).total_seconds()
                 

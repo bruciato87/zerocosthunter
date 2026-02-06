@@ -1389,6 +1389,7 @@ async def show_portfolio(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # MarketData handles all pricing and FX internally
     market = MarketData()
+    market.begin_batch_context([item.get('ticker', '') for item in portfolio])
     
     msg = "📊 **Il tuo Portafoglio:**\n\n"
     total_val = 0.0
@@ -1490,6 +1491,7 @@ async def show_portfolio(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("➕ Aggiungi Asset", callback_data="start_quick_add")]
     ])
     
+    market.end_batch_context()
     await update.message.reply_text(msg, reply_markup=InlineKeyboardMarkup(footer_keyboard), parse_mode="Markdown")
 
 async def delete_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1585,6 +1587,7 @@ def dashboard():
 
     # 2. Portfolio Valuation with Forward-Fill Chart
     portfolio = db.get_portfolio()
+    market.begin_batch_context([item.get('ticker', '') for item in portfolio])
     total_val, total_inv = 0.0, 0.0
     asset_trends = {}  # Track each asset's trend separately for forward-fill
     
@@ -1645,6 +1648,7 @@ def dashboard():
             item['pnl_percent'] = round(((curr - cost)/cost)*100, 2) if cost > 0 else 0
         except Exception as e:
             logger.debug(f"Dashboard: portfolio item processing failed for {item}: {e}")
+    market.flush_price_cache_updates()
 
     # Build chart with forward-fill to handle missing data
     all_dates = sorted(set(d for trends in asset_trends.values() for d in trends.keys()))
@@ -1757,6 +1761,7 @@ def dashboard():
             from paper_trader import PaperTrader
             pt = PaperTrader()
             paper_raw = pt.get_portfolio(chat_id=None) # Fetch All
+            market.prime_ticker_cache([item.get('ticker', '') for item in paper_raw], max_age_minutes=15)
             
             paper_total_value = 0.0
             paper_portfolio_enriched = []
@@ -1785,6 +1790,7 @@ def dashboard():
                     "pnl": pnl_pct,
                     "current_value": val
                 })
+            market.flush_price_cache_updates()
                 
         except Exception as e:
             logger.error(f"Paper Dashboard Error: {e}")
@@ -1863,6 +1869,7 @@ def dashboard():
     except Exception as e:
         logger.error(f"Observability Dashboard Error: {e}")
         observability = {"runs": [], "reports_dir": os.environ.get("RUN_REPORT_DIR", "run_logs/latest")}
+    market.end_batch_context()
 
     dashboard_health = _make_dashboard_health(
         fast_mode=fast_mode,
@@ -1892,7 +1899,7 @@ def dashboard():
                                chart_data=json.dumps(chart_d),
                                last_run=last_run,
                                last_run_iso=last_run_iso,
-                               now_iso=datetime.utcnow().isoformat(),
+                               now_iso=datetime.now(timezone.utc).isoformat(),
                                audit_stats=audit_stats,
                                market_mood=market_mood,
                                advisor_analysis=advisor_analysis,
@@ -2070,6 +2077,7 @@ async def paper_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
              await update.message.reply_text("🧪 Il tuo portafoglio simulato è vuoto.\nAttendi i prossimi segnali automatici!")
              return
 
+        market.begin_batch_context([p.get('ticker', '') for p in portfolio])
         total_value = 0.0
         msg = "🧪 **Paper Portfolio Holdings:**\n\n"
         
@@ -2087,6 +2095,7 @@ async def paper_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             msg += f"{icon} **{p['ticker']}**: {p['quantity']:.4f} @ €{p['avg_price']:.2f}\n"
             msg += f"   Valore: €{val:.2f} ({pnl_pct:+.1f}%)\n"
             
+        market.end_batch_context()
         msg += f"\n💰 **Valore Totale Simulato:** €{total_value:.2f}"
         
         await update.message.reply_text(msg, parse_mode='Markdown')

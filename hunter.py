@@ -212,10 +212,10 @@ class NewsHunter:
         
         breaking_news = []
         import time
-        from datetime import datetime, timedelta
+        from datetime import datetime, timedelta, timezone
         
         # Calculate cutoff time (UTC)
-        cutoff_time = datetime.utcnow() - timedelta(minutes=lookback_minutes)
+        cutoff_time = datetime.now(timezone.utc) - timedelta(minutes=lookback_minutes)
         
         def process_fast_feed(url):
             items = []
@@ -225,7 +225,7 @@ class NewsHunter:
                     # Parse time
                     published_time = None
                     if hasattr(entry, 'published_parsed') and entry.published_parsed:
-                        published_time = datetime.fromtimestamp(time.mktime(entry.published_parsed))
+                        published_time = datetime.fromtimestamp(time.mktime(entry.published_parsed), tz=timezone.utc)
                     
                     # If time parsing worked and it's fresh enough
                     if published_time:
@@ -237,7 +237,7 @@ class NewsHunter:
                                 "source": feed.feed.get("title", "Unknown"),
                                 "published": entry.get("published", ""),
                                 "is_breaking": True,
-                                "age_minutes": int((datetime.utcnow() - published_time).total_seconds() / 60)
+                                "age_minutes": int((datetime.now(timezone.utc) - published_time).total_seconds() / 60)
                             })
                     else:
                         # If no time, assume it's fresh if it's the very first item? No, unsafe.

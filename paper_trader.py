@@ -83,7 +83,7 @@ class PaperTrader:
                 "price": price_eur,
                 "total_value": total_val,
                 "trade_reason": reason,
-                "simulated_at": datetime.datetime.utcnow().isoformat()
+                "simulated_at": datetime.datetime.now(datetime.timezone.utc).isoformat()
             }
             self.db.supabase.table("paper_trades").insert(trade_data).execute()
 

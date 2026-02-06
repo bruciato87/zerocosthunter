@@ -105,85 +105,85 @@ class Advisor:
         exposure = {}
         asset_performance = [] # New list for rebalancing logic
         total_value = 0.0
-        
-        # Helper to fetch price if missing (lazy load)
-        from market_data import MarketData
-        market = MarketData()
-
-        for item in portfolio_items:
-            ticker = item['ticker']
-            qty = float(item.get('quantity', 0))
-            
-            # Use DB price if available, else fetch live
-            price = float(item.get('current_price', 0) or 0)
-            if price == 0:
-                try:
-                    price = market.get_market_price(ticker)
-                    if price:
-                        logger.info(f"Advisor: Fetched live price for {ticker}: ${price}")
-                except Exception as e:
-                    logger.warning(f"Advisor: Failed to fetch price for {ticker}: {e}")
-            
-            # Avg Price for PnL
-            avg_price = float(item.get('avg_price', 0) or 0)
-            
-            if price:
-                value = price * qty
-                total_value += value
-
-                sector = self.get_sector(ticker)
-                exposure[sector] = exposure.get(sector, 0.0) + value
+        market = self.market
+        market.begin_batch_context([item.get('ticker', '') for item in portfolio_items])
+        try:
+            for item in portfolio_items:
+                ticker = item['ticker']
+                qty = float(item.get('quantity', 0))
                 
-                # Check Performance
-                pnl_pct = 0.0
-                if avg_price > 0:
-                    pnl_pct = ((price - avg_price) / avg_price) * 100
+                # Use DB price if available, else fetch live in EUR
+                price = float(item.get('current_price', 0) or 0)
+                if price == 0:
+                    try:
+                        price, _ = market.get_smart_price_eur(ticker)
+                        if price:
+                            logger.info(f"Advisor: Fetched live price for {ticker}: €{price:.2f}")
+                    except Exception as e:
+                        logger.warning(f"Advisor: Failed to fetch price for {ticker}: {e}")
                 
-                asset_performance.append({
-                    "ticker": ticker,
-                    "value": value,
-                    "pnl_pct": pnl_pct,
-                    "sector": sector,
-                    "avg_price": avg_price, # Include avg_price for tax harvesting logic
-                    "quantity": qty
-                })
+                # Avg Price for PnL
+                avg_price = float(item.get('avg_price', 0) or 0)
+                
+                if price:
+                    value = price * qty
+                    total_value += value
 
-        pct_exposure = {k: (v / total_value) * 100 for k, v in exposure.items()} if total_value > 0 else {}
-        
-        # Generate Tips internally or return data for generation
-        tips = []
+                    sector = self.get_sector(ticker)
+                    exposure[sector] = exposure.get(sector, 0.0) + value
+                    
+                    # Check Performance
+                    pnl_pct = 0.0
+                    if avg_price > 0:
+                        pnl_pct = ((price - avg_price) / avg_price) * 100
+                    
+                    asset_performance.append({
+                        "ticker": ticker,
+                        "value": value,
+                        "pnl_pct": pnl_pct,
+                        "sector": sector,
+                        "avg_price": avg_price, # Include avg_price for tax harvesting logic
+                        "quantity": qty
+                    })
 
-        if total_value == 0:
+            pct_exposure = {k: (v / total_value) * 100 for k, v in exposure.items()} if total_value > 0 else {}
+            
+            # Generate Tips internally or return data for generation
+            tips = []
+
+            if total_value == 0:
+                return {
+                    "total_value": 0.0,
+                    "sector_value": {},
+                    "sector_percent": {},
+                    "tips": ["Portfolio is empty. Start accumulating assets."]
+                }
+            
+            # 1. Sector Logic
+            for sec, pct in pct_exposure.items():
+                if pct > 40: tips.append(f"⚠️ High {sec} Exposure ({pct:.1f}%). Consider Diversifying.")
+                if pct < 5 and sec != 'Cash': # Assuming 'Cash' might be a sector not needing diversification
+                    tips.append(f"Low exposure to {sec} ({pct:.1f}%). Look for opportunities.")
+            
+            # 3. Tax Harvesting & Profit Taking (Definitive Italy 2025/2026 Rules)
+            harvest_opportunities = self.get_tax_harvesting_opportunities(asset_performance)
+            tips.extend([op['tip'] for op in harvest_opportunities])
+
+            # Profit Taking Logic
+            for asset in asset_performance:
+                if asset['pnl_pct'] > 50:
+                    tips.append(f"💰 Take Profit: {asset['ticker']} is up {asset['pnl_pct']:.1f}%. Consider selling 20% to rebalance.")
+
             return {
-                "total_value": 0.0,
-                "sector_value": {},
-                "sector_percent": {},
-                "tips": ["Portfolio is empty. Start accumulating assets."]
+                "total_value": total_value,
+                "sector_value": exposure,
+                "sector_percent": pct_exposure,
+                "tips": tips,
+                "harvest_opportunities": harvest_opportunities,
+                "note": "Tax tips based on definitive Legge di Bilancio 2025 (Crypto 42% on >2k, ETF Unification pending). Consult a commercialista."
             }
-        
-        # 1. Sector Logic
-        for sec, pct in pct_exposure.items():
-            if pct > 40: tips.append(f"⚠️ High {sec} Exposure ({pct:.1f}%). Consider Diversifying.")
-            if pct < 5 and sec != 'Cash': # Assuming 'Cash' might be a sector not needing diversification
-                tips.append(f"Low exposure to {sec} ({pct:.1f}%). Look for opportunities.")
-        
-        # 3. Tax Harvesting & Profit Taking (Definitive Italy 2025/2026 Rules)
-        harvest_opportunities = self.get_tax_harvesting_opportunities(asset_performance)
-        tips.extend([op['tip'] for op in harvest_opportunities])
-
-        # Profit Taking Logic
-        for asset in asset_performance:
-             if asset['pnl_pct'] > 50:
-                 tips.append(f"💰 Take Profit: {asset['ticker']} is up {asset['pnl_pct']:.1f}%. Consider selling 20% to rebalance.")
-
-        return {
-            "total_value": total_value,
-            "sector_value": exposure,
-            "sector_percent": pct_exposure,
-            "tips": tips,
-            "harvest_opportunities": harvest_opportunities,
-            "note": "Tax tips based on definitive Legge di Bilancio 2025 (Crypto 42% on >2k, ETF Unification pending). Consult a commercialista."
-        }
+        finally:
+            market.end_batch_context()
 
     def get_tax_harvesting_opportunities(self, asset_performance):
         """

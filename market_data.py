@@ -14,6 +14,7 @@ from ta.trend import SMAIndicator
 import logging
 import os
 from typing import Union, Dict
+import warnings
 
 # Set YFinance cache to /tmp for read-only filesystems (Vercel)
 try:
@@ -29,20 +30,42 @@ import requests
 # Configure logging
 logger = logging.getLogger(__name__)
 
+# Pandas 3 / yfinance compatibility warning (non-fatal, too noisy in Vercel stderr).
+warnings.filterwarnings(
+    "ignore",
+    message=".*Timestamp\\.utcnow is deprecated.*",
+    module="yfinance.*",
+)
+
 class MarketData:
     def __init__(self):
-        logger.info("MarketData: Initializing Phase 3 (V4.0 - Smart Sourcing)...")
+        if not getattr(MarketData, "_init_logged", False):
+            logger.info("MarketData: Initializing Phase 3 (V4.0 - Smart Sourcing)...")
+            MarketData._init_logged = True
         self.dry_run = os.environ.get("DRY_RUN", "").strip().lower() in {"1", "true", "yes", "on"}
         
         # [PERFORMANCE] Session-level cache to avoid redundant API calls
         self._price_cache = {}      # ticker -> (price, source, change_pct, timestamp)
         self._technical_cache = {}  # ticker -> (summary, timestamp)
         self._cache_ttl = 60        # Cache TTL in seconds (1 minute)
+        self._inflight_requests = {}
+        self._batch_mode = False
+        self._pending_price_updates = {}
+        self._prefetched_price_cache = {}
+        self._prefetched_ticker_cache = {}
+        self._prefetched_at = 0
+        self._prefetched_ttl = 90
         
         # Shared across instances to avoid redundant FX fetches
         if not hasattr(MarketData, '_eur_usd_rate_shared'):
             MarketData._eur_usd_rate_shared = 1.05  # Initial fallback
             MarketData._last_fx_update = 0
+        self._db = None
+        try:
+            from db_handler import DBHandler
+            self._db = DBHandler()
+        except Exception as db_boot_err:
+            logger.debug(f"MarketData DB bootstrap unavailable: {db_boot_err}")
             
         self.COINGECKO_MAP = {
             "BTC-USD": "bitcoin",
@@ -102,6 +125,140 @@ class MarketData:
         # Suppression list
         # Suppression list (Avoid common non-ticker hallucinations)
         self.SUPPRESSED_TICKERS = {'SPACEX', 'CLARITY', 'IRA', 'NASDAQ', 'NYSE', 'SEC', 'FED', 'USA', 'US'}
+
+    def _normalize_ticker_key(self, ticker: str) -> str:
+        """
+        Normalize equivalent crypto user tickers to a stable cache key.
+        Examples: BTC, BTC-EUR -> BTC-USD; RENDER -> RENDER-USD.
+        """
+        if not isinstance(ticker, str):
+            return ""
+        t_u = ticker.upper().strip()
+        if not t_u:
+            return ""
+
+        alias_normalizations = {
+            "RNDR": "RENDER",
+            "RNDR-USD": "RENDER-USD",
+            "RNDR-EUR": "RENDER-USD",
+        }
+        t_u = alias_normalizations.get(t_u, t_u)
+
+        base = t_u.replace("-USD", "").replace("-EUR", "")
+        crypto_bases = {
+            "BTC", "ETH", "SOL", "XRP", "ADA", "DOGE", "DOT", "LINK",
+            "AVAX", "MATIC", "SHIB", "PEPE", "RENDER", "XMR", "LTC", "TRX"
+        }
+        if base in crypto_bases:
+            return f"{base}-USD"
+        return t_u
+
+    def _build_batch_targets(self, tickers: list) -> list:
+        """Build deduplicated target keys for cache prefetch."""
+        targets = []
+        seen = set()
+        for ticker in tickers or []:
+            if not isinstance(ticker, str) or not ticker.strip():
+                continue
+            raw = ticker.upper().strip()
+            norm = self._normalize_ticker_key(raw)
+            for item in (raw, norm):
+                if item and item not in seen:
+                    seen.add(item)
+                    targets.append(item)
+        return targets
+
+    def _get_db(self):
+        """Return DB handler for this MarketData instance if available."""
+        return self._db
+
+    def prime_ticker_cache(self, tickers: list, max_age_minutes: int = 15):
+        """
+        Prefetch ticker resolution + fresh prices in batch to avoid per-ticker DB calls.
+        """
+        db = self._get_db()
+        targets = self._build_batch_targets(tickers)
+        self._prefetched_price_cache = {}
+        self._prefetched_ticker_cache = {}
+        self._prefetched_at = time.time()
+        if not db or not targets:
+            return
+        try:
+            self._prefetched_price_cache = db.get_cached_prices_batch(
+                targets,
+                max_age_minutes=max_age_minutes
+            )
+            self._prefetched_ticker_cache = db.get_ticker_cache_batch(targets)
+        except Exception as e:
+            logger.debug(f"MarketData batch prefetch skipped: {e}")
+
+    def begin_batch_context(self, tickers: list = None, max_age_minutes: int = 15):
+        """
+        Enable buffered DB writes and prefetch cache for bulk pricing flows.
+        """
+        self._batch_mode = True
+        self._pending_price_updates = {}
+        if tickers:
+            self.prime_ticker_cache(tickers, max_age_minutes=max_age_minutes)
+
+    def end_batch_context(self):
+        """Flush pending writes and disable batch mode."""
+        try:
+            self.flush_price_cache_updates()
+        finally:
+            self._batch_mode = False
+
+    def _queue_or_save_price(
+        self,
+        ticker: str,
+        price: float,
+        is_crypto: bool = False,
+        currency: str = "USD",
+        resolved_ticker: str = None
+    ):
+        """Save ticker price immediately or queue for batched persistence."""
+        db = self._get_db()
+        if not db:
+            return
+
+        ticker_u = self._normalize_ticker_key(ticker)
+        resolved = resolved_ticker if resolved_ticker else ticker_u
+        payload = {
+            "ticker": ticker_u,
+            "price": float(price),
+            "is_crypto": bool(is_crypto),
+            "currency": currency,
+            "resolved_ticker": resolved
+        }
+
+        if self._batch_mode:
+            self._pending_price_updates[ticker_u] = payload
+            if len(self._pending_price_updates) >= 100:
+                self.flush_price_cache_updates()
+            return
+
+        db.save_ticker_price(
+            ticker_u,
+            float(price),
+            is_crypto=bool(is_crypto),
+            currency=currency,
+            resolved_ticker=resolved
+        )
+
+    def flush_price_cache_updates(self):
+        """Flush buffered ticker price updates in one/few upsert requests."""
+        if not self._pending_price_updates:
+            return
+        db = self._get_db()
+        if not db:
+            self._pending_price_updates = {}
+            return
+        try:
+            db.save_ticker_prices_batch(list(self._pending_price_updates.values()))
+        except Exception as e:
+            logger.debug(f"MarketData batch flush skipped: {e}")
+        finally:
+            self._pending_price_updates = {}
 
     def get_crypto_data_coingecko(self, ticker):
         """
@@ -179,7 +336,18 @@ class MarketData:
     async def get_smart_price_eur_async(self, candidate_ticker, include_change=False):
         """Async wrapper for smart price fetching to allow parallelization."""
         import asyncio
-        return await asyncio.to_thread(self.get_smart_price_eur, candidate_ticker, include_change)
+        key = (self._normalize_ticker_key(candidate_ticker), bool(include_change))
+        if key in self._inflight_requests:
+            return await self._inflight_requests[key]
+
+        task = asyncio.create_task(
+            asyncio.to_thread(self.get_smart_price_eur, candidate_ticker, include_change)
+        )
+        self._inflight_requests[key] = task
+        try:
+            return await task
+        finally:
+            self._inflight_requests.pop(key, None)
 
     def get_smart_price_eur(self, candidate_ticker, include_change=False):
         """
@@ -192,7 +360,11 @@ class MarketData:
            - If include_change=True: (price_in_eur, found_ticker_suffix_or_alias, change_percent_24h)
         """
         import time
-        cache_key = candidate_ticker.upper()
+        raw_ticker_u = candidate_ticker.upper().strip() if isinstance(candidate_ticker, str) else ""
+        ticker_u = self._normalize_ticker_key(raw_ticker_u)
+        if not ticker_u:
+            return (0.0, None, 0.0) if include_change else (0.0, None)
+        cache_key = ticker_u
         
         # [PERFORMANCE] Check cache first
         if cache_key in self._price_cache:
@@ -236,8 +408,6 @@ class MarketData:
         eur_usd_rate = MarketData._eur_usd_rate_shared
         change_pct = 0.0
 
-        ticker_u = candidate_ticker.upper()
-        
         # 0. Check Aliases first (Manual overrides) - PRIORITIZE OVER CACHE
         if ticker_u in self.TICKER_ALIASES:
              start_ticker = self.TICKER_ALIASES[ticker_u]
@@ -245,59 +415,86 @@ class MarketData:
              start_ticker = ticker_u
 
         # [V11] Check DB ticker_cache
+        db = self._get_db()
         try:
-            from db_handler import DBHandler
-            db = DBHandler()
-            
-            # First, try to get a persistent fresh price
-            persistent_cached = db.get_cached_price(ticker_u, max_age_minutes=15)
+            persistent_cached = None
+            if (
+                self._prefetched_price_cache
+                and (time.time() - self._prefetched_at) <= self._prefetched_ttl
+            ):
+                persistent_cached = self._prefetched_price_cache.get(ticker_u)
+                if persistent_cached is None and raw_ticker_u:
+                    persistent_cached = self._prefetched_price_cache.get(raw_ticker_u)
+
+            if persistent_cached is None and db:
+                persistent_cached = db.get_cached_price(ticker_u, max_age_minutes=15)
+                if persistent_cached is None and raw_ticker_u and raw_ticker_u != ticker_u:
+                    persistent_cached = db.get_cached_price(raw_ticker_u, max_age_minutes=15)
+
             if persistent_cached:
                 raw_price = persistent_cached["price"]
-                is_crypto = persistent_cached["is_crypto"]
                 currency = persistent_cached["currency"]
-                
+
                 price_eur = raw_price
                 if currency == "USD":
                     price_eur = raw_price / eur_usd_rate
                 elif currency == "HKD":
                     price_eur = raw_price / (eur_usd_rate * 7.8)
-                
+
                 logger.info(f"Persistent Cache HIT: {ticker_u} -> €{price_eur:.2f} (Source: {currency})")
                 self._price_cache[cache_key] = {'price': price_eur, 'source': 'db_cache', 'change': 0.0, 'ts': time.time()}
                 return (price_eur, 'db_cache', 0.0) if include_change else (price_eur, 'db_cache')
 
-            # Fallback to Ticker Resolution Cache (Old logic)
-            cached_ticker = db.get_ticker_cache(ticker_u)
+            cached_ticker = None
+            if (
+                self._prefetched_ticker_cache
+                and (time.time() - self._prefetched_at) <= self._prefetched_ttl
+            ):
+                cached_ticker = self._prefetched_ticker_cache.get(ticker_u)
+                if cached_ticker is None and raw_ticker_u:
+                    cached_ticker = self._prefetched_ticker_cache.get(raw_ticker_u)
+            if cached_ticker is None and db:
+                cached_ticker = db.get_ticker_cache(ticker_u)
+                if cached_ticker is None and raw_ticker_u and raw_ticker_u != ticker_u:
+                    cached_ticker = db.get_ticker_cache(raw_ticker_u)
+
             if cached_ticker:
                 resolved = cached_ticker.get("resolved_ticker")
                 is_crypto = cached_ticker.get("is_crypto", False)
                 currency = cached_ticker.get("currency", "USD")
                 logger.debug(f"Ticker resolution cache HIT: {ticker_u} -> {resolved}")
-                
+
                 try:
                     t_obj = yf.Ticker(resolved)
                     hist = t_obj.history(period="1d")
                     if not hist.empty:
                         raw_price = hist['Close'].iloc[-1]
-                        if include_change: change_pct = extract_change(t_obj)
-                        
+                        if include_change:
+                            change_pct = extract_change(t_obj)
+
                         # Cache in persistent DB using NATIVE currency
-                        db.save_ticker_price(ticker_u, raw_price, is_crypto=is_crypto, currency=currency, resolved_ticker=resolved)
-                        
+                        self._queue_or_save_price(
+                            ticker_u,
+                            raw_price,
+                            is_crypto=is_crypto,
+                            currency=currency,
+                            resolved_ticker=resolved
+                        )
+
                         # Convert to EUR for immediate return
                         price_eur = raw_price
                         if currency == "USD":
                             price_eur = raw_price / eur_usd_rate
                         elif currency == "HKD":
                             price_eur = raw_price / (eur_usd_rate * 7.8)
-                        
-                        # Cache in memory
+
                         self._price_cache[cache_key] = {'price': price_eur, 'source': resolved, 'change': change_pct, 'ts': time.time()}
                         return (*[price_eur, resolved, change_pct], ) if include_change else (price_eur, resolved)
-                except Exception as e:
-                    db.increment_ticker_fail(ticker_u)
+                except Exception:
+                    if db:
+                        db.increment_ticker_fail(ticker_u)
                     logger.debug(f"Ticker resolution cache MISS (fetch failed): {ticker_u} -> {resolved}")
-        except:
+        except Exception:
             pass  # DB not available, continue without cache
         
         # start_ticker is already resolved via aliases above
@@ -325,11 +522,13 @@ class MarketData:
                 result = (cg_price / eur_usd_rate, base + "-USD")
                 
                 # [FIX] Save to DB (Native USD) with correct resolved ticker
-                try:
-                    from db_handler import DBHandler
-                    # CoinGecko is "USD" by default here. Ensure we save the RESOLVED ticker so Yahoo doesn't hit ETF later.
-                    DBHandler().save_ticker_price(ticker_u, cg_price, is_crypto=True, currency="USD", resolved_ticker=base + "-USD")
-                except: pass
+                self._queue_or_save_price(
+                    ticker_u,
+                    cg_price,
+                    is_crypto=True,
+                    currency="USD",
+                    resolved_ticker=base + "-USD"
+                )
                 
                 return (*result, change_pct) if include_change else result
 
@@ -345,10 +544,13 @@ class MarketData:
                         result = (hist['Close'].iloc[-1], f"{base}-EUR")
                         
                         # [FIX] Save to DB (Native EUR)
-                        try:
-                            from db_handler import DBHandler
-                            DBHandler().save_ticker_price(ticker_u, result[0], is_crypto=True, currency="EUR")
-                        except: pass
+                        self._queue_or_save_price(
+                            ticker_u,
+                            result[0],
+                            is_crypto=True,
+                            currency="EUR",
+                            resolved_ticker=f"{base}-EUR"
+                        )
 
                         return (*result, change_pct) if include_change else result
                 except: pass
@@ -363,10 +565,13 @@ class MarketData:
                      result = (price / eur_usd_rate, f"{base}-USD")
                      
                      # [FIX] Save to DB (Native USD)
-                     try:
-                         from db_handler import DBHandler
-                         DBHandler().save_ticker_price(ticker_u, price, is_crypto=True, currency="USD")
-                     except: pass
+                     self._queue_or_save_price(
+                         ticker_u,
+                         price,
+                         is_crypto=True,
+                         currency="USD",
+                         resolved_ticker=f"{base}-USD"
+                     )
                      
                      return (*result, change_pct) if include_change else result
             except: pass
@@ -452,11 +657,13 @@ class MarketData:
                             'price': result[0], 'source': result[1], 
                             'change': change_pct, 'ts': time.time()
                         }
-                        try:
-                            from db_handler import DBHandler
-                            db = DBHandler()
-                            db.save_ticker_price(ticker_u, price, is_crypto=False, currency=currency, resolved_ticker=t_test)
-                        except: pass
+                        self._queue_or_save_price(
+                            ticker_u,
+                            price,
+                            is_crypto=False,
+                            currency=currency,
+                            resolved_ticker=t_test
+                        )
                         
                         return (*result, change_pct) if include_change else result
                     
