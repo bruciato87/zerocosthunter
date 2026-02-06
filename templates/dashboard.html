@@ -81,6 +81,9 @@
                     <span class="text-4xl">🚀</span> Zero-Cost Cockpit
                 </h1>
                 <p class="text-sm text-gray-500 mt-1">AI-Powered Portfolio Intelligence</p>
+                {% if dashboard_fast_mode %}
+                <p class="text-[11px] text-yellow-400 mt-2">⚡ Fast mode attivo su Vercel (alcuni blocchi avanzati sono ridotti).</p>
+                {% endif %}
             </div>
             <div class="text-right">
                 <div class="text-xs text-gray-500 uppercase tracking-wider mb-1">Last Hunt</div>

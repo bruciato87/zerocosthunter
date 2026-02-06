@@ -48,6 +48,23 @@ RUN_REPORT_KEY_PRIORITY = {
 }
 
 
+def _is_truthy(value: str) -> bool:
+    return str(value).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _dashboard_fast_mode_enabled(force_full: bool = False) -> bool:
+    """
+    Enable fast dashboard mode by default on Vercel to avoid request timeouts.
+    Override with DASHBOARD_FAST_MODE env or `?full=1` query string.
+    """
+    if force_full:
+        return False
+    env_override = os.environ.get("DASHBOARD_FAST_MODE")
+    if env_override is not None:
+        return _is_truthy(env_override)
+    return os.environ.get("VERCEL") == "1"
+
+
 def _load_latest_run_report(run_type: str, reports_dir: str = "run_logs/latest") -> dict:
     """Load and normalize the latest observability report for one run type."""
     normalized = {
@@ -1485,6 +1502,10 @@ async def setticker_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 def dashboard():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
+    force_full = _is_truthy(request.args.get("full", "0"))
+    fast_mode = _dashboard_fast_mode_enabled(force_full=force_full)
+    logger.info("Dashboard request mode: %s", "FAST" if fast_mode else "FULL")
+
     db = DBHandler()
     market = MarketData()
     
@@ -1614,11 +1635,17 @@ def dashboard():
     market_mood = insider.get_market_mood()
 
     # 6. Advisor (Risk Manager)
-    from advisor import Advisor
-    adv = Advisor()
-    # Convert row objects to dicts if needed, or pass as is (Advisor expects dict-like with 'ticker', 'quantity')
-    # portfolio lines are rows from supabase.
-    advisor_analysis = adv.analyze_portfolio(portfolio)
+    if fast_mode:
+        advisor_analysis = {
+            "tips": [],
+            "note": "Fast dashboard mode: advisor deep analysis skipped to avoid timeout on Vercel.",
+        }
+    else:
+        from advisor import Advisor
+        adv = Advisor()
+        # Convert row objects to dicts if needed, or pass as is (Advisor expects dict-like with 'ticker', 'quantity')
+        # portfolio lines are rows from supabase.
+        advisor_analysis = adv.analyze_portfolio(portfolio)
 
     # 7. Macro Strategist
     from economist import Economist # Fetch Macro Stats
@@ -1629,12 +1656,15 @@ def dashboard():
         macro_stats = None
 
     # Fetch Whale Stats
-    from whale_watcher import WhaleWatcher
-    try:
-        whale_stats = WhaleWatcher().get_dashboard_stats()
-    except Exception as e:
-        logger.error(f"Whale Stats Error: {e}")
+    if fast_mode:
         whale_stats = None
+    else:
+        from whale_watcher import WhaleWatcher
+        try:
+            whale_stats = WhaleWatcher().get_dashboard_stats()
+        except Exception as e:
+            logger.error(f"Whale Stats Error: {e}")
+            whale_stats = None
 
     # 8. Trade History
     try:
@@ -1653,43 +1683,47 @@ def dashboard():
         history = []
 
     # 9. Paper Trading (Lab)
-    try:
-        from paper_trader import PaperTrader
-        pt = PaperTrader()
-        paper_raw = pt.get_portfolio(chat_id=None) # Fetch All
-        
-        paper_total_value = 0.0
-        paper_portfolio_enriched = []
-        
-        for p in paper_raw:
-            qty = p.get('quantity', 0)
-            avg = p.get('avg_price', 0)
-            ticker = p.get('ticker', 'UNKNOWN')
-            
-            # Use market data for price
-            curr_p, _ = market.get_smart_price_eur(ticker)
-            if curr_p <= 0: curr_p = avg # Fallback
-            
-            val = qty * curr_p
-            paper_total_value += val
-            
-            cost = qty * avg
-            pnl = val - cost
-            pnl_pct = ((pnl) / cost * 100) if cost > 0 else 0.0
-            
-            paper_portfolio_enriched.append({
-                "ticker": ticker,
-                "quantity": qty,
-                "avg_price": avg,
-                "current_price": curr_p,
-                "pnl": pnl_pct,
-                "current_value": val
-            })
-            
-    except Exception as e:
-        logger.error(f"Paper Dashboard Error: {e}")
+    if fast_mode:
         paper_portfolio_enriched = []
         paper_total_value = 0.0
+    else:
+        try:
+            from paper_trader import PaperTrader
+            pt = PaperTrader()
+            paper_raw = pt.get_portfolio(chat_id=None) # Fetch All
+            
+            paper_total_value = 0.0
+            paper_portfolio_enriched = []
+            
+            for p in paper_raw:
+                qty = p.get('quantity', 0)
+                avg = p.get('avg_price', 0)
+                ticker = p.get('ticker', 'UNKNOWN')
+                
+                # Use market data for price
+                curr_p, _ = market.get_smart_price_eur(ticker)
+                if curr_p <= 0: curr_p = avg # Fallback
+                
+                val = qty * curr_p
+                paper_total_value += val
+                
+                cost = qty * avg
+                pnl = val - cost
+                pnl_pct = ((pnl) / cost * 100) if cost > 0 else 0.0
+                
+                paper_portfolio_enriched.append({
+                    "ticker": ticker,
+                    "quantity": qty,
+                    "avg_price": avg,
+                    "current_price": curr_p,
+                    "pnl": pnl_pct,
+                    "current_value": val
+                })
+                
+        except Exception as e:
+            logger.error(f"Paper Dashboard Error: {e}")
+            paper_portfolio_enriched = []
+            paper_total_value = 0.0
 
     # 10. Backtest Results (Lab)
     try:
@@ -1703,33 +1737,39 @@ def dashboard():
         backtest_results = []
 
     # 11. Benchmark Data (Phase 17)
-    try:
-        from benchmark import Benchmark
-        bench = Benchmark()
-        benchmark_data = bench.compare_vs_benchmarks(30)
-    except Exception as e:
-        logger.error(f"Benchmark Fetch Error: {e}")
+    if fast_mode:
         benchmark_data = {}
+    else:
+        try:
+            from benchmark import Benchmark
+            bench = Benchmark()
+            benchmark_data = bench.compare_vs_benchmarks(30)
+        except Exception as e:
+            logger.error(f"Benchmark Fetch Error: {e}")
+            benchmark_data = {}
 
     # 12. Level 2 Predictive Data (Phase 4)
     # 12. Level 2 Predictive Data (Phase 4)
     try:
         from market_regime import MarketRegimeClassifier
-        from market_data import SectorAnalyst
-        
         regime_classifier = MarketRegimeClassifier()
-        sector_analyst = SectorAnalyst()
-        
         market_regime = regime_classifier.classify()
-        
-        # Adapt SectorAnalyst output for Dashboard
-        ranking = sector_analyst.get_sector_ranking(limit=11)
-        sector_rotation = {"ranking": ranking}
-        
     except Exception as e:
-        logger.error(f"L2 Data Fetch Error: {e}")
+        logger.error(f"L2 Regime Fetch Error: {e}")
         market_regime = {}
-        sector_rotation = {}
+
+    if fast_mode:
+        sector_rotation = {"ranking": []}
+    else:
+        try:
+            from market_data import SectorAnalyst
+            sector_analyst = SectorAnalyst()
+            # Adapt SectorAnalyst output for Dashboard
+            ranking = sector_analyst.get_sector_ranking(limit=11)
+            sector_rotation = {"ranking": ranking}
+        except Exception as e:
+            logger.error(f"L2 Sector Rotation Error: {e}")
+            sector_rotation = {}
 
     # 13. Level 4 ML Predictor Stats
     try:
@@ -1785,7 +1825,8 @@ def dashboard():
                            ml_stats=ml_stats,
                            ticker_cache_stats=ticker_cache_stats,
                            rebalancer_learning=rebalancer_learning,
-                           observability=observability)
+                           observability=observability,
+                           dashboard_fast_mode=fast_mode)
 
 
 @app.route('/api/webhook', methods=['POST'])

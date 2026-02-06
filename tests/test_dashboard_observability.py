@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from api.webhook import build_observability_dashboard
+from api.webhook import build_observability_dashboard, _dashboard_fast_mode_enabled
 
 
 def test_build_observability_dashboard_reads_latest_reports(tmp_path):
@@ -56,3 +56,14 @@ def test_build_observability_dashboard_handles_invalid_json(tmp_path):
 
     assert runs["analyze"]["status"] == "invalid"
     assert runs["analyze"]["exists"] is False
+
+
+def test_dashboard_fast_mode_default_true_on_vercel(monkeypatch):
+    monkeypatch.delenv("DASHBOARD_FAST_MODE", raising=False)
+    monkeypatch.setenv("VERCEL", "1")
+    assert _dashboard_fast_mode_enabled(force_full=False) is True
+
+
+def test_dashboard_fast_mode_can_be_forced_off(monkeypatch):
+    monkeypatch.setenv("VERCEL", "1")
+    assert _dashboard_fast_mode_enabled(force_full=True) is False
