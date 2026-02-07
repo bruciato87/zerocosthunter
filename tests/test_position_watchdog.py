@@ -3,7 +3,7 @@ Tests for Position Watchdog module - Conservative Mode.
 """
 
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 from position_watchdog import PositionWatchdog, ExitSignal, MIN_WORTHWHILE_NET_PROFIT, MIN_CONFIDENCE
 
 
@@ -78,6 +78,7 @@ class TestConservativeMode:
             ml_predictor=self.mock_ml,
             regime_classifier=self.mock_regime
         )
+        self.watchdog._get_trading_status_for_ticker = MagicMock(return_value=(True, "US", "🟢 OPEN"))
         
         # Default regime
         self.mock_regime.classify.return_value = {'regime': 'NEUTRAL'}
@@ -230,6 +231,27 @@ class TestTelegramReport:
         assert "Netto: €-151.00" in report
         assert "SELL" in report
 
+    def test_report_with_market_closed_deferred_signal(self):
+        watchdog = PositionWatchdog()
+        signals = [
+            ExitSignal(
+                ticker="AAPL", action="HOLD",
+                reason="⏸️ MERCATO CHIUSO (US: 🔴 CLOSED) | Segnale SELL rinviato.",
+                urgency="HIGH", current_price=95.0, entry_price=100.0,
+                quantity=5, pnl_percent=-5.0,
+                gross_profit=-25.0, tax_amount=0.0,
+                net_profit=-26.0, dynamic_stop_loss=90.0,
+                confidence=0.9, technical_score=-40,
+                suggested_action="Mercato chiuso: esegui SELL su AAPL alla riapertura."
+            )
+        ]
+
+        report = watchdog.format_telegram_report(signals)
+
+        assert "WAIT OPEN" in report
+        assert "AAPL" in report
+        assert "Netto: €-26.00" in report
+
 
 class TestPhase2News:
     """Test news sentiment integration for exits."""
@@ -245,6 +267,7 @@ class TestPhase2News:
             market_data=self.mock_market,
             ml_predictor=self.mock_ml
         )
+        self.watchdog._get_trading_status_for_ticker = MagicMock(return_value=(True, "US", "🟢 OPEN"))
         self.watchdog.hunter = self.mock_hunter
         self.mock_market.calculate_atr.return_value = {'atr': 5.0, 'volatility': 'MEDIUM'}
     
@@ -413,3 +436,67 @@ class TestPhase9Customization:
         signal = await self.watchdog._analyze_position(position)
         assert signal is not None
         assert signal.action == "SELL"
+
+
+class TestMarketHoursGating:
+    def setup_method(self):
+        self.mock_db = MagicMock()
+        self.mock_market = MagicMock()
+        self.mock_ml = MagicMock()
+        self.mock_hunter = MagicMock()
+        self.mock_regime = MagicMock()
+
+        self.watchdog = PositionWatchdog(
+            db_handler=self.mock_db,
+            market_data=self.mock_market,
+            ml_predictor=self.mock_ml,
+            regime_classifier=self.mock_regime
+        )
+        self.watchdog.hunter = self.mock_hunter
+        self.mock_regime.classify.return_value = {'regime': 'NEUTRAL'}
+        self.mock_market.calculate_atr.return_value = {'atr': 5.0, 'volatility': 'MEDIUM'}
+        self.mock_market.get_technical_summary.return_value = {'rsi': 50, 'momentum': -8, 'trend': 'DOWNTREND'}
+        self.mock_hunter.check_owned_asset_news.return_value = {'is_negative': False}
+        self.mock_ml.predict.return_value = None
+
+    @pytest.mark.asyncio
+    async def test_market_closed_converts_sell_to_hold(self):
+        self.watchdog._get_trading_status_for_ticker = MagicMock(return_value=(False, "US", "🔴 CLOSED"))
+        position = {'ticker': 'AAPL', 'quantity': 10, 'avg_price': 100.0}
+        self.mock_market.get_smart_price_eur.return_value = (80.0, 'AAPL')  # stop-loss sell trigger
+
+        signal = await self.watchdog._analyze_position(position)
+
+        assert signal is not None
+        assert signal.action == "HOLD"
+        assert "MERCATO CHIUSO" in signal.reason
+        assert "Segnale SELL rinviato" in signal.reason
+
+    @pytest.mark.asyncio
+    async def test_scan_portfolio_keeps_market_deferred_signal(self):
+        self.watchdog._refresh_market_context = MagicMock()
+        deferred = ExitSignal(
+            ticker="AAPL",
+            action="HOLD",
+            reason="⏸️ MERCATO CHIUSO (US: 🔴 CLOSED) | Segnale SELL rinviato.",
+            urgency="HIGH",
+            current_price=95.0,
+            entry_price=100.0,
+            quantity=5,
+            pnl_percent=-5.0,
+            gross_profit=-25.0,
+            tax_amount=0.0,
+            net_profit=-26.0,
+            dynamic_stop_loss=90.0,
+            confidence=0.9,
+            technical_score=-40,
+            suggested_action="Mercato chiuso: esegui SELL su AAPL alla riapertura.",
+        )
+        self.watchdog._analyze_position = AsyncMock(return_value=deferred)
+        self.mock_db.get_portfolio.return_value = [{"ticker": "AAPL", "quantity": 5, "avg_price": 100.0}]
+
+        signals = await self.watchdog.scan_portfolio()
+
+        assert len(signals) == 1
+        assert signals[0].action == "HOLD"
+        assert "MERCATO CHIUSO" in signals[0].reason

@@ -63,7 +63,20 @@ class Advisor:
             "CVX": "Energy",
         }
         from market_data import MarketData
+        from economist import Economist
         self.market = market_instance if market_instance else MarketData()
+        self.economist = Economist()
+
+    def _get_trading_status_for_ticker(self, ticker):
+        try:
+            market_status = self.economist.get_market_status()
+            return self.economist.get_trading_status_for_ticker(
+                ticker=ticker,
+                market_status=market_status,
+            )
+        except Exception as e:
+            logger.warning(f"Advisor: Market-hours check failed for {ticker}: {e}")
+            return True, "UNKNOWN", "UNKNOWN"
 
     def get_sector(self, ticker):
         """
@@ -172,7 +185,11 @@ class Advisor:
             # Profit Taking Logic
             for asset in asset_performance:
                 if asset['pnl_pct'] > 50:
-                    tips.append(f"💰 Take Profit: {asset['ticker']} is up {asset['pnl_pct']:.1f}%. Consider selling 20% to rebalance.")
+                    is_open, _, market_label = self._get_trading_status_for_ticker(asset['ticker'])
+                    if is_open:
+                        tips.append(f"💰 Take Profit: {asset['ticker']} is up {asset['pnl_pct']:.1f}%. Consider selling 20% to rebalance.")
+                    else:
+                        tips.append(f"⏸️ Take Profit deferred: {asset['ticker']} market closed ({market_label}). Re-evaluate at market open.")
 
             return {
                 "total_value": total_value,
@@ -211,6 +228,18 @@ class Advisor:
             is_significant = pnl_pct < -20 or loss_amount > 50
             
             if not is_significant:
+                continue
+
+            is_open, _, market_label = self._get_trading_status_for_ticker(ticker)
+            if not is_open:
+                opportunities.append({
+                    "ticker": ticker,
+                    "pnl_pct": pnl_pct,
+                    "loss_amount": loss_amount,
+                    "sector": sector,
+                    "tip": f"⏸️ Tax Harvest deferred: {ticker} market closed ({market_label}). Re-evaluate at market open.",
+                    "reason": "Market closed",
+                })
                 continue
                 
             tip = ""

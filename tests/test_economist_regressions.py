@@ -49,3 +49,36 @@ def test_safe_last_close_returns_latest_value(mocker):
     value = eco._safe_last_close("^VIX", "1d", "VIX")
 
     assert value == 21.4
+
+
+def test_classify_market_for_ticker_uses_resolution_metadata():
+    eco = Economist()
+
+    assert eco.classify_market_for_ticker("3XC", resolved_ticker="3CP.F", currency="EUR") == "EU"
+    assert eco.classify_market_for_ticker("BTC-USD") == "CRYPTO"
+    assert eco.classify_market_for_ticker("AAPL") == "US"
+
+
+def test_get_trading_status_for_ticker_respects_snapshot():
+    eco = Economist()
+    snapshot = {
+        "us_stocks": "🔴 CLOSED",
+        "eu_stocks": "🟢 OPEN",
+        "crypto": "OPEN (24/7)",
+    }
+
+    us_open, us_bucket, us_label = eco.get_trading_status_for_ticker("AAPL", market_status=snapshot)
+    eu_open, eu_bucket, eu_label = eco.get_trading_status_for_ticker("EUNL.DE", market_status=snapshot)
+    cr_open, cr_bucket, cr_label = eco.get_trading_status_for_ticker("BTC-USD", market_status=snapshot)
+
+    assert us_bucket == "US"
+    assert us_open is False
+    assert "CLOSED" in us_label
+
+    assert eu_bucket == "EU"
+    assert eu_open is True
+    assert "OPEN" in eu_label
+
+    assert cr_bucket == "CRYPTO"
+    assert cr_open is True
+    assert "OPEN" in cr_label

@@ -15,6 +15,8 @@ def mock_rebalancer_deps(mocker, mock_env):
 def test_rebalance_logic_math(mock_rebalancer_deps):
     """Test non-AI rebalancing logic (concentration, pnl)."""
     r = Rebalancer()
+    r._refresh_market_context = MagicMock()
+    r._get_trading_status_for_ticker = MagicMock(return_value=(True, "US", "🟢 OPEN"))
     
     analysis = {
         "total_value": 1000,
@@ -38,6 +40,50 @@ def test_rebalance_logic_math(mock_rebalancer_deps):
     
     # Check Logic 3: Tax Loss Harvest
     assert any("Tax-Loss Harvesting" in s for s in suggestions)
+
+
+def test_quant_plan_defers_orders_when_market_closed(mock_rebalancer_deps):
+    r = Rebalancer()
+    r.strategy_manager.get_rule = MagicMock(return_value=None)
+    r.constraint_engine.MAX_TICKER_EXPOSURE = 0.20
+    r.market.calculate_correlation_matrix = MagicMock(return_value={"high_correlation_pairs": []})
+    r._refresh_market_context = MagicMock()
+    r._get_trading_status_for_ticker = MagicMock(return_value=(False, "US", "🔴 CLOSED"))
+
+    analysis = {
+        "total_value": 10000,
+        "sector_allocation": {"Technology": 80.0, "Crypto": 20.0},
+        "assets": [
+            {"ticker": "AAPL", "value": 8000.0, "allocation": 80.0, "sector": "Technology", "pnl_pct": 25.0, "pnl_eur": 1200.0}
+        ],
+    }
+
+    plan = r._build_quant_rebalance_plan(analysis)
+
+    assert plan == []
+    assert any(step.get("ticker") == "AAPL" and step.get("side") == "SELL" for step in r._last_market_deferred_orders)
+
+
+def test_generate_suggestions_uses_market_closed_notes(mock_rebalancer_deps):
+    r = Rebalancer()
+    r._build_quant_rebalance_plan = MagicMock(return_value=[])
+    r._refresh_market_context = MagicMock()
+    r._get_trading_status_for_ticker = MagicMock(return_value=(False, "US", "🔴 CLOSED"))
+    r.strategy_manager.get_rule = MagicMock(return_value=None)
+
+    analysis = {
+        "total_value": 5000,
+        "deviations": {"Technology": 15.0},
+        "assets": [
+            {"ticker": "NVDA", "value": 2000.0, "allocation": 40.0, "pnl_pct": 60.0, "sector": "Technology"}
+        ],
+        "sector_allocation": {"Technology": 40.0},
+    }
+
+    suggestions = r.generate_rebalance_suggestions(analysis)
+
+    assert any("mercato chiuso" in s.lower() or "market close" in s.lower() for s in suggestions)
+    assert not any(s.startswith("💰 **Take Profit**:") for s in suggestions)
 
 def test_ai_suggestion_flow(mock_rebalancer_deps, mocker):
     """Test that Rebalancer calls Brain and Critic correctly."""

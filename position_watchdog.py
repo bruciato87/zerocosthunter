@@ -70,7 +70,10 @@ class PositionWatchdog:
         self.market = market_data
         self.ml = ml_predictor
         self.regime = regime_classifier
+        self.economist = None
         self._high_water_marks = {}
+        self._market_status_snapshot = None
+        self._ticker_cache_map = {}
         self.settings = {}
         
     def _lazy_load(self):
@@ -95,6 +98,9 @@ class PositionWatchdog:
         if self.regime is None:
             from market_regime import MarketRegimeClassifier
             self.regime = MarketRegimeClassifier()
+        if self.economist is None:
+            from economist import Economist
+            self.economist = Economist()
         if not hasattr(self, 'hunter') or self.hunter is None:
             from hunter import NewsHunter
             self.hunter = NewsHunter()
@@ -102,6 +108,114 @@ class PositionWatchdog:
     def _is_crypto(self, ticker: str) -> bool:
         base = ticker.upper().replace('-USD', '').replace('-EUR', '')
         return base in self.CRYPTO_TICKERS
+
+    def _refresh_market_context(self, portfolio: Optional[List[Dict]] = None) -> None:
+        """Refresh one-shot market status and ticker-cache metadata snapshot."""
+        self._market_status_snapshot = None
+        self._ticker_cache_map = {}
+
+        try:
+            if self.economist is None:
+                from economist import Economist
+                self.economist = Economist()
+            self._market_status_snapshot = self.economist.get_market_status()
+        except Exception as e:
+            logger.warning(f"Market status snapshot failed: {e}")
+
+        if not portfolio:
+            return
+
+        try:
+            if not hasattr(self.db, "get_ticker_cache_batch"):
+                return
+            tickers = [str(p.get("ticker", "")).upper() for p in portfolio if p.get("ticker")]
+            if not tickers:
+                return
+            cache_map = self.db.get_ticker_cache_batch(tickers)
+            if isinstance(cache_map, dict):
+                self._ticker_cache_map = {
+                    str(k).upper(): v for k, v in cache_map.items() if isinstance(v, dict)
+                }
+        except Exception as e:
+            logger.warning(f"Ticker cache batch lookup failed: {e}")
+
+    def _get_ticker_cache_meta(self, ticker: str) -> Dict:
+        ticker_u = str(ticker or "").upper()
+        if not ticker_u:
+            return {}
+
+        if isinstance(self._ticker_cache_map, dict):
+            meta = self._ticker_cache_map.get(ticker_u)
+            if isinstance(meta, dict):
+                return meta
+
+        try:
+            if hasattr(self.db, "get_ticker_cache"):
+                meta = self.db.get_ticker_cache(ticker_u)
+                if isinstance(meta, dict):
+                    if isinstance(self._ticker_cache_map, dict):
+                        self._ticker_cache_map[ticker_u] = meta
+                    return meta
+        except Exception:
+            pass
+        return {}
+
+    def _get_trading_status_for_ticker(self, ticker: str) -> Tuple[bool, str, str]:
+        """Return (is_open, market_bucket, market_label) for execution gating."""
+        try:
+            if self.economist is None:
+                from economist import Economist
+                self.economist = Economist()
+            if not isinstance(self._market_status_snapshot, dict):
+                self._market_status_snapshot = self.economist.get_market_status()
+
+            meta = self._get_ticker_cache_meta(ticker)
+            return self.economist.get_trading_status_for_ticker(
+                ticker=ticker,
+                market_status=self._market_status_snapshot,
+                resolved_ticker=meta.get("resolved_ticker"),
+                is_crypto=meta.get("is_crypto"),
+                currency=meta.get("currency"),
+            )
+        except Exception as e:
+            logger.warning(f"Market-hours check failed for {ticker}: {e}")
+            return True, "UNKNOWN", "UNKNOWN"
+
+    def _defer_signal_if_market_closed(self, ticker: str, signal: Optional[ExitSignal]) -> Optional[ExitSignal]:
+        """Convert SELL/TRIM to HOLD when venue is closed."""
+        if signal is None or signal.action not in {"SELL", "TRIM"}:
+            return signal
+
+        is_open, market_bucket, market_label = self._get_trading_status_for_ticker(ticker)
+        if is_open:
+            return signal
+
+        original_action = signal.action
+        return ExitSignal(
+            ticker=signal.ticker,
+            action="HOLD",
+            reason=(
+                f"⏸️ MERCATO CHIUSO ({market_bucket}: {market_label}) | "
+                f"Segnale {original_action} rinviato. {signal.reason}"
+            ),
+            urgency=signal.urgency,
+            current_price=signal.current_price,
+            entry_price=signal.entry_price,
+            quantity=signal.quantity,
+            pnl_percent=signal.pnl_percent,
+            gross_profit=signal.gross_profit,
+            tax_amount=signal.tax_amount,
+            net_profit=signal.net_profit,
+            dynamic_stop_loss=signal.dynamic_stop_loss,
+            confidence=signal.confidence,
+            technical_score=signal.technical_score,
+            suggested_action=f"Mercato chiuso: esegui {original_action} su {ticker} alla riapertura.",
+            target_price=signal.target_price,
+            stop_loss_price=signal.stop_loss_price,
+        )
+
+    def _is_market_deferred_signal(self, signal: ExitSignal) -> bool:
+        return signal.action == "HOLD" and "MERCATO CHIUSO" in str(signal.reason).upper()
     
     def _calculate_tax_and_fees(self, quantity: float, entry_price: float, current_price: float) -> Dict:
         """
@@ -305,13 +419,15 @@ class PositionWatchdog:
             if not portfolio:
                 logger.info("PositionWatchdog: Portfolio vuoto.")
                 return signals
+
+            self._refresh_market_context(portfolio)
             
             logger.info(f"PositionWatchdog: Scanning {len(portfolio)} posizioni...")
             
             for pos in portfolio:
                 try:
                     signal = await self._analyze_position(pos)
-                    if signal and signal.action != "HOLD":
+                    if signal and (signal.action != "HOLD" or self._is_market_deferred_signal(signal)):
                         signals.append(signal)
                 except Exception as e:
                     logger.error(f"Error analyzing {pos.get('ticker')}: {e}")
@@ -467,15 +583,18 @@ class PositionWatchdog:
                 trim_value = current_value * 0.5
                 is_ok, _ = self._is_economical(ticker, trim_value, tax_info)
                 if is_ok:
-                    return ExitSignal(
-                        ticker=ticker, action="TRIM",
-                        reason=f"🛡️ DE-RISKING: {pnl_pct:+.1f}% | Soglia ATR toccata | ML: {ml_action}",
-                        urgency="MEDIUM", current_price=current_price, entry_price=entry_price,
-                        quantity=quantity, pnl_percent=pnl_pct,
-                        gross_profit=tax_info['gross_profit'], tax_amount=tax_info['tax_amount'],
-                        net_profit=tax_info['net_profit'], dynamic_stop_loss=thresholds['stop_loss_price'],
-                        confidence=0.7, technical_score=tech_score,
-                        suggested_action=f"Vendi 50% per ridurre esposizione su {ticker}."
+                    return self._defer_signal_if_market_closed(
+                        ticker,
+                        ExitSignal(
+                            ticker=ticker, action="TRIM",
+                            reason=f"🛡️ DE-RISKING: {pnl_pct:+.1f}% | Soglia ATR toccata | ML: {ml_action}",
+                            urgency="MEDIUM", current_price=current_price, entry_price=entry_price,
+                            quantity=quantity, pnl_percent=pnl_pct,
+                            gross_profit=tax_info['gross_profit'], tax_amount=tax_info['tax_amount'],
+                            net_profit=tax_info['net_profit'], dynamic_stop_loss=thresholds['stop_loss_price'],
+                            confidence=0.7, technical_score=tech_score,
+                            suggested_action=f"Vendi 50% per ridurre esposizione su {ticker}."
+                        ),
                     )
 
             # Standard Stop Loss (Hard Exit)
@@ -494,15 +613,18 @@ class PositionWatchdog:
                     suggested_action=f"Controvalore troppo basso per stop-loss economico su {ticker}."
                 )
 
-            return ExitSignal(
-                ticker=ticker, action="SELL",
-                reason=f"🛑 STOP LOSS: {pnl_pct:+.1f}% | Tecnici: {tech_reason}" + (f" | ⚠️ News: {news_summary}" if has_bad_news else ""),
-                urgency="CRITICAL", current_price=current_price, entry_price=entry_price,
-                quantity=quantity, pnl_percent=pnl_pct,
-                gross_profit=tax_info['gross_profit'], tax_amount=tax_info['tax_amount'],
-                net_profit=tax_info['net_profit'], dynamic_stop_loss=thresholds['stop_loss_price'],
-                confidence=0.9, technical_score=tech_score,
-                suggested_action=f"Vendi {ticker} per limitare ulteriori perdite."
+            return self._defer_signal_if_market_closed(
+                ticker,
+                ExitSignal(
+                    ticker=ticker, action="SELL",
+                    reason=f"🛑 STOP LOSS: {pnl_pct:+.1f}% | Tecnici: {tech_reason}" + (f" | ⚠️ News: {news_summary}" if has_bad_news else ""),
+                    urgency="CRITICAL", current_price=current_price, entry_price=entry_price,
+                    quantity=quantity, pnl_percent=pnl_pct,
+                    gross_profit=tax_info['gross_profit'], tax_amount=tax_info['tax_amount'],
+                    net_profit=tax_info['net_profit'], dynamic_stop_loss=thresholds['stop_loss_price'],
+                    confidence=0.9, technical_score=tech_score,
+                    suggested_action=f"Vendi {ticker} per limitare ulteriori perdite."
+                ),
             )
         
         # 2. TAKE PROFIT / SCALING OUT
@@ -529,15 +651,18 @@ class PositionWatchdog:
                         suggested_action=f"Controvalore o profitto troppo basso per chiusura su {ticker}."
                     )
 
-                return ExitSignal(
-                    ticker=ticker, action="SELL",
-                    reason=f"💰 TAKE PROFIT: +{pnl_pct:.1f}% | Netto: €{tax_info['net_profit']:.2f} | {ml_reason}",
-                    urgency="HIGH", current_price=current_price, entry_price=entry_price,
-                    quantity=quantity, pnl_percent=pnl_pct,
-                    gross_profit=tax_info['gross_profit'], tax_amount=tax_info['tax_amount'],
-                    net_profit=tax_info['net_profit'], dynamic_stop_loss=thresholds['stop_loss_price'],
-                    confidence=ml_conf, technical_score=tech_score,
-                    suggested_action=f"Prendi profitto totale. Tasse: €{tax_info['tax_amount']:.2f}, Netto: €{tax_info['net_profit']:.2f}"
+                return self._defer_signal_if_market_closed(
+                    ticker,
+                    ExitSignal(
+                        ticker=ticker, action="SELL",
+                        reason=f"💰 TAKE PROFIT: +{pnl_pct:.1f}% | Netto: €{tax_info['net_profit']:.2f} | {ml_reason}",
+                        urgency="HIGH", current_price=current_price, entry_price=entry_price,
+                        quantity=quantity, pnl_percent=pnl_pct,
+                        gross_profit=tax_info['gross_profit'], tax_amount=tax_info['tax_amount'],
+                        net_profit=tax_info['net_profit'], dynamic_stop_loss=thresholds['stop_loss_price'],
+                        confidence=ml_conf, technical_score=tech_score,
+                        suggested_action=f"Prendi profitto totale. Tasse: €{tax_info['tax_amount']:.2f}, Netto: €{tax_info['net_profit']:.2f}"
+                    ),
                 )
             
             # [REFINEMENT] SCALING OUT (Partial Take Profit)
@@ -546,30 +671,36 @@ class PositionWatchdog:
                 trim_value = current_value * 0.5
                 is_ok, _ = self._is_economical(ticker, trim_value, tax_info)
                 if is_ok:
-                    return ExitSignal(
-                        ticker=ticker, action="TRIM",
-                        reason=f"🎯 TARGET HIT: +{pnl_pct:.1f}% | ML ancora bullish | Scaling out",
-                        urgency="MEDIUM", current_price=current_price, entry_price=entry_price,
-                        quantity=quantity, pnl_percent=pnl_pct,
-                        gross_profit=tax_info['gross_profit'], tax_amount=tax_info['tax_amount'],
-                        net_profit=tax_info['net_profit'], dynamic_stop_loss=thresholds['stop_loss_price'],
-                        confidence=0.8, technical_score=tech_score,
-                        suggested_action=f"Vendi 50% per bloccare profitto e lascia correre il resto."
+                    return self._defer_signal_if_market_closed(
+                        ticker,
+                        ExitSignal(
+                            ticker=ticker, action="TRIM",
+                            reason=f"🎯 TARGET HIT: +{pnl_pct:.1f}% | ML ancora bullish | Scaling out",
+                            urgency="MEDIUM", current_price=current_price, entry_price=entry_price,
+                            quantity=quantity, pnl_percent=pnl_pct,
+                            gross_profit=tax_info['gross_profit'], tax_amount=tax_info['tax_amount'],
+                            net_profit=tax_info['net_profit'], dynamic_stop_loss=thresholds['stop_loss_price'],
+                            confidence=0.8, technical_score=tech_score,
+                            suggested_action=f"Vendi 50% per bloccare profitto e lascia correre il resto."
+                        ),
                     )
             # If hit 80% of target distance
             elif target_hit_pct >= 0.8:
                 trim_value = current_value * 0.25
                 is_ok, _ = self._is_economical(ticker, trim_value, tax_info)
                 if is_ok:
-                    return ExitSignal(
-                        ticker=ticker, action="TRIM",
-                        reason=f"🏁 NEAR TARGET: +{pnl_pct:.1f}% | 80% del percorso fatto | De-risking",
-                        urgency="LOW", current_price=current_price, entry_price=entry_price,
-                        quantity=quantity, pnl_percent=pnl_pct,
-                        gross_profit=tax_info['gross_profit'], tax_amount=tax_info['tax_amount'],
-                        net_profit=tax_info['net_profit'], dynamic_stop_loss=thresholds['stop_loss_price'],
-                        confidence=0.7, technical_score=tech_score,
-                        suggested_action=f"Vendi 25% per mettere in sicurezza una parte del profitto."
+                    return self._defer_signal_if_market_closed(
+                        ticker,
+                        ExitSignal(
+                            ticker=ticker, action="TRIM",
+                            reason=f"🏁 NEAR TARGET: +{pnl_pct:.1f}% | 80% del percorso fatto | De-risking",
+                            urgency="LOW", current_price=current_price, entry_price=entry_price,
+                            quantity=quantity, pnl_percent=pnl_pct,
+                            gross_profit=tax_info['gross_profit'], tax_amount=tax_info['tax_amount'],
+                            net_profit=tax_info['net_profit'], dynamic_stop_loss=thresholds['stop_loss_price'],
+                            confidence=0.7, technical_score=tech_score,
+                            suggested_action=f"Vendi 25% per mettere in sicurezza una parte del profitto."
+                        ),
                     )
 
         # 3. TECHNICAL BEARISH (Weakness Trim)
@@ -577,15 +708,18 @@ class PositionWatchdog:
             trim_value = current_value * 0.25
             is_ok, _ = self._is_economical(ticker, trim_value, tax_info)
             if is_ok:
-                return ExitSignal(
-                    ticker=ticker, action="TRIM",
-                    reason=f"📉 DEBOLEZZA TECNICA: Score {tech_score} | {tech_reason}",
-                    urgency="MEDIUM", current_price=current_price, entry_price=entry_price,
-                    quantity=quantity, pnl_percent=pnl_pct,
-                    gross_profit=tax_info['gross_profit'], tax_amount=tax_info['tax_amount'],
-                    net_profit=tax_info['net_profit'], dynamic_stop_loss=thresholds['stop_loss_price'],
-                    confidence=0.6, technical_score=tech_score,
-                    suggested_action=f"Vendi 25% su debolezza tecnica."
+                return self._defer_signal_if_market_closed(
+                    ticker,
+                    ExitSignal(
+                        ticker=ticker, action="TRIM",
+                        reason=f"📉 DEBOLEZZA TECNICA: Score {tech_score} | {tech_reason}",
+                        urgency="MEDIUM", current_price=current_price, entry_price=entry_price,
+                        quantity=quantity, pnl_percent=pnl_pct,
+                        gross_profit=tax_info['gross_profit'], tax_amount=tax_info['tax_amount'],
+                        net_profit=tax_info['net_profit'], dynamic_stop_loss=thresholds['stop_loss_price'],
+                        confidence=0.6, technical_score=tech_score,
+                        suggested_action=f"Vendi 25% su debolezza tecnica."
+                    ),
                 )
         
         # 4. ML STRONG EXIT or BAD NEWS
@@ -597,16 +731,19 @@ class PositionWatchdog:
                  return None # Skip this signal if not worthwhile
 
             reason_str = f"🤖 ML EXIT: {ml_reason}" if ml_action == "EXIT" else f"📉 NEWS EXIT: {news_summary}"
-            return ExitSignal(
-                ticker=ticker, action="SELL",
-                reason=f"{reason_str} | Tech: {tech_score:+d}",
-                urgency="MEDIUM", current_price=current_price, entry_price=entry_price,
-                quantity=quantity, pnl_percent=pnl_pct,
-                gross_profit=tax_info['gross_profit'], tax_amount=tax_info['tax_amount'],
-                net_profit=tax_info['net_profit'], dynamic_stop_loss=thresholds['stop_loss_price'],
-                confidence=ml_conf, technical_score=tech_score,
-                suggested_action=f"ML raccomanda exit. Netto: €{tax_info['net_profit']:.2f}",
-                target_price=target_price, stop_loss_price=stop_loss_price
+            return self._defer_signal_if_market_closed(
+                ticker,
+                ExitSignal(
+                    ticker=ticker, action="SELL",
+                    reason=f"{reason_str} | Tech: {tech_score:+d}",
+                    urgency="MEDIUM", current_price=current_price, entry_price=entry_price,
+                    quantity=quantity, pnl_percent=pnl_pct,
+                    gross_profit=tax_info['gross_profit'], tax_amount=tax_info['tax_amount'],
+                    net_profit=tax_info['net_profit'], dynamic_stop_loss=thresholds['stop_loss_price'],
+                    confidence=ml_conf, technical_score=tech_score,
+                    suggested_action=f"ML raccomanda exit. Netto: €{tax_info['net_profit']:.2f}",
+                    target_price=target_price, stop_loss_price=stop_loss_price
+                ),
             )
         
         # 5. NEW: Report automatic target setting even if no exit is triggered
@@ -633,13 +770,15 @@ class PositionWatchdog:
         lines = ["🔔 **POSITION WATCHDOG AI**\n_Exit signals con calcolo netto tasse (26%) e fee (€1)_\n"]
         
         for s in signals:
+            is_deferred = self._is_market_deferred_signal(s)
+            action_label = "WAIT OPEN" if is_deferred else s.action
             emoji = "🔴" if s.urgency in ["CRITICAL", "HIGH"] else ("🟡" if s.urgency == "MEDIUM" else "ℹ️")
-            lines.append(f"{emoji} **{s.ticker}** → {s.action}")
+            lines.append(f"{emoji} **{s.ticker}** → {action_label}")
             
             if s.target_price and s.stop_loss_price:
                 lines.append(f"   🎯 Target: Profit €{s.target_price} | Stop €{s.stop_loss_price}")
             
-            if s.action != "HOLD":
+            if s.action != "HOLD" or is_deferred:
                 lines.append(f"   P&L: {s.pnl_percent:+.1f}% | Lordo: €{s.gross_profit:.2f}")
                 lines.append(f"   Tasse: €{s.tax_amount:.2f} | **Netto: €{s.net_profit:.2f}**")
             

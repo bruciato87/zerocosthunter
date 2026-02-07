@@ -1,12 +1,22 @@
 import logging
 import datetime
 from datetime import timedelta
+from typing import Dict, Optional, Tuple
 import yfinance as yf
 from zoneinfo import ZoneInfo
 
 logger = logging.getLogger("Economist")
 
 class Economist:
+    CRYPTO_BASE_TICKERS = {
+        "BTC", "ETH", "SOL", "XRP", "DOGE", "ADA", "DOT", "LINK", "AVAX",
+        "SHIB", "MATIC", "LTC", "XLM", "HBAR", "UNI", "RENDER", "RNDR", "TRX",
+    }
+    EU_TICKER_SUFFIXES = (
+        ".DE", ".MI", ".PA", ".AS", ".BR", ".LS", ".MC", ".SW", ".ST",
+        ".OL", ".HE", ".CO", ".VI", ".IR", ".F", ".FRA", ".L",
+    )
+
     def __init__(self):
         # Italy timezone
         self.ITALY_TZ = ZoneInfo("Europe/Rome")
@@ -97,6 +107,90 @@ class Economist:
                 status["us_stocks"] = "🔴 CLOSED"
         
         return status
+
+    def classify_market_for_ticker(
+        self,
+        ticker: str,
+        resolved_ticker: Optional[str] = None,
+        is_crypto: Optional[bool] = None,
+        currency: Optional[str] = None,
+    ) -> str:
+        """
+        Classify ticker venue bucket for market-hours gating.
+        Returns one of: CRYPTO, EU, US.
+        """
+        def _base(sym: Optional[str]) -> str:
+            s = (sym or "").upper().strip()
+            for suffix in ("-USD", "-EUR", "-GBP", "-USDT"):
+                if s.endswith(suffix):
+                    return s[: -len(suffix)]
+            return s
+
+        if is_crypto is True:
+            return "CRYPTO"
+
+        symbols = [resolved_ticker, ticker]
+        bases = {_base(s) for s in symbols if s}
+        if any(b in self.CRYPTO_BASE_TICKERS for b in bases):
+            return "CRYPTO"
+
+        resolved_u = (resolved_ticker or "").upper().strip()
+        ticker_u = (ticker or "").upper().strip()
+        if any(resolved_u.endswith(suf) or ticker_u.endswith(suf) for suf in self.EU_TICKER_SUFFIXES):
+            return "EU"
+
+        currency_u = (currency or "").upper().strip()
+        if currency_u in {"EUR", "CHF", "GBP", "SEK", "NOK", "DKK"}:
+            return "EU"
+
+        return "US"
+
+    def get_trading_status_for_ticker(
+        self,
+        ticker: str,
+        market_status: Optional[Dict] = None,
+        resolved_ticker: Optional[str] = None,
+        is_crypto: Optional[bool] = None,
+        currency: Optional[str] = None,
+    ) -> Tuple[bool, str, str]:
+        """
+        Return (is_open, market_bucket, market_status_label) for a ticker.
+        """
+        status = market_status or self.get_market_status()
+        market_bucket = self.classify_market_for_ticker(
+            ticker=ticker,
+            resolved_ticker=resolved_ticker,
+            is_crypto=is_crypto,
+            currency=currency,
+        )
+
+        if market_bucket == "CRYPTO":
+            label = str(status.get("crypto", "OPEN (24/7)"))
+            return True, market_bucket, label
+
+        if market_bucket == "EU":
+            label = str(status.get("eu_stocks", "UNKNOWN"))
+            return ("🟢 OPEN" in label), market_bucket, label
+
+        label = str(status.get("us_stocks", "UNKNOWN"))
+        return ("🟢 OPEN" in label), market_bucket, label
+
+    def is_market_open_for_ticker(
+        self,
+        ticker: str,
+        market_status: Optional[Dict] = None,
+        resolved_ticker: Optional[str] = None,
+        is_crypto: Optional[bool] = None,
+        currency: Optional[str] = None,
+    ) -> bool:
+        is_open, _, _ = self.get_trading_status_for_ticker(
+            ticker=ticker,
+            market_status=market_status,
+            resolved_ticker=resolved_ticker,
+            is_crypto=is_crypto,
+            currency=currency,
+        )
+        return is_open
         
     def check_risk_level(self):
         """

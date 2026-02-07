@@ -88,6 +88,9 @@ class Rebalancer:
         self.api_key = os.environ.get("GEMINI_API_KEY")
         self.dry_run = _env_flag("DRY_RUN")
         self._last_report_metrics: Dict[str, object] = {}
+        self._market_status_snapshot: Dict[str, object] = {}
+        self._ticker_cache_map: Dict[str, Dict] = {}
+        self._last_market_deferred_orders: List[Dict] = []
         if self.dry_run:
             logger.info("Rebalancer DRY_RUN enabled: AI calls, Telegram sends, and DB logging are disabled.")
     
@@ -208,6 +211,70 @@ class Rebalancer:
         except Exception:
             return False
 
+    def _refresh_market_context(self, tickers: Optional[List[str]] = None) -> None:
+        """Refresh market status and optional ticker metadata snapshot."""
+        self._market_status_snapshot = {}
+        self._ticker_cache_map = {}
+        try:
+            self._market_status_snapshot = self.economist.get_market_status()
+        except Exception as e:
+            logger.warning(f"Rebalancer market status snapshot failed: {e}")
+
+        if not tickers:
+            return
+
+        try:
+            if not hasattr(self.db, "get_ticker_cache_batch"):
+                return
+            targets = [str(t).upper() for t in tickers if t]
+            if not targets:
+                return
+            cache_map = self.db.get_ticker_cache_batch(targets)
+            if isinstance(cache_map, dict):
+                self._ticker_cache_map = {
+                    str(k).upper(): v for k, v in cache_map.items() if isinstance(v, dict)
+                }
+        except Exception as e:
+            logger.warning(f"Rebalancer ticker-cache snapshot failed: {e}")
+
+    def _get_ticker_cache_meta(self, ticker: str) -> Dict:
+        ticker_u = str(ticker or "").upper()
+        if not ticker_u:
+            return {}
+
+        meta = self._ticker_cache_map.get(ticker_u) if isinstance(self._ticker_cache_map, dict) else None
+        if isinstance(meta, dict):
+            return meta
+
+        try:
+            if hasattr(self.db, "get_ticker_cache"):
+                meta = self.db.get_ticker_cache(ticker_u)
+                if isinstance(meta, dict):
+                    if isinstance(self._ticker_cache_map, dict):
+                        self._ticker_cache_map[ticker_u] = meta
+                    return meta
+        except Exception:
+            pass
+        return {}
+
+    def _get_trading_status_for_ticker(self, ticker: str) -> Tuple[bool, str, str]:
+        """Return (is_open, market_bucket, market_label) for execution gating."""
+        try:
+            if not isinstance(self._market_status_snapshot, dict) or not self._market_status_snapshot:
+                self._market_status_snapshot = self.economist.get_market_status()
+
+            meta = self._get_ticker_cache_meta(ticker)
+            return self.economist.get_trading_status_for_ticker(
+                ticker=ticker,
+                market_status=self._market_status_snapshot,
+                resolved_ticker=meta.get("resolved_ticker"),
+                is_crypto=meta.get("is_crypto"),
+                currency=meta.get("currency"),
+            )
+        except Exception as e:
+            logger.warning(f"Rebalancer market-hours check failed for {ticker}: {e}")
+            return True, "UNKNOWN", "UNKNOWN"
+
     def _estimate_sell_costs(self, asset: Dict, sell_amount_eur: float) -> Dict:
         """
         Estimate sell-side tax/fee/net proceeds for partial trim.
@@ -256,6 +323,8 @@ class Rebalancer:
         """
         total_value = float(analysis.get("total_value", 0) or 0)
         assets = analysis.get("assets", []) or []
+        self._last_market_deferred_orders = []
+        self._refresh_market_context([a.get("ticker") for a in assets if a.get("ticker")])
         if total_value <= 0 or not assets:
             return []
 
@@ -277,7 +346,20 @@ class Rebalancer:
 
         def add_sell(asset: Dict, amount: float, reason: str, priority: int):
             ticker = asset.get("ticker")
-            if not ticker or amount < self.MIN_EXECUTABLE_TRADE:
+            if not ticker:
+                return
+            is_open, market_bucket, market_label = self._get_trading_status_for_ticker(ticker)
+            if not is_open:
+                self._last_market_deferred_orders.append({
+                    "side": "SELL",
+                    "ticker": ticker,
+                    "market_bucket": market_bucket,
+                    "market_label": market_label,
+                    "reason": reason,
+                })
+                logger.info(f"Quant plan SELL deferred ({ticker}): market closed [{market_label}]")
+                return
+            if amount < self.MIN_EXECUTABLE_TRADE:
                 return
             costs = self._estimate_sell_costs(asset, amount)
             # Cost sanity check: avoid low-edge trims unless risk is high priority.
@@ -388,6 +470,17 @@ class Rebalancer:
             ticker = self._pick_buy_ticker_for_sector(analysis, sector)
             if not ticker:
                 continue
+            is_open, market_bucket, market_label = self._get_trading_status_for_ticker(ticker)
+            if not is_open:
+                self._last_market_deferred_orders.append({
+                    "side": "BUY",
+                    "ticker": ticker,
+                    "market_bucket": market_bucket,
+                    "market_label": market_label,
+                    "reason": f"Ribilanciamento settore {sector} (sotto target)",
+                })
+                logger.info(f"Quant plan BUY deferred ({ticker}): market closed [{market_label}]")
+                continue
             buy_amount = min(delta, available_cash, total_value * 0.20)
             if buy_amount < self.MIN_EXECUTABLE_TRADE:
                 continue
@@ -451,10 +544,13 @@ class Rebalancer:
         total_value = analysis["total_value"]
         if total_value == 0:
             return ["Portfolio is empty. Start accumulating assets."]
+
+        self._refresh_market_context([a.get("ticker") for a in analysis.get("assets", []) if a.get("ticker")])
         
         suggestions = []
         buys = []
         sells = []
+        market_deferred_notes = set()
 
         # Step 2: constrained executable plan (fees/tax/risk/anti-churn).
         quant_plan = self._build_quant_rebalance_plan(analysis)
@@ -484,7 +580,14 @@ class Rebalancer:
                         if tradable_assets:
                             # Suggest trimming the largest one or one with high PnL
                             best_to_trim = sorted(tradable_assets, key=lambda x: -x["pnl_pct"])[0]
-                            sells.append(f"🔴 **Vendi €{abs(diff_eur):.0f}** di **{best_to_trim['ticker']}** ({sector} è in eccesso del {abs(deviation):.1f}%)")
+                            is_open, _, market_label = self._get_trading_status_for_ticker(best_to_trim["ticker"])
+                            if is_open:
+                                sells.append(f"🔴 **Vendi €{abs(diff_eur):.0f}** di **{best_to_trim['ticker']}** ({sector} è in eccesso del {abs(deviation):.1f}%)")
+                            else:
+                                note = f"⏸️ **{best_to_trim['ticker']}**: mercato chiuso ({market_label}), valuta il trim alla riapertura."
+                                if note not in market_deferred_notes:
+                                    suggestions.append(note)
+                                    market_deferred_notes.add(note)
                         else:
                             logger.info(f"Rebalancer: Skipping sell suggestion for {sector} (all assets are LONG_TERM)")
                 elif diff_eur > 50: # Underweight -> Buy
@@ -502,15 +605,36 @@ class Rebalancer:
                 target_alloc = 20.0
                 trim_eur = asset["value"] - (total_value * (target_alloc / 100.0))
                 if trim_eur >= 100:
-                    sells.append(f"🔴 **Riduci €{trim_eur:.0f}** di **{asset['ticker']}** (troppa concentrazione: {asset['allocation']:.1f}%)")
+                    is_open, _, market_label = self._get_trading_status_for_ticker(asset["ticker"])
+                    if is_open:
+                        sells.append(f"🔴 **Riduci €{trim_eur:.0f}** di **{asset['ticker']}** (troppa concentrazione: {asset['allocation']:.1f}%)")
+                    else:
+                        note = f"⏸️ **{asset['ticker']}**: mercato chiuso ({market_label}), concentrazione da ridurre alla riapertura."
+                        if note not in market_deferred_notes:
+                            suggestions.append(note)
+                            market_deferred_notes.add(note)
 
         # 3. Specific Ops (Tax harvesting, Profit taking)
         for asset in analysis["assets"]:
             if asset["pnl_pct"] <= -35 and asset["value"] >= 100:
-                suggestions.append(f"📉 **Tax-Loss Harvesting**: Considera di vendere e ricomprare **{asset['ticker']}** ({asset['pnl_pct']:.1f}%) per scaricare minusvalenze.")
+                is_open, _, market_label = self._get_trading_status_for_ticker(asset["ticker"])
+                if is_open:
+                    suggestions.append(f"📉 **Tax-Loss Harvesting**: Considera di vendere e ricomprare **{asset['ticker']}** ({asset['pnl_pct']:.1f}%) per scaricare minusvalenze.")
+                else:
+                    note = f"⏸️ **{asset['ticker']}**: mercato chiuso ({market_label}), Tax-Loss Harvesting da valutare alla riapertura."
+                    if note not in market_deferred_notes:
+                        suggestions.append(note)
+                        market_deferred_notes.add(note)
             elif asset["pnl_pct"] >= 50 and asset["allocation"] >= 10:
                 take_profit = asset["value"] * 0.2
-                suggestions.append(f"💰 **Take Profit**: Vendi **€{take_profit:.0f}** di **{asset['ticker']}** (+{asset['pnl_pct']:.1f}%) per mettere al sicuro i guadagni.")
+                is_open, _, market_label = self._get_trading_status_for_ticker(asset["ticker"])
+                if is_open:
+                    suggestions.append(f"💰 **Take Profit**: Vendi **€{take_profit:.0f}** di **{asset['ticker']}** (+{asset['pnl_pct']:.1f}%) per mettere al sicuro i guadagni.")
+                else:
+                    note = f"⏸️ **{asset['ticker']}**: mercato chiuso ({market_label}), Take Profit rinviato."
+                    if note not in market_deferred_notes:
+                        suggestions.append(note)
+                        market_deferred_notes.add(note)
 
         # Combine items (quant plan first, then legacy heuristics)
         final_list = suggestions[:4] + sells[:3] + buys[:3] + suggestions[4:8]
@@ -1130,6 +1254,14 @@ class Rebalancer:
             for idx, line in enumerate(self._format_quant_plan_lines(quant_plan), start=1):
                 report += f"{idx}. {line}\n"
             report += "\n"
+        if self._last_market_deferred_orders:
+            report += "⏸️ **ORDINI RINVIATI (mercato chiuso):**\n"
+            for item in self._last_market_deferred_orders[:4]:
+                side = item.get("side", "ORDER")
+                ticker = item.get("ticker", "N/A")
+                market_label = item.get("market_label", "UNKNOWN")
+                report += f"- {side} `{ticker}` rinviato ({market_label})\n"
+            report += "\n"
         
         # Sector allocation (compact)
         report += "📈 **Allocazione Settori:**\n"
@@ -1190,6 +1322,7 @@ class Rebalancer:
         try:
             analysis = self.get_portfolio_analysis()
             if analysis["total_value"] == 0: return None
+            self._refresh_market_context([a.get("ticker") for a in analysis.get("assets", []) if a.get("ticker")])
             
             # Simple rule-based check for obvious opportunities
             for asset in analysis["assets"]:
@@ -1208,6 +1341,10 @@ class Rebalancer:
                     cost = tax + self.TRADE_FEE
                     net_profit = pnl - cost
                     if net_profit > 20: # Worth doing
+                        is_open, _, market_label = self._get_trading_status_for_ticker(asset["ticker"])
+                        if not is_open:
+                            logger.info(f"Flash tip deferred ({asset['ticker']}): market closed [{market_label}]")
+                            continue
                         # Ask DeepSeek Reasoner for a one-line strategic confirmation
                         try:
                             prompt = (

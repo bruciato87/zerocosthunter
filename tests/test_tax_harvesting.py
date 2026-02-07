@@ -5,6 +5,7 @@ from advisor import Advisor
 class TestTaxHarvesting(unittest.TestCase):
     def setUp(self):
         self.advisor = Advisor()
+        self.advisor._get_trading_status_for_ticker = lambda _ticker: (True, "US", "🟢 OPEN")
         
     def test_crypto_harvest(self):
         # Mock portfolio item: Crypto with -30% loss
@@ -79,6 +80,21 @@ class TestTaxHarvesting(unittest.TestCase):
         # Should NOT trigger harvest tip
         self.assertFalse(any("Tax Harvest" in tip for tip in tips))
         self.assertEqual(len(harvest), 0)
+
+    def test_stock_harvest_deferred_when_market_closed(self):
+        self.advisor._get_trading_status_for_ticker = lambda _ticker: (False, "US", "🔴 CLOSED")
+        items = [{
+            "ticker": "TSLA",
+            "quantity": 10.0,
+            "current_price": 150.0,
+            "avg_price": 200.0,
+            "sector": "Consumer Cyclical"
+        }]
+
+        result = self.advisor.analyze_portfolio(items)
+        tips = result["tips"]
+
+        self.assertTrue(any("deferred" in tip.lower() and "TSLA" in tip for tip in tips))
 
 if __name__ == '__main__':
     unittest.main()
