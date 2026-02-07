@@ -373,6 +373,17 @@ async def run_async_pipeline():
         "GOOGL": "GOOGL"
     }
 
+    def find_portfolio_entry(ticker, portfolio):
+        if ticker in portfolio:
+            return ticker, portfolio[ticker]
+        base = ticker.replace('-USD', '').replace('-EUR', '')
+        if base in portfolio:
+            return base, portfolio[base]
+        if f"{ticker}-USD" in portfolio:
+            key = f"{ticker}-USD"
+            return key, portfolio[key]
+        return None, None
+
     # Signal Intelligence is already initialized at start
     pass
 
@@ -575,13 +586,6 @@ async def run_async_pipeline():
                     logger.warning(f"Signal Intelligence failed for {detected_ticker}: {e}")
             
             # 3. Portfolio
-            def find_portfolio_entry(ticker, portfolio):
-                if ticker in portfolio: return ticker, portfolio[ticker]
-                base = ticker.replace('-USD', '').replace('-EUR', '')
-                if base in portfolio: return base, portfolio[base]
-                if f"{ticker}-USD" in portfolio: return f"{ticker}-USD", portfolio[f"{ticker}-USD"]
-                return None, None
-            
             portfolio_ticker, holding = find_portfolio_entry(detected_ticker, portfolio_map)
             
             if holding:
