@@ -200,7 +200,8 @@ def format_alert_msg(ticker, sentiment, confidence, reasoning, source, pred, sto
     if take_profit:
         lines.append(f"💰 Take profit: €{take_profit}")
 
-    lines.append(f"💡 Motivo: {_truncate_text(reasoning, 300)}")
+    # Keep full reasoning text as requested; do not truncate per-signal motivation.
+    lines.append(f"💡 Motivo: {str(reasoning or '').strip()}")
     if critic_reasoning:
         lines.append(f"🛡️ Critic: {_truncate_text(critic_reasoning, 180)}")
     if council_summary:
@@ -208,6 +209,8 @@ def format_alert_msg(ticker, sentiment, confidence, reasoning, source, pred, sto
         dissent = _extract_dissent_snippet(pred.get("council_full_debate", ""))
         if dissent:
             lines.append(f"⚠️ Dissent: {dissent}")
+    else:
+        lines.append("🏛️ Council: non convocato (segnale non idoneo al dibattito ad alta confidenza)")
     if source:
         lines.append(f"📰 Fonte: {_truncate_text(source, 90)}")
 
