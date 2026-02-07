@@ -23,14 +23,14 @@ def test_format_alert_msg_unanimous():
     consensus_data = {"final_action": "STRONG BUY", "final_score": 85}
     alert = format_alert_msg(ticker, sentiment, confidence, reasoning, source, pred, stop_loss, take_profit, critic_score, critic_reasoning, council_summary, consensus_data=consensus_data)
     
-    assert "🟢 **Signal: BTC (Crypto)**" in alert
-    assert "🌟 **Consensus Action:** STRONG BUY" in alert
-    assert "**Hunter Prediction:** BUY (85%)" in alert
-    assert "🎯 **Target:** €100,000 (Up +15.0%)" in alert
-    assert "🎲 **Risk Score:** 3/10" in alert
-    assert "🛑 **Stop Loss:** €90000.0" in alert
-    assert "🛡️ **Risk Check (Critic)**: Technicals are strong." in alert
-    assert "🏛️ **Council Verdict**: UNANIMOUS VERDICT: BUY (3/3)" in alert
+    assert "🟢 **BTC** (Crypto)" in alert
+    assert "⚖️ Azione consenso: **STRONG BUY**" in alert
+    assert "🤖 Hunter: **BUY** (85%)" in alert
+    assert "🎯 Target: €100,000 (+15.0%)" in alert
+    assert "🎲 Rischio: 3/10" in alert
+    assert "🛑 Stop loss: €90000.0" in alert
+    assert "🛡️ Critic: Technicals are strong." in alert
+    assert "🏛️ Council: VERDETTO UNANIME: BUY (3/3)" in alert
     assert "⚠️ **Dissent" not in alert
 
 def test_format_alert_msg_majority_with_dissent():
@@ -55,10 +55,11 @@ def test_format_alert_msg_majority_with_dissent():
     consensus_data = {"final_action": "BUY (Disputed)", "final_score": 30}
     alert = format_alert_msg(ticker, sentiment, confidence, reasoning, source, pred, stop_loss, take_profit, critic_score, critic_reasoning, council_summary, consensus_data=consensus_data)
     
-    assert "🟢 **Signal: NVDA (Stock)**" in alert
-    assert "⚖️ **Consensus Action:** BUY (Disputed)" in alert
-    assert "**Hunter Prediction:** BUY (75%)" in alert
-    assert "🏛️ **Council Verdict**: MAJORITY VERDICT: BUY (2/3)" in alert
+    assert "🟢 **NVDA** (Stock)" in alert
+    assert "⚖️ Azione consenso: **BUY (Disputed)**" in alert
+    assert "🤖 Hunter: **BUY** (75%)" in alert
+    assert "🏛️ Council: VERDETTO DI MAGGIORANZA: BUY (2/3)" in alert
+    assert "⚠️ Dissent: Argued for SELL because 'Valuation too high'" in alert
 
 def test_format_alert_msg_with_ml_consensus():
     ticker = "ETH"
