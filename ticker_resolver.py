@@ -54,7 +54,22 @@ _TICKER_STOPWORDS = {
     "THE", "THIS", "THAT", "FROM", "WITH", "NEWS", "MARKET", "ALERT", "CHECK",
     "OWNED", "ENTRY", "FULL", "TEXT", "PORTFOLIO", "SIGNAL", "TRADING",
     "DCA", "BUY", "SELL", "HOLD", "MODEL", "QUOTE", "PAGE", "SITE", "HOME",
-    "HTTP", "HTTPS", "WWW"
+    "HTTP", "HTTPS", "WWW",
+    # Frequent non-ticker tokens seen in RSS/news uppercase blobs
+    "DETAILS", "TARIFF", "DELHI", "WARSAW", "NATO", "MACD",
+    # Currency codes or macro tokens that often appear as noise
+    "USD", "EUR", "GBP", "JPY", "CNY", "CHF", "AUD", "CAD",
+}
+
+_KNOWN_LONG_ALPHA_TICKERS = {
+    token
+    for token in (
+        list(TICKER_ALIASES.keys())
+        + list(TICKER_ALIASES.values())
+        + list(CRYPTO_TICKERS)
+        + list(PROTECTED_TICKERS)
+    )
+    if isinstance(token, str) and token.isalpha() and len(token) >= 5
 }
 
 
@@ -77,6 +92,11 @@ def is_probable_ticker(value: str) -> bool:
 
     # Reject pure numeric tokens unless they are exchange-qualified (e.g. 0700.HK).
     if ticker.isdigit():
+        return False
+
+    # Reject long pure-alpha words unless we explicitly know them.
+    # This keeps discovery open while filtering obvious news words.
+    if ticker.isalpha() and len(ticker) >= 6 and ticker not in _KNOWN_LONG_ALPHA_TICKERS:
         return False
 
     return True

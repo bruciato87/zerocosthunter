@@ -12,6 +12,7 @@ from typing import Optional, List, Dict
 
 logger = logging.getLogger("Memory")
 DEFAULT_EMBEDDING_MODELS = ("text-embedding-004", "text-embedding-005", "gemini-embedding-001")
+DEFAULT_EMBEDDING_DIM = 768
 
 class Memory:
     """Long-term memory system for AI decisions and reasoning."""
@@ -21,6 +22,8 @@ class Memory:
         self.db = DBHandler()
         self._working_embedding_model = None
         self._embedding_models = []
+        self._embedding_dim = DEFAULT_EMBEDDING_DIM
+        self._embedding_dim_adjustment_warnings = set()
         env_model = os.getenv("GEMINI_EMBEDDING_MODEL")
         for model_name in (env_model, *DEFAULT_EMBEDDING_MODELS):
             if model_name and model_name not in self._embedding_models:
@@ -37,6 +40,51 @@ class Memory:
                 logger.warning(f"Failed to initialize Gemini client: {e}")
         else:
             logger.warning("GEMINI_API_KEY not set, embeddings disabled")
+
+    def _get_target_embedding_dim(self) -> int:
+        """Get target embedding dimension (DB pgvector size), with safe fallback."""
+        configured = getattr(self, "_embedding_dim", None)
+        if isinstance(configured, int) and configured > 0:
+            return configured
+
+        raw_value = os.getenv("MEMORY_EMBEDDING_DIM", str(DEFAULT_EMBEDDING_DIM))
+        try:
+            parsed = int(raw_value)
+            if parsed <= 0:
+                raise ValueError("dimension must be > 0")
+        except Exception:
+            parsed = DEFAULT_EMBEDDING_DIM
+
+        self._embedding_dim = parsed
+        return parsed
+
+    def _normalize_embedding_dimension(self, vector: List[float]) -> List[float]:
+        """
+        Normalize embedding vector size to match DB schema.
+        Avoids hard failures like "expected 768 dimensions, not 3072".
+        """
+        target_dim = self._get_target_embedding_dim()
+        current_dim = len(vector)
+        if current_dim == target_dim:
+            return vector
+
+        warn_key = (current_dim, target_dim)
+        warn_seen = getattr(self, "_embedding_dim_adjustment_warnings", None)
+        if warn_seen is None:
+            warn_seen = set()
+            self._embedding_dim_adjustment_warnings = warn_seen
+
+        if warn_key not in warn_seen:
+            logger.warning(
+                "Embedding dimension mismatch (%s -> %s). Normalizing vector before DB insert.",
+                current_dim,
+                target_dim,
+            )
+            warn_seen.add(warn_key)
+
+        if current_dim > target_dim:
+            return vector[:target_dim]
+        return vector + [0.0] * (target_dim - current_dim)
 
     def _embedding_model_candidates(self) -> List[str]:
         """Prefer the last known-good model, then fallback models."""
@@ -125,6 +173,7 @@ class Memory:
 
                 vector = self._extract_embedding_values(response)
                 if vector:
+                    vector = self._normalize_embedding_dimension(vector)
                     if getattr(self, "_working_embedding_model", None) != model_name:
                         logger.info(f"Memory embeddings: using model {model_name}")
                     self._working_embedding_model = model_name
