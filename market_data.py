@@ -1300,16 +1300,31 @@ class MarketData:
             os.makedirs(cache_dir)
             
         ticker_u = ticker.upper()
-        # Resolve aliases
-        ticker_search = self.TICKER_ALIASES.get(ticker_u, ticker_u)
-        
-        # Crypto Alias Handling
-        crypto_list = ['BTC', 'ETH', 'SOL', 'XRP', 'RENDER', 'DOGE', 'ADA', 'DOT', 'LINK']
-        base = ticker_search.replace('-USD', '').replace('-EUR', '')
-        if base in crypto_list and not ticker_search.endswith('-USD'):
-            ticker_search = f"{base}-USD"
+        alias_ticker = self.TICKER_ALIASES.get(ticker_u)
 
-        safe_ticker = ticker_search.replace('=', '').replace('^', '')
+        # Build robust candidate list.
+        # Prefer explicit exchange/pair aliases (.DE, .F, -USD) first, otherwise keep the original ticker first.
+        search_candidates = []
+        if alias_ticker and ('.' in alias_ticker or '-' in alias_ticker):
+            search_candidates.extend([alias_ticker, ticker_u])
+        else:
+            search_candidates.append(ticker_u)
+            if alias_ticker and alias_ticker != ticker_u:
+                search_candidates.append(alias_ticker)
+
+        # Crypto alias handling for candidates.
+        crypto_list = ['BTC', 'ETH', 'SOL', 'XRP', 'RENDER', 'DOGE', 'ADA', 'DOT', 'LINK']
+        normalized_candidates = []
+        for candidate in search_candidates:
+            base = candidate.replace('-USD', '').replace('-EUR', '')
+            if base in crypto_list and '-' not in candidate:
+                normalized_candidates.append(f"{base}-USD")
+            else:
+                normalized_candidates.append(candidate)
+        search_candidates = list(dict.fromkeys(normalized_candidates))
+
+        # Cache file keyed by original request ticker (stable cache regardless of chosen source symbol).
+        safe_ticker = ticker_u.replace('=', '').replace('^', '')
         cache_file = os.path.join(cache_dir, f"history_{safe_ticker}.json")
         
         # 1. Check Cache
@@ -1326,47 +1341,45 @@ class MarketData:
                     if not df.empty:
                         df['Date'] = pd.to_datetime(df['Date'])
                         df.set_index('Date', inplace=True)
-                        logger.info(f"Loaded {len(df)} rows from cache for {ticker_search}")
+                        logger.info(f"Loaded {len(df)} rows from cache for {ticker_u}")
                         return df
             except Exception as e:
                 logger.warning(f"Failed to load cache for {ticker}: {e}")
 
-        # 2. Fetch from API
-        try:
-            logger.info(f"Fetching {days}d history for {ticker_search} from API...")
-            # Calculate start date string
-            start_date = (datetime.now() - timedelta(days=days)).strftime('%Y-%m-%d')
-            
-            data = yf.download(ticker_search, start=start_date, progress=False, auto_adjust=True)
-            
-            if data.empty:
-                logger.warning(f"No data found for {ticker_search}")
-                return pd.DataFrame()
+        # 2. Fetch from API (try candidates in order)
+        start_date = (datetime.now() - timedelta(days=days)).strftime('%Y-%m-%d')
+        for ticker_search in search_candidates:
+            try:
+                logger.info(f"Fetching {days}d history for {ticker_search} from API...")
+                data = yf.download(ticker_search, start=start_date, progress=False, auto_adjust=True)
+                if data.empty:
+                    continue
 
-            # Handle MultiIndex
-            if hasattr(data.columns, 'levels'):
-                df = data.copy()
-                df.columns = df.columns.get_level_values(0)
-            else:
-                df = data.copy()
+                # Handle MultiIndex
+                if hasattr(data.columns, 'levels'):
+                    df = data.copy()
+                    df.columns = df.columns.get_level_values(0)
+                else:
+                    df = data.copy()
 
-            # reset index to make Date a column for JSON serialization
-            df.reset_index(inplace=True)
-            df['Date'] = df['Date'].dt.strftime('%Y-%m-%d %H:%M:%S')
-            
-            # Save to Cache
-            with open(cache_file, 'w') as f:
-                f.write(df.to_json(orient='records', date_format='iso'))
-            
-            # Restore Index for return
-            df['Date'] = pd.to_datetime(df['Date'])
-            df.set_index('Date', inplace=True)
-            
-            return df
+                # reset index to make Date a column for JSON serialization
+                df.reset_index(inplace=True)
+                df['Date'] = df['Date'].dt.strftime('%Y-%m-%d %H:%M:%S')
 
-        except Exception as e:
-            logger.error(f"Failed to fetch history for {ticker}: {e}")
-            return pd.DataFrame()
+                # Save to Cache
+                with open(cache_file, 'w') as f:
+                    f.write(df.to_json(orient='records', date_format='iso'))
+
+                # Restore Index for return
+                df['Date'] = pd.to_datetime(df['Date'])
+                df.set_index('Date', inplace=True)
+
+                return df
+            except Exception as e:
+                logger.debug(f"Historical fetch failed for {ticker_search}: {e}")
+
+        logger.warning(f"No data found for {ticker} (candidates: {', '.join(search_candidates)})")
+        return pd.DataFrame()
 
 
 class SectorAnalyst:
