@@ -49,6 +49,21 @@ def test_calculate_weighted_action_accumulate_owned():
     assert "ACCUMULATE" in result["final_action"]
     assert "STRONG" not in result["final_action"]
 
+
+def test_council_accumulate_summary_is_scored_as_bullish():
+    engine = ConsensusEngine()
+    prediction = {
+        "ticker": "BTC-USD",
+        "sentiment": "ACCUMULATE",
+        "critic_score": 60,
+        "council_summary": "MAJORITY VERDICT: ACCUMULATE (2/3) | OWNED_ASSET",
+        "council_full_debate": "ML Prediction: FLAT"
+    }
+
+    result = engine.calculate_weighted_action(prediction, is_owned=True)
+    assert result["components"]["council"] > 0
+    assert "ACCUMULATE" in result["final_action"]
+
 def test_calculate_weighted_action_disputed():
     engine = ConsensusEngine()
     prediction = {

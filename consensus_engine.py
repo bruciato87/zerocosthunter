@@ -129,7 +129,10 @@ class ConsensusEngine:
         # 3. Council Score
         council_summary = prediction.get("council_summary", "")
         council_sent = "HOLD"
-        if "BUY" in council_summary: council_sent = "BUY"
+        if "ACCUMULATE" in council_summary:
+            council_sent = "ACCUMULATE"
+        elif "BUY" in council_summary:
+            council_sent = "BUY"
         elif "SELL" in council_summary: council_sent = "SELL"
         council_score = self.SENTIMENT_MAP.get(council_sent, 0)
         
@@ -188,4 +191,3 @@ class ConsensusEngine:
                 "ml": ml_score
             }
         }
-

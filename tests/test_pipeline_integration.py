@@ -168,6 +168,10 @@ async def test_run_async_pipeline_minimal(mocker):
     assert call_args['critic_verdict'] == "Pass"
     assert call_args['critic_score'] == 90
 
+    # Hunt notifications should be consolidated into one final telegram message.
+    assert mock_notifier.send_message.await_count == 1
+    mock_notifier.send_alert.assert_not_awaited()
+
     # Regression guard: run metrics must be persisted and include processed news count
     mock_db.save_run_metrics.assert_called_once()
     run_metrics = mock_db.save_run_metrics.call_args[0][0]

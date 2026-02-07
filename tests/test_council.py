@@ -33,6 +33,24 @@ async def test_council_consensus_buy(council, brain_mock):
     assert "**THE_BULL**: BUY" in verdict["council_full_debate"]
     assert "MAJORITY VERDICT: BUY (2/3)" in verdict["council_summary"]
 
+
+@pytest.mark.asyncio
+async def test_council_owned_asset_maps_buy_to_accumulate(council, brain_mock):
+    unified_response = json.dumps({
+        "THE_BULL": {"sentiment": "BUY", "confidence": 0.8, "argument": "Trend forte"},
+        "THE_BEAR": {"sentiment": "HOLD", "confidence": 0.5, "argument": "Rischio medio"},
+        "THE_QUANT": {"sentiment": "BUY", "confidence": 0.7, "argument": "Confluenza positiva"}
+    })
+    brain_mock._generate_with_fallback.return_value = unified_response
+
+    initial_signal = {"ticker": "BTC-USD", "sentiment": "BUY", "confidence": 0.82, "reasoning": "Setup bullish"}
+    portfolio_context = [{"ticker": "BTC-USD", "quantity": 0.2, "avg_price": 50000}]
+    verdict = await council.get_consensus("BTC-USD", initial_signal, portfolio_context=portfolio_context)
+
+    assert verdict["sentiment"] == "ACCUMULATE"
+    assert "ACCUMULATE" in verdict["council_summary"]
+    assert "Ownership Context" in verdict["council_full_debate"]
+
 @pytest.mark.asyncio
 async def test_report_consensus(brain_mock):
     """Test Council critiquing a report."""

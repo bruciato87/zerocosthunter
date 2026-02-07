@@ -31,7 +31,57 @@ class Council:
     def __init__(self, brain_instance=None):
         self.brain = brain_instance
 
-    async def get_consensus(self, ticker: str, initial_signal: Dict) -> Dict:
+    @staticmethod
+    def _base_ticker(value: str) -> str:
+        t = str(value or "").upper().strip()
+        if not t:
+            return ""
+        return t.replace("-USD", "").replace("-EUR", "").replace("-GBP", "")
+
+    def _resolve_portfolio_holding(self, ticker: str, portfolio_context: Optional[List[Dict]]) -> Tuple[bool, Optional[Dict]]:
+        if not isinstance(portfolio_context, list):
+            return False, None
+
+        target = self._base_ticker(ticker)
+        if not target:
+            return False, None
+
+        for row in portfolio_context:
+            if not isinstance(row, dict):
+                continue
+            row_ticker = row.get("ticker")
+            if not row_ticker:
+                continue
+            if self._base_ticker(row_ticker) == target:
+                return True, row
+        return False, None
+
+    def _portfolio_snapshot(self, portfolio_context: Optional[List[Dict]], max_items: int = 8) -> str:
+        if not isinstance(portfolio_context, list) or not portfolio_context:
+            return "Portafoglio non disponibile."
+
+        items = []
+        for row in portfolio_context:
+            if not isinstance(row, dict):
+                continue
+            ticker = row.get("ticker")
+            qty = row.get("quantity")
+            avg = row.get("avg_price")
+            if not ticker:
+                continue
+            piece = f"{ticker}"
+            if qty is not None and avg is not None:
+                piece += f" (qty {qty}, avg €{avg})"
+            items.append(piece)
+            if len(items) >= max_items:
+                break
+
+        if not items:
+            return "Portafoglio non disponibile."
+        suffix = "…" if isinstance(portfolio_context, list) and len(portfolio_context) > len(items) else ""
+        return ", ".join(items) + suffix
+
+    async def get_consensus(self, ticker: str, initial_signal: Dict, portfolio_context: Optional[List[Dict]] = None) -> Dict:
         """
         Runs the council debate for a specific signal.
         ticker: Asset ticker
@@ -44,8 +94,14 @@ class Council:
         logger.info(f"THE COUNCIL: Debating {ticker}...")
 
         try:
+            is_owned, holding = self._resolve_portfolio_holding(ticker, portfolio_context)
+            enriched_signal = dict(initial_signal or {})
+            enriched_signal["is_owned_asset"] = bool(is_owned)
+            enriched_signal["holding_summary"] = holding or {}
+            enriched_signal["portfolio_snapshot"] = self._portfolio_snapshot(portfolio_context)
+
             # 1. Single Multi-Persona Prompt
-            prompt = self._build_unified_council_prompt(ticker, initial_signal)
+            prompt = self._build_unified_council_prompt(ticker, enriched_signal)
             
             # Call brain once for all personas (forced to background to save Gemini quota)
             response = self.brain._generate_with_fallback(prompt, json_mode=True, task_type="council_debate", prefer_direct=True)
@@ -58,14 +114,15 @@ class Council:
                 "THE_BEAR": council_data.get("THE_BEAR", {}),
                 "THE_QUANT": council_data.get("THE_QUANT", {})
             }
-            votes = [
-                results["THE_BULL"].get("sentiment", "HOLD"),
-                results["THE_BEAR"].get("sentiment", "HOLD"),
-                results["THE_QUANT"].get("sentiment", "HOLD")
-            ]
+            votes = []
+            for persona in ("THE_BULL", "THE_BEAR", "THE_QUANT"):
+                raw_vote = str(results[persona].get("sentiment", "HOLD")).upper().strip()
+                if raw_vote not in {"BUY", "SELL", "HOLD", "ACCUMULATE"}:
+                    raw_vote = "HOLD"
+                votes.append(raw_vote)
             
             # 3. Consensus Logic
-            verdict = self._calculate_verdict(votes, results, initial_signal)
+            verdict = self._calculate_verdict(votes, results, enriched_signal)
             
             logger.info(f"🏛️ COUNCIL VERDICT [{ticker}]: {verdict['sentiment']} ({verdict['consensus_score']}/3 Agreement)")
             return verdict
@@ -75,6 +132,13 @@ class Council:
             return initial_signal
 
     def _build_unified_council_prompt(self, ticker: str, signal: Dict) -> str:
+        is_owned = bool(signal.get("is_owned_asset"))
+        holding = signal.get("holding_summary") or {}
+        holding_ticker = holding.get("ticker", ticker)
+        holding_qty = holding.get("quantity", "N/A")
+        holding_avg = holding.get("avg_price", "N/A")
+        portfolio_snapshot = signal.get("portfolio_snapshot", "Portafoglio non disponibile.")
+
         return f"""
         ROLES: You must simultaneously act as three specialized investment personas:
         1. THE_BULL: Optimistic Growth Analyst (Focus: Growth catalysts, bullish momentum).
@@ -84,15 +148,25 @@ class Council:
         ASSET: {ticker}
         INITIAL ANALYSIS: {signal.get('sentiment')} with {signal.get('confidence', 0)*100:.0f}% confidence.
         REASONING: {signal.get('reasoning')}
+        OWNERSHIP: {"OWNED" if is_owned else "NOT_OWNED"}
+        HOLDING DETAILS: ticker={holding_ticker}, quantity={holding_qty}, avg_price={holding_avg}
+        PORTFOLIO SNAPSHOT: {portfolio_snapshot}
         
         TASK:
         Provide a consolidated debate. Each persona must evaluate the signal from its perspective.
+
+        CRITICAL RULES:
+        - Write arguments in ITALIANO.
+        - If OWNERSHIP = OWNED and sentiment is bullish, prefer ACCUMULATE over BUY.
+        - Use BUY for owned assets only if the setup is exceptionally strong.
+        - If OWNERSHIP = NOT_OWNED, do not use ACCUMULATE.
+        - Keep coherence with portfolio risk (do not ignore existing concentration).
         
         Return exactly this JSON structure:
         {{
-            "THE_BULL": {{ "sentiment": "BUY|SELL|HOLD", "confidence": 0.0-1.0, "argument": "short brief" }},
-            "THE_BEAR": {{ "sentiment": "BUY|SELL|HOLD", "confidence": 0.0-1.0, "argument": "short brief" }},
-            "THE_QUANT": {{ "sentiment": "BUY|SELL|HOLD", "confidence": 0.0-1.0, "argument": "short brief" }}
+            "THE_BULL": {{ "sentiment": "BUY|ACCUMULATE|SELL|HOLD", "confidence": 0.0-1.0, "argument": "short brief" }},
+            "THE_BEAR": {{ "sentiment": "BUY|ACCUMULATE|SELL|HOLD", "confidence": 0.0-1.0, "argument": "short brief" }},
+            "THE_QUANT": {{ "sentiment": "BUY|ACCUMULATE|SELL|HOLD", "confidence": 0.0-1.0, "argument": "short brief" }}
         }}
         """
 
@@ -203,7 +277,18 @@ class Council:
     def _calculate_verdict(self, votes: List[str], results: Dict, original: Dict) -> Dict:
         """Determines the final consensus and aggregates reasoning."""
         from collections import Counter
-        counts = Counter(votes)
+        is_owned = bool(original.get("is_owned_asset"))
+
+        normalized_votes = []
+        for vote in votes:
+            v = str(vote or "HOLD").upper().strip()
+            if v not in {"BUY", "SELL", "HOLD", "ACCUMULATE"}:
+                v = "HOLD"
+            if is_owned and v == "BUY":
+                v = "ACCUMULATE"
+            normalized_votes.append(v)
+
+        counts = Counter(normalized_votes)
         
         # Find the most common sentiment
         common_sentiment, count = counts.most_common(1)[0]
@@ -216,18 +301,34 @@ class Council:
         # If Majority, highlight what the dissenter said
         
         council_summary = f"{label} VERDICT: {common_sentiment} ({count}/3)"
+        if is_owned and common_sentiment in {"ACCUMULATE", "BUY"}:
+            council_summary += " | OWNED_ASSET"
         
         dissent_note = ""
         if count < 3:
-            dissenter = next((name for name, data in results.items() if data.get("sentiment") != common_sentiment), None)
+            dissenter = None
+            for name, data in results.items():
+                diss_sent = str(data.get("sentiment", "HOLD")).upper().strip()
+                if is_owned and diss_sent == "BUY":
+                    diss_sent = "ACCUMULATE"
+                if diss_sent != common_sentiment:
+                    dissenter = name
+                    break
             if dissenter:
-                dissent_sentiment = results[dissenter].get("sentiment", "HOLD")
+                dissent_sentiment = str(results[dissenter].get("sentiment", "HOLD")).upper().strip()
+                if is_owned and dissent_sentiment == "BUY":
+                    dissent_sentiment = "ACCUMULATE"
                 dissent_argument = results[dissenter].get("argument", "")
                 dissent_note = f"\n⚠️ **Dissent ({dissenter})**: Argued for {dissent_sentiment} because '{dissent_argument}'"
 
         final_reasoning = f"🏛️ **COUNCIL DEBATE ({label})**\n"
         for name, data in results.items():
-            final_reasoning += f"- **{name}**: {data.get('sentiment')} | {data.get('argument')}\n"
+            persona_sent = str(data.get("sentiment", "HOLD")).upper().strip()
+            if is_owned and persona_sent == "BUY":
+                persona_sent = "ACCUMULATE"
+            final_reasoning += f"- **{name}**: {persona_sent} | {data.get('argument')}\n"
+        if is_owned:
+            final_reasoning += "- **Ownership Context**: Asset già in portafoglio, privilegiata logica ACCUMULATE.\n"
             
         # [FIX] Preserve all original fields (Risk management, Expert Critic, etc.)
         verdict = original.copy()

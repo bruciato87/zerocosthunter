@@ -85,76 +85,133 @@ def _safe_total_tokens_from_usage(usage):
         logger.debug(f"Failed to parse usage tokens: {e}")
         return "?"
 
+def _truncate_text(text, max_len=260):
+    """Keep Telegram content compact and readable."""
+    if text is None:
+        return ""
+    s = " ".join(str(text).strip().split())
+    if len(s) <= max_len:
+        return s
+    return s[: max_len - 1].rstrip() + "…"
+
+def _extract_dissent_snippet(full_debate: str) -> str:
+    """Extract and shorten dissent note from council debate."""
+    if not full_debate:
+        return ""
+    m = re.search(r"⚠️ \*\*Dissent[^\n]*\*\*:?\s*(.*)", full_debate, flags=re.IGNORECASE)
+    if not m:
+        return ""
+    return _truncate_text(m.group(1), max_len=180)
+
+def _localize_council_summary(summary: str) -> str:
+    s = str(summary or "")
+    return (
+        s.replace("UNANIMOUS VERDICT", "VERDETTO UNANIME")
+         .replace("MAJORITY VERDICT", "VERDETTO DI MAGGIORANZA")
+         .replace("DISPUTED VERDICT", "VERDETTO CONTESO")
+         .replace("OWNED_ASSET", "ASSET GIÀ IN PORTAFOGLIO")
+    )
+
+def _build_hunt_digest_message(
+    *,
+    analyzed_items: int,
+    total_time: float,
+    ai_footer: str,
+    processed_count: int,
+    signal_cards: list,
+    propagated_cards: list,
+    watchdog_report: str,
+    audit_report: str,
+    maintenance_report: str,
+    flash_tip: str,
+    sector_signals: list,
+    sentinel_cards: list,
+    ml_training_note: str,
+):
+    """Build a single Telegram message for the entire hunt run."""
+    sections = []
+    header = f"🏹 **Hunt completata**\n🔍 Analizzati {analyzed_items} item in {total_time:.1f}s."
+    if ai_footer:
+        header += f"\n{ai_footer}"
+    header += f"\n🎯 Segnali validati: {processed_count}"
+    sections.append(header)
+
+    if signal_cards:
+        body = "\n\n──────────\n\n".join(signal_cards[:8])
+        if len(signal_cards) > 8:
+            body += f"\n\n…altri {len(signal_cards) - 8} segnali non mostrati."
+        sections.append(f"📌 **Segnali Hunt**\n{body}")
+    else:
+        sections.append("📌 **Segnali Hunt**\nNessun nuovo segnale significativo.")
+
+    if propagated_cards:
+        prop = "\n".join(f"• {c}" for c in propagated_cards[:10])
+        if len(propagated_cards) > 10:
+            prop += f"\n• …altri {len(propagated_cards) - 10} segnali correlati."
+        sections.append(f"🔗 **Segnali Correlati**\n{prop}")
+
+    if watchdog_report:
+        sections.append(watchdog_report)
+    if audit_report:
+        sections.append(audit_report)
+    if maintenance_report:
+        sections.append(maintenance_report)
+    if sentinel_cards:
+        sent = "\n".join(f"• {_truncate_text(s, 180)}" for s in sentinel_cards[:8])
+        if len(sentinel_cards) > 8:
+            sent += f"\n• …altri {len(sentinel_cards) - 8} avvisi."
+        sections.append(f"🚨 **Avvisi Sentinel**\n{sent}")
+    if ml_training_note:
+        sections.append(ml_training_note)
+    if sector_signals:
+        sections.append("📈 **Sector Rotation**\n" + "\n".join(sector_signals))
+    if flash_tip:
+        sections.append(f"💡 {flash_tip}")
+
+    msg = "\n\n".join(s for s in sections if s)
+    if len(msg) > 3900:
+        msg = msg[:3760].rstrip() + "\n\n…Messaggio ridotto per limiti Telegram."
+    return msg
+
 def format_alert_msg(ticker, sentiment, confidence, reasoning, source, pred, stop_loss, take_profit, critic_score, critic_reasoning, council_summary, consensus_data=None, ai_footer=None):
     """
-    Refines and formats the signal alert for Telegram with a "Hierarchy of Truth".
-    Now includes a Weighted Consensus Action.
+    Build a compact Italian signal card for the consolidated hunt digest.
     """
-    # 0. Weighted Consensus Header
-    consensus_header = ""
-    if consensus_data:
-        action = consensus_data.get("final_action", "WAIT")
-        icon_c = "🌟" if "STRONG" in action else "⚖️"
-        consensus_header = f"{icon_c} **Consensus Action:** {action}\n\n"
-
-    # 1. Prediction Stats Badge
     asset_type = pred.get("asset_type", "Asset")
     icon = "🟢" if sentiment in ["BUY", "ACCUMULATE"] else "🔴" if sentiment in ["SELL", "PANIC SELL"] else "⚪"
     target_price = pred.get("target_price")
     upside_percentage = pred.get("upside_percentage", 0)
     risk_score = pred.get("risk_score", 5)
+    consensus_action = consensus_data.get("final_action", sentiment) if consensus_data else sentiment
 
-    badge = ""
+    lines = [
+        f"{icon} **{ticker}** ({asset_type})",
+        f"⚖️ Azione consenso: **{consensus_action}**",
+        f"🤖 Hunter: **{sentiment}** ({int(confidence * 100)}%)",
+    ]
     if target_price:
-         badge += f"\n🎯 **Target:** {target_price}"
-         if upside_percentage > 0:
-             badge += f" (Up +{upside_percentage}%)"
-    
-    badge += f"\n🎲 **Risk Score:** {risk_score}/10"
+        target_line = f"🎯 Target: {target_price}"
+        if upside_percentage > 0:
+            target_line += f" (+{upside_percentage}%)"
+        lines.append(target_line)
+    lines.append(f"🎲 Rischio: {risk_score}/10")
     if stop_loss:
-        badge += f"\n🛑 **Stop Loss:** €{stop_loss}"
+        lines.append(f"🛑 Stop loss: €{stop_loss}")
     if take_profit:
-        badge += f"\n💰 **Take Profit:** €{take_profit}"
+        lines.append(f"💰 Take profit: €{take_profit}")
 
-    # 2. Expert & Council Intelligence
-    expert_section = ""
-    if critic_reasoning or council_summary:
-        review_parts = []
-        
-        # Risk Check (Critic)
-        if critic_reasoning:
-            review_parts.append(f"🛡️ **Risk Check (Critic)**: {critic_reasoning}")
-        
-        # Council Verdict
-        if council_summary:
-            review_parts.append(f"🏛️ **Council Verdict**: {council_summary}")
-            
-            # Dynamic Dissent Integration (Transparency)
-            full_debate = pred.get("council_full_debate", "")
-            if "⚠️ **Dissent" in full_debate:
-                import re
-                dissent_match = re.search(r"(⚠️ \*\*Dissent[\s\S]+)", full_debate)
-                if dissent_match:
-                    review_parts.append(f"> {dissent_match.group(1).strip()}")
+    lines.append(f"💡 Motivo: {_truncate_text(reasoning, 300)}")
+    if critic_reasoning:
+        lines.append(f"🛡️ Critic: {_truncate_text(critic_reasoning, 180)}")
+    if council_summary:
+        lines.append(f"🏛️ Council: {_localize_council_summary(council_summary)}")
+        dissent = _extract_dissent_snippet(pred.get("council_full_debate", ""))
+        if dissent:
+            lines.append(f"⚠️ Dissent: {dissent}")
+    if source:
+        lines.append(f"📰 Fonte: {_truncate_text(source, 90)}")
 
-        expert_section = "\n" + "\n".join(review_parts)
-
-    # 3. Final Construction
-    alert_msg = (
-        f"{icon} **Signal: {ticker} ({asset_type})**\n"
-        f"{consensus_header}"
-        f"**Hunter Prediction:** {sentiment} ({int(confidence * 100)}%)\n"
-        f"{badge}\n\n"
-        f"💡 **Catalyst:** {reasoning}"
-        f"{expert_section}\n\n"
-        f"**Source:** {source}"
-    )
-    
-    # 4. Detailed AI Footer
-    if ai_footer:
-        alert_msg += f"\n\n{ai_footer}"
-        
-    return alert_msg
+    return "\n".join(lines)
 
 def run_pipeline():
     asyncio.run(run_async_pipeline())
@@ -226,13 +283,24 @@ async def run_async_pipeline():
         )
         return
 
+    # Consolidated telegram delivery (single message per hunt run)
+    sentinel_cards = []
+    signal_cards = []
+    propagated_cards = []
+    watchdog_report = ""
+    audit_report = ""
+    maintenance_report = ""
+    ml_training_note = ""
+
     # 1.5 Sentinel Checks (Price Alerts)
     logger.info("Running Sentinel Checks...")
     try:
         notifications = await sentinel.check_alerts(market)
         for n in notifications:
-            await notifier.send_message(n['chat_id'], n['text'])
-            logger.info(f"Sentinel: Notification sent to {n['chat_id']}")
+            txt = n.get("text", "")
+            if txt:
+                sentinel_cards.append(txt)
+            logger.info(f"Sentinel: queued notification for consolidated hunt digest")
     except Exception as e:
         logger.error(f"Sentinel Failed: {e}")
 
@@ -247,7 +315,7 @@ async def run_async_pipeline():
                 logger.info("ML: New data available, retraining model...")
                 if ml_predictor.train():
                     logger.info("ML: Weekly training completed successfully!")
-                    await notifier.send_alert("🤖 **ML Training Completato!**\n📊 Il modello è stato aggiornato con i nuovi dati.")
+                    ml_training_note = "🤖 **Training ML completato**\n📊 Il modello è stato aggiornato con i nuovi dati."
         except Exception as e:
             logger.error(f"ML Weekly Training Failed: {e}")
 
@@ -1208,10 +1276,9 @@ async def run_async_pipeline():
             ticker, sentiment, confidence, reasoning, source, pred, 
             stop_loss, take_profit, critic_score, critic_reasoning, 
             council_summary, consensus_data=consensus_data,
-            ai_footer=brain.get_usage_summary()  # NEW: Detailed attribution
+            ai_footer=None
         )
-        
-        await notifier.send_alert(alert_msg)
+        signal_cards.append(alert_msg)
         
         # Save to Memory (Neuro-Link) for historical recall
         try:
@@ -1268,16 +1335,9 @@ async def run_async_pipeline():
                     # Log propagated signal
                     logger.info(f"L1 Correlation: {ticker} → {prop_ticker} ({prop_sentiment} @ {prop_conf:.0%})")
                     
-                    # Send notification for propagated signal
-                    icon = "🔗" if prop_signal.get('is_propagated') else "🟢"
-                    alert_msg = (
-                        f"{icon} **Correlated Signal: {prop_ticker}**\n"
-                        f"**Action:** {prop_sentiment}\n"
-                        f"**Confidence:** {int(prop_conf * 100)}%\n\n"
-                        f"**Reasoning:** {prop_reasoning}\n"
-                        f"**Source:** Correlation Engine (from {ticker})"
+                    propagated_cards.append(
+                        f"`{prop_ticker}` → {prop_sentiment} ({int(prop_conf * 100)}%) | {_truncate_text(prop_reasoning, 160)}"
                     )
-                    await notifier.send_alert(alert_msg)
                     propagated_count += 1
         
         if propagated_count > 0:
@@ -1306,9 +1366,8 @@ async def run_async_pipeline():
         if exit_signals:
             logger.info(f"Position Watchdog: Generated {len(exit_signals)} exit signals")
             
-            # Format and send consolidated exit report
-            exit_report = watchdog.format_telegram_report(exit_signals)
-            await notifier.send_alert(exit_report)
+            # Format and queue for single hunt digest
+            watchdog_report = watchdog.format_telegram_report(exit_signals)
             
             # Log each signal for tracking
             for signal in exit_signals:
@@ -1323,7 +1382,7 @@ async def run_async_pipeline():
     audit_results = await auditor.audit_open_signals()
     if audit_results:
         summary_audit = "\n".join([f"• **{r['ticker']}**: {r['pnl_percent']:+.2f}% ({r['status']})" for r in audit_results])
-        await notifier.send_alert(f"⚖️ **Auditor Monitoring Update:**\n{summary_audit}")
+        audit_report = f"⚖️ **Aggiornamento Auditor**\n{summary_audit}"
 
     # --- MAINTENANCE PHASE (Storage Monitoring) ---
     try:
@@ -1335,9 +1394,11 @@ async def run_async_pipeline():
             # Auto-cleanup and notify
             deleted = maint.cleanup_old_records(force=True)
             total_deleted = sum(v for v in deleted.values() if v > 0)
-            await notifier.send_alert(f"⚠️ **Storage Alert:**\n{health['message']}\n🧹 Auto-cleaned {total_deleted} old records.")
+            maintenance_report = (
+                f"⚠️ **Allerta Storage**\n{health['message']}\n🧹 Pulizia automatica: {total_deleted} record."
+            )
         elif health["status"] == "warning":
-            await notifier.send_alert(f"⚡ **Storage Warning:**\n{health['message']}")
+            maintenance_report = f"⚡ **Warning Storage**\n{health['message']}"
         
         logger.info(f"Maintenance: {health['message']}")
     except Exception as e:
@@ -1410,7 +1471,7 @@ async def run_async_pipeline():
     except Exception as e:
         logger.warning(f"Flash rebalance check failed: {e}")
     
-    # Send completion notification to Telegram
+    # Send single consolidated hunt message to Telegram
     try:
         try:
             details = brain.last_run_details
@@ -1418,32 +1479,28 @@ async def run_async_pipeline():
                 model_name = details.get('model', 'Unknown').split('/')[-1].replace(':free', '')
                 usage = details.get("usage", {})
                 total_tok = _safe_total_tokens_from_usage(usage)
-                ai_footer = f"\n🤖 AI: {model_name} ({total_tok} tokens)"
+                ai_footer = f"🤖 AI: {model_name} ({total_tok} token)"
         except Exception as e:
             logger.debug(f"Failed to build ai_footer: {e}")
             ai_footer = ""
 
-        # --- FINAL SUMMARY ---
         total_time = timing_module.time() - _run_start_time
-        
-        final_report = f"✅ Caccia Completata!\n🔍 Analizzati {len(analysis_batch)} item in {total_time:.1f}s."
-        
-        if ai_footer:
-            final_report += ai_footer
-            
-        # Add Sector Rotation
-        if sector_signals:
-            sec_text = "\n\n" + "\n".join(sector_signals)
-            final_report += sec_text
-        
-        if processed_count == 0:
-            final_report += "\n🔍 Nessun nuovo segnale significativo trovato."
-        else:
-            final_report += f"\n🎯 Generati {processed_count} nuovi segnali."
-        
-        if flash_tip:
-            final_report += flash_tip
-        
+        final_report = _build_hunt_digest_message(
+            analyzed_items=len(analysis_batch),
+            total_time=total_time,
+            ai_footer=ai_footer,
+            processed_count=processed_count,
+            signal_cards=signal_cards,
+            propagated_cards=propagated_cards,
+            watchdog_report=watchdog_report,
+            audit_report=audit_report,
+            maintenance_report=maintenance_report,
+            flash_tip=flash_tip,
+            sector_signals=sector_signals,
+            sentinel_cards=sentinel_cards,
+            ml_training_note=ml_training_note,
+        )
+
         target_chat = user_settings.get("telegram_chat_id") or notifier.chat_id
         await notifier.send_message(target_chat, final_report)
     except Exception as e:

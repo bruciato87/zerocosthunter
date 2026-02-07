@@ -1309,7 +1309,10 @@ class Brain:
                     analysis_results = self._verify_with_critic(analysis_results, prompt, market_regime_summary)
                     
                     # [PHASE C] COUNCIL CONSENSUS (Adversarial Debate for High-Confidence Signals)
-                    analysis_results = self._run_council_consensus(analysis_results)
+                    analysis_results = self._run_council_consensus(
+                        analysis_results,
+                        portfolio_context=portfolio_context,
+                    )
                 
                 return analysis_results
             except json.JSONDecodeError:
@@ -1396,7 +1399,7 @@ class Brain:
                 
         return verified_signals
 
-    def _run_council_consensus(self, initial_predictions: list) -> list:
+    def _run_council_consensus(self, initial_predictions: list, portfolio_context=None) -> list:
         """
         [PHASE C] Orchestrates consensus debate for high-confidence signals.
         """
@@ -1412,7 +1415,13 @@ class Brain:
             for pred in initial_predictions:
                 # Council debates only high-confidence or actionable signals
                 if float(pred.get('confidence', 0)) >= 0.75 and pred.get('sentiment') != 'HOLD':
-                    tasks.append(self.council.get_consensus(pred['ticker'], pred))
+                    tasks.append(
+                        self.council.get_consensus(
+                            pred['ticker'],
+                            pred,
+                            portfolio_context=portfolio_context,
+                        )
+                    )
                 else:
                     final_predictions.append(pred)
             
