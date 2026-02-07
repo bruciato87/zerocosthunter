@@ -146,12 +146,47 @@ class Brain:
                     # No methods attribute found - assume generative if name starts with gemini
                     is_generative = name.startswith("gemini")
                 
-                # Filter: only gemini models that can generate content
+                # Filter: only Gemini models that can generate text content
                 if is_generative and name.startswith("gemini") and name not in excluded_models:
-                    # Skip embedding, vision-only, or experimental unstable models
-                    skip_patterns = ["embedding", "vision", "aqa", "embedding"]
-                    if not any(skip in name.lower() for skip in skip_patterns):
-                        discovered.append(name)
+                    name_l = name.lower()
+
+                    # Hard skip known non-text/specialized families for this text pipeline.
+                    skip_patterns = [
+                        "embedding",
+                        "vision",
+                        "image",
+                        "aqa",
+                        "tts",
+                        "audio",
+                        "speech",
+                        "transcribe",
+                        "realtime",
+                        "live",
+                    ]
+                    if any(skip in name_l for skip in skip_patterns):
+                        continue
+
+                    # Some SDK versions expose supported output modalities.
+                    # If present and TEXT is missing, skip the model.
+                    modalities = None
+                    for mod_attr in [
+                        "supported_response_modalities",
+                        "response_modalities",
+                        "output_modalities",
+                    ]:
+                        modalities = getattr(m, mod_attr, None)
+                        if modalities is not None:
+                            break
+
+                    if modalities is not None:
+                        if isinstance(modalities, (list, tuple, set)):
+                            normalized = {str(x).upper() for x in modalities}
+                        else:
+                            normalized = {str(modalities).upper()}
+                        if "TEXT" not in normalized:
+                            continue
+
+                    discovered.append(name)
             
             logger.info(f"Gemini Discovery: Found {len(discovered)} models: {discovered[:5]}...")
             

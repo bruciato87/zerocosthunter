@@ -200,9 +200,14 @@ def test_gemini_discovery_multi_pattern(mock_brain_deps, mocker):
     
     class MockModelEmbedding:
         name = "models/text-embedding-004"  # Should be filtered out
+
+    class MockModelTTS:
+        name = "models/gemini-2.5-flash-preview-tts"  # Should be filtered out
+        supported_generation_methods = ["generateContent"]
+        supported_response_modalities = ["AUDIO"]
         
     mock_list = mocker.patch.object(brain.gemini_client.models, "list")
-    mock_list.return_value = [MockModel1(), MockModel2(), MockModelEmbedding()]
+    mock_list.return_value = [MockModel1(), MockModel2(), MockModelEmbedding(), MockModelTTS()]
     
     # Clear cache to force discovery
     brain._cached_best_gemini = None
@@ -213,6 +218,37 @@ def test_gemini_discovery_multi_pattern(mock_brain_deps, mocker):
     # Should discover gemini models and pick best by preference
     assert "gemini" in result
     assert "embedding" not in result
+    assert "tts" not in result
+    assert "audio" not in result
+
+def test_gemini_discovery_skips_audio_only_models(mocker, monkeypatch):
+    """Ensure audio-only Gemini models are excluded from text generation discovery."""
+    monkeypatch.setenv("GEMINI_API_KEY", "fake_gemini_key")
+    mocker.patch("brain.Critic")
+    mocker.patch("brain.Council")
+    mock_client = MagicMock()
+    mocker.patch("brain.genai.Client", return_value=mock_client)
+
+    brain = Brain()
+
+    class AudioOnlyModel:
+        name = "models/gemini-2.5-pro-preview-tts"
+        supported_generation_methods = ["generateContent"]
+        supported_response_modalities = ["AUDIO"]
+
+    class TextModel:
+        name = "models/gemini-2.0-flash"
+        supported_generation_methods = ["generateContent"]
+        supported_response_modalities = ["TEXT"]
+
+    brain.gemini_client.models.list.return_value = [AudioOnlyModel(), TextModel()]
+
+    brain._cached_best_gemini = None
+    brain._cache_timestamp = 0
+
+    result = brain._get_best_gemini_model()
+    assert "tts" not in result
+    assert result == "gemini-2.0-flash"
 
 def test_openrouter_discovery_multi_pattern(mock_brain_deps, mocker):
     """Test OpenRouter discovery handles API changes gracefully."""
