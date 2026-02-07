@@ -1,5 +1,5 @@
 import pytest
-from main import format_alert_msg
+from main import format_alert_msg, _split_telegram_message
 
 def test_format_alert_msg_unanimous():
     ticker = "BTC"
@@ -108,3 +108,11 @@ def test_format_alert_msg_with_ml_divergence():
     alert = format_alert_msg(ticker, sentiment, confidence, reasoning, source, pred, stop_loss, take_profit, critic_score, critic_reasoning, council_summary)
     
     assert "🤖 ML Check: ⚠️ Divergence: DOWN (65%)" in alert
+
+def test_split_telegram_message_preserves_all_content():
+    long_text = "HEADER\n\n" + ("A" * 2500) + "\n\n" + ("B" * 2500) + "\n\nTAIL"
+    parts = _split_telegram_message(long_text, max_len=1200)
+
+    assert len(parts) > 1
+    assert all(len(p) <= 1200 for p in parts)
+    assert "".join(parts).replace("\n\n", "") == long_text.replace("\n\n", "")

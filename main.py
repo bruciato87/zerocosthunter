@@ -168,10 +168,62 @@ def _build_hunt_digest_message(
     if flash_tip:
         sections.append(f"💡 {flash_tip}")
 
-    msg = "\n\n".join(s for s in sections if s)
-    if len(msg) > 3900:
-        msg = msg[:3760].rstrip() + "\n\n…Messaggio ridotto per limiti Telegram."
-    return msg
+    return "\n\n".join(s for s in sections if s)
+
+def _split_telegram_message(text: str, max_len: int = 3800) -> list:
+    """
+    Split long telegram text without dropping content.
+    Prefers section boundaries, then line boundaries, then hard slicing.
+    """
+    if not text:
+        return [""]
+    if len(text) <= max_len:
+        return [text]
+
+    chunks = []
+    current = ""
+
+    def _flush():
+        nonlocal current
+        if current:
+            chunks.append(current)
+            current = ""
+
+    blocks = text.split("\n\n")
+    for block in blocks:
+        candidate = block if not current else f"{current}\n\n{block}"
+        if len(candidate) <= max_len:
+            current = candidate
+            continue
+
+        _flush()
+        if len(block) <= max_len:
+            current = block
+            continue
+
+        # Oversized block: split by lines first.
+        line_buf = ""
+        for line in block.split("\n"):
+            line_candidate = line if not line_buf else f"{line_buf}\n{line}"
+            if len(line_candidate) <= max_len:
+                line_buf = line_candidate
+                continue
+            if line_buf:
+                chunks.append(line_buf)
+                line_buf = ""
+            if len(line) <= max_len:
+                line_buf = line
+                continue
+            # Single oversize line: hard split.
+            start = 0
+            while start < len(line):
+                chunks.append(line[start:start + max_len])
+                start += max_len
+        if line_buf:
+            chunks.append(line_buf)
+
+    _flush()
+    return chunks
 
 def format_alert_msg(ticker, sentiment, confidence, reasoning, source, pred, stop_loss, take_profit, critic_score, critic_reasoning, council_summary, consensus_data=None, ai_footer=None):
     """
@@ -1505,7 +1557,14 @@ async def run_async_pipeline():
         )
 
         target_chat = user_settings.get("telegram_chat_id") or notifier.chat_id
-        await notifier.send_message(target_chat, final_report)
+        parts = _split_telegram_message(final_report, max_len=3800)
+        if len(parts) == 1:
+            await notifier.send_message(target_chat, parts[0])
+        else:
+            total_parts = len(parts)
+            for idx, part in enumerate(parts, start=1):
+                prefix = f"📨 **Hunt report {idx}/{total_parts}**\n"
+                await notifier.send_message(target_chat, prefix + part)
     except Exception as e:
         logger.warning(f"Failed to send completion notification: {e}")
 
