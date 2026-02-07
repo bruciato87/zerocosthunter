@@ -112,7 +112,7 @@ def _localize_council_summary(summary: str) -> str:
          .replace("OWNED_ASSET", "ASSET GIÀ IN PORTAFOGLIO")
     )
 
-def _build_hunt_digest_message(
+def _build_hunt_digest_sections(
     *,
     analyzed_items: int,
     total_time: float,
@@ -128,7 +128,7 @@ def _build_hunt_digest_message(
     sentinel_cards: list,
     ml_training_note: str,
 ):
-    """Build a single Telegram message for the entire hunt run."""
+    """Build ordered digest sections for hunt reporting."""
     sections = []
     header = f"🏹 **Hunt completata**\n🔍 Analizzati {analyzed_items} item in {total_time:.1f}s."
     if ai_footer:
@@ -168,7 +168,41 @@ def _build_hunt_digest_message(
     if flash_tip:
         sections.append(f"💡 {flash_tip}")
 
-    return "\n\n".join(s for s in sections if s)
+    return [s for s in sections if s]
+
+def _build_hunt_digest_message(
+    *,
+    analyzed_items: int,
+    total_time: float,
+    ai_footer: str,
+    processed_count: int,
+    signal_cards: list,
+    propagated_cards: list,
+    watchdog_report: str,
+    audit_report: str,
+    maintenance_report: str,
+    flash_tip: str,
+    sector_signals: list,
+    sentinel_cards: list,
+    ml_training_note: str,
+):
+    """Backwards-compatible helper that concatenates all digest sections."""
+    sections = _build_hunt_digest_sections(
+        analyzed_items=analyzed_items,
+        total_time=total_time,
+        ai_footer=ai_footer,
+        processed_count=processed_count,
+        signal_cards=signal_cards,
+        propagated_cards=propagated_cards,
+        watchdog_report=watchdog_report,
+        audit_report=audit_report,
+        maintenance_report=maintenance_report,
+        flash_tip=flash_tip,
+        sector_signals=sector_signals,
+        sentinel_cards=sentinel_cards,
+        ml_training_note=ml_training_note,
+    )
+    return "\n\n".join(sections)
 
 def _split_telegram_message(text: str, max_len: int = 3800) -> list:
     """
@@ -224,6 +258,51 @@ def _split_telegram_message(text: str, max_len: int = 3800) -> list:
 
     _flush()
     return chunks
+
+def _compose_telegram_messages_from_sections(sections: list, max_len: int = 3800) -> list:
+    """
+    Pack digest sections into telegram-safe messages.
+    Preserves section boundaries where possible.
+    """
+    if not sections:
+        return [""]
+
+    chunks = []
+    current = ""
+
+    def _append_current():
+        nonlocal current
+        if current:
+            chunks.append(current)
+            current = ""
+
+    for section in sections:
+        section = str(section or "").strip()
+        if not section:
+            continue
+
+        candidate = section if not current else f"{current}\n\n{section}"
+        if len(candidate) <= max_len:
+            current = candidate
+            continue
+
+        _append_current()
+        if len(section) <= max_len:
+            current = section
+            continue
+
+        # Section too large: split it safely and keep flow contiguous.
+        sub_parts = _split_telegram_message(section, max_len=max_len)
+        if not sub_parts:
+            continue
+        for idx, sub in enumerate(sub_parts):
+            if idx == len(sub_parts) - 1:
+                current = sub
+            else:
+                chunks.append(sub)
+
+    _append_current()
+    return chunks or [""]
 
 def format_alert_msg(ticker, sentiment, confidence, reasoning, source, pred, stop_loss, take_profit, critic_score, critic_reasoning, council_summary, consensus_data=None, ai_footer=None):
     """
@@ -1540,7 +1619,7 @@ async def run_async_pipeline():
             ai_footer = ""
 
         total_time = timing_module.time() - _run_start_time
-        final_report = _build_hunt_digest_message(
+        sections = _build_hunt_digest_sections(
             analyzed_items=len(analysis_batch),
             total_time=total_time,
             ai_footer=ai_footer,
@@ -1557,7 +1636,7 @@ async def run_async_pipeline():
         )
 
         target_chat = user_settings.get("telegram_chat_id") or notifier.chat_id
-        parts = _split_telegram_message(final_report, max_len=3800)
+        parts = _compose_telegram_messages_from_sections(sections, max_len=3700)
         if len(parts) == 1:
             await notifier.send_message(target_chat, parts[0])
         else:

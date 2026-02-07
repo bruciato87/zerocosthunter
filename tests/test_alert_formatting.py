@@ -1,5 +1,5 @@
 import pytest
-from main import format_alert_msg, _split_telegram_message
+from main import format_alert_msg, _split_telegram_message, _compose_telegram_messages_from_sections
 
 def test_format_alert_msg_unanimous():
     ticker = "BTC"
@@ -116,3 +116,16 @@ def test_split_telegram_message_preserves_all_content():
     assert len(parts) > 1
     assert all(len(p) <= 1200 for p in parts)
     assert "".join(parts).replace("\n\n", "") == long_text.replace("\n\n", "")
+
+def test_compose_messages_from_sections_preserves_order_and_boundaries():
+    sections = [
+        "S1\n" + ("A" * 900),
+        "S2\n" + ("B" * 900),
+        "S3\n" + ("C" * 900),
+    ]
+    parts = _compose_telegram_messages_from_sections(sections, max_len=1200)
+
+    assert len(parts) >= 2
+    assert all(len(p) <= 1200 for p in parts)
+    assert parts[0].startswith("S1")
+    assert "S3" in "".join(parts)
