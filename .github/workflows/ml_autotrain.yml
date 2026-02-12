@@ -2,8 +2,7 @@ name: ML Auto-Retrain
 # Phase 6: Automatic ML Model Refresh
 
 on:
-  schedule:
-    - cron: '0 0 * * 0' # Every Sunday at 00:00 UTC
+  # Schedule disabled: ML weekly training is centralized in market_scan.yml
   workflow_dispatch: # Manual trigger
 
 jobs:

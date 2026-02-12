@@ -2,9 +2,9 @@ name: Market Scan & Hunter 🏹
 
 on:
   schedule:
-    # Hunt runs every 2 hours: 6:00, 8:00-22:00 UTC (Skipping 7:00 for rebalance)
+    # Hunt runs every 3 hours: 6:00, 8:00-23:00 UTC
     - cron: '0 6 * * *'
-    - cron: '0 8-22/2 * * *'
+    - cron: '0 8-23/3 * * *'
     # Daily Rebalancing at 14:45 UTC (15:45 CET - USA Open)
     - cron: '45 14 * * *'
     # Weekly Summary on Sunday at 18:00 UTC (19:00 Italy)
@@ -48,8 +48,8 @@ on:
 jobs:
   hunt:
     runs-on: ubuntu-latest
-    # Run on schedule (6:00 and every 2h 8:00-22:00 UTC) or manual
-    if: github.event.schedule == '0 6 * * *' || github.event.schedule == '0 8-22/2 * * *' || (github.event_name == 'workflow_dispatch' && github.event.inputs.job_type == 'hunt')
+    # Run on schedule (6:00 and every 3h 8:00-23:00 UTC) or manual
+    if: github.event.schedule == '0 6 * * *' || github.event.schedule == '0 8-23/3 * * *' || (github.event_name == 'workflow_dispatch' && github.event.inputs.job_type == 'hunt')
     
     steps:
     - name: Check out code
