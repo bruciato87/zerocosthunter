@@ -1,0 +1,21 @@
+# Local Python environment
+venv/
+.venv/
+
+# Caches and local tooling artifacts
+__pycache__/
+.cache/
+.pytest_cache/
+.coverage
+.DS_Store
+
+# Test and local-only files
+tests/
+run_logs/
+*.log
+*.txt
+RUN_*.md
+ANALISI_PROGETTO.md
+
+# GitHub/CI metadata not needed at runtime
+.github/
