@@ -1,7 +1,6 @@
 -r requirements.txt
 
 # Full hunt/analysis scraping stack (used in CI and GitHub jobs)
-google-genai>=1.50.0
 curl_cffi>=0.13.0
 trafilatura>=1.12.0
 nest-asyncio>=1.6.0
