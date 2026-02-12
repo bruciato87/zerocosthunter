@@ -90,6 +90,23 @@ class Brain:
         # Initialize Council (Phase C)
         self.council = Council(brain_instance=self)
 
+    @staticmethod
+    def _is_rate_limited_error(error_text: str) -> bool:
+        text = str(error_text or "").lower()
+        return (
+            "429" in text
+            or "resource_exhausted" in text
+            or "rate limit" in text
+            or "rate-limit" in text
+        )
+
+    @staticmethod
+    def _is_fast_fail_task(task_type: str) -> bool:
+        """
+        Tasks that should fail fast on provider saturation to avoid long retry loops.
+        """
+        return str(task_type or "").lower() in {"simple", "vision_portfolio", "vision_sale"}
+
     def _get_best_gemini_model(self, excluded_models: list = None) -> str:
         """
         Dynamically discovers best available Gemini model.
@@ -509,8 +526,9 @@ class Brain:
             raise Exception("OPENROUTER_API_KEY not configured")
 
         excluded_models = []
-        max_retries = 8  # INCREASED: More attempts before giving up
-        request_timeout = 60  # INCREASED: Thinking models take time
+        fast_fail = self._is_fast_fail_task(task_type)
+        max_retries = 3 if fast_fail else 8
+        request_timeout = 45 if fast_fail else 60  # Thinking models may take longer on non-fast-fail paths
 
         for attempt in range(max_retries):
             # On first attempt, use passed model OR discover. On retries, ALWAYS rediscover.
@@ -634,6 +652,9 @@ class Brain:
                     error_text = response.text[:300] if response.text else ""
                     logger.warning(f"OpenRouter Error ({response.status_code}) with {current_model}: {error_text}")
                     excluded_models.append(current_model)
+
+                    if response.status_code == 429 and fast_fail:
+                        raise Exception("OpenRouter rate limit (429)")
                     
                     # If error was 400 (Bad Request - likely Context Length), invalidate cache to force re-selection
                     if response.status_code == 400:
@@ -655,6 +676,8 @@ class Brain:
                     
             except Exception as e:
                 logger.warning(f"OpenRouter Attempt {attempt+1} failed with {current_model}: {e}")
+                if fast_fail and self._is_rate_limited_error(str(e)):
+                    raise
                 excluded_models.append(current_model)
                 if attempt == max_retries - 1:
                     raise e
@@ -750,12 +773,15 @@ class Brain:
         3. Emergency Gemini Static Fallback
         """
         BACKGROUND_TASKS = ["hunt", "council_debate", "council_critique", "council_rebalance"]
+        fast_fail = self._is_fast_fail_task(task_type)
+        last_error = None
         
         excluded_gemini = []
 
         # Step 1: Attempt Gemini Direct (Discovered)
         if self.gemini_client:
-            max_gemini_retries = 5
+            max_gemini_retries = 2 if fast_fail else 5
+            gemini_rate_limit_hits = 0
             for attempt in range(max_gemini_retries):
                 try:
                     target_gemini = self._get_best_gemini_model(excluded_models=excluded_gemini)
@@ -765,13 +791,19 @@ class Brain:
                     try:
                         return self._call_gemini_fallback(prompt, json_mode=json_mode, model=target_gemini, task_type=task_type)
                     except Exception as e:
+                        last_error = e
                         error_msg = str(e)
-                        if "429" in error_msg or "RESOURCE_EXHAUSTED" in error_msg:
+                        if self._is_rate_limited_error(error_msg):
                             logger.warning(f"Gemini {target_gemini} exhausted (429). Trying next discovered model...")
+                            gemini_rate_limit_hits += 1
                         else:
                             logger.error(f"Gemini {target_gemini} failed: {e}. Trying next discovered model...")
                         excluded_gemini.append(target_gemini)
+                        if fast_fail and gemini_rate_limit_hits >= 2:
+                            logger.warning("Fast-fail: Gemini saturated for this request. Escalating to OpenRouter once.")
+                            break
                 except Exception as e:
+                    last_error = e
                     logger.warning(f"Gemini discovery/call failed at attempt {attempt+1}: {e}")
                     break # Critical failure in discovery logic
 
@@ -781,18 +813,27 @@ class Brain:
                 # Pass task_type down to OpenRouter call for tracking
                 return self._call_openrouter([{"role": "user", "content": prompt}], json_mode=json_mode, model=model, min_context_needed=min_context_needed, task_type=task_type)
             except Exception as e:
+                last_error = e
                 logger.warning(f"OpenRouter pool failed: {e}")
+                if fast_fail and self._is_rate_limited_error(str(e)):
+                    raise Exception("Servizio AI temporaneamente in rate limit (429). Riprova tra 2-5 minuti.")
 
 
         # Step 3: Emergency Fallback (If everything else failed, try any remaining Gemini tier)
+        if fast_fail:
+            if self._is_rate_limited_error(str(last_error or "")):
+                raise Exception("Servizio AI temporaneamente in rate limit (429). Riprova tra 2-5 minuti.")
+            raise Exception(f"AI Generation Failed (fast-fail) for {task_type}: {last_error or 'Unknown error'}")
+
         if self.gemini_client:
             logger.info(f"Triggering Emergency tiered Gemini fallback for {task_type}...")
             try:
                 return self._call_gemini_with_tiered_fallback(prompt, json_mode, task_type=task_type)
             except Exception as e:
+                last_error = e
                 logger.error(f"Emergency fallback failed: {e}")
 
-        raise Exception(f"AI Generation Failed: All providers (Gemini/OpenRouter) failed for {task_type}")
+        raise Exception(f"AI Generation Failed: All providers (Gemini/OpenRouter) failed for {task_type}. Last error: {last_error}")
 
     def _call_gemini_with_tiered_fallback(self, prompt: str, json_mode: bool, task_type: str = "emergency_fallback") -> str:
         """
@@ -1541,7 +1582,7 @@ class Brain:
             # Use improved fallback loop for Vision too
             excluded_gemini = []
             response_text = None
-            max_gemini_retries = 5
+            max_gemini_retries = 2
             
             for attempt in range(max_gemini_retries):
                 try:
@@ -1839,9 +1880,12 @@ class Brain:
 
         except Exception as e:
             logger.error(f"Error parsing PDF: {e}")
+            err_text = str(e)
             if "Stream has ended unexpectedly" in str(e) or "EOF marker not found" in str(e):
                 return {"error": "Documento PDF corrotto o non valido. Assicurati di caricare la 'Conferma d'ordine' originale."}
-            return {"error": str(e)}
+            if self._is_rate_limited_error(err_text):
+                return {"error": "Servizio AI temporaneamente in rate limit. Riprova tra 2-5 minuti."}
+            return {"error": err_text}
 
     def parse_sale_from_image(self, image_path: str) -> dict:
         """
@@ -1909,7 +1953,7 @@ class Brain:
             # Use improved fallback loop
             excluded_gemini = []
             response_text = None
-            max_gemini_retries = 5
+            max_gemini_retries = 2
             
             for attempt in range(max_gemini_retries):
                 try:
@@ -1940,7 +1984,10 @@ class Brain:
 
         except Exception as e:
             logger.error(f"Error parsing sale image: {e}")
-            return {"error": str(e)}
+            err_text = str(e)
+            if self._is_rate_limited_error(err_text):
+                return {"error": "Servizio AI temporaneamente in rate limit. Riprova tra 2-5 minuti."}
+            return {"error": err_text}
 
     def generate_deep_dive(self, ticker: str, news_list: list, technical_data: str, portfolio_context: str = None, backtest_context: str = None, macro_context: str = None, whale_context: str = None, l1_context: str = None):
         """

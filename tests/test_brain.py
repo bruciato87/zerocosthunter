@@ -158,6 +158,40 @@ def test_priority_logic(mock_brain_deps, mocker):
     result = brain._generate_with_fallback("Prompt", task_type="hunt")
     assert result == "OR_WIN"
 
+def test_fast_fail_simple_task_on_rate_limit(mock_brain_deps, mocker):
+    """Simple/PDF tasks should not enter long fallback loops when providers return 429."""
+    brain = Brain()
+    brain.gemini_api_key = "fake"
+    brain.openrouter_api_key = "fake"
+
+    mocker.patch.object(
+        brain,
+        "_get_best_gemini_model",
+        side_effect=["gemini-2.0-flash", "gemini-2.0-flash-lite", None],
+    )
+    mock_gemini = mocker.patch.object(
+        brain,
+        "_call_gemini_fallback",
+        side_effect=Exception("429 Resource Exhausted"),
+    )
+    mock_openrouter = mocker.patch.object(
+        brain,
+        "_call_openrouter",
+        side_effect=Exception("429 Provider rate limit"),
+    )
+    mock_tiered = mocker.patch.object(
+        brain,
+        "_call_gemini_with_tiered_fallback",
+        return_value="SHOULD_NOT_BE_USED",
+    )
+
+    with pytest.raises(Exception, match="rate limit"):
+        brain._generate_with_fallback("Prompt", task_type="simple")
+
+    assert mock_gemini.call_count <= 2
+    assert mock_openrouter.call_count == 1
+    mock_tiered.assert_not_called()
+
 def test_new_sentiments_support(mock_brain_deps, mocker, monkeypatch):
     """Verify system handles new 'WATCH' and 'AVOID' sentiments if returned by AI."""
     monkeypatch.setenv("OPENROUTER_API_KEY", "fake_router_key")
