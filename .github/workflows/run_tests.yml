@@ -21,7 +21,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        if [ -f requirements-full.txt ]; then pip install -r requirements-full.txt; elif [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         pip install pytest pytest-mock pytest-cov pytest-asyncio
         
     - name: Run Tests

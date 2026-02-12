@@ -9,7 +9,6 @@ from flask import Flask, request, render_template, redirect, session, url_for, f
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, BotCommand
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
 import yfinance as yf
-import pandas as pd
 from datetime import datetime, timezone
 import sys
 import httpx
@@ -17,11 +16,9 @@ import httpx
 # Add parent directory to sys.path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from brain import Brain
 from db_handler import DBHandler
 from hunter import NewsHunter
 from market_data import MarketData
-from main import run_async_pipeline
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -1036,6 +1033,7 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         file_path = f"/tmp/photo_{user_id}.jpg"
         await file_obj.download_to_drive(file_path)
 
+        from brain import Brain
         brain = Brain()
         holdings = brain.parse_portfolio_from_image(file_path)
         

@@ -64,7 +64,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        if [ -f requirements-full.txt ]; then pip install -r requirements-full.txt; elif [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
     - name: Run Tests
       env:
@@ -109,7 +109,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        if [ -f requirements-full.txt ]; then pip install -r requirements-full.txt; elif [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
     - name: Run Daily Rebalancing
       env:
@@ -142,7 +142,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        if [ -f requirements-full.txt ]; then pip install -r requirements-full.txt; elif [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
     - name: Send Weekly Summary
       env:
@@ -172,7 +172,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        if [ -f requirements-full.txt ]; then pip install -r requirements-full.txt; elif [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
     - name: Run Deep Dive Analysis
       env:
@@ -206,7 +206,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        if [ -f requirements-full.txt ]; then pip install -r requirements-full.txt; elif [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
     - name: Run Portfolio Backtest
       env:
@@ -239,7 +239,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        if [ -f requirements-full.txt ]; then pip install -r requirements-full.txt; elif [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
     - name: Run ML Training
       env:

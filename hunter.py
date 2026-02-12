@@ -10,8 +10,17 @@ logger = logging.getLogger(__name__)
 if hasattr(ssl, '_create_unverified_context'):
     ssl._create_default_https_context = ssl._create_unverified_context
 
-import trafilatura # Added for Full-Text Scraping
-from curl_cffi import requests # 🚀 UPGRADE: TLS Fingerprint Spoofing
+try:
+    import trafilatura  # Optional: full-text extraction quality
+except Exception:
+    trafilatura = None
+
+try:
+    from curl_cffi import requests as _http_requests  # Optional: browser impersonation
+    _HAS_CURL_CFFI = True
+except Exception:
+    import requests as _http_requests
+    _HAS_CURL_CFFI = False
 
 # ... imports ...
 
@@ -54,16 +63,28 @@ class NewsHunter:
 
     def _fetch_url_impersonate(self, url, browser_type="chrome120"):
         """Helper to fetch URL with specific browser impersonation."""
-        return requests.get(
-            url, 
-            impersonate=browser_type, 
-            timeout=10,
-            headers={
+        kwargs = {
+            "timeout": 10,
+            "headers": {
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
                 'Referer': 'https://www.google.com/',
                 'Upgrade-Insecure-Requests': '1'
-            }
-        )
+            },
+        }
+        if _HAS_CURL_CFFI:
+            kwargs["impersonate"] = browser_type
+        return _http_requests.get(url, **kwargs)
+
+    def _extract_full_text(self, html: str):
+        """Extract readable full text when trafilatura is available."""
+        if not html:
+            return None
+        if trafilatura is None:
+            return None
+        try:
+            return trafilatura.extract(html)
+        except Exception:
+            return None
 
     def _fetch_full_text(self, url):
         """
@@ -85,7 +106,7 @@ class NewsHunter:
             response = self._fetch_url_impersonate(url, "chrome120")
             
             if response.status_code == 200:
-                content = trafilatura.extract(response.text)
+                content = self._extract_full_text(response.text)
                 if content:
                     db.save_news_cache(url, content)  # Save to cache
                 return content
@@ -101,7 +122,7 @@ class NewsHunter:
                 response = self._fetch_url_impersonate(url, "safari15_5")
                 if response.status_code == 200:
                    logger.info(f"Safari bypass successful for {url}!")
-                   content = trafilatura.extract(response.text)
+                   content = self._extract_full_text(response.text)
                    if content:
                        db.save_news_cache(url, content)  # Save to cache
                    return content
@@ -114,7 +135,7 @@ class NewsHunter:
                 response = self._fetch_url_impersonate(cache_url, "chrome110")
                 if response.status_code == 200:
                      logger.info(f"Google Cache hit for {url}!")
-                     content = trafilatura.extract(response.text)
+                     content = self._extract_full_text(response.text)
                      if content:
                          db.save_news_cache(url, content)  # Save to cache
                      return content

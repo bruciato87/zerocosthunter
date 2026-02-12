@@ -30,7 +30,12 @@ jobs:
           cache: 'pip'
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: |
+          if [ -f requirements-full.txt ]; then
+            pip install -r requirements-full.txt
+          else
+            pip install -r requirements.txt
+          fi
 
       - name: Run Position Watchdog
         run: python position_watchdog.py
