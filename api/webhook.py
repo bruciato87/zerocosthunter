@@ -3,6 +3,8 @@ import logging
 import asyncio
 import json
 import time
+import re
+import base64
 from contextvars import ContextVar
 from pathlib import Path
 from flask import Flask, request, render_template, redirect, session, url_for, flash
@@ -334,6 +336,159 @@ async def hunt_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         logger.error(f"GitHub Actions trigger error: {e}")
         await update.message.reply_text(f"⚠️ Errore trigger: {str(e)[:100]}")
+
+def _build_hunt_crons(interval_hours: int) -> tuple[str, str]:
+    """Build hunt cron expressions preserving current cadence model."""
+    return "0 6 * * *", f"0 8-23/{interval_hours} * * *"
+
+
+def _extract_hunt_interval_hours(workflow_text: str) -> int | None:
+    """Extract current hunt interval hours from market_scan workflow content."""
+    match = re.search(r"-\s*cron:\s*'0 8-23/(\d+) \* \* \*'", workflow_text)
+    if not match:
+        return None
+    try:
+        return int(match.group(1))
+    except Exception:
+        return None
+
+
+def _patch_hunt_schedule_in_workflow(workflow_text: str, interval_hours: int) -> str:
+    """Update hunt schedule crons + hunt job condition in market_scan workflow."""
+    cron_first, cron_step = _build_hunt_crons(interval_hours)
+
+    schedule_block_pattern = re.compile(
+        r"(?ms)^(\s*# Hunt runs every[^\n]*\n)\s*-\s*cron:\s*'[^']+'\n\s*-\s*cron:\s*'[^']+'"
+    )
+    schedule_replacement = (
+        f"    # Hunt runs every {interval_hours} hours: 6:00, 8:00-23:00 UTC\n"
+        f"    - cron: '{cron_first}'\n"
+        f"    - cron: '{cron_step}'"
+    )
+    patched = schedule_block_pattern.sub(schedule_replacement, workflow_text, count=1)
+
+    hunt_if_pattern = re.compile(
+        r"if:\s*github\.event\.schedule == '[^']+'\s*\|\|\s*github\.event\.schedule == '[^']+'\s*\|\|\s*\(github\.event_name == 'workflow_dispatch' && github\.event\.inputs\.job_type == 'hunt'\)"
+    )
+    hunt_if_replacement = (
+        f"if: github.event.schedule == '{cron_first}' || "
+        f"github.event.schedule == '{cron_step}' || "
+        "(github.event_name == 'workflow_dispatch' && github.event.inputs.job_type == 'hunt')"
+    )
+    patched = hunt_if_pattern.sub(hunt_if_replacement, patched, count=1)
+
+    hunt_comment_pattern = re.compile(r"# Run on schedule \([^\n]*\) or manual")
+    hunt_comment_replacement = f"# Run on schedule (6:00 and every {interval_hours}h 8:00-23:00 UTC) or manual"
+    patched = hunt_comment_pattern.sub(hunt_comment_replacement, patched, count=1)
+
+    return patched
+
+
+@debounce_command
+async def huntschedule_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Show or update /hunt GitHub schedule.
+    Usage:
+    - /huntschedule
+    - /huntschedule status
+    - /huntschedule 3
+    - /huntschedule set 3
+    """
+    github_token = os.environ.get("GITHUB_TOKEN")
+    github_repo = os.environ.get("GITHUB_REPO", "bruciato87/zerocosthunter")
+    workflow_path = ".github/workflows/market_scan.yml"
+
+    if not github_token:
+        await update.message.reply_text(
+            "❌ Impossibile gestire la schedulazione: manca `GITHUB_TOKEN`."
+        )
+        return
+
+    args = [str(a).strip().lower() for a in (context.args or []) if str(a).strip()]
+    wants_status = (not args) or args[0] == "status"
+
+    target_interval = None
+    if not wants_status:
+        raw = args[1] if args[0] == "set" and len(args) > 1 else args[0]
+        try:
+            target_interval = int(raw)
+        except Exception:
+            await update.message.reply_text(
+                "❌ Uso corretto: `/huntschedule status` oppure `/huntschedule set <ore>` (es. `/huntschedule set 3`).",
+                parse_mode="Markdown",
+            )
+            return
+        if target_interval < 1 or target_interval > 12:
+            await update.message.reply_text("❌ Intervallo non valido. Usa un valore tra 1 e 12 ore.")
+            return
+
+    headers = {
+        "Authorization": f"Bearer {github_token}",
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }
+    contents_url = f"https://api.github.com/repos/{github_repo}/contents/{workflow_path}"
+
+    try:
+        async with httpx.AsyncClient() as client:
+            current_resp = await client.get(contents_url, headers=headers, params={"ref": "main"}, timeout=12)
+            if current_resp.status_code != 200:
+                logger.error("HuntSchedule: cannot read workflow (%s): %s", current_resp.status_code, current_resp.text)
+                await update.message.reply_text(f"⚠️ Errore lettura workflow GitHub: {current_resp.status_code}")
+                return
+
+            payload = current_resp.json()
+            current_sha = payload.get("sha")
+            encoded_content = payload.get("content", "")
+            workflow_text = base64.b64decode(encoded_content).decode("utf-8")
+            current_interval = _extract_hunt_interval_hours(workflow_text)
+
+            if wants_status:
+                if current_interval:
+                    await update.message.reply_text(
+                        f"⏱️ Schedulazione `/hunt` attuale: **ogni {current_interval} ore**.\n"
+                        "Usa `/huntschedule set <ore>` per modificarla.",
+                        parse_mode="Markdown",
+                    )
+                else:
+                    await update.message.reply_text(
+                        "⚠️ Non sono riuscito a rilevare l'intervallo attuale nel workflow."
+                    )
+                return
+
+            if current_interval == target_interval:
+                await update.message.reply_text(
+                    f"ℹ️ Nessuna modifica: `/hunt` è già schedulato ogni {target_interval} ore."
+                )
+                return
+
+            patched_workflow = _patch_hunt_schedule_in_workflow(workflow_text, target_interval)
+            if patched_workflow == workflow_text:
+                await update.message.reply_text(
+                    "⚠️ Non ho trovato i blocchi attesi nel workflow. Modifica non applicata."
+                )
+                return
+
+            update_payload = {
+                "message": f"chore(schedule): set hunt cadence to every {target_interval}h via telegram",
+                "content": base64.b64encode(patched_workflow.encode("utf-8")).decode("utf-8"),
+                "sha": current_sha,
+                "branch": "main",
+            }
+            put_resp = await client.put(contents_url, headers=headers, json=update_payload, timeout=15)
+            if put_resp.status_code in (200, 201):
+                await update.message.reply_text(
+                    f"✅ Schedulazione aggiornata: `/hunt` ora parte ogni **{target_interval} ore**."
+                    "\nLa modifica è stata salvata su GitHub (`market_scan.yml`).",
+                    parse_mode="Markdown",
+                )
+            else:
+                logger.error("HuntSchedule: update failed (%s): %s", put_resp.status_code, put_resp.text)
+                await update.message.reply_text(f"⚠️ Aggiornamento fallito: {put_resp.status_code}")
+
+    except Exception as e:
+        logger.error("HuntSchedule command error: %s", e)
+        await update.message.reply_text(f"⚠️ Errore durante l'aggiornamento: {str(e)[:120]}")
 
 async def dashboard_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     app_url = os.environ.get("APP_URL", "https://zerocosthunter.vercel.app")
@@ -720,6 +875,7 @@ async def setup_bot_commands(bot):
     commands = [
         # Core
         BotCommand("hunt", "🏹 Analisi News (Caccia Segnali)"),
+        BotCommand("huntschedule", "⏱️ Schedulazione /hunt (GitHub)"),
         BotCommand("portfolio", "📊 Portfolio & Prezzi Live"),
         BotCommand("analyze", "🔬 Deep Dive Ticker"),
         BotCommand("rebalance", "⚖️ Suggerimenti Ribilanciamento"),
@@ -776,6 +932,8 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
         "🏹 **SEGNALI AI**\n"
         "• `/hunt` - Analisi news del giorno\n"
+        "• `/huntschedule status` - Mostra frequenza schedulata di /hunt\n"
+        "• `/huntschedule set 3` - Imposta /hunt ogni 3 ore\n"
         "• `/analyze <TICKER>` - Deep dive sull'asset\n"
         "• `/rebalance` - Suggerimenti ribilanciamento\n"
         "• `/harvest` - 💰 Tax-Loss Harvesting (Minusvalenze)\n"
@@ -1936,6 +2094,7 @@ def webhook():
                 bot_app.add_handler(CommandHandler("start", start))
                 bot_app.add_handler(CommandHandler("help", help_command))
                 bot_app.add_handler(CommandHandler("hunt", hunt_command))
+                bot_app.add_handler(CommandHandler("huntschedule", huntschedule_command))
                 bot_app.add_handler(CommandHandler("harvest", harvest_command))
                 bot_app.add_handler(CommandHandler("sectors", sectors_command))
                 bot_app.add_handler(CommandHandler("portfolio", show_portfolio))

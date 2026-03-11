@@ -1,11 +1,5 @@
 name: Position Watchdog
 on:
-  schedule:
-    # Distributed throughout the day (UTC times, CET = UTC+1)
-    - cron: '0 7 * * *'   # 08:00 CET - Pre-market check
-    - cron: '0 11 * * *'  # 12:00 CET - Mid-day momentum
-    - cron: '0 15 * * *'  # 16:00 CET - Pre-close EU
-    - cron: '0 19 * * *'  # 20:00 CET - Post-close EU, US/Crypto
   workflow_dispatch:  # Manual trigger
 
 env:
